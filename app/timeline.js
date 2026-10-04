@@ -1,11 +1,14 @@
 // Editor-style timeline under the stage: image clips with ◆ transitions between them, the song waveform and the lyric lines.
 // It only draws and interprets gestures; every change goes through the `api` handed in by sequence.js.
-const TRACK_H = { img: 64, aud: 48, lyr: 34 };
+const DEFAULT_LYRIC_HEIGHT = 72;
 const RULER_H = 24, HEAD_W = 64, EDGE = 7;
 
 export function createTimeline(root, api) {
   const el = (tag, cls, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; parent?.append(e); return e; };
+  const TRACK_H = { img: 64, aud: 48, lyr: DEFAULT_LYRIC_HEIGHT };
   root.replaceChildren();
+  const heightHandle=el('div','tl-height-handle',root);
+  heightHandle.tabIndex=0;heightHandle.setAttribute('role','separator');heightHandle.setAttribute('aria-orientation','horizontal');heightHandle.setAttribute('aria-label','歌詞タイムラインの高さ');heightHandle.title='上へドラッグで歌詞を広く表示・上下キーで調整・ダブルクリックで戻す';
   const bar = el('div', 'tl-bar', root);
   const body = el('div', 'tl-body', root);
   const heads = el('div', 'tl-heads', body);
@@ -24,7 +27,7 @@ export function createTimeline(root, api) {
   imgTrack.style.top = RULER_H + 'px'; imgTrack.style.height = TRACK_H.img + 'px';
   audTrack.style.top = RULER_H + TRACK_H.img + 'px'; audTrack.style.height = TRACK_H.aud + 'px';
   lyrTrack.style.top = RULER_H + TRACK_H.img + TRACK_H.aud + 'px'; lyrTrack.style.height = TRACK_H.lyr + 'px';
-  const totalH = RULER_H + TRACK_H.img + TRACK_H.aud + TRACK_H.lyr;
+  let totalH = RULER_H + TRACK_H.img + TRACK_H.aud + TRACK_H.lyr;
   content.style.height = totalH + 'px';
 
   // toolbar
@@ -59,6 +62,7 @@ export function createTimeline(root, api) {
   function fit() {
     const w = Math.max(200, scroller.clientWidth - 20);
     pps = Math.max(2, Math.min(400, w / Math.max(5, total)));
+    scroller.scrollLeft = 0;
     render();
   }
   function zoomAt(f, anchorX) {
@@ -116,7 +120,13 @@ export function createTimeline(root, api) {
       b.style.left = start * pps + 'px'; b.style.width = Math.max(8, (end - start) * pps - 2) + 'px';
       b.dataset.kind = 'lyric'; b.dataset.i = i;
       b.textContent = l.t.replace(/\//g, ' ');
-      b.title = 'ドラッグでタイミング、ダブルクリックで文字を修正';
+      b.title = `${l.t}
+${l.s.toFixed(2)} - ${(end+s.offset).toFixed(2)}秒
+中央をドラッグで移動・左右の端で長さ調整`;
+      if(s.lyricMode==='overlay'&&!l.isBoundary){
+        el('div','tl-edge left',b).dataset.edge='lyricStart';
+        el('div','tl-edge right',b).dataset.edge='lyricEnd';
+      }
     });
     // audio block
     audTrack.replaceChildren();
@@ -204,7 +214,7 @@ export function createTimeline(root, api) {
       if (kind !== 'audio') api.select({ kind, i });
       drag = { mode: edge || kind, i, x: e.clientX, moved: false, target };
     }
-    scroller.setPointerCapture(e.pointerId);
+    e.preventDefault();scroller.setPointerCapture(e.pointerId);
   });
   scroller.addEventListener('pointermove', e => {
     if (!drag) return;
@@ -229,6 +239,7 @@ export function createTimeline(root, api) {
     marker.style.display = 'none';
     drag = null;
   });
+  scroller.addEventListener('pointercancel', () => {if(drag?.moved)api.endEdit();drag=null;marker.style.display='none';});
   scroller.addEventListener('dblclick', e => {
     const b = e.target.closest('.tl-lyric');
     if (b) api.editLyricText(Number(b.dataset.i));
@@ -250,6 +261,27 @@ export function createTimeline(root, api) {
     for (let k = 0; k <= lay.slides.length; k++) { const d = Math.abs(gapX(k) / pps - t); if (d < bd) { bd = d; best = k; } }
     return best;
   }
+
+
+  let heightDrag=null,preferredHeight=DEFAULT_LYRIC_HEIGHT;
+  const heightKey='unfold-lyric-track-height';
+  try{const n=Number(localStorage.getItem(heightKey));if(Number.isFinite(n)&&n>=DEFAULT_LYRIC_HEIGHT)preferredHeight=n}catch{}
+  function setHeight(n,save=false){
+    const max=Math.max(DEFAULT_LYRIC_HEIGHT,Math.min(360,innerHeight-440));
+    TRACK_H.lyr=Math.round(Math.max(DEFAULT_LYRIC_HEIGHT,Math.min(max,n)));
+    totalH=RULER_H+TRACK_H.img+TRACK_H.aud+TRACK_H.lyr;
+    content.style.height=totalH+'px';lyrTrack.style.height=TRACK_H.lyr+'px';heads.lastElementChild.style.height=TRACK_H.lyr+'px';
+    heightHandle.setAttribute('aria-valuemin',String(DEFAULT_LYRIC_HEIGHT));heightHandle.setAttribute('aria-valuemax',String(max));heightHandle.setAttribute('aria-valuenow',String(TRACK_H.lyr));
+    setTime(api.state().t,false);
+    if(save){preferredHeight=TRACK_H.lyr;try{localStorage.setItem(heightKey,String(preferredHeight))}catch{}}
+  }
+  heightHandle.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();heightHandle.focus();heightDrag={id:e.pointerId,y:e.clientY,h:TRACK_H.lyr};heightHandle.setPointerCapture(e.pointerId)});
+  heightHandle.addEventListener('pointermove',e=>{if(heightDrag?.id===e.pointerId)setHeight(heightDrag.h+heightDrag.y-e.clientY)});
+  const endHeight=e=>{if(heightDrag?.id!==e.pointerId)return;heightDrag=null;setHeight(TRACK_H.lyr,true)};
+  for(const ev of ['pointerup','pointercancel','lostpointercapture'])heightHandle.addEventListener(ev,endHeight);
+  heightHandle.addEventListener('dblclick',()=>setHeight(DEFAULT_LYRIC_HEIGHT,true));
+  heightHandle.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();setHeight(TRACK_H.lyr+(e.key==='ArrowUp'?20:-20),true)}});
+  window.addEventListener('resize',()=>setHeight(preferredHeight));setHeight(preferredHeight);
 
   return { render, fit, setTime, setStatus: t => { status.textContent = t; } };
 }

@@ -1,10 +1,10 @@
 import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=2';
-import {createLyricControls} from './lyric-controls.js?v=2';
+import {createLyricControls} from './lyric-controls.js?v=3';
 import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=2';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
 import {createLyricOverlay} from './lyric-overlay.js?v=2';
 import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=2';
-import {movieDuration,getTimings,moveLyric,createTapSession} from './lyric-timing.js?v=2';
+import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPreviewTime} from './lyric-timing.js?v=3';
 import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=2';
 import { createShotControls } from './shot-motion-controls.js?v=2';
@@ -27,7 +27,7 @@ import { applyTiles, tilesAcross } from './tile-size.js?v=1';
 import { ALL, UNGROUPED, cleanGroupName, groupOf, groupSelect, inGroup, loadActive, renderTabs, saveActive, validActive, wantsTabs } from './model-groups.js?v=1';
 import { modelThumb, fillMissingThumbs } from './model-thumb.js?v=1';
 import { particleParts } from './model-layout.js?v=10';
-import { createTimeline } from './timeline.js?v=5';
+import { createTimeline } from './timeline.js?v=6';
 import { lookView, lookViewText } from './look-view.js?v=1';
 import { BUILTIN_KEYS, getCustom, isCustomKey, isUsable, listCustom, methodEntries, methodLabel, newCustomId, onRegistryChange, registerCustom, setCustomStatus, unregisterCustom } from './method-registry.js';
 import { compileUserMethod, createVariants } from './custom-method.js';
@@ -672,7 +672,15 @@ export async function lyricAction(a){
  if(a.type==='text'){if(a.value===(seq.lyricDocument?.sourceText||''))return;lyricRevision++;lyricTap=null;lyricTapping=false;edit(()=>setLyricDocument(assignLyricMotions(parseLyrics(a.value,seq.lyricDocument),{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7})));return}
  if(a.type==='import'){const value=await a.file.text();let restored=null;if(/\.json$/i.test(a.file.name))restored=lyricTimingDocument(JSON.parse(value));lyricRevision++;edit(()=>setLyricDocument(restored||assignLyricMotions(/\.(json|lrc)$/i.test(a.file.name)?importTimedLyrics(parseTimings(value,a.file.name),'file'):parseLyrics(value),{style:'readable',seed:7})));return}
  if(a.type==='candidate'){const c=lyricExtraction?.candidates.find(c=>c.id===a.id);if(c){lyricRevision++;edit(()=>applyCandidate(c))}return}
- if(a.type==='shuffle'){edit(()=>setLyricDocument(assignLyricMotions(seq.lyricDocument||parseLyrics(''),{style:a.style,seed:(seq.lyricDocument?.seed||7)+1})));return}
+ if(a.type==='shuffle'){
+  const doc=seq.lyricDocument;
+  if(!doc?.events.some(e=>e.kind==='line'&&e.decision==='lyric')){notice('先に歌詞を入れてください。');return}
+  edit(()=>setLyricDocument({...assignLyricMotions(doc,{style:a.style,seed:(doc.seed||7)+1}),enabled:true}));
+  const at=lyricPreviewTime(seq.lyricDocument,seq.t+seq.offset,seq.audioBuffer?.duration||12,seq.offset,totalSeconds());
+  if(at===null){notice('動画の時間内に表示できる歌詞がありません。時刻を確認してください。');return}
+  stopPlay();seek(Math.max(0,at-seq.offset));startPlay();
+  lyricStatus='動きを割り当てて、歌詞のある位置から再生しています。';lyricControls?.refresh();return
+ }
  if(a.type==='resolve'){lyricRevision++;edit(()=>setLyricDocument(assignLyricMotions(resolveUnknown(seq.lyricDocument,a.id,a.decision),{style:seq.lyricDocument.style,seed:seq.lyricDocument.seed})));return}
  if(a.type==='edit'){lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id);if(!e)return;const patch={...a.patch};if(patch.section)patch.sectionOverride=patch.section;if(patch.raw!=null){patch.runs=lyricRuns(patch.raw);patch.text=patch.runs.map(x=>x.text).join('')}if(patch.motion)patch.motion=cleanMotion(patch.motion);Object.assign(e,patch);d.sourceText=d.events.map(e=>e.raw).join('\n');setLyricDocument(d)});return}
  if(a.type==='nudge'){edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id),t=getTimings(d,seq.audioBuffer?.duration||12).events.find(e=>e.id===a.id);if(e&&t)e.s=t.start;setLyricDocument(moveLyric(d,a.id,a.delta))});return}
@@ -1257,6 +1265,9 @@ function dragEdit(mode, i, dt, base, snap, snapOn) {
   } else if (mode === 'lyric') {
     const t = base.lyrics[i] + dt;
     moveLyricTo(i, snapOn&&!seq.lyricDocument ? snapSong(t) : t, base);
+  } else if ((mode === 'lyricStart' || mode === 'lyricEnd') && base.document) {
+    seq.lyricDocument=trimLyric(base.document,base.lyricIds[i],mode==='lyricStart'?'start':'end',dt,seq.audioBuffer?.duration||12);
+    lyricRevision++;lyricTap=null;lyricTapping=false;syncOverlayLyrics();lyricControls?.refresh();
   } else if (mode === 'audio') {
     seq.offset = base.offset - dt; $('seq-offset').value = seq.offset.toFixed(2);
   }

@@ -18,3 +18,13 @@
 .lm-controls .lm-field:has(input[type=file]){display:grid;grid-template-columns:minmax(0,1fr)}
 .lm-controls .lm-drop,.lm-controls .lm-event,.lm-controls .lm-advanced{min-width:0}
 .lm-controls .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.tl-height-handle{height:12px;position:relative;cursor:row-resize;touch-action:none;background:#1b2525;outline:none}
+.tl-height-handle::after{content:'';position:absolute;left:calc(50% - 30px);top:4px;height:4px;width:60px;border-radius:4px;background:#70816d}
+.tl-height-handle:hover::after,.tl-height-handle:focus-visible::after{background:#d9f878}
+.tl-lyric{font-size:13px;line-height:1.55;white-space:normal;overflow-wrap:anywhere;padding:6px 10px}
+.tl-lyric .tl-edge{width:8px;background:#d9f87820;touch-action:none}
+.tl-lyric .tl-edge:hover{background:#d9f87880}
+@media(min-width:1101px){
+  main.seq3>.stage-wrap{container-type:size}
+  main.seq3 #seq-stage{flex:none;width:min(100%,calc(max(90px,100cqh - 90px) * 16 / 9));height:auto;aspect-ratio:16/9}
+}

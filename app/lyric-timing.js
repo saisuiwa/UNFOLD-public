@@ -8,3 +8,21 @@ export function activeLyric(doc,songSec,duration){if(!doc?.enabled)return null;r
 export function movieDuration({document,audioDuration,offset=0,backgroundDuration=0}){if(!document?.enabled)return backgroundDuration;if(document.durationMode==='song'&&audioDuration>0)return Math.max(0,audioDuration-offset);return backgroundDuration||12;}
 export function moveLyric(doc,id,delta){const d=structuredClone(doc),e=d.events.find(e=>e.id===id);if(e){e.s=Math.max(0,Math.round(((valid(e.s)?e.s:0)+delta)*1000)/1000);if(valid(e.e))e.e=Math.max(e.s,e.e+delta);e.timingSource='manual'}return d;}
 export function createTapSession(doc,duration){let d=structuredClone(doc),events=timingEvents(d),i=events.findIndex(e=>!valid(e.s)),paused=false;if(i<0)i=0;return {current:()=>paused?null:events[i]||null,tap(songSec){if(paused||!events[i]||!Number.isFinite(songSec))return;events[i].s=Math.max(0,songSec);events[i].timingSource='tap';i++},back(){if(i>0)i--;if(events[i]){events[i].s=null;events[i].timingSource='none'}return Math.max(0,(events[i-1]?.s||0)-1)},stop(){paused=true;return structuredClone(d)},resume(){paused=false}};}
+
+// Start at a visible lyric, including when the playhead is in an intro or gap.
+export function lyricPreviewTime(doc, songSec, duration, offset=0, movieLength=Infinity) {
+ const lines=getTimings(doc,duration).events.filter(e=>e.kind==='line'&&e.end>Math.max(e.start,offset)&&e.start<offset+movieLength);
+ const target=lines.find(e=>songSec>=e.start&&songSec<e.end)||lines.find(e=>e.start>=songSec)||lines[0];
+ return target?Math.max(offset,target.start):null;
+}
+// Work from the gesture's snapshot, so multiple pointer moves never accumulate.
+export function trimLyric(doc,id,edge,delta,duration) {
+ const d=structuredClone(doc),times=getTimings(doc,duration).events,i=times.findIndex(e=>e.id===id),t=times[i];
+ if(!t||!Number.isFinite(delta))return d;
+ for(const time of times){const event=d.events.find(e=>e.id===time.id);if(!valid(event.s)){event.s=time.start;event.timingSource='provisional'}}
+ const e=d.events.find(e=>e.id===id),minLength=Math.min(.1,Math.max(.001,t.end-t.start));
+ e.s=t.start;e.e=t.end;
+ if(edge==='start')e.s=Math.max(0,Math.min(t.end-minLength,Math.max((times[i-1]?.start??-.1)+.1,t.start+delta)));
+ else if(edge==='end')e.e=Math.max(t.start+minLength,Math.min(times[i+1]?.start??duration,duration,t.end+delta));
+ e.timingSource='manual';return d;
+}
