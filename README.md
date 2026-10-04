@@ -134,3 +134,7 @@ Mac内の移動は公開中のサイトや管理画面に影響しません。�
 ### 歌詞のその場編集・PCフォント（2026-10-04）
 
 タイムラインで歌詞を選び、右側の「動き・色・書体」から直接編集できます。言葉をタップして単語だけの色、行・全歌詞の配色、PCインストール済みフォントやフォントファイルに対応。色・書体を変えずにモーションを試せます。[使い方と検証](docs/verification-lyric-inline-2026-10-04/REPORT.md)。
+
+## Custom text motions
+
+In the lyric inline editor, choose **動き → ＋追加・コードで作る**. The editor combines Three.js, Troika Text and GSAP using an isolated, seekable JavaScript API. Preview before adding a reusable block; export/import `.unfoldmotion` files to share motions. Existing recipe files still work. See [author guide](app/guide/code-motions.html) and [verification report](docs/verification-code-motion-2026-10-04/integration-report.md). Standard fonts and runtime dependencies are bundled locally.

@@ -1,3 +1,4 @@
+import {openCodeMotionEditor} from './code-motion-editor.js';
 import {savedLyricFonts,lyricFontLabel} from './lyric-fonts.js';
 import {BUILTIN_MOTIONS,LAYOUTS,ENTRANCES,SUSTAINS,EXITS,normalizeRecipe} from './lyric-recipe.js';
 import {cleanMotion} from './lyric-motion.js?v=4';
@@ -8,6 +9,7 @@ const node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{
 let active=null;
 export function downloadMotion(record){const blob=new Blob([buildMotionFile(record)],{type:'application/json'}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download=(record.name.replace(/[\\/:*?"<>|\u0000-\u001f]/g,'').slice(0,40)||'motion')+'.unfoldmotion';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 export function openMotionStudio({motion,text='小さな*光*を/明日へつなぐ',onApply=null,applyLabel='この動きを使う'}={}){
+ if(motion?.code)return openCodeMotionEditor({motion,text,onApply});
  active?.close();
  if(!document.querySelector('link[data-motion-studio]')){const link=node('link');link.rel='stylesheet';link.href=new URL('./lyric-studio.css',import.meta.url).href;link.dataset.motionStudio='';document.head.append(link)}
  const dialog=node('dialog');dialog.className='motion-studio';dialog.setAttribute('aria-label','モーション集・自作');dialog.addEventListener('keydown',e=>e.stopPropagation());
@@ -19,7 +21,7 @@ export function openMotionStudio({motion,text='小さな*光*を/明日へつな
  const button=(label,fn,parent,primary=false)=>{const b=node('button',label);b.type='button';if(primary)b.className='ms-primary';b.onclick=async()=>{try{await fn()}catch(e){status.textContent=e.message}};parent.append(b);return b};
  const select=(label,options,onChange)=>{const s=node('select');for(const [v,label]of Object.entries(options))s.append(new Option(label,v));s.onchange=()=>{onChange(s.value);changed()};return field(label,s)};
  const pick=node('select');field('見本・保存したモーション',pick);
- function choices(){pick.replaceChildren();const built=node('optgroup');built.label='標準のモーション';for(const item of BUILTIN_MOTIONS)built.append(new Option(item.name,item.id));pick.append(built);try{const saved=library.list();if(saved.length){const group=node('optgroup');group.label='保存したモーション';for(const item of saved)group.append(new Option(item.name,item.id));pick.append(group)}}catch(e){status.textContent=e.message}}
+ function choices(){pick.replaceChildren();const built=node('optgroup');built.label='標準のモーション';for(const item of BUILTIN_MOTIONS)built.append(new Option(item.name,item.id));pick.append(built);try{const saved=library.list().filter(i=>!i.motion.code);if(saved.length){const group=node('optgroup');group.label='保存したモーション';for(const item of saved)group.append(new Option(item.name,item.id));pick.append(group)}}catch(e){status.textContent=e.message}}
  const name=field('名前',node('input'));name.maxLength=40;name.value='マイモーション';
  const layout=select('構成',LAYOUTS,v=>current.recipe.layout=v);
  const enter=select('登場',ENTRANCES,v=>current.recipe.enter=v);
@@ -39,14 +41,14 @@ export function openMotionStudio({motion,text='小さな*光*を/明日へつな
  if(onApply)button(applyLabel,async()=>{await onApply(cleanMotion(current));dialog.close()},actions,true);
  button('名前を付けて保存',()=>{const item=library.save(record());choices();pick.value=item.id;status.textContent=`「${item.name}」をこのブラウザに保存しました。`},actions);
  button('ファイルに保存',()=>downloadMotion(record()),actions);
- const upload=node('input');upload.type='file';upload.accept='.unfoldmotion,.json';upload.hidden=true;view.append(upload);button('ファイルから読み込み',()=>upload.click(),actions);upload.onchange=async()=>{try{const file=upload.files[0];if(!file)return;if(file.size>98304)throw Error('モーションファイルが大きすぎます。');load(parseMotionFile(await file.text()));status.textContent='読み込みました。試してから保存・適用できます。'}catch(e){status.textContent=e.message}finally{upload.value=''}};
+ const upload=node('input');upload.type='file';upload.accept='.unfoldmotion,.json';upload.hidden=true;view.append(upload);button('ファイルから読み込み',()=>upload.click(),actions);upload.onchange=async()=>{try{const file=upload.files[0];if(!file)return;if(file.size>131072)throw Error('モーションファイルが大きすぎます。');load(parseMotionFile(await file.text()));status.textContent='読み込みました。試してから保存・適用できます。'}catch(e){status.textContent=e.message}finally{upload.value=''}};
  const status=node('p');status.className='ms-status';status.setAttribute('role','status');view.append(status);
  const note=node('p','保存するのは動きのレシピです。試す言葉や音楽・画像は含みません。');note.className='ms-small';view.append(note);
  const advanced=node('details');advanced.append(node('summary','AIに作ってもらう・レシピを編集'));view.append(advanced);
  const explanation=node('p','依頼文をコピーしてAIに希望を伝え、返されたJSONを下に貼り付けてください。対応する構成と動きの組み合わせを作れます。');explanation.className='ms-small';advanced.append(explanation);
  const json=node('textarea');json.className='ms-json';json.spellcheck=false;json.setAttribute('aria-label','モーションのJSON');const ai=button('AIへの依頼文をコピー',async()=>{const prompt=motionAIPrompt();try{await navigator.clipboard.writeText(prompt);status.textContent='AIへの依頼文をコピーしました。希望の動きを書き足してください。'}catch{json.value=prompt;json.focus();json.select();status.textContent='依頼文を選択しました。手動でコピーしてください。'}},advanced);ai.dataset.action='ai-prompt';advanced.append(json);button('JSONをプレビューに反映',()=>{load(parseMotionFile(json.value));status.textContent='レシピを確認してプレビューに反映しました。'},advanced);
  function sync(){for(const item of savedLyricFonts())if(![...font.options].some(o=>o.value===item.key))font.append(new Option(item.label,item.key));if(![...font.options].some(o=>o.value===current.font))font.append(new Option(lyricFontLabel(current.font),current.font));layout.value=current.recipe.layout;enter.value=current.recipe.enter;exit.value=current.recipe.exit;strength.value=current.recipe.strength;stagger.value=current.recipe.stagger;speed.value=current.speed;size.value=current.size;font.value=current.font;color.value=current.color;accent.value=current.emphasisColor;for(const i of checks)i.checked=current.recipe.sustain.includes(i.value);json.value=buildMotionFile(record())}
- function load(item){current=cleanMotion(item.motion);name.value=item.name;sync();time=0;playing=true;prepare()}
+ function load(item){if(item.motion.code){dialog.close();openCodeMotionEditor({motion:item.motion,text:words.value,onApply});return;}current=cleanMotion(item.motion);name.value=item.name;sync();time=0;playing=true;prepare()}
  pick.onchange=()=>{try{const item=[...BUILTIN_MOTIONS,...library.list()].find(x=>x.id===pick.value);if(item)load(item)}catch(e){status.textContent=e.message}};
  function changed(){current=cleanMotion(current);painter.clear();json.value=buildMotionFile({...record(),name:name.value.trim()||'マイモーション'});draw()}
  async function prepare(){const token=++fontToken;try{await prepareMotionFont(current,words.value);if(token===fontToken&&!closed){painter.clear();draw()}}catch(e){if(!closed)status.textContent=e.message}}

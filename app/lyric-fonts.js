@@ -1,5 +1,5 @@
 import {FONTS,ensureFont} from './mask-shape.js?v=5';
-const faces=new Map(),pending=new Map(),labels=new Map();
+const faces=new Map(),pending=new Map(),labels=new Map(),localEntries=new Map(),codeFontBytes=new Map();
 const META='unfold-lyric-font-labels-v1';
 export function isLyricFontKey(key){
  if(typeof key!=='string')return false;if(Object.hasOwn(FONTS,key))return true;
@@ -30,12 +30,26 @@ export async function prepareLyricFont(key,text='あいうえおABC'){
 }
 export async function listLocalLyricFonts(){
  if(typeof globalThis.queryLocalFonts!=='function')throw Error('PCフォント一覧はChrome/EdgeのPC版で使えます。下のフォントファイル読込も使えます。');
- try{return (await globalThis.queryLocalFonts()).map(f=>({key:localFontKey(f.postscriptName),label:f.fullName||f.postscriptName})).sort((a,b)=>a.label.localeCompare(b.label,'ja'))}catch(e){throw Error(e.name==='NotAllowedError'?'PCフォントの参照が許可されませんでした。ファイルから読み込む方法も使えます。':e.message)}
+ try{return (await globalThis.queryLocalFonts()).map(f=>{const key=localFontKey(f.postscriptName);localEntries.set(key,f);return {key,label:f.fullName||f.postscriptName}}).sort((a,b)=>a.label.localeCompare(b.label,'ja'))}catch(e){throw Error(e.name==='NotAllowedError'?'PCフォントの参照が許可されませんでした。ファイルから読み込む方法も使えます。':e.message)}
 }
-export async function selectLocalLyricFont(item){await prepareLyricFont(item.key);remember(item.key,item.label);return item.key;}
+export async function selectLocalLyricFont(item){await prepareLyricFont(item.key);const entry=localEntries.get(item.key);if(entry){const blob=await entry.blob();await fontStore('readwrite',item.key,{blob,label:item.label})}remember(item.key,item.label);return item.key;}
 export async function importLyricFont(file){
  if(!file||!file.size||file.size>32*1024*1024||!(/\.(ttf|otf|woff2?)$/i.test(file.name)))throw Error('32MB以内の TTF・OTF・WOFF・WOFF2 を選んでください。');
  const bytes=await file.arrayBuffer(),digest=await crypto.subtle.digest('SHA-256',bytes),key='file:'+Array.from(new Uint8Array(digest),x=>x.toString(16).padStart(2,'0')).join('');
  const face=await new FontFace(alias(key),bytes).load();
  await fontStore('readwrite',key,{blob:file,label:file.name});document.fonts.add(face);faces.set(key,face);remember(key,file.name);return key;
+}
+
+export async function getCodeMotionFont(key='gothic'){
+ if(codeFontBytes.has(key))return codeFontBytes.get(key);
+ let bytes;
+ if(Object.hasOwn(FONTS,key)){
+  const response=await fetch(new URL('./vendor/motion-fonts/'+key+'.ttf',import.meta.url));if(!response.ok)throw Error('モーション用の書体を読み込めません。');bytes=await response.arrayBuffer();
+ }else{
+  if(!isLyricFontKey(key))throw Error('書体を選び直してください。');
+  const record=await fontStore('readonly',key);if(!record?.blob)throw Error(key.startsWith('local:')?'「PCのフォント」から同じ書体を選び直してください。コードモーション用の文字データを取得します。':'フォントファイルが見つかりません。同じファイルを読み込んでください。');
+  bytes=await record.blob.arrayBuffer();
+ }
+ if(new DataView(bytes).getUint32(0)===0x774f4632)throw Error('コードモーションの書体はTTF・OTF・WOFFを選んでください（WOFF2は通常のモーションで使えます）。');
+ codeFontBytes.set(key,bytes);return bytes;
 }

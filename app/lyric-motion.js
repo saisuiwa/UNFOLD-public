@@ -1,7 +1,8 @@
+import {cleanCodeMotion} from './code-motion-format.js';
 import {normalizeRecipe,BUILTIN_MOTIONS} from './lyric-recipe.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));const ease=t=>1-(1-t)**3;
 export function graphemes(t){return typeof Intl.Segmenter==='function'?[...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(t)].map(x=>x.segment):String(t).match(/(?:\P{Mark}\p{Mark}*(?:\u200d\P{Mark}\p{Mark}*)*|\p{Mark}+)/gu)||[]}
-export function cleanMotion(m={}){m=m&&typeof m==='object'?m:{};return {preset:['float','slide','reveal','pop','emphasis'].includes(m.preset)?m.preset:'float',direction:['left','right','up','down'].includes(m.direction)?m.direction:'up',color:/^#[\da-f]{6}$/i.test(m.color)?m.color:'#ffffff',emphasisColor:/^#[\da-f]{6}$/i.test(m.emphasisColor)?m.emphasisColor:'#d9f878',size:clamp(Number(m.size)||64,32,160),position:m.position==='center'?'center':'bottom',font:typeof m.font==='string'?m.font:'gothic',speed:clamp(Number(m.speed)||1,.5,2),...(m.recipe?.version===1?{recipe:normalizeRecipe(m.recipe)}:{})}}
+export function cleanMotion(m={}){m=m&&typeof m==='object'?m:{};return {preset:['float','slide','reveal','pop','emphasis'].includes(m.preset)?m.preset:'float',direction:['left','right','up','down'].includes(m.direction)?m.direction:'up',color:/^#[\da-f]{6}$/i.test(m.color)?m.color:'#ffffff',emphasisColor:/^#[\da-f]{6}$/i.test(m.emphasisColor)?m.emphasisColor:'#d9f878',size:clamp(Number(m.size)||64,32,160),position:m.position==='center'?'center':'bottom',font:typeof m.font==='string'?m.font:'gothic',speed:clamp(Number(m.speed)||1,.5,2),...(m.code?{code:cleanCodeMotion(m.code)}:m.recipe?.version===1?{recipe:normalizeRecipe(m.recipe)}:{})}}
 function hash(s){let n=2166136261;for(const c of s)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0}
 export function assignLyricMotions(doc,{style='readable',seed=7,preserveExisting=false}={}){
  const d=structuredClone(doc);d.style=style;d.seed=seed;let previous='';

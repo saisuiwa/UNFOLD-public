@@ -1,9 +1,9 @@
 import {applyLyricStyle,setWordColor} from './lyric-style.js';
 import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=3';
-import {createLyricControls} from './lyric-controls.js?v=5';
+import {createLyricControls} from './lyric-controls.js?v=6';
 import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=4';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
-import {createLyricOverlay} from './lyric-overlay.js?v=4';
+import {createLyricOverlay} from './lyric-overlay.js?v=5';
 import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=3';
 import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPreviewTime} from './lyric-timing.js?v=3';
 import {audioBlock} from './lyric-audio-range.js?v=2';
@@ -616,6 +616,7 @@ export async function exportVideo({ fps = 30, quality = 1080, look = 'high', for
   try {
     for (let k = 0; k < n; k++) {
       if (error) throw error;
+      await lyricOverlay?.prepareFrame(seq.lyricDocument,from+k/fps+seq.offset,{duration:seq.audioBuffer?.duration||12,bpm:seq.lyricMotion.bpm,width:renderer.domElement.width,height:renderer.domElement.height});
       renderAt(from + k / fps);
       if (sx) sx.drawImage($('seq-canvas'), 0, 0, w, h);
       const frame = new VideoFrame(small || $('seq-canvas'), { timestamp: Math.round(k * 1e6 / fps), duration: Math.round(1e6 / fps) });
@@ -1687,7 +1688,7 @@ try {
   renderer = new THREE.WebGLRenderer({ canvas: $('seq-canvas'), antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   sceneBlur = new SceneBlur(renderer);
-  lyricOverlay=createLyricOverlay(renderer);
+  lyricOverlay=createLyricOverlay(renderer,{onReady:()=>{if(!seq.recording)renderAt(seq.t)},onError:e=>{lyricFontStatus=e.message;lyricControls?.refresh()}});
   scene = new THREE.Scene();
   camera = new THREE.OrthographicCamera(-4.8, 4.8, 2.7, -2.7, .1, 100);
   camera.position.z = 10;

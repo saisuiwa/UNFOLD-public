@@ -1,24 +1,26 @@
+import {cleanCodeMotion} from './code-motion-format.js';
 import {isLyricFontKey} from './lyric-fonts.js';
 import {cleanMotion} from './lyric-motion.js?v=4';
 import {validateRecipe,BUILTIN_MOTIONS} from './lyric-recipe.js';
 export const MOTION_LIBRARY_KEY='unfold-motion-library-v1';
-const maxChars=32768,validFonts=['gothic','mincho','round','dela','marker','dot'];
+const maxChars=131072,validFonts=['gothic','mincho','round','dela','marker','dot'];
 export function cleanMotionRecord(value){
  if(!value||typeof value!=='object'||typeof value.name!=='string'||!value.name.trim()||value.name.length>40)throw Error('名前は1〜40文字で入力してください。');
  const m=value.motion;
- if(!m||typeof m!=='object'||Object.keys(m).some(k=>!['recipe','preset','direction','color','emphasisColor','size','position','font','speed'].includes(k)))throw Error('文字モーションの設定を確認してください。');
- const recipe=validateRecipe(m.recipe);
+ if(!m||typeof m!=='object'||Object.keys(m).some(k=>!['code','recipe','preset','direction','color','emphasisColor','size','position','font','speed'].includes(k)))throw Error('文字モーションの設定を確認してください。');
+ const recipe=m.code?undefined:validateRecipe(m.recipe);if(m.code)cleanCodeMotion(m.code);
  for(const [k,min,max]of [['size',32,160],['speed',.5,2]])if(m[k]!=null&&(!Number.isFinite(m[k])||m[k]<min||m[k]>max))throw Error(`${k} が範囲外です。`);
  for(const k of ['color','emphasisColor'])if(m[k]!=null&&!/^#[\da-f]{6}$/i.test(m[k]))throw Error('色は #rrggbb で指定してください。');
  if(m.font!=null&&!isLyricFontKey(m.font))throw Error('未対応の書体です。');
  return {name:value.name.trim(),description:String(value.description||'').slice(0,300),motion:cleanMotion({...m,recipe})};
 }
-export function buildMotionFile(record){return JSON.stringify({format:'unfold-motion',version:1,...cleanMotionRecord(record)},null,2)+'\n'}
+export function buildMotionFile(record){return JSON.stringify({format:'unfold-motion',version:record.motion?.code?2:1,...cleanMotionRecord(record)},null,2)+'\n'}
 export function parseMotionFile(text){
- if(typeof text!=='string'||text.length>maxChars)throw Error('モーションファイルは32KB以内にしてください。');
+ if(typeof text!=='string'||new TextEncoder().encode(text).length>maxChars)throw Error('モーションファイルは128KB以内にしてください。');
  let v;try{v=JSON.parse(text)}catch{throw Error('JSONとして読み込めません。')}
- if(v?.format!=='unfold-motion'||v.version!==1)throw Error('未対応のモーションファイルです。');
+ if(v?.format!=='unfold-motion'||![1,2].includes(v.version))throw Error('未対応のモーションファイルです。');
  if(Object.keys(v).some(k=>!['format','version','name','description','motion'].includes(k)))throw Error('モーションファイルに未対応の項目があります。');
+ if((v.version===1&&v.motion?.code)||(v.version===2&&!v.motion?.code))throw Error('モーション形式と内容が一致しません。');
  return cleanMotionRecord(v);
 }
 const hash=text=>{let h=2166136261;for(const c of text)h=Math.imul(h^c.charCodeAt(0),16777619);return (h>>>0).toString(16)};
