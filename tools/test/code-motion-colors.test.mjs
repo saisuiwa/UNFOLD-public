@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createMotionColorResolver} from '../../app/code-motion-colors.js';
+const base={text:'まわれ まわれ\n私の世界',runs:[{text:'ま',color:'#ff0000'},{text:'われ '},{text:'ま',color:'#0000ff'},{text:'われ\n'},{text:'私',emphasis:true},{text:'の世界'}],color:'#ffffff',accent:'#00ff00'};
+test('split glyphs keep occurrence colors when whitespace is omitted',()=>{const color=createMotionColorResolver(base);const actual=[...base.text].filter(c=>c.trim()).map(c=>color(c));assert.deepEqual(actual,[{0:'#ff0000'},null,null,{0:'#0000ff'},null,null,{0:'#00ff00'},null,null,null]);});
+test('word meshes reset default color after colored prefix and match repeated words',()=>{const color=createMotionColorResolver(base);assert.deepEqual(color('まわれ'),{0:'#ff0000',1:'#ffffff'});assert.deepEqual(color('まわれ'),{0:'#0000ff',1:'#ffffff'});assert.deepEqual(color('私の世界'),{0:'#00ff00',1:'#ffffff'});});
+test('explicit original offset supports out-of-order mesh creation',()=>{const color=createMotionColorResolver(base);assert.deepEqual(color('まわれ',{textStart:4}),{0:'#0000ff',1:'#ffffff'});assert.deepEqual(color('まわれ',{textStart:0}),{0:'#ff0000',1:'#ffffff'});});
+test('UTF16 positions handle supplementary glyphs and unmatched decorations',()=>{const color=createMotionColorResolver({text:'A😀A',runs:[{text:'A'},{text:'😀',color:'#f00000'},{text:'A',color:'#0000f0'}],color:'#ffffff',accent:'#00ff00'});assert.equal(color('★'),null);assert.equal(color('A'),null);assert.deepEqual(color('😀'),{0:'#f00000'});assert.deepEqual(color('A'),{0:'#0000f0'});});
+test('explicit colorRanges opt-out and unstyled author colors are retained',()=>{const color=createMotionColorResolver(base);assert.equal(color(base.text,{colorRanges:null}),null);const ranges={0:'#123456'};assert.equal(color('ま',{colorRanges:ranges}),ranges);assert.equal(color('われ',{color:'#00ff00'}),null);});

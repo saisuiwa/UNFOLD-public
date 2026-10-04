@@ -1,3 +1,4 @@
+import {createMotionColorResolver} from './code-motion-colors.js';
 import * as THREE from 'three';
 import {Text as TroikaText, configureTextBuilder} from 'troika-three-text';
 import {gsap} from 'gsap';
@@ -16,7 +17,12 @@ async function prepare(p){
   class Text extends TroikaText {constructor(){super();this.font=fontURL;this.fontSize=p.fontSize;this.color=p.color;this.gpuAccelerateSDF=false;}}
   let state=(p.seed>>>0)||1;
   const random=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
-  const createText=(value,options={})=>{const colorRanges={};if(String(value)===p.text){let offset=0;for(const run of p.runs||[]){colorRanges[offset]=run.color||(run.emphasis?p.accent:p.color);offset+=String(run.text||'').length;}}const t=new Text();Object.assign(t,{text:String(value),font:fontURL,fontSize:p.fontSize,color:p.color,anchorX:'center',anchorY:'middle',gpuAccelerateSDF:false,colorRanges:Object.keys(colorRanges).length?colorRanges:null},options);scene.add(t);texts.push(t);return t;};
+  const resolveColors=createMotionColorResolver(p);
+  const createText=(value,options={})=>{
+    const {textStart,...style}=options;
+    const t=new Text();Object.assign(t,{text:String(value),font:fontURL,fontSize:p.fontSize,color:p.color,anchorX:'center',anchorY:'middle',gpuAccelerateSDF:false,...style,colorRanges:resolveColors(value,options)});
+    scene.add(t);texts.push(t);return t;
+  };
   controller=new Function('api',p.source)({THREE,Text,gsap,scene,camera,text:p.text,width:p.width,height:p.height,fontSize:p.fontSize,bpm:p.bpm,color:p.color,accent:p.accent,fontURL,createText,random,runs:p.runs||[],duration:p.duration}) || {};
   if(!controller.timeline && typeof controller.update!=='function')throw new Error('Return a timeline or update(time).');
   controller.timeline?.pause();
