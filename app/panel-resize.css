@@ -1,0 +1,20 @@
+.panel-resizer{display:none}
+@media(min-width:1101px){
+  main.seq3{position:relative;grid-template-columns:290px minmax(0,1fr) var(--edit-panel-width,340px)}
+  main.seq3>aside.left{grid-column:1;grid-row:1}
+  main.seq3>.stage-wrap{grid-column:2;grid-row:1}
+  main.seq3>aside.right{grid-column:3;grid-row:1;min-width:0}
+  .panel-resizer{display:block;position:relative;grid-column:3;grid-row:1;justify-self:start;width:12px;margin-left:-6px;z-index:12;cursor:col-resize;touch-action:none;outline:none}
+  .panel-resizer::after{content:'';position:absolute;top:calc(50% - 25px);left:4px;width:4px;height:50px;background:#70816d;border-radius:4px}
+  .panel-resizer:hover,.panel-resizer:focus-visible,.resizing-panel .panel-resizer{background:#d9f87822}
+  .panel-resizer:hover::after,.panel-resizer:focus-visible::after,.resizing-panel .panel-resizer::after{background:#d9f878}
+  .resizing-panel{user-select:none;cursor:col-resize}
+}
+/* Keep grid children and native file inputs within the lyric panel. */
+.lm-controls,.lm-controls>*{min-width:0;max-width:100%}
+.lm-controls{grid-template-columns:minmax(0,1fr);overflow-wrap:anywhere}
+.lm-rows{grid-template-columns:minmax(0,1fr);min-width:0}
+.lm-controls input[type=file]{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+.lm-controls .lm-field:has(input[type=file]){display:grid;grid-template-columns:minmax(0,1fr)}
+.lm-controls .lm-drop,.lm-controls .lm-event,.lm-controls .lm-advanced{min-width:0}
+.lm-controls .btn{max-width:100%;white-space:normal;overflow-wrap:anywhere}
