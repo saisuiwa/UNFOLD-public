@@ -7,11 +7,13 @@ export function compileLyricScene(event,{width,height,measure}){
  for(const run of event.runs||[{text:event.text||'',emphasis:false}])for(const text of graphemes(run.text)){if(text==='\n')paragraphs.push([]);else paragraphs.at(-1).push({text,emphasis:!!run.emphasis})}
  const all=paragraphs.flat(),nodes=[],layout=recipe.layout,base=height/720*112*motion.size/72;
  if(layout==='vertical'){
-  const cols=[];for(const p of paragraphs)for(let i=0;i<p.length;i+=8)cols.push(p.slice(i,i+8));
+  const cols=[],nonstart='、。，．！？!?）」』】〕〉》］｝ー〜～…‥っゃゅょぁぃぅぇぉッャュョァィゥェォ',nonend='（「『【〔〈《［｛';
+  for(const p of paragraphs){let i=0;while(i<p.length){let end=Math.min(i+8,p.length);while(end<p.length&&nonstart.includes(p[end].text))end++;if(end<p.length)while(end>i+1&&nonend.includes(p[end-1].text))end--;cols.push(p.slice(i,end));i=end}}
+
   let size=base*.64;const maxUnit=Math.max(1,...all.map(n=>measure(n.text,1,motion.font)));
   size=Math.min(size,width*.76/Math.max(1,cols.length)/(maxUnit+0.38),height*.62/(Math.max(1,...cols.map(c=>c.length))*1.35));
   const colW=size*(maxUnit+.38),startX=width/2+(cols.length-1)*colW/2;
-  cols.forEach((col,j)=>{const top=height*.5-(col.length-1)*size*1.35/2;col.forEach((n,i)=>nodes.push({...n,x:startX-j*colW,y:top+i*size*1.35,w:measure(n.text,size,motion.font),size,role:'text',rotation:0}))});
+  cols.forEach((col,j)=>{const top=height*.5-(col.length-1)*size*1.35/2;col.forEach((n,i)=>{const punctuation='、。，．'.includes(n.text),offsetX=punctuation?size*.25:0,offsetY=punctuation?-size*.25:0;nodes.push({...n,x:startX-j*colW+offsetX,y:top+i*size*1.35+offsetY,w:measure(n.text,size,motion.font),size,role:'text',offsetX,offsetY,rotation:'ー〜～（）「」『』【】〔〕〈〉《》［］｛｝…‥'.includes(n.text)?Math.PI/2:0})})});
  }else{
   const maxW=width*(layout==='poster'?.38:.76),maxH=height*.62;
   let size=base,lines=[];

@@ -4,17 +4,18 @@ export const ENTRANCES={rise:'滑り出す',scatter:'集まる',reveal:'順番�
 export const SUSTAINS={sway:'ゆらゆら',breathe:'呼吸する明滅',glitch:'短いグリッチ',warp:'波ワープ',echo:'ゆれる残像'};
 export const EXITS={fade:'溶けるように消える',drift:'流れて消える',scatter:'ほどけて消える'};
 const plain=x=>x&&typeof x==='object'&&!Array.isArray(x);
+const has=(table,key)=>typeof key==='string'&&Object.hasOwn(table,key);
 const bound=(v,f,min,max)=>Number.isFinite(v)?Math.max(min,Math.min(max,v)):f;
 export function normalizeRecipe(v={}){
  v=plain(v)?v:{};
- return {version:1,layout:Object.hasOwn(LAYOUTS,v.layout)?v.layout:'editorial',enter:Object.hasOwn(ENTRANCES,v.enter)?v.enter:'rise',sustain:[...new Set(Array.isArray(v.sustain)?v.sustain.filter(x=>Object.hasOwn(SUSTAINS,x)):['sway'])].slice(0,3),exit:Object.hasOwn(EXITS,v.exit)?v.exit:'fade',strength:bound(v.strength,.6,0,1),stagger:bound(v.stagger,.08,0,.2)};
+ return {version:1,layout:has(LAYOUTS,v.layout)?v.layout:'editorial',enter:has(ENTRANCES,v.enter)?v.enter:'rise',sustain:[...new Set(Array.isArray(v.sustain)?v.sustain.filter(x=>has(SUSTAINS,x)):['sway'])].slice(0,3),exit:has(EXITS,v.exit)?v.exit:'fade',strength:bound(v.strength,.6,0,1),stagger:bound(v.stagger,.08,0,.2)};
 }
 export function validateRecipe(v){
  const keys=['version','layout','enter','sustain','exit','strength','stagger'];
  if(!plain(v)||Object.keys(v).some(k=>!keys.includes(k))||keys.some(k=>!Object.hasOwn(v,k)))throw Error('モーションの項目を確認してください。');
  if(v.version!==1)throw Error('未対応のモーション形式です。');
- if(!Object.hasOwn(LAYOUTS,v.layout)||!Object.hasOwn(ENTRANCES,v.enter)||!Object.hasOwn(EXITS,v.exit))throw Error('構成・登場・退場の名前を確認してください。');
- if(!Array.isArray(v.sustain)||v.sustain.length>3||v.sustain.some(k=>!Object.hasOwn(SUSTAINS,k))||new Set(v.sustain).size!==v.sustain.length)throw Error('表示中の動きは重複なしで3種類までです。');
+ if(!has(LAYOUTS,v.layout)||!has(ENTRANCES,v.enter)||!has(EXITS,v.exit))throw Error('構成・登場・退場の名前を確認してください。');
+ if(!Array.isArray(v.sustain)||v.sustain.length>3||v.sustain.some(k=>!has(SUSTAINS,k))||new Set(v.sustain).size!==v.sustain.length)throw Error('表示中の動きは重複なしで3種類までです。');
  if(!Number.isFinite(v.strength)||v.strength<0||v.strength>1||!Number.isFinite(v.stagger)||v.stagger<0||v.stagger>.2)throw Error('強さは0〜1、文字の時間差は0〜0.2秒で指定してください。');
  return normalizeRecipe(v);
 }
