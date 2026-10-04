@@ -24,3 +24,11 @@ Remaining verification belongs to parent integration: editor/save/project activa
 ## API follow-up verification
 
 Added fontSize/bpm alongside runs/duration, direct new Text local font defaults, and per-render traversal to synchronize Text objects created during update. Bridge initialization accepts only its parent window. Chrome regression reran ALL PASS including new assertion for fontSize=64, bpm=96, duration=4 and first-frame Japanese text created dynamically through new api.Text(). Parent layer review identified pump/reset races and reported them for parent-owned correction.
+
+## MultiText follow-up and independent review
+
+Focused tools/test/code-motion-multitext.html Chrome QA: Ribbon first-frame at640/1280/640/1280 returned respectively 10287/37886/10287/37886 nontransparent pixels with maximum RGB255; ALL PASS including authors starting Text.sync() themselves before host sync. Host sync now awaits synccomplete while either rebuild or typesetting remains pending.
+
+Diagnosed Ribbon apparent blank export: injecting empty colorRanges={} assigns black glyph colors in Troika. createText now uses null when no run ranges exist, preserving explicit single-character colors. Parent corrected Neon shadow empty ranges separately.
+
+Independent review covered current format/library/font bridge, runtime isolation, editor, code-layer, overlay and export await path. Reported editor scrub busy race and queued frame resurrection after reset; parent corrected both (latest scrub scheduling; enqueue epoch guard). Read-only recheck confirms those corrections. No further actionable issue identified in reviewed paths; parent actual integration/MP4 regression remains completion evidence.

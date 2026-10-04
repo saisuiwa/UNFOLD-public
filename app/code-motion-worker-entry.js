@@ -6,7 +6,7 @@ const originalError=console.error.bind(console);console.error=(...args)=>{origin
 let renderer,scene,camera,controller,fontURL;
 const texts=[];
 function registerTexts(){scene.traverse(o=>{if(o instanceof TroikaText){if(!o.font)o.font=fontURL;o.gpuAccelerateSDF=false;if(!texts.includes(o))texts.push(o);}});}
-function syncText(t){return t._needsSync?new Promise(resolve=>t.sync(resolve)):Promise.resolve();}
+function syncText(t){if(!t._needsSync&&!t._isSyncing)return Promise.resolve();return new Promise(resolve=>{const complete=()=>{if(!t._needsSync&&!t._isSyncing){t.removeEventListener('synccomplete',complete);resolve();}};t.addEventListener('synccomplete',complete);t.sync();complete();});}
 async function prepare(p){
   const canvas=new OffscreenCanvas(p.width,p.height);
   renderer=new THREE.WebGLRenderer({canvas,alpha:true,antialias:true});
@@ -16,7 +16,7 @@ async function prepare(p){
   class Text extends TroikaText {constructor(){super();this.font=fontURL;this.fontSize=p.fontSize;this.color=p.color;this.gpuAccelerateSDF=false;}}
   let state=(p.seed>>>0)||1;
   const random=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
-  const createText=(value,options={})=>{const colorRanges={};if(String(value)===p.text){let offset=0;for(const run of p.runs||[]){colorRanges[offset]=run.color||(run.emphasis?p.accent:p.color);offset+=String(run.text||'').length;}}const t=new Text();Object.assign(t,{text:String(value),font:fontURL,fontSize:p.fontSize,color:p.color,anchorX:'center',anchorY:'middle',gpuAccelerateSDF:false,colorRanges},options);scene.add(t);texts.push(t);return t;};
+  const createText=(value,options={})=>{const colorRanges={};if(String(value)===p.text){let offset=0;for(const run of p.runs||[]){colorRanges[offset]=run.color||(run.emphasis?p.accent:p.color);offset+=String(run.text||'').length;}}const t=new Text();Object.assign(t,{text:String(value),font:fontURL,fontSize:p.fontSize,color:p.color,anchorX:'center',anchorY:'middle',gpuAccelerateSDF:false,colorRanges:Object.keys(colorRanges).length?colorRanges:null},options);scene.add(t);texts.push(t);return t;};
   controller=new Function('api',p.source)({THREE,Text,gsap,scene,camera,text:p.text,width:p.width,height:p.height,fontSize:p.fontSize,bpm:p.bpm,color:p.color,accent:p.accent,fontURL,createText,random,runs:p.runs||[],duration:p.duration}) || {};
   if(!controller.timeline && typeof controller.update!=='function')throw new Error('Return a timeline or update(time).');
   controller.timeline?.pause();
