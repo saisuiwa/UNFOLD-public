@@ -1,4 +1,4 @@
-import {compileLyricScene,evaluateLyricNode} from './lyric-scene.js';
+import {compileLyricScene,evaluateLyricNode} from './lyric-scene.js?v=2';
 import {lyricFontCSS,prepareLyricFont} from './lyric-fonts.js';
 const fontFor=lyricFontCSS;
 export async function prepareMotionFont(motion,text){await prepareLyricFont(motion?.font,text)}
@@ -21,7 +21,7 @@ export function createLyricPainter(){
   if(r.layout==='editorial'){ctx.fillStyle=m.emphasisColor;ctx.fillRect(width*.087,bounds.top,width*.004,Math.max(0,bounds.bottom-bounds.top));}
   if(r.layout==='impact'){ctx.save();ctx.translate(width/2,(bounds.top+bounds.bottom)/2);ctx.rotate(-.035);ctx.fillStyle='#'+m.emphasisColor.slice(1).match(/../g).map(v=>Math.round(parseInt(v,16)*.18).toString(16).padStart(2,'0')).join('');ctx.fillRect(-width*.43,-(bounds.bottom-bounds.top)/2-height*.035,width*.86,bounds.bottom-bounds.top+height*.07);ctx.restore()}
   if(r.layout==='vertical'){ctx.strokeStyle=m.emphasisColor;ctx.lineWidth=Math.max(1,width*.001);ctx.beginPath();ctx.moveTo(width*.91,height*.16);ctx.lineTo(width*.91,height*.84);ctx.stroke()}
-  if(r.layout==='poster'){ctx.save();ctx.globalAlpha*=.24;ctx.font=fontFor(m.font,height*.64);ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=Math.max(1,width*.002);ctx.strokeStyle=m.emphasisColor;ctx.strokeText(scene.hero,width*.28,height*.49);ctx.restore()}
+  if(r.layout==='poster'){ctx.save();ctx.globalAlpha*=.24;ctx.font=fontFor(m.font,height*.64);ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=Math.max(1,width*.002);ctx.strokeStyle=scene.heroColor;ctx.strokeText(scene.hero,width*.28,height*.49);ctx.restore()}
   if(r.layout==='echo'){for(let j=3;j>=1;j--){ctx.save();ctx.globalAlpha*=.055;const factor=1+j*.13;ctx.translate(width/2,height/2);ctx.scale(factor,factor);ctx.translate(-width/2,-height/2);for(const n of scene.nodes){ctx.save();ctx.translate(n.x,n.y);image(ctx,bitmap(ctx,n,m,m.emphasisColor,true));ctx.restore()}ctx.restore()}}
   for(const n of scene.nodes){const f=evaluateLyricNode(scene,n,time,bpm);if(f.opacity<=0)continue;ctx.save();ctx.globalAlpha*=f.opacity;ctx.translate(f.x,f.y);ctx.rotate(f.rotation);ctx.scale(f.scale,f.scale);
    const color=n.color||(n.emphasis?m.emphasisColor:m.color),img=bitmap(ctx,n,m,color);

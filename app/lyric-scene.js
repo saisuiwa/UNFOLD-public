@@ -27,7 +27,8 @@ export function compileLyricScene(event,{width,height,measure}){
  }
  nodes.forEach((n,i)=>n.index=i);
  const minY=nodes.length?Math.min(...nodes.map(n=>n.y-n.size*.7)):height*.3,maxY=nodes.length?Math.max(...nodes.map(n=>n.y+n.size*.7)):height*.7;
- return {nodes,motion,recipe,width,height,start:Number.isFinite(event.start)?event.start:0,end:Number.isFinite(event.end)?event.end:6,text:all.map(n=>n.text).join(''),bounds:{top:minY,bottom:maxY},hero:all.find(n=>n.emphasis)?.text||all[0]?.text||''};
+ const hero=all.find(n=>n.emphasis)||all[0];
+ return {nodes,motion,recipe,width,height,start:Number.isFinite(event.start)?event.start:0,end:Number.isFinite(event.end)?event.end:6,text:all.map(n=>n.text).join(''),bounds:{top:minY,bottom:maxY},hero:hero?.text||'',heroColor:hero?.color||motion.emphasisColor};
 }
 export function evaluateLyricNode(scene,n,time,bpm=120){
  const {recipe:r,motion:m,start,end}=scene,d=Math.max(.001,end-start),age=time-start,left=end-time,count=Math.max(1,scene.nodes.length-1);
