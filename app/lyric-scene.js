@@ -1,10 +1,10 @@
-import {cleanMotion,graphemes} from './lyric-motion.js?v=3';
+import {cleanMotion,graphemes} from './lyric-motion.js?v=4';
 import {normalizeRecipe} from './lyric-recipe.js';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)},ease=x=>1-(1-clamp(x))**3;
 export function compileLyricScene(event,{width,height,measure}){
  const motion=cleanMotion(event.motion),recipe=normalizeRecipe(motion.recipe),paragraphs=[[]];
- for(const run of event.runs||[{text:event.text||'',emphasis:false}])for(const text of graphemes(run.text)){if(text==='\n')paragraphs.push([]);else paragraphs.at(-1).push({text,emphasis:!!run.emphasis})}
+ for(const run of event.runs||[{text:event.text||'',emphasis:false}])for(const text of graphemes(run.text)){if(text==='\n')paragraphs.push([]);else paragraphs.at(-1).push({text,emphasis:!!run.emphasis,...(run.color?{color:run.color}:{})})}
  const all=paragraphs.flat(),nodes=[],layout=recipe.layout,base=height/720*112*motion.size/72;
  if(layout==='vertical'){
   const cols=[],nonstart='、。，．！？!?）」』】〕〉》］｝ー〜～…‥っゃゅょぁぃぅぇぉッャュョァィゥェォ',nonend='（「『【〔〈《［｛';

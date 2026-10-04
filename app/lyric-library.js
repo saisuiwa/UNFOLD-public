@@ -1,4 +1,5 @@
-import {cleanMotion} from './lyric-motion.js?v=3';
+import {isLyricFontKey} from './lyric-fonts.js';
+import {cleanMotion} from './lyric-motion.js?v=4';
 import {validateRecipe,BUILTIN_MOTIONS} from './lyric-recipe.js';
 export const MOTION_LIBRARY_KEY='unfold-motion-library-v1';
 const maxChars=32768,validFonts=['gothic','mincho','round','dela','marker','dot'];
@@ -9,7 +10,7 @@ export function cleanMotionRecord(value){
  const recipe=validateRecipe(m.recipe);
  for(const [k,min,max]of [['size',32,160],['speed',.5,2]])if(m[k]!=null&&(!Number.isFinite(m[k])||m[k]<min||m[k]>max))throw Error(`${k} が範囲外です。`);
  for(const k of ['color','emphasisColor'])if(m[k]!=null&&!/^#[\da-f]{6}$/i.test(m[k]))throw Error('色は #rrggbb で指定してください。');
- if(m.font!=null&&!validFonts.includes(m.font))throw Error('未対応の書体です。');
+ if(m.font!=null&&!isLyricFontKey(m.font))throw Error('未対応の書体です。');
  return {name:value.name.trim(),description:String(value.description||'').slice(0,300),motion:cleanMotion({...m,recipe})};
 }
 export function buildMotionFile(record){return JSON.stringify({format:'unfold-motion',version:1,...cleanMotionRecord(record)},null,2)+'\n'}

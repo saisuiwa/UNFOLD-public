@@ -1,7 +1,7 @@
 import {compileLyricScene,evaluateLyricNode} from './lyric-scene.js';
-import {FONTS,ensureFont} from './mask-shape.js?v=5';
-const fontFor=(key,size)=>{const f=FONTS[key]||FONTS.gothic;return `${f.weight} ${size}px ${f.family}`};
-export async function prepareMotionFont(motion,text){await ensureFont(fontFor(motion?.font,64),text)}
+import {lyricFontCSS,prepareLyricFont} from './lyric-fonts.js';
+const fontFor=lyricFontCSS;
+export async function prepareMotionFont(motion,text){await prepareLyricFont(motion?.font,text)}
 export function createLyricPainter(){
  let scene=null,sceneKey='';const bitmaps=new Map();
  function bitmap(ctx,n,m,color,outline=false){const font=fontFor(m.font,n.size),key=JSON.stringify([n.text,font,color,outline]);if(bitmaps.has(key))return bitmaps.get(key);
@@ -24,7 +24,7 @@ export function createLyricPainter(){
   if(r.layout==='poster'){ctx.save();ctx.globalAlpha*=.24;ctx.font=fontFor(m.font,height*.64);ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=Math.max(1,width*.002);ctx.strokeStyle=m.emphasisColor;ctx.strokeText(scene.hero,width*.28,height*.49);ctx.restore()}
   if(r.layout==='echo'){for(let j=3;j>=1;j--){ctx.save();ctx.globalAlpha*=.055;const factor=1+j*.13;ctx.translate(width/2,height/2);ctx.scale(factor,factor);ctx.translate(-width/2,-height/2);for(const n of scene.nodes){ctx.save();ctx.translate(n.x,n.y);image(ctx,bitmap(ctx,n,m,m.emphasisColor,true));ctx.restore()}ctx.restore()}}
   for(const n of scene.nodes){const f=evaluateLyricNode(scene,n,time,bpm);if(f.opacity<=0)continue;ctx.save();ctx.globalAlpha*=f.opacity;ctx.translate(f.x,f.y);ctx.rotate(f.rotation);ctx.scale(f.scale,f.scale);
-   const color=r.layout==='impact'?'#14201b':n.emphasis?m.emphasisColor:m.color,img=bitmap(ctx,n,m,color);
+   const color=n.color||(n.emphasis?m.emphasisColor:m.color),img=bitmap(ctx,n,m,color);
    if(f.echo){for(let j=3;j>=1;j--){ctx.save();ctx.globalAlpha*=.13;image(ctx,bitmap(ctx,n,m,j%2?'#68dbf2':m.emphasisColor),Math.sin(f.phase-j*.3)*f.echo*j,Math.cos(f.phase-j*.4)*f.echo*j*.5);ctx.restore()}}
    if(f.glitch){ctx.save();ctx.globalAlpha*=.7;image(ctx,bitmap(ctx,n,m,'#33ddff'),-f.glitch,0);image(ctx,bitmap(ctx,n,m,'#ff529b'),f.glitch,0);ctx.restore()}
    if(f.warp){const step=Math.max(2,Math.ceil(width/640));for(let x=0;x<img.width;x+=step){const sw=Math.min(step,img.width-x),wave=Math.sin(x/Math.max(12,n.size*.8)+f.phase)*f.warp;ctx.drawImage(img,x,0,sw,img.height,-img.width/2+x,-img.height/2+wave,sw,img.height)}}else image(ctx,img);

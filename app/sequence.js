@@ -1,9 +1,10 @@
-import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=2';
-import {createLyricControls} from './lyric-controls.js?v=4';
-import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=3';
+import {applyLyricStyle,setWordColor} from './lyric-style.js';
+import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=3';
+import {createLyricControls} from './lyric-controls.js?v=5';
+import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=4';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
-import {createLyricOverlay} from './lyric-overlay.js?v=3';
-import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=2';
+import {createLyricOverlay} from './lyric-overlay.js?v=4';
+import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=3';
 import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPreviewTime} from './lyric-timing.js?v=3';
 import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=2';
@@ -43,7 +44,7 @@ import { cleanFx, concealAmount, mixFx, swapCurve } from './fx-mix.js';
 import { CAM_EASES, CAM_PRESETS, CAM_RANGES, camEnds, camLife, camValues, cleanCam, legacyKenBurns, lifeProgress, mixCam } from './camera-work.js?v=1';
 import { openMethodMenu } from './method-menu.js';
 import { methodButtons, syncMethodTiles } from './method-tiles.js';
-import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=7';
+import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=8';
 
 const $ = id => document.getElementById(id);
 // every method (the built-in ones and the ones users add) is listed in method-registry.js
@@ -93,7 +94,7 @@ export const seq = {
 };
 
 let lyricOverlay, lyricControls;
-const audioGate=createImportGate();let audioURL='',lyricRevision=0,lyricExtraction=null,lyricStatus='',lyricTap=null,lyricTapping=false,lyricSelectedId=null;
+const audioGate=createImportGate();let audioURL='',lyricRevision=0,lyricExtraction=null,lyricStatus='',lyricTap=null,lyricTapping=false,lyricSelectedId=null;let lyricPreviewStop=null;
 let renderer, scene, camera, perspCam, mesh, sceneBlur, backdrop, variants, methodEditor, methodPersistence, safety, methodTrial, methodEnabler, quarantineBanner;   // backdrop: the next picture held still behind a "reveal" change
 const geoCache = new Map();   // shape key -> geometry
 const savedModels = new Map();
@@ -274,7 +275,7 @@ function backgroundSeconds() {
   return beats * beatSec();
 }
 export function totalSeconds(){return movieDuration({document:seq.lyricDocument,audioDuration:seq.audioBuffer?.duration||0,offset:seq.offset,backgroundDuration:backgroundSeconds()});}
-export function setLyricDocument(doc,{fromTap=false}={}){if(seq.recording)return;if(!fromTap){if(lyricTapping)stopPlay();lyricTap=null;lyricTapping=false;}seq.lyricDocument=cleanLyricDocument(doc);seq.t=Math.min(seq.t,totalSeconds());refreshUI();lyricOverlay?.prepare(seq.lyricDocument).then(()=>{if(!seq.recording)renderAt(seq.t)});}
+export function setLyricDocument(doc,{fromTap=false}={}){if(seq.recording)return;if(!fromTap){if(lyricTapping)stopPlay();lyricTap=null;lyricTapping=false;}seq.lyricDocument=cleanLyricDocument(doc);seq.t=Math.min(seq.t,totalSeconds());refreshUI();lyricOverlay?.prepare(seq.lyricDocument).then(()=>{if(!seq.recording)renderAt(seq.t)}).catch(e=>{lyricStatus=e.message;lyricControls?.refresh()});}
 function drawLyrics(sec){lyricOverlay?.render(seq.lyricDocument,sec+seq.offset,{duration:seq.audioBuffer?.duration||12,bpm:seq.lyricMotion.bpm,width:renderer.domElement.width,height:renderer.domElement.height});}
 function locate(sec) {
   // -> {i: slide index shown (or from), tr: transition index or -1, u: 0..1 inside transition, beat}
@@ -665,8 +666,17 @@ export async function loadAudio(blob,name='',assetId,{restoring=false}={}){
 function syncOverlayLyrics(){if(seq.lyricDocument)seq.lyrics=getTimings(seq.lyricDocument,seq.audioBuffer?.duration||12).events.map(e=>({id:e.id,s:e.start,e:e.end,t:e.kind==='section'?'▸ '+(SECTION_LABELS[e.section]||e.raw):e.text,k:e.section,isBoundary:e.kind==='section'}));}
 function lyricState(){return {document:seq.lyricDocument,audioName:seq.audioName,audioDuration:seq.audioBuffer?.duration||0,playing:seq.playing,recording:seq.recording,songSec:seq.t+seq.offset,offset:seq.offset,lyricMotion:seq.lyricMotion,extraction:lyricExtraction,status:lyricStatus,tapping:lyricTapping,tapCurrent:lyricTap?.current(),selectedId:lyricSelectedId,legacy:!seq.lyricDocument&&seq.slides.some(s=>s.lyric)};}
 function applyCandidate(c){const d=c.synced?importTimedLyrics(c.lines,'embedded'):parseLyrics(c.text,seq.lyricDocument);setLyricDocument(assignLyricMotions(d,{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7}));lyricStatus=c.synced?'時刻付き歌詞を取り込みました。':'歌詞を取り込みました。タイミングは仮配置です。';}
+function showLyricPreview(id,replay=false){
+ const t=getTimings(seq.lyricDocument,seq.audioBuffer?.duration||12).events.find(e=>e.id===id&&e.kind==='line');if(!t)return;
+ const start=Math.max(0,t.start-seq.offset),end=Math.min(totalSeconds(),t.end-seq.offset);if(end<=start){lyricStatus='この歌詞は動画の時間外です。開始時刻・曲の開始位置を確認してください。';lyricControls?.refresh();return}
+ const hold=start+Math.min((end-start)*.5,2);seek(replay?start:hold);if(replay){startPlay();lyricPreviewStop={end,hold}}
+}
 export async function lyricAction(a){
  if(seq.recording)return;
+ if(a.type==='select-lyric'){const i=seq.lyrics.findIndex(e=>e.id===a.id);if(i>=0){timelineApi.select({kind:'lyric',i});showLyricPreview(a.id)}return}
+ if(a.type==='preview-lyric'){showLyricPreview(a.id,true);return}
+ if(a.type==='lyric-style'){if(!seq.lyricDocument?.events.some(e=>e.id===a.id&&e.kind==='line'))return;lyricRevision++;edit(()=>setLyricDocument(applyLyricStyle(seq.lyricDocument,a)));showLyricPreview(a.id,!!a.replay);return}
+ if(a.type==='word-color'){lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id&&e.kind==='line');if(!e)return;e.colors=setWordColor(e.colors,e.text,a.start,a.end,a.color);setLyricDocument(d)});showLyricPreview(a.id);return}
  if(a.type==='studio'){stopPlay();lyricControls?.openStudio(a.id);return}
  if(a.type==='recipe-apply'){if(!seq.lyricDocument?.events.some(e=>e.kind==='line'))throw Error('先に歌詞を入れてください。');const motion=cleanMotion(a.motion);if(!motion.recipe)throw Error('文字モーションを選んでください。');lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument);for(const e of d.events)if(e.kind==='line'&&!e.locked)e.motion=structuredClone(motion);d.enabled=true;setLyricDocument(d)});return}
  if(a.type==='text-edit'){lyricRevision++;return}
@@ -684,7 +694,7 @@ export async function lyricAction(a){
   lyricStatus='動きを割り当てて、歌詞のある位置から再生しています。';lyricControls?.refresh();return
  }
  if(a.type==='resolve'){lyricRevision++;edit(()=>setLyricDocument(assignLyricMotions(resolveUnknown(seq.lyricDocument,a.id,a.decision),{style:seq.lyricDocument.style,seed:seq.lyricDocument.seed,preserveExisting:true})));return}
- if(a.type==='edit'){lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id);if(!e)return;const patch={...a.patch};if(patch.section)patch.sectionOverride=patch.section;if(patch.raw!=null){patch.runs=lyricRuns(patch.raw);patch.text=patch.runs.map(x=>x.text).join('')}if(patch.motion)patch.motion=cleanMotion(patch.motion);Object.assign(e,patch);d.sourceText=d.events.map(e=>e.raw).join('\n');setLyricDocument(d)});return}
+ if(a.type==='edit'){lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id);if(!e)return;const patch={...a.patch};if(patch.section)patch.sectionOverride=patch.section;if(patch.raw!=null){if(patch.raw!==e.raw)patch.colors=[];patch.runs=lyricRuns(patch.raw);patch.text=patch.runs.map(x=>x.text).join('')}if(patch.motion)patch.motion=cleanMotion(patch.motion);Object.assign(e,patch);d.sourceText=d.events.map(e=>e.raw).join('\n');setLyricDocument(d)});return}
  if(a.type==='nudge'){edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id),t=getTimings(d,seq.audioBuffer?.duration||12).events.find(e=>e.id===a.id);if(e&&t)e.s=t.start;setLyricDocument(moveLyric(d,a.id,a.delta))});return}
  if(a.type==='settings'){edit(()=>setLyricDocument({...seq.lyricDocument,...a.patch}));return}
  if(a.type==='motion-settings'){edit(()=>{seq.lyricMotion=cleanLyricSettings({...seq.lyricMotion,...a.patch})});return}
@@ -1194,7 +1204,7 @@ function restore(snap) {
   seq.lyricDocument=cleanLyricDocument(snap.lyricDocument);seq.lyricMotion=cleanLyricSettings(snap.lyricMotion);
   if(seq.audioBlob!==snap.audioBlob){stopPlay();if(audioURL)URL.revokeObjectURL(audioURL);audioURL=snap.audioBlob?URL.createObjectURL(snap.audioBlob):'';seq.audio=audioURL?new Audio(audioURL):null;}
   Object.assign(seq,{audioBlob:snap.audioBlob,audioOwner:snap.audioOwner,audioName:snap.audioName||'',audioBuffer:snap.audioBuffer});$('seq-audio-name').textContent=seq.audioName;
-  lyricOverlay?.prepare(seq.lyricDocument).then(()=>renderAt(seq.t));
+  lyricOverlay?.prepare(seq.lyricDocument).then(()=>renderAt(seq.t)).catch(e=>notice(e.message));
   const old = new Map(seq.slides.map(s => [s.id, s]));
   seq.slides = snap.slides.map(x => {
     const o = old.get(x.id);
@@ -1504,7 +1514,7 @@ const timelineApi = {
     return { label: label + (tr.fx && Object.keys(tr.fx).length ? ' ✦' : ''), flat: tr.shape === 'none', bands: tr.shape === 'none' ? [['chaos', 3, 97]] : PHASE_BANDS, title: `${label}（${+tr.beats.toFixed(2)}拍）\nドラッグで切り替え位置、両端で長さ` };
   },
   isLinked: k => seq.link && linkedTransition(seq.lyrics[k]?.id) >= 0,
-  select: sel => {if(sel.kind==='lyric'&&seq.lyricDocument){lyricSelectedId=seq.lyrics[sel.i]?.id;seq.selection=sel;showTab('lyric');lyricControls?.refresh();timeline.render();return} seq.selection = sel; renderInspector(); renderMethodGrid(); timeline.render(); showTab('edit'); },
+  select: sel => {if(sel.kind==='lyric'&&seq.lyricDocument){lyricSelectedId=seq.lyrics[sel.i]?.id;seq.selection=sel;showTab('lyric');lyricControls?.refresh();lyricControls?.revealQuick();timeline.render();return} seq.selection = sel; renderInspector(); renderMethodGrid(); timeline.render(); showTab('edit'); },
   seek, beginEdit, endEdit, snapshotTimes, dragEdit, moveSlide, replaceSlide, insertImages, undo, redo,
   editLyricText: i => { timelineApi.select({ kind: 'lyric', i }); setTimeout(() => { const t = $('insp-lyric-text'); t?.focus(); t?.select(); }, 0); },
   setLink: on => edit(() => { seq.link = on; }),
@@ -1639,7 +1649,7 @@ function startPlay() {
   if(seq.audio){seq.audio.currentTime=Math.max(0,seq.t+seq.offset);if(seq.t+seq.offset>=0)seq.audio.play().catch(()=>notice('音楽の再生ボタンをもう一度押してください。'));}
   $('seq-play').textContent = 'Ⅱ';
 }
-function stopPlay() { seq.playing = false; seq.audio?.pause(); $('seq-play').textContent = '▶'; applyLookView(); }
+function stopPlay() { lyricPreviewStop=null;seq.playing = false; seq.audio?.pause(); $('seq-play').textContent = '▶'; applyLookView(); }
 let lastTickAt = 0;
 function tick(now) {
   // the time between animation frames, for the watch on custom methods (only while playing, never while exporting)
@@ -1649,6 +1659,7 @@ function tick(now) {
     const wallTime=playFrom+(now-playStart)/1000;
     if(seq.audio&&seq.audio.paused&&!seq.audio.ended&&wallTime+seq.offset>=0&&seq.t+seq.offset<0)seq.audio.play().catch(()=>{});
     seq.t = seq.audio && !seq.audio.paused ? seq.audio.currentTime - seq.offset : playFrom + (now - playStart) / 1000;
+    if(lyricPreviewStop&&seq.t>=lyricPreviewStop.end){const hold=lyricPreviewStop.hold;stopPlay();seq.t=hold}
     if (seq.t >= totalSeconds()) { seq.t = totalSeconds(); stopPlay(); }
     renderAt(seq.t);
     timeline?.setTime(seq.t);

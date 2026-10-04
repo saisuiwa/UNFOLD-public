@@ -1,6 +1,7 @@
+import {savedLyricFonts,lyricFontLabel} from './lyric-fonts.js';
 import {BUILTIN_MOTIONS,LAYOUTS,ENTRANCES,SUSTAINS,EXITS,normalizeRecipe} from './lyric-recipe.js';
-import {cleanMotion} from './lyric-motion.js?v=3';
-import {lyricRuns} from './lyric-document.js?v=2';
+import {cleanMotion} from './lyric-motion.js?v=4';
+import {lyricRuns} from './lyric-document.js?v=3';
 import {createMotionLibrary,buildMotionFile,parseMotionFile,motionAIPrompt} from './lyric-library.js';
 import {createLyricPainter,prepareMotionFont} from './lyric-painter.js';
 const node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});
@@ -44,7 +45,7 @@ export function openMotionStudio({motion,text='小さな*光*を/明日へつな
  const advanced=node('details');advanced.append(node('summary','AIに作ってもらう・レシピを編集'));view.append(advanced);
  const explanation=node('p','依頼文をコピーしてAIに希望を伝え、返されたJSONを下に貼り付けてください。対応する構成と動きの組み合わせを作れます。');explanation.className='ms-small';advanced.append(explanation);
  const json=node('textarea');json.className='ms-json';json.spellcheck=false;json.setAttribute('aria-label','モーションのJSON');const ai=button('AIへの依頼文をコピー',async()=>{const prompt=motionAIPrompt();try{await navigator.clipboard.writeText(prompt);status.textContent='AIへの依頼文をコピーしました。希望の動きを書き足してください。'}catch{json.value=prompt;json.focus();json.select();status.textContent='依頼文を選択しました。手動でコピーしてください。'}},advanced);ai.dataset.action='ai-prompt';advanced.append(json);button('JSONをプレビューに反映',()=>{load(parseMotionFile(json.value));status.textContent='レシピを確認してプレビューに反映しました。'},advanced);
- function sync(){layout.value=current.recipe.layout;enter.value=current.recipe.enter;exit.value=current.recipe.exit;strength.value=current.recipe.strength;stagger.value=current.recipe.stagger;speed.value=current.speed;size.value=current.size;font.value=current.font;color.value=current.color;accent.value=current.emphasisColor;for(const i of checks)i.checked=current.recipe.sustain.includes(i.value);json.value=buildMotionFile(record())}
+ function sync(){for(const item of savedLyricFonts())if(![...font.options].some(o=>o.value===item.key))font.append(new Option(item.label,item.key));if(![...font.options].some(o=>o.value===current.font))font.append(new Option(lyricFontLabel(current.font),current.font));layout.value=current.recipe.layout;enter.value=current.recipe.enter;exit.value=current.recipe.exit;strength.value=current.recipe.strength;stagger.value=current.recipe.stagger;speed.value=current.speed;size.value=current.size;font.value=current.font;color.value=current.color;accent.value=current.emphasisColor;for(const i of checks)i.checked=current.recipe.sustain.includes(i.value);json.value=buildMotionFile(record())}
  function load(item){current=cleanMotion(item.motion);name.value=item.name;sync();time=0;playing=true;prepare()}
  pick.onchange=()=>{try{const item=[...BUILTIN_MOTIONS,...library.list()].find(x=>x.id===pick.value);if(item)load(item)}catch(e){status.textContent=e.message}};
  function changed(){current=cleanMotion(current);painter.clear();json.value=buildMotionFile({...record(),name:name.value.trim()||'マイモーション'});draw()}
