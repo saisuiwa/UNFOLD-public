@@ -13,7 +13,7 @@ export function createLyricOverlay(renderer){
     async prepare(doc){const fonts=new Map();for(const e of doc?.events||[]){if(e.kind!=='line')continue;const m=cleanMotion(e.motion||{}),f=m.font;fonts.set(f,(fonts.get(f)||'')+e.text)}await Promise.all([...fonts].map(([f,text])=>prepareLyricFont(f,text)));painter.clear();},
     render(doc,time,{duration=12,bpm=120,width=renderer.domElement.width,height=renderer.domElement.height}={}){
       if(!doc)return;const e=activeLyric(doc,time,duration);if(!e)return;const v=motionAt(e,time,bpm);if(!v.opacity)return;
-      width=Math.max(1,Math.round(width));height=Math.max(1,Math.round(height));if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height}ctx.clearRect(0,0,width,height);
+      width=Math.max(1,Math.round(width));height=Math.max(1,Math.round(height));if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height;texture.dispose()}ctx.clearRect(0,0,width,height);
       if(e.motion?.recipe?.version===1){painter.draw(ctx,e,time,{width,height,bpm});}else{
       const m=cleanMotion(e.motion||{}),font=m.font;
       const measure=(s,size)=>{ctx.font=fontString(font,size);return ctx.measureText(s).width};

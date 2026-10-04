@@ -8,8 +8,8 @@ export function isLyricFontKey(key){
  try{const name=decodeURIComponent(key.slice(6));return name.length>0&&name.length<=180&&!/[\u0000-\u001f\u007f]/.test(name)&&encodeURIComponent(name)===key.slice(6)}catch{return false}
 }
 export function localFontKey(postscriptName){const key='local:'+encodeURIComponent(postscriptName);if(!isLyricFontKey(key))throw Error('このフォント名は使えません。');return key;}
-function storedLabels(){try{return JSON.parse(globalThis.localStorage?.getItem(META)||'{}')}catch{return {}}}
-export function lyricFontLabel(key){return FONTS[key]?.label||labels.get(key)||storedLabels()[key]||(key?.startsWith('local:')?decodeURIComponent(key.slice(6)):'読み込んだフォント');}
+function storedLabels(){try{const data=JSON.parse(globalThis.localStorage?.getItem(META)||'{}');return data&&typeof data==='object'&&!Array.isArray(data)?Object.fromEntries(Object.entries(data).filter(([k,v])=>isLyricFontKey(k)&&typeof v==='string')):{}}catch{return {}}}
+export function lyricFontLabel(key){return FONTS[key]?.label||labels.get(key)||storedLabels()[key]||(isLyricFontKey(key)&&key.startsWith('local:')?decodeURIComponent(key.slice(6)):'読み込んだフォント');}
 export function savedLyricFonts(){return Object.entries(storedLabels()).filter(([key])=>isLyricFontKey(key)).map(([key,label])=>({key,label}));}
 function remember(key,label){labels.set(key,label);try{globalThis.localStorage.setItem(META,JSON.stringify({...storedLabels(),[key]:label}))}catch{}}
 function alias(key){return 'UnfoldFont_'+[...key].map(c=>c.charCodeAt(0).toString(16)).join('');}

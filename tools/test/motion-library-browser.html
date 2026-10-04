@@ -9,7 +9,7 @@ try{
  const pixels=()=>{const a=new Uint8Array(r.domElement.width*r.domElement.height*4);r.getContext().readPixels(0,0,r.domElement.width,r.domElement.height,6408,5121,a);return a};
  const draw=(doc,t)=>{r.clear();overlay.render(doc,t,{duration:6,bpm:120});return pixels()};
  for(const item of BUILTIN_MOTIONS){const doc=parseLyrics('小さな*光*を/明日へつなぐ');Object.assign(doc.events[0],{s:0,e:6,motion:item.motion});await overlay.prepare(doc);r.clear();const bg=pixels(),a=draw(doc,2.8);draw(doc,5);const b=draw(doc,2.8);test(item.id+' visible',a.some((v,i)=>v!==bg[i]));test(item.id+' reverse seek identical',a.every((v,i)=>v===b[i]));test(item.id+' outside invisible',draw(doc,7).every((v,i)=>v===bg[i]));const c=draw(doc,3.4);if(item.id!=='impact')test(item.id+' sustain moves',a.some((v,i)=>v!==c[i]));
- r.setSize(1280,720,false);draw(doc,2.8);r.setSize(640,360,false);test(item.id+' resolution restored',draw(doc,2.8).every((v,i)=>v===a[i]));
+ r.setSize(1280,720,false);const resized=draw(doc,2.8),fresh=createLyricOverlay(r);await fresh.prepare(doc);r.clear();fresh.render(doc,2.8,{duration:6,bpm:120});const freshPixels=pixels();test(item.id+' export resolution matches fresh renderer',resized.every((v,i)=>v===freshPixels[i]));fresh.dispose();r.setSize(640,360,false);test(item.id+' resolution restored',draw(doc,2.8).every((v,i)=>v===a[i]));
  }
  test('renderer autoClear preserved',r.autoClear===true);overlay.dispose();
 }catch(e){test(e.stack||e.message,false)}
