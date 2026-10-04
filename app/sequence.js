@@ -1,8 +1,8 @@
 import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=2';
-import {createLyricControls} from './lyric-controls.js?v=3';
-import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=2';
+import {createLyricControls} from './lyric-controls.js?v=4';
+import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=3';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
-import {createLyricOverlay} from './lyric-overlay.js?v=2';
+import {createLyricOverlay} from './lyric-overlay.js?v=3';
 import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=2';
 import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPreviewTime} from './lyric-timing.js?v=3';
 import {audioBlock} from './lyric-audio-range.js?v=2';
@@ -667,9 +667,11 @@ function lyricState(){return {document:seq.lyricDocument,audioName:seq.audioName
 function applyCandidate(c){const d=c.synced?importTimedLyrics(c.lines,'embedded'):parseLyrics(c.text,seq.lyricDocument);setLyricDocument(assignLyricMotions(d,{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7}));lyricStatus=c.synced?'時刻付き歌詞を取り込みました。':'歌詞を取り込みました。タイミングは仮配置です。';}
 export async function lyricAction(a){
  if(seq.recording)return;
+ if(a.type==='studio'){stopPlay();lyricControls?.openStudio(a.id);return}
+ if(a.type==='recipe-apply'){if(!seq.lyricDocument?.events.some(e=>e.kind==='line'))throw Error('先に歌詞を入れてください。');const motion=cleanMotion(a.motion);if(!motion.recipe)throw Error('文字モーションを選んでください。');lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument);for(const e of d.events)if(e.kind==='line'&&!e.locked)e.motion=structuredClone(motion);d.enabled=true;setLyricDocument(d)});return}
  if(a.type==='text-edit'){lyricRevision++;return}
  if(a.type==='audio'){await loadAudio(a.file,a.file.name);return}
- if(a.type==='text'){if(a.value===(seq.lyricDocument?.sourceText||''))return;lyricRevision++;lyricTap=null;lyricTapping=false;edit(()=>setLyricDocument(assignLyricMotions(parseLyrics(a.value,seq.lyricDocument),{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7})));return}
+ if(a.type==='text'){if(a.value===(seq.lyricDocument?.sourceText||''))return;lyricRevision++;lyricTap=null;lyricTapping=false;edit(()=>setLyricDocument(assignLyricMotions(parseLyrics(a.value,seq.lyricDocument),{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7,preserveExisting:true})));return}
  if(a.type==='import'){const value=await a.file.text();let restored=null;if(/\.json$/i.test(a.file.name))restored=lyricTimingDocument(JSON.parse(value));lyricRevision++;edit(()=>setLyricDocument(restored||assignLyricMotions(/\.(json|lrc)$/i.test(a.file.name)?importTimedLyrics(parseTimings(value,a.file.name),'file'):parseLyrics(value),{style:'readable',seed:7})));return}
  if(a.type==='candidate'){const c=lyricExtraction?.candidates.find(c=>c.id===a.id);if(c){lyricRevision++;edit(()=>applyCandidate(c))}return}
  if(a.type==='shuffle'){
@@ -1557,7 +1559,7 @@ function wire() {
     if (!f) return;
     try { await loadAudio(f, f.name); } catch (err) { console.error(err); notice('音楽を読み込めませんでした。'); }
   };
-  lyricControls=createLyricControls({getState:lyricState,onAction:lyricAction});$('pane-lyric').append(lyricControls.element);
+  lyricControls=createLyricControls({getState:lyricState,onAction:lyricAction});$('pane-lyric').append(lyricControls.element);if(location.hash==='#lyric')showTab('lyric');
   $('seq-with-audio').onchange=e=>{seq.withAudio=e.target.checked;scheduleSave()};
   $('seq-offset').onchange = e => edit(()=>{seq.offset=Number(e.target.value);});
   $('seq-play').onclick = () => togglePlay();
@@ -1614,6 +1616,7 @@ function wire() {
     finally { $('seq-export').disabled = false; }
   };
   document.addEventListener('keydown', e => {
+    if(document.querySelector('dialog.motion-studio[open]'))return;
     const typing=['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)||e.target.isContentEditable||e.isComposing;
     if(lyricTapping&&!typing){if(e.code==='Space'){e.preventDefault();lyricAction({type:'tap-now'})}else if(e.code==='Backspace'){e.preventDefault();lyricAction({type:'tap-back'})}else if(e.code==='Escape')lyricAction({type:'tap-stop'});return}
     if(seq.recording)return;
