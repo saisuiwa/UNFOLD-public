@@ -9,7 +9,7 @@ return {timeline};`;
 export function codeMotionExample(){return CODE_MOTION_STARTER;}
 const bridge=`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; connect-src blob: data:; img-src blob: data:"><script>
 let worker,port,url;
-addEventListener('message',e=>{if(port||!e.ports[0])return;port=e.ports[0];url=URL.createObjectURL(new Blob([e.data.bundle],{type:'text/javascript'}));worker=new Worker(url);worker.onmessage=e=>{const m=e.data;port.postMessage(m,m.bitmap?[m.bitmap]:[]);};worker.onerror=e=>port.postMessage({fatal:e.message||'Worker error'});port.onmessage=e=>{if(e.data.type==='terminate'){worker.terminate();URL.revokeObjectURL(url);port.close();return;}worker.postMessage(e.data);};port.start();port.postMessage({ready:true});});
+addEventListener('message',e=>{if(e.source!==parent||port||!e.ports[0]||typeof e.data?.bundle!=='string')return;port=e.ports[0];url=URL.createObjectURL(new Blob([e.data.bundle],{type:'text/javascript'}));worker=new Worker(url);worker.onmessage=e=>{const m=e.data;port.postMessage(m,m.bitmap?[m.bitmap]:[]);};worker.onerror=e=>port.postMessage({fatal:e.message||'Worker error'});port.onmessage=e=>{if(e.data.type==='terminate'){worker.terminate();URL.revokeObjectURL(url);port.close();return;}worker.postMessage(e.data);};port.start();port.postMessage({ready:true});});
 <\/script>`;
 export function createCodeMotionRuntime({initializationTimeout=15000,frameTimeout=5000}={}){
  let frame,port,ready,prepared=false,dead=false,sequence=0;const pending=new Map();
@@ -33,7 +33,7 @@ export function createCodeMotionRuntime({initializationTimeout=15000,frameTimeou
    if(!Number.isFinite(p.fontSize)||p.fontSize<=0)throw new Error('Invalid font size.');
    const [bundle,fontBytes]=await Promise.all([fetch(bundleURL).then(r=>{if(!r.ok)throw new Error('Worker bundle unavailable');return r.text();}),p.fontBytes?Promise.resolve(p.fontBytes):fetch(fallbackURL).then(r=>{if(!r.ok)throw new Error('Fallback font unavailable');return r.arrayBuffer();})]);
    if(dead)throw new Error('Runtime disposed');await connect(bundle);
-   try{await request({type:'prepare',payload:{source:p.source,text:String(p.text??''),width:p.width,height:p.height,fontSize:p.fontSize,color:p.color??'#ffffff',accent:p.accent??'#77ccff',fontBytes,runs:Array.isArray(p.runs)?p.runs:[],duration:p.duration??1,seed:p.seed??1}},initializationTimeout);prepared=true;}catch(e){stop(e.message);throw e;}
+   try{await request({type:'prepare',payload:{source:p.source,text:String(p.text??''),width:p.width,height:p.height,fontSize:p.fontSize,color:p.color??'#ffffff',accent:p.accent??'#77ccff',fontBytes,runs:Array.isArray(p.runs)?p.runs:[],duration:p.duration??1,bpm:p.bpm??120,seed:p.seed??1}},initializationTimeout);prepared=true;}catch(e){stop(e.message);throw e;}
   },
   async render(time){if(!port||dead||!prepared)throw new Error('Runtime is not prepared');if(!Number.isFinite(time)||time<0)throw new Error('Invalid frame time');await ready;return request({type:'render',time},frameTimeout);},
   dispose(){stop();}

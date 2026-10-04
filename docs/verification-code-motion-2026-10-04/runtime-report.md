@@ -20,3 +20,7 @@ Test page: http://127.0.0.1:8774/tools/test/code-motion-runtime.html, isolated a
 Node --check passed for runtime and worker entry; git diff --check passed. Build creates ~872KB trusted worker bundle. Dependency license files and lock included.
 
 Remaining verification belongs to parent integration: editor/save/project activation, host latest-frame behavior, PC font bridge, MP4 encoding/decoding. Arbitrary update(time) authors must derive animation state from absolute time for deterministic seeking. Font loader failures are surfaced through fatal error forwarding; fonts with unsupported glyphs can trigger blocked fallback and fail explicitly.
+
+## API follow-up verification
+
+Added fontSize/bpm alongside runs/duration, direct new Text local font defaults, and per-render traversal to synchronize Text objects created during update. Bridge initialization accepts only its parent window. Chrome regression reran ALL PASS including new assertion for fontSize=64, bpm=96, duration=4 and first-frame Japanese text created dynamically through new api.Text(). Parent layer review identified pump/reset races and reported them for parent-owned correction.
