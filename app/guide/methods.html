@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNFOLD メソッド集 — 29種類の崩れ方</title>
+<meta name="description" content="UNFOLDの崩れ方（メソッド）29種類を、動く見本で紹介します。自作メソッドの作り方も。">
+<link rel="stylesheet" href="./guide.css?v=1">
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="brand" href="../"><b>◈</b>UNFOLD</a>
+  <nav aria-label="ページ">
+    <a href="./">説明</a>
+    <a href="./methods.html" aria-current="page">メソッド集</a>
+    <a href="./glb.html">GLB置き場</a>
+  </nav>
+  <span class="spacer"></span>
+  <a class="btn small" href="../">1枚モード</a>
+  <a class="btn small lime" href="../sequence.html">シーケンス</a>
+</div></header>
+
+<main>
+  <div class="eyebrow">METHODS</div>
+  <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">メソッド集</h1>
+  <p class="lede">絵が崩れる動き（メソッド）は、標準で <b>29種類</b>。どれも同じ2枚の絵（港の油絵 → ネオンの街）で動かした見本です。カードをクリック（タップ）すると動きます。</p>
+  <p class="note">使うときは、1枚モードの「ぐちゃぐちゃにする」、またはシーケンスの◆を選んだ「崩れ方」から選びます。立体になる前の、崩れていく部分の動きです。</p>
+
+  <section style="margin-top:34px">
+    <ul class="chips" aria-label="分類で絞り込む">
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>29</small></button></li>
+      <li><button class="chip" type="button" data-filter="paper" aria-pressed="false">紙・タイルの崩れ<small>12</small></button></li><li><button class="chip" type="button" data-filter="particle" aria-pressed="false">粒（パーティクル）<small>12</small></button></li><li><button class="chip" type="button" data-filter="motion" aria-pressed="false">モーション<small>5</small></button></li>
+    </ul>
+    <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/crumple.mp4" role="button" tabindex="0" aria-label="くしゃくしゃの動きを再生">
+        <img src="./methods/crumple.jpg" alt="くしゃくしゃの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">▱</i>くしゃくしゃ<small>CRUMPLE</small></h3>
+        <p>紙を丸めるように、くしゃっと波打ちながら崩れます。いちばん基本の動き。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/scatter.mp4" role="button" tabindex="0" aria-label="ばらばらの動きを再生">
+        <img src="./methods/scatter.jpg" alt="ばらばらの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⠿</i>ばらばら<small>SCATTER</small></h3>
+        <p>絵がタイルに分かれて、それぞれ回りながら散らばります。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/twist.mp4" role="button" tabindex="0" aria-label="ねじれの動きを再生">
+        <img src="./methods/twist.jpg" alt="ねじれの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">〰</i>ねじれ<small>TWIST</small></h3>
+        <p>絵全体がひねられたようにねじれて、崩れます。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/wave.mp4" role="button" tabindex="0" aria-label="波打ちの動きを再生">
+        <img src="./methods/wave.jpg" alt="波打ちの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">≋</i>波打ち<small>WAVE</small></h3>
+        <p>縦にも横にも、ゆらゆらと波打ちます。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/shatter.mp4" role="button" tabindex="0" aria-label="砕けるの動きを再生">
+        <img src="./methods/shatter.jpg" alt="砕けるの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>砕ける<small>SHATTER</small></h3>
+        <p>ガラスが割れるように、破片になって飛び散ります。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/peel.mp4" role="button" tabindex="0" aria-label="めくれの動きを再生">
+        <img src="./methods/peel.jpg" alt="めくれの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">◸</i>めくれ<small>PEEL</small></h3>
+        <p>紙をめくるように、端からはがれていきます。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/melt.mp4" role="button" tabindex="0" aria-label="とけるの動きを再生">
+        <img src="./methods/melt.jpg" alt="とけるの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⌇</i>とける<small>MELT</small></h3>
+        <p>縦の帯に分かれて、とろけるように落ちていきます。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/fold.mp4" role="button" tabindex="0" aria-label="折りたたみの動きを再生">
+        <img src="./methods/fold.jpg" alt="折りたたみの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⋀</i>折りたたみ<small>FOLD</small></h3>
+        <p>紙を折りたたむように、畳まれて消えます。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/shred.mp4" role="button" tabindex="0" aria-label="シュレッダーの動きを再生">
+        <img src="./methods/shred.jpg" alt="シュレッダーの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⦀</i>シュレッダー<small>SHRED</small></h3>
+        <p>シュレッダーにかけたように、細い短冊になって落ちます。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/mosaic.mp4" role="button" tabindex="0" aria-label="モザイクの動きを再生">
+        <img src="./methods/mosaic.jpg" alt="モザイクの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">▦</i>モザイク<small>MOSAIC</small></h3>
+        <p>四角いモザイクに分かれて、次の絵と入れ替わります。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/vortex.mp4" role="button" tabindex="0" aria-label="渦に吸い込みの動きを再生">
+        <img src="./methods/vortex.jpg" alt="渦に吸い込みの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">◌</i>渦に吸い込み<small>VORTEX</small></h3>
+        <p>渦を巻いて、中心に吸い込まれていきます。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="paper">
+      <div class="shot" data-clip="./methods/confetti.mp4" role="button" tabindex="0" aria-label="星とハートの動きを再生">
+        <img src="./methods/confetti.jpg" alt="星とハートの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">☆♡</i>星とハート<small>CONFETTI</small></h3>
+        <p>星やハートの紙吹雪になって舞い上がります。</p>
+        <span class="tag">紙・タイルの崩れ</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/dust.mp4" role="button" tabindex="0" aria-label="塵になるの動きを再生">
+        <img src="./methods/dust.jpg" alt="塵になるの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⁘</i>塵になる<small>DUST</small></h3>
+        <p>細かい粒の塵になって、さらさらと消えます。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/sparkle.mp4" role="button" tabindex="0" aria-label="きらめきの動きを再生">
+        <img src="./methods/sparkle.jpg" alt="きらめきの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✧</i>きらめき<small>SPARKLE</small></h3>
+        <p>きらきら光る粒になって、ほどけます。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/burst.mp4" role="button" tabindex="0" aria-label="爆発の動きを再生">
+        <img src="./methods/burst.jpg" alt="爆発の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✺</i>爆発<small>BURST</small></h3>
+        <p>中心から弾けるように、勢いよく飛び散ります。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/swarm.mp4" role="button" tabindex="0" aria-label="群れの動きを再生">
+        <img src="./methods/swarm.jpg" alt="群れの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⟳</i>群れ<small>SWARM</small></h3>
+        <p>粒が群れのようにまとまって、うねりながら動きます。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/rain.mp4" role="button" tabindex="0" aria-label="雨の動きを再生">
+        <img src="./methods/rain.jpg" alt="雨の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⫶</i>雨<small>RAIN</small></h3>
+        <p>雨のように、粒が上から降り注ぎます。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/snow.mp4" role="button" tabindex="0" aria-label="雪の動きを再生">
+        <img src="./methods/snow.jpg" alt="雪の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">❄</i>雪<small>SNOW</small></h3>
+        <p>雪のように、粒がふわふわと舞い落ちます。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/bubbles.mp4" role="button" tabindex="0" aria-label="泡の動きを再生">
+        <img src="./methods/bubbles.jpg" alt="泡の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">○</i>泡<small>BUBBLES</small></h3>
+        <p>泡になって、ぷかぷか浮かび上がります。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/halftone.mp4" role="button" tabindex="0" aria-label="網点の動きを再生">
+        <img src="./methods/halftone.jpg" alt="網点の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⠶</i>網点<small>HALFTONE</small></h3>
+        <p>印刷の網点のような細かいドットに分かれます。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/galaxy.mp4" role="button" tabindex="0" aria-label="銀河の動きを再生">
+        <img src="./methods/galaxy.jpg" alt="銀河の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>銀河<small>GALAXY</small></h3>
+        <p>銀河のように、粒が渦を巻いて広がります。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/tornado.mp4" role="button" tabindex="0" aria-label="竜巻の動きを再生">
+        <img src="./methods/tornado.jpg" alt="竜巻の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⌇</i>竜巻<small>TORNADO</small></h3>
+        <p>竜巻のように、粒が巻き上がります。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/wind.mp4" role="button" tabindex="0" aria-label="風で飛ぶの動きを再生">
+        <img src="./methods/wind.jpg" alt="風で飛ぶの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">≈</i>風で飛ぶ<small>WIND</small></h3>
+        <p>風に吹かれて、粒になって飛ばされていきます。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="particle">
+      <div class="shot" data-clip="./methods/petals.mp4" role="button" tabindex="0" aria-label="花びらが舞うの動きを再生">
+        <img src="./methods/petals.jpg" alt="花びらが舞うの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">❀</i>花びらが舞う<small>PETALS</small></h3>
+        <p>花びらになって、ひらひら舞い上がります。</p>
+        <span class="tag">粒（パーティクル）</span>
+      </div>
+    </article>
+    <article class="method" data-cat="motion">
+      <div class="shot" data-clip="./methods/ripple.mp4" role="button" tabindex="0" aria-label="波紋の動きを再生">
+        <img src="./methods/ripple.jpg" alt="波紋の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">◎</i>波紋<small>RIPPLE</small></h3>
+        <p>水の波紋のように、輪になってゆがみが広がります。</p>
+        <span class="tag">モーション</span>
+      </div>
+    </article>
+    <article class="method" data-cat="motion">
+      <div class="shot" data-clip="./methods/blinds.mp4" role="button" tabindex="0" aria-label="ブラインドの動きを再生">
+        <img src="./methods/blinds.jpg" alt="ブラインドの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">☰</i>ブラインド<small>BLINDS</small></h3>
+        <p>ブラインドのように、細い帯がくるっと回って切り替わります。</p>
+        <span class="tag">モーション</span>
+      </div>
+    </article>
+    <article class="method" data-cat="motion">
+      <div class="shot" data-clip="./methods/flip.mp4" role="button" tabindex="0" aria-label="タイル反転の動きを再生">
+        <img src="./methods/flip.jpg" alt="タイル反転の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">◧</i>タイル反転<small>FLIP</small></h3>
+        <p>タイルがパタパタと裏返って、次の絵になります。</p>
+        <span class="tag">モーション</span>
+      </div>
+    </article>
+    <article class="method" data-cat="motion">
+      <div class="shot" data-clip="./methods/glitch.mp4" role="button" tabindex="0" aria-label="グリッチの動きを再生">
+        <img src="./methods/glitch.jpg" alt="グリッチの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">▚</i>グリッチ<small>GLITCH</small></h3>
+        <p>デジタルノイズのように、ずれて乱れます。</p>
+        <span class="tag">モーション</span>
+      </div>
+    </article>
+    <article class="method" data-cat="motion">
+      <div class="shot" data-clip="./methods/line.mp4" role="button" tabindex="0" aria-label="線で描かれるの動きを再生">
+        <img src="./methods/line.jpg" alt="線で描かれるの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✎</i>線で描かれる<small>LINE DRAW</small></h3>
+        <p>線で描かれていくように、次の絵が現れます。</p>
+        <span class="tag">モーション</span>
+      </div>
+    </article>
+    </div>
+  </section>
+
+  <section id="custom">
+    <h2><small>CUSTOM</small>自作メソッドを作る</h2>
+    <div class="two">
+      <div>
+        <p>メソッド一覧の最後の「＋自作メソッド」で、自分の崩れ方を作れます。書くのは短い GLSL のコードだけ。<b>p</b>（絵の中の位置）と <b>amount</b>（崩れ具合：0 で元の絵、大きいほどよく崩れる）を受け取って、動かした位置を返します。</p>
+        <ul class="list">
+          <li>左にコード、右に<b>プレビュー</b>。書き方のチェックと試し描画つき</li>
+          <li>サンプルから始められます。「AIに頼むひな形をコピー」で、チャットAIに作ってもらうこともできます</li>
+          <li>危ない書き方は保存前に止まり、重すぎると自動で止まります</li>
+          <li>作ったメソッドは <code>.unfoldmethod</code> ファイルにして人に渡せます（受け取った人は確認してから有効にします）</li>
+        </ul>
+      </div>
+      <div>
+        <p style="margin-bottom:6px;color:var(--muted);font-size:13px">例：渦に吸い込む（標準のサンプルより）</p>
+<pre>// 中心に近いほど強く回して、中心へ縮める
+vec3 userMethod(vec2 p, float amount) {
+  float r = length(p);
+  vec2 q = rot(amount * 3.4 / (r + .35)) * p
+         * (1. - amount * .6 * exp(-r * .5));
+  return vec3(q, -amount * .9 * exp(-r * r * .7));
+}</pre>
+        <a class="btn lime" href="../sequence.html">シーケンスで試す</a>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>
+  <a href="../">1枚モード</a> ・ <a href="../sequence.html">シーケンス</a> ・ <a href="./">説明</a> ・ <a href="./glb.html">GLB置き場</a>
+  <p style="margin-top:10px">© 2026 UNFOLD</p>
+</footer>
+<script>
+// play a clip on click / Enter; only one at a time (the videos are loaded only when asked for)
+const stop = shot => { shot.classList.remove('playing'); shot.querySelector('video')?.remove(); };
+document.addEventListener('click', e => {
+  const shot = e.target.closest('.shot'); if (!shot) return;
+  if (shot.classList.contains('playing')) return stop(shot);
+  document.querySelectorAll('.shot.playing').forEach(stop);
+  const v = document.createElement('video'); v.src = shot.dataset.clip; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true;
+  shot.append(v); shot.classList.add('playing'); v.play().catch(() => {});
+});
+document.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('shot')) { e.preventDefault(); e.target.click(); } });
+// filter chips
+const chips = [...document.querySelectorAll('.chip')];
+chips.forEach(c => c.addEventListener('click', () => {
+  chips.forEach(x => x.setAttribute('aria-pressed', String(x === c)));
+  const f = c.dataset.filter;
+  document.querySelectorAll('.method').forEach(m => { m.hidden = f !== 'all' && m.dataset.cat !== f; });
+}));
+</script>
+</body>
+</html>

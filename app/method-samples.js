@@ -1,0 +1,100 @@
+// Starting points for the editor: ready-made methods, the code a new method starts with, and the text to give an AI chat.
+import { LIMITS } from './method-guard.js';
+
+export const NEW_METHOD_SOURCE = `// p: 画像の中の位置、amount: 崩れ具合（0 で元の絵、大きいほどよく崩れる）
+// 戻り値: vec3(x, y, 奥行き)
+vec3 userMethod(vec2 p, float amount) {
+  vec2 q = p;
+  q.y += sin(p.x * 4. + uTime * 2.) * .3 * amount;   // 波打つ
+  return vec3(q, 0.);
+}`;
+
+export const SAMPLES = [
+  { key: 'petals', name: '花びらが舞う', symbol: '花', source: `// 粒が花びらになり、風に揺れながら手前へ舞う
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float delay = (c.x / uSize.x + .5) * .22 + ph(1.) * .16;
+  float e = smoothstep(delay, delay + .4, amount);
+  float spin = e * (4. + ph(2.) * 6. + uTime * (1. + ph(3.) * 2.));
+  vec2 leaf = rot(spin) * (l * mix(vec2(1.), vec2(2.4, 3.2), e));
+  leaf.x *= mix(1., cos(spin * 1.7 + ph(4.) * 6.2832), e);
+  vec2 q = c + leaf + vec2(e * (1. + ph(5.) * 1.8),
+    -e * e * (.4 + ph(6.)) + sin(e * 6. + ph(7.) * 6.2832 + uTime * 1.5) * .25 * e);
+  gKind = 8.; gLocal = 1.;
+  return vec3(q, (ph(8.) - .5) * 1.4 * e + sin(spin) * .2 * e);
+}` },
+  { key: 'depth-pop', name: '立体ポップ', symbol: '立', source: `// タイルが手前に飛び出す。傾きと拡縮で正投影でも奥行きが見える
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = (cell - .5) * uSize;
+  float n = hash(cell);
+  float e = smoothstep(n * .18, .65 + n * .15, amount);
+  vec2 l = rot((n - .5) * e * 1.2) * (p - c) * (1. - .3 * e);
+  float tilt = (hash(cell + 3.) - .5) * 2.3 * e;
+  vec2 q = c * (1. + .18 * e) + vec2(l.x, l.y * cos(tilt));
+  q += vec2((n - .5) * .18, (hash(cell + 7.) - .5) * .25) * e;
+  return vec3(q, l.y * sin(tilt) + (.25 + n * n * 1.7) * e);
+}` },
+  { key: 'vortex', name: '渦に吸い込む', symbol: '渦', source: `// 中心に近いほど強く回して、中心へ縮める
+vec3 userMethod(vec2 p, float amount) {
+  float r = length(p);
+  vec2 q = rot(amount * 3.4 / (r + .35)) * p * (1. - amount * .6 * exp(-r * .5));
+  return vec3(q, -amount * .9 * exp(-r * r * .7));
+}` },
+  { key: 'wave', name: '波打つ', symbol: '波', source: `// 縦と横にゆらゆら揺らす
+vec3 userMethod(vec2 p, float amount) {
+  vec2 q = p;
+  q.x += sin(p.y * 6. + uSeed) * amount * .6;
+  q.y += sin(p.x * 5. + uSeed) * amount * .48;
+  return vec3(q, 0.);
+}` },
+  { key: 'scatter', name: 'ばらばらに飛ぶ', symbol: 'ば', source: `// タイルごとにランダムに回って散らばる（cell はタイルの位置）
+vec3 userMethod(vec2 p, float amount) {
+  float n = hash(cell);
+  vec2 center = (cell - .5) * uSize;
+  vec2 q = center + rot((n - .5) * 6.28 * amount) * (p - center) * (1. - amount * .2);
+  q += vec2(n - .5, hash(cell + 5.) - .5) * 2.0 * amount;
+  return vec3(q, 0.);
+}` },
+  { key: 'sparkle', name: 'きらめく粒', symbol: '粒', source: `// 画像が小さな粒に分かれて、ちかちか光る（partC() は粒の中心）
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC();
+  vec2 l = p - c;
+  vec2 q = c + l * (1. + amount * .6) + vec2(ph(1.) - .5, ph(2.) - .5) * .25 * amount;
+  float z = (ph(3.) - .5) * .6 * amount;
+  gKind = 4.;                       // 粒の見た目: 4 = きらめき
+  gGlow = amount * (.35 + .65 * sin(uTime * (3. + ph(4.) * 5.) + ph(5.) * 6.2832)) * .9;
+  gLocal = 1.;                      // 粒ごとの形を使う
+  return vec3(q, z);
+}` },
+];
+
+// Text to paste into an AI chat: it explains what to write, and the rules the editor checks, so what comes back is likely to pass.
+export const aiTemplate = () => `あなたは UNFOLD（画像が崩れて立体になるツール）の「崩れ方」を GLSL で書くアシスタントです。
+次のルールを守って、userMethod 関数を1つだけ書いてください。
+
+【関数の形】
+vec3 userMethod(vec2 p, float amount) { ... }
+- p: 画像の中の位置（16:9 の画像なら、横はおよそ -2.6〜2.6、縦はおよそ -1.5〜1.5）
+- amount: 崩れ具合。0 のとき元の絵、大きいほどよく崩れる（おおよそ 0〜0.8）
+- 戻り値: vec3(x, y, 奥行き)。p をそのまま返せば動きません。
+
+【使える道具】
+- hash(vec2): 0〜1 の乱数（同じ入力なら同じ値）
+- rot(float 角度): 回転行列（mat2）。rot(a) * p のように使う
+- cell: 画像を 16×16 に分けたタイルの位置（0〜1）。hash(cell) でタイルごとの乱数が作れる
+- partC(): 粒（画像をさらに細かく分けた小さなかけら）の中心。p - partC() が粒の中での位置
+- ph(float k): 粒ごとの乱数（k を変えると別の乱数）
+- uSize（画像の大きさ）、uTime（秒）、uSeed（乱数の種）、uStrength（崩れの強さ）
+- 粒の見た目: gKind に 1〜8 を入れると粒の形が変わる（1=星とハート 2=丸い点 3=泡 4=きらめき 5=網点 6=雨の筋 7=RGBずれ 8=花びら）。gAlpha（透明度 0〜1）、gGlow（光 0〜2）、gLocal = 1. で粒ごとの形を使う。
+
+【守ること】
+- ${LIMITS.maxChars} 文字以内。
+- ループは userMethod の中だけで、for (int i = 0; i < 回数; i++) { ... } の形（回数は数字で1つあたり ${LIMITS.maxLoop} 回まで、入れ子も含めた合計で ${LIMITS.loopBudget} 回まで）。ループの中で i を書き換えない。
+- while、do、goto、discard、main は使えない。# で始まる行（#define など）、uniform / attribute / varying / in / out の宣言、gl_ で始まる名前も使えない。
+- 補助の関数を作ってもよい（ループは入れない）。名前は、上の道具（hash、rot など）と別にする。
+
+【作りたい動き】
+（ここに、作りたい崩れ方を書いてください。例: 「雷みたいにギザギザに割れる」）
+
+【出力】
+コードブロック1つだけ（説明は不要）。`;

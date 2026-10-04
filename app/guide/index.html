@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNFOLD 説明 — 絵が崩れて、立体になって、次の絵へ</title>
+<meta name="description" content="UNFOLDは、1枚の絵を崩して立体にして、次の絵へつなぐ動画をブラウザの中だけで作れる無料のツールです。">
+<link rel="stylesheet" href="./guide.css?v=1">
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="brand" href="../"><b>◈</b>UNFOLD</a>
+  <nav aria-label="ページ">
+    <a href="./" aria-current="page">説明</a>
+    <a href="./methods.html">メソッド集</a>
+    <a href="./glb.html">GLB置き場</a>
+  </nav>
+  <span class="spacer"></span>
+  <a class="btn small" href="../">1枚モード</a>
+  <a class="btn small lime" href="../sequence.html">シーケンス</a>
+</div></header>
+
+<main>
+<div class="hero">
+  <div class="eyebrow">IMAGE → FORM → NEXT IMAGE</div>
+  <h1>絵が崩れて、<em>立体になって</em>、<br>次の絵へ。</h1>
+  <p class="lede">UNFOLD は、1枚の絵をぐちゃぐちゃに崩して、地球やハートや龍の形にして、また次の絵へつなぐ——そんな動画を、ブラウザの中だけで作れる無料のツールです。インストールも登録もいりません。</p>
+  <div class="cta">
+    <a class="btn lime" href="../">1枚で試す（1枚モード）</a>
+    <a class="btn" href="../sequence.html">曲に合わせてつなぐ（シーケンス）</a>
+    <a class="btn" href="./methods.html">崩れ方を見る（メソッド集）</a>
+  </div>
+  <div class="reel" aria-label="崩れ方の例">
+    <video src="./methods/vortex.mp4" poster="./methods/vortex.jpg" autoplay muted loop playsinline preload="metadata"></video>
+    <video src="./methods/shatter.mp4" poster="./methods/shatter.jpg" autoplay muted loop playsinline preload="metadata"></video>
+    <video src="./methods/petals.mp4" poster="./methods/petals.jpg" autoplay muted loop playsinline preload="metadata"></video>
+  </div>
+</div>
+
+<section id="what">
+  <h2><small>01</small>できること</h2>
+  <div class="cards">
+    <div class="card"><h3><span>▱</span>崩す</h3><p>絵が、くしゃくしゃ・ばらばら・砕ける・塵になる・花びらが舞う…。<b>29種類の崩れ方</b>から選べます。自分でコード（GLSL）を書いて、<b>自作の崩れ方</b>も作れます。</p></div>
+    <div class="card"><h3><span>◉</span>立体にする</h3><p>崩れた絵が、球・ドーナツ・ハート・土星・龍・クジラ・人…の<b>立体</b>に集まります。<b>GLB（3Dモデル）</b>を読み込めば、好きな形にもできます。文字や画像の輪郭も立体にできます。</p></div>
+    <div class="card"><h3><span>↦</span>つなぐ</h3><p>「シーケンス」では、画像を並べて、間の変化（◆）を決めて、<b>曲の拍に合わせた動画</b>にできます。画像ごとのカメラ・演出、歌詞つきのMVも作れます。</p></div>
+    <div class="card"><h3><span>↗</span>書き出す</h3><p>できあがった動画は <b>MP4（H.264＋AAC）</b>または WebM で書き出せます。高画質・最高画質も選べます。</p></div>
+  </div>
+</section>
+
+<section id="start">
+  <h2><small>02</small>はじめかた</h2>
+  <div class="two">
+    <div>
+      <h3 style="margin-bottom:12px">1枚モード（まず試す）</h3>
+      <ol class="steps">
+        <li><b>画像を選ぶ</b><span>「素材」に画像をドロップ（またはクリック）。サンプル画像でもOK。</span></li>
+        <li><b>崩れ方と形を選ぶ</b><span>「ぐちゃぐちゃにする」で崩れ方、「立体にする」で形を選びます。</span></li>
+        <li><b>再生して調整</b><span>下のバーで動きを確かめます。立体はドラッグで回せます。</span></li>
+        <li><b>書き出す</b><span>右上の「動画を書き出す」で動画ファイルを保存。</span></li>
+      </ol>
+    </div>
+    <div>
+      <h3 style="margin-bottom:12px">シーケンス（曲に合わせてつなぐ）</h3>
+      <ol class="steps">
+        <li><b>画像を並べる</b><span>複数の画像を追加。下のタイムラインでドラッグして並べ替えます。</span></li>
+        <li><b>◆（変化）を決める</b><span>画像と画像の間の◆を選んで、崩れ方・形・向きを決めます。</span></li>
+        <li><b>曲を入れる</b><span>曲を読み込むと拍を検出します。拍に合わせて切り替えができます。歌詞も入れられます。</span></li>
+        <li><b>書き出す</b><span>画質と形式（MP4／WebM）を選んで書き出し。プロジェクトは <code>.unfold</code> ファイルに保存できます。</span></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <h2><small>03</small>こんな機能もあります</h2>
+  <div class="two">
+    <ul class="list">
+      <li><b>画像ごとの演出</b>：光のにじみ・ネオン・グリッチなどを、その画像だけに</li>
+      <li><b>画像ごとのカメラ</b>：「ドンと引く」「ゆっくり寄る」など、動きを画像ごとに</li>
+      <li><b>◆ごとの設定</b>：絵柄を混ぜる／立体は前の画像のまま／立体の向き</li>
+      <li><b>歌詞MV</b>：歌詞とタイミングを入れると、1行ずつが絵のかけらでできた文字になる動画を自動で作ります</li>
+    </ul>
+    <ul class="list">
+      <li><b>GLBを100個まで保存</b>：グループごとのタブで切り替え、名前で絞り込み</li>
+      <li><b>崩れの細かさ</b>：タイルで崩す方法はタイルの大きさ（荒々しく⇄細かく）、粒で崩す方法は粒の細かさを、スライダーで</li>
+      <li><b>絵を位置どおりに貼る（GLB）</b>：絵がそのまま形に乗ります</li>
+      <li><b>元に戻す</b>：⌘/Ctrl＋Z。編集は自動でブラウザに保存</li>
+      <li><b>自作メソッド</b>：ファイルで人に渡せます（受け取る側は確認してから有効に）</li>
+    </ul>
+  </div>
+  <p style="margin-top:18px">崩れ方の動きは <a href="./methods.html">メソッド集</a>、使える立体は <a href="./glb.html">GLB置き場</a> で見られます。</p>
+</section>
+
+<section id="faq">
+  <h2><small>04</small>よくある質問</h2>
+  <details><summary>画像や曲はどこかに送られますか？</summary>
+    <p>いいえ。画像・曲・GLB・プロジェクトは、お使いのブラウザの中だけで処理して、保存もそのブラウザの中（IndexedDB）です。UNFOLD から外へアップロードすることはありません。なお、このサイト全体のアクセス状況（表示回数など）は、ホスティングの Cloudflare の統計機能で集計されることがあります。</p></details>
+  <details><summary>保存したデータが消えました</summary>
+    <p>自動保存はブラウザごと・サイトごとです。サイトデータを消したり、別のブラウザ・別のURLで開いたりすると見えません。大事なプロジェクトは、シーケンスの「書き出し」で <code>.unfold</code> ファイルにして取っておくと安心です。GLBは元のファイルを残してください。</p></details>
+  <details><summary>どのブラウザで使えますか？</summary>
+    <p>パソコンの Chrome・Edge がおすすめです（動画の書き出しも確実）。Safari でも画面は開けますが、書き出しなど一部は Chrome 系が確実です。画面が広いほど使いやすいので、スマホよりパソコンをおすすめします。</p></details>
+  <details><summary>どんなGLBが使えますか？</summary>
+    <p>50MB以下・三角形100万枚以下で、Draco圧縮・ボーン（骨）・外部ファイル参照がないもの。形だけを使うので、色やテクスチャ、アニメーションは使いません。GLB置き場に、すぐ使える形をそろえています。</p></details>
+  <details><summary>自作メソッドは安全ですか？</summary>
+    <p>危ない書き方（無限ループなど）は保存前に止めます。重すぎる動きは自動で止めて、落ちたあとは次の起動で止まった状態から始めます。他の人から受け取ったメソッドは「未確認」として入り、コードを見て「有効にする」を押すまで動きません。</p></details>
+  <details><summary>料金はかかりますか？</summary>
+    <p>いまは無料で使えます。</p></details>
+  <details><summary>自分の絵を使っていいですか？</summary>
+    <p>ご自身で使える権利のある画像・曲・GLBを使ってください。他の人の作品を使うときは、その作品のルールに従ってください。</p></details>
+</section>
+</main>
+
+<footer>
+  <a href="../">1枚モード</a> ・ <a href="../sequence.html">シーケンス</a> ・ <a href="./methods.html">メソッド集</a> ・ <a href="./glb.html">GLB置き場</a>
+  <p style="margin-top:10px">© 2026 UNFOLD</p>
+</footer>
+</body>
+</html>

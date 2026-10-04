@@ -1,0 +1,7 @@
+PASS workbench controls
+PASS three presets compile, preserve amount 0, visibly deform at 0.8
+PASS actual amount mapping
+PASS invalid GLSL preserves last frame and recovers
+PASS copy failure selects code; later copy succeeds
+PASS image replacement retains code; invalid file retains preview; reopen works
+PASS render controls apply to main, survive reopen, return to original

@@ -1,0 +1,111 @@
+/* shared by the single-image page and the sequence page: the custom-method editor, the extras of the method tiles, and the tile menu.
+   The two pages name their colours differently, so every colour falls back through both names. */
+.method-dialog, .method-menu, .method-tile, .quarantine {
+  --m-panel: var(--panel, #171e1f); --m-line: var(--line, #2a3334); --m-ink: var(--ink, var(--text, #eef0e2));
+  --m-dim: var(--dim, var(--muted, #96a19b)); --m-accent: var(--accent, var(--lime, #d9f878)); --m-added: var(--added, #7fd6ff); --m-warn: var(--warn, #ff8a6b);
+}
+
+/* tiles */
+.method-tile { position: relative; display: flex; min-width: 0; }
+.method-tile > button[data-method] { flex: 1; width: 100%; min-width: 0; }
+.choice-grid .method-tile > .tile-gear {
+  position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; min-height: 0; padding: 0; display: grid; place-items: center;
+  font-size: 12px; line-height: 1; border-radius: 6px; border: 1px solid transparent; background: rgba(17, 23, 24, .55); color: var(--m-dim); cursor: pointer;
+}
+.choice-grid .method-tile > .tile-gear:hover, .choice-grid .method-tile > .tile-gear:focus-visible { color: var(--m-added); border-color: var(--m-added); }
+.choice-grid button.unusable { opacity: .65; border-style: dashed; }
+.choice-grid button.unusable small { color: var(--m-warn); letter-spacing: 0; }
+.choice-grid button.add-method { border-style: dashed; border-color: #3a6a82; color: var(--m-added); }
+.choice-grid button.add-method:hover { border-color: var(--m-added); }
+
+/* the menu of a custom tile */
+.method-menu { position: fixed; z-index: 1000; min-width: 190px; max-width: 280px; padding: 10px; border-radius: 10px; border: 1px solid var(--m-line); background: var(--m-panel);
+  color: var(--m-ink); box-shadow: 0 8px 28px rgba(0, 0, 0, .5); font-size: 12px; line-height: 1.5; }
+.method-menu .mm-title { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+.method-menu .mm-badge { padding: 0 6px; border-radius: 8px; background: rgba(255, 138, 107, .18); color: var(--m-warn); font-size: 11px; font-weight: 400; }
+.method-menu .mm-reason { margin: 6px 0 2px; color: var(--m-warn); word-break: break-word; }
+.method-menu button { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; text-align: left; border-radius: 6px; border: 1px solid var(--m-line); background: #1c2324; color: inherit; font: inherit; cursor: pointer; }
+.method-menu button:hover { border-color: var(--m-added); }
+.method-menu button.danger { color: var(--m-warn); }
+
+/* the editor */
+dialog.method-dialog { width: min(980px, 94vw); max-height: 92vh; padding: 0; border: 1px solid var(--m-line); border-radius: 14px; background: var(--m-panel); color: var(--m-ink);
+  font: 13px/1.5 'DM Sans', 'Noto Sans JP', system-ui, sans-serif; overflow: hidden; }
+dialog.method-dialog[open] { display: flex; flex-direction: column; }
+dialog.method-dialog::backdrop { background: rgba(5, 8, 9, .72); }
+.md-head { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--m-line); }
+.md-head h2 { margin: 0; font-size: 15px; }
+.md-x { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--m-line); background: transparent; color: var(--m-dim); font-size: 16px; cursor: pointer; }
+.md-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; padding: 14px 16px; overflow: auto; }
+@media (max-width: 760px) { .md-body { grid-template-columns: 1fr; } }
+.md-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.md-fields { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.md-field { display: flex; flex-direction: column; gap: 3px; }
+.md-cap { font-size: 11px; color: var(--m-dim); }
+.md-fields input, .md-fields select, .md-fields button { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--m-line); background: #1c2324; color: inherit; font: inherit; }
+.md-fields button { cursor: pointer; }
+.md-fields button:hover { border-color: var(--m-added); }
+#method-name { width: 150px; }
+#method-symbol { width: 52px; text-align: center; }
+.md-editor { display: grid; grid-template-columns: 38px minmax(0, 1fr); height: 320px; border: 1px solid var(--m-line); border-radius: 8px; overflow: hidden; background: #0e1415; }
+.md-gutter { overflow: hidden; padding: 10px 6px; text-align: right; color: #5d6b66; background: #121a1b; font: 12px/18px ui-monospace, Menlo, Consolas, monospace; user-select: none; }
+.md-gutter div.err { color: var(--m-warn); background: rgba(255, 138, 107, .16); }
+.md-code { resize: none; border: 0; outline: 0; padding: 10px; background: transparent; color: inherit; font: 12px/18px ui-monospace, Menlo, Consolas, monospace; white-space: pre; overflow: auto; tab-size: 2; }
+.md-checks { display: flex; flex-direction: column; gap: 2px; }
+.md-check { display: flex; gap: 8px; align-items: center; color: var(--m-dim); }
+.md-check .mark { width: 18px; text-align: center; font-weight: 700; }
+.md-check.ok { color: var(--m-ink); } .md-check.ok .mark { color: var(--m-accent); }
+.md-check.ng { color: var(--m-ink); } .md-check.ng .mark { color: var(--m-warn); }
+.md-errors { margin: 0; padding-left: 18px; color: var(--m-warn); max-height: 110px; overflow: auto; }
+.md-errors li { margin: 2px 0; }
+.md-errors small { display: block; color: var(--m-dim); word-break: break-word; }
+.md-canvas { width: 100%; aspect-ratio: 16 / 9; display: block; border-radius: 8px; border: 1px solid var(--m-line); background: #111718; }
+.md-preview-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: var(--m-dim); }
+.md-preview-controls input[type=range] { flex: 1; min-width: 120px; accent-color: var(--m-accent); }
+.md-hint { color: var(--m-dim); font-size: 12px; }
+.md-hint summary { cursor: pointer; color: var(--m-added); }
+.md-hint ul { margin: 4px 0 0; padding-left: 18px; }
+.md-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--m-line); }
+.md-foot button { padding: 7px 18px; border-radius: 8px; border: 1px solid var(--m-line); background: #1c2324; color: inherit; font: inherit; cursor: pointer; }
+.md-foot button.primary { border-color: var(--m-accent); background: #2b3323; color: var(--m-accent); font-weight: 700; }
+.md-foot button:disabled { opacity: .4; cursor: not-allowed; }
+
+.md-check.warn { color: var(--m-ink); } .md-check.warn .mark { color: #ffb347; }
+.md-check[hidden] { display: none; }
+.md-recheck { align-self: flex-start; margin-top: 4px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--m-warn); background: transparent; color: var(--m-warn); font: inherit; cursor: pointer; }
+.md-recheck[hidden] { display: none; }
+
+/* the banner for unchecked methods (sequence page) */
+.quarantine { margin: 8px 0; padding: 10px; border-radius: 10px; border: 1px dashed var(--m-warn); background: rgba(255, 138, 107, .08); font-size: 12px; line-height: 1.5; }
+.quarantine[hidden] { display: none; }
+.quarantine .qb-title { font-weight: 700; color: var(--m-warn); }
+.quarantine .qb-note { color: var(--m-dim); margin: 2px 0 6px; }
+.quarantine .qb-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.quarantine .qb-name { flex: 1; min-width: 80px; color: var(--m-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quarantine button { padding: 4px 9px; border-radius: 6px; border: 1px solid var(--m-line); background: #1c2324; color: inherit; font: inherit; cursor: pointer; }
+.quarantine button:hover:not(:disabled) { border-color: var(--m-added); }
+.quarantine button:disabled { opacity: .5; cursor: wait; }
+.quarantine .qb-why { margin: 2px 0 4px; color: var(--m-warn); font-size: 11px; word-break: break-word; }
+
+/* "ファイルに保存" sits at the left of the footer, away from キャンセル／保存; the tile "ファイルから読み込み" is a second "＋" style tile */
+.md-foot .md-file { margin-right: auto; }
+.md-foot button[hidden] { display: none; }
+
+/* Workbench controls: actual amount, local image, and readable operation feedback. */
+.md-image-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.md-image-controls button { padding: 6px 10px; border: 1px solid var(--m-line); border-radius: 6px; background: #1c2324; color: inherit; font: inherit; cursor: pointer; }
+.md-image-controls button:hover { border-color: var(--m-added); }
+#method-image-name { flex-basis: 100%; font-size: 12px; color: var(--m-dim); overflow-wrap: anywhere; }
+#method-amount-value { margin-left: auto; color: var(--m-accent); font: 600 18px ui-monospace, monospace; }
+.md-preview-controls input[type=range] { flex-basis: 100%; }
+.md-preview-hint, .md-status { margin: 0; color: var(--m-dim); font-size: 12px; }
+.md-status { min-height: 3em; color: var(--m-added); }
+
+.render-look-controls { margin: 8px 0; padding: 10px; border: 1px solid #3a494b; border-radius: 8px; font: 12px/1.6 system-ui; color: #dde8e3; }
+.render-look-controls summary { cursor: pointer; color: #a9d8e8; }
+.render-look-controls label { display: block; margin: 8px 0; }
+.render-look-controls input[type=range] { display: block; width: 100%; accent-color: #d9f878; }
+.render-look-controls output { float: right; font-family: monospace; color: #d9f878; }
+.render-look-controls select, .render-look-controls button { border: 1px solid #52615d; border-radius: 5px; padding: 5px 8px; background: #182424; color: inherit; font: inherit; }
+.render-look-controls p { color: #aab9b3; font-size: 11px; margin: 8px 0; }
+.render-look-controls button { margin: 4px 4px 0 0; cursor: pointer; }

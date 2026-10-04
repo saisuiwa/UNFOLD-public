@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNFOLD GLB置き場 — すぐ使える立体の形</title>
+<meta name="description" content="UNFOLDでそのまま使える立体の形（GLB）を、グループ別にそろえた置き場です。ワンクリックで追加できます。">
+<link rel="stylesheet" href="./guide.css?v=1">
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="brand" href="../"><b>◈</b>UNFOLD</a>
+  <nav aria-label="ページ">
+    <a href="./">説明</a>
+    <a href="./methods.html">メソッド集</a>
+    <a href="./glb.html" aria-current="page">GLB置き場</a>
+  </nav>
+  <span class="spacer"></span>
+  <a class="btn small" href="../">1枚モード</a>
+  <a class="btn small lime" href="../sequence.html">シーケンス</a>
+</div></header>
+
+<main>
+  <div class="eyebrow">GLB SHELF</div>
+  <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">GLB置き場</h1>
+  <p class="lede">UNFOLD でそのまま使える立体の形（GLB）をそろえています。どれも<b>形だけ</b>（色・テクスチャなし）。「UNFOLDに追加」を押すと、あなたのブラウザの「追加した形」に保存されて、1枚モードとシーケンスで使えます。</p>
+  <p class="note" id="hostNote" hidden></p>
+
+  <section style="margin-top:30px">
+    <div class="bar">
+      <div class="status" id="status" role="status">読み込み中…</div>
+      <input class="search" id="q" type="search" placeholder="名前で探す（例：クジラ）" aria-label="名前で探す">
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="グループ"></div>
+    <div class="bar" style="margin-top:2px">
+      <div id="count" class="status"></div>
+      <button class="btn small" id="addAll" type="button" hidden></button>
+    </div>
+    <div class="ggrid" id="grid"></div>
+    <p class="status" style="margin-top:22px">ひとつ約4.5MB・三角形約19万枚。追加したGLBは、シーケンスの◆の「形」やこのブラウザの「追加した立体の形（GLB）」から選べます。保存できるのは100個までです。</p>
+  </section>
+</main>
+<footer>
+  <a href="../">1枚モード</a> ・ <a href="../sequence.html">シーケンス</a> ・ <a href="./">説明</a> ・ <a href="./methods.html">メソッド集</a>
+  <p style="margin-top:10px">© 2026 UNFOLD</p>
+</footer>
+<script type="module" src="./glb.js?v=1"></script>
+</body>
+</html>

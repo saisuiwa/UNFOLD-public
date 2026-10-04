@@ -1,0 +1,8 @@
+# Cloudflare keeps the Content-Type a file had when it was FIRST uploaded (files are stored by content hash), so a wrong type sticks.
+# These rules set the type when the file is served, so a script is always served as JavaScript (a module script with another type does not load).
+/*.js
+  Content-Type: text/javascript; charset=utf-8
+/*.css
+  Content-Type: text/css; charset=utf-8
+/*.html
+  Content-Type: text/html; charset=utf-8

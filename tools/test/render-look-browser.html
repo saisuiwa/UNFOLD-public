@@ -1,0 +1,72 @@
+<!doctype html><html lang="ja" translate="no"><meta charset="utf-8"><title>UNFOLD rendering comparison</title>
+<link rel="stylesheet" href="../../app/method-editor.css?v=3"><style>body{background:#111718;color:#eef5ef;font:14px system-ui;padding:24px}button{padding:10px}pre{white-space:pre-wrap}#views{display:flex;gap:12px;flex-wrap:wrap}canvas{width:480px;height:270px}figure{margin:0}figcaption{padding:8px}</style>
+<h1>カメラ・照明・半透明の比較検証</h1><button id="run">検証を実行</button><button id="download">結果JSONを保存</button><div id="views"></div><pre id="results">Ready</pre>
+<script type="module">
+import * as THREE from '../../app/vendor/three.module.min.js';
+import {createPreview,makeTestImage} from '../../app/method-preview.js?v=4';
+import {vertexShader,fragmentShader} from '../../app/motion.js?v=25';
+import {vertexShader as oldVS,fragmentShader as oldFS} from '../../archive/app-before-render-look-20261004-143629/motion.js';
+import {SAMPLES} from '../../app/method-samples.js?v=2';
+import {renderLookFragment,addRenderUniforms} from '../../app/render-look.js?v=2';
+import {compileUserMethod} from '../../app/custom-method.js';
+const $=id=>document.getElementById(id), report={checks:[],performance:null,overlap:null};
+const assert=(v,m)=>{if(!v)throw Error(m)};
+const write=()=>{$('results').textContent=JSON.stringify(report,null,2)};
+const pixels=canvas=>{const c=document.createElement('canvas');c.width=canvas.width;c.height=canvas.height;const g=c.getContext('2d');g.drawImage(canvas,0,0);return g.getImageData(0,0,c.width,c.height).data};
+const diff=(a,b)=>a.reduce((s,v,i)=>s+Math.abs(v-b[i]),0)/a.length;
+function pane(label,vs=vertexShader,fs=fragmentShader){const f=document.createElement('figure'),c=document.createElement('canvas'),cap=document.createElement('figcaption');cap.textContent=label;f.append(c,cap);$('views').append(f);const p=createPreview(c,{vertexShader:vs,fragmentShader:fs});p.resize(480,270);p.setTime(1.5);return {p,c};}
+const old=pane('元の描画器',oldVS,oldFS), now=pane('調整：遠近感・光・網点');
+const image=makeTestImage(640,360), translucent=document.createElement('canvas');translucent.width=640;translucent.height=360;const g=translucent.getContext('2d');g.globalAlpha=.45;g.drawImage(image,0,0);g.clearRect(220,100,150,150);
+const check=async(name,fn)=>{try{await fn();report.checks.push({name,pass:true})}catch(e){report.checks.push({name,pass:false,error:e.message})}write()};
+const max=()=>({enabled:true,perspective:.8,lighting:true,azimuth:70,elevation:50,shade:.8,alpha:'dither'});
+const off={enabled:false};
+async function overlap(){
+ const renderer=new THREE.WebGLRenderer({antialias:false});renderer.setSize(256,256);renderer.outputColorSpace=THREE.LinearSRGBColorSpace;renderer.setClearColor(0,1);
+ const rt=new THREE.WebGLRenderTarget(256,256);rt.texture.colorSpace=THREE.LinearSRGBColorSpace;
+ const scene=new THREE.Scene(),camera=new THREE.OrthographicCamera(-1,1,1,-1,.1,100);camera.position.z=10;
+ const geometry=new THREE.BufferGeometry();const uniforms=addRenderUniforms({});
+ const material=new THREE.ShaderMaterial({uniforms,transparent:true,depthWrite:true,vertexShader:`attribute vec3 tint;attribute float opacity,seed;varying vec3 vTint,vPosition;varying float vAlpha,vForm,vLookSeed,vLookAmount;void main(){vTint=tint;vAlpha=opacity;vForm=1.;vLookAmount=1.;vLookSeed=seed;vec4 p=modelViewMatrix*vec4(position,1.);vPosition=p.xyz;gl_Position=projectionMatrix*p;}`,fragmentShader:`varying vec3 vTint,vPosition;varying float vAlpha,vForm;${renderLookFragment}\nvoid main(){gl_FragColor=surfaceAlpha(vec4(vTint,vAlpha));}`});
+ const mesh=new THREE.Mesh(geometry,material);scene.add(mesh);
+ const samples=new Uint8Array(256*256*4);
+ function draw(reverse,alpha,dither){
+  const positions=[],colors=[],alphas=[],seeds=[];
+  for(const layer of reverse?[0,1]:[1,0])for(const [x,y] of [[-1,-1],[1,-1],[-1,1],[1,-1],[1,1],[-1,1]]){positions.push(x,y,layer);colors.push(...(layer?[1,0,0]:[0,0,1]));alphas.push(alpha);seeds.push(layer?.213:.817)}
+  for(const [name,data,size] of [['position',positions,3],['tint',colors,3],['opacity',alphas,1],['seed',seeds,1]])geometry.setAttribute(name,new THREE.Float32BufferAttribute(data,size));
+  uniforms.uLookAlpha.value=dither?1:0;renderer.setRenderTarget(rt);renderer.render(scene,camera);renderer.readRenderTargetPixels(rt,0,0,256,256,samples);renderer.setRenderTarget(null);
+  const avg=[0,0,0];for(let i=0;i<samples.length;i+=4)for(let j=0;j<3;j++)avg[j]+=samples[i+j]/255/(256*256);return {avg,pixels:samples.slice()};
+ }
+ const originalFront=draw(false,.5,false),originalBack=draw(true,.5,false),a=draw(false,.5,true),b=draw(true,.5,true),zero=draw(false,0,true),one=draw(false,1,true);
+ assert(a.pixels.every((x,i)=>x===b.pixels[i]),'dither depends on draw order');
+ assert(Math.abs(a.avg[0]-.5)<.025&&Math.abs(a.avg[2]-.25)<.025,'dither differs from linear-alpha oracle');
+ assert(zero.avg.every(v=>v===0),'alpha0 not empty');assert(one.avg[0]===1&&one.avg[2]===0,'alpha1 front not opaque');
+ report.overlap={resolution:'256x256 linear RGB',expected:[.5,0,.25],originalFrontFirst:originalFront.avg,originalBackFirst:originalBack.avg,ditherBothOrders:a.avg,orderPixelMatch:true};
+ geometry.dispose();material.dispose();rt.dispose();renderer.dispose();renderer.forceContextLoss();
+}
+$('run').onclick=async()=>{
+ $('run').disabled=true;report.checks=[];
+ try{
+ await check('元表示は改良前と画素一致：不透明/透過×3プリセット×amount 0/.4/.8',async()=>{
+ for(const img of [image,translucent]){old.p.setImage(img);now.p.setImage(img);now.p.setLook(off);
+ for(const key of ['petals','vortex','depth-pop']){const source=SAMPLES.find(s=>s.key===key).source;const oldErrors=await compileUserMethod(old.p.renderer,{vertexShader:oldVS,fragmentShader:oldFS,source});assert(!oldErrors.length,JSON.stringify(oldErrors));const errors=await compileUserMethod(now.p.renderer,{vertexShader,fragmentShader,source});assert(!errors.length,JSON.stringify(errors));old.p.setSource(source);now.p.setSource(source);
+ for(const amount of [0,.4,.8]){old.p.setAmount(amount);now.p.setAmount(amount);{const delta=diff(pixels(old.c),pixels(now.c));(report.baselineDeltas??=[]).push({key,amount,transparent:img===translucent,delta});assert(delta<.001,key+' original changed at '+amount+' delta='+delta)}}}}
+ });
+ await check('全調整ONでもamount0の原画像が一致。不透明/透過',async()=>{
+ for(const img of [image,translucent]){old.p.setImage(img);now.p.setImage(img);old.p.setAmount(0);now.p.setLook(max());now.p.setAmount(0);assert(diff(pixels(old.c),pixels(now.c))<.05,'amount0 changed')}
+ });
+ await check('カメラ/光/半透明を個別に切替、OFFで同じ画素へ復帰',async()=>{
+ now.p.setImage(translucent);now.p.setSource(SAMPLES.find(s=>s.key==='depth-pop').source);now.p.setLook(off);now.p.setAmount(.4);const before=pixels(now.c);
+ for(const options of [{enabled:true,perspective:.8,lighting:false},{enabled:true,perspective:0,lighting:true,azimuth:80,shade:1},{enabled:true,perspective:0,lighting:false,alpha:'dither'}]){now.p.setLook(options);assert(diff(before,pixels(now.c))>.3,'switch had no effect');now.p.setLook(off);assert(diff(before,pixels(now.c))<.001,'OFF did not restore')}
+ });
+ await check('陰影を使わない既存メソッドでも半透明方式が効く',async()=>{now.p.setImage(translucent);now.p.setSource(null);now.p.setAmount(.4);now.p.setLook(off);const before=pixels(now.c);now.p.setLook({enabled:true,perspective:0,lighting:false,alpha:'dither'});assert(diff(before,pixels(now.c))>.3,'unshaded method ignored alpha mode')});
+ await check('半透明の前後2層：解析値・描画順逆転・α0/1',overlap);
+ await check('3プリセット×3amount×20回の連続切替',async()=>{now.p.setImage(image);for(let i=0;i<20;i++){now.p.setSource(SAMPLES[i%3].source);now.p.setLook(i%2?max():off);now.p.setAmount([0,.4,.8][i%3]);assert(now.c.width>0,'lost canvas')}assert(!now.p.renderer.getContext().isContextLost(),'lost WebGL')});
+ await check('同条件の描画時間：交互バッチ、同期readPixels、中央値/p95',async()=>{
+ now.p.setImage(translucent);now.p.setSource(SAMPLES.find(s=>s.key==='petals').source);now.p.setAmount(.4);const gl=now.p.renderer.getContext(),pixel=new Uint8Array(4),modes={original:{enabled:false},lightCamera:{enabled:true,perspective:.8,lighting:true,alpha:'original'},dither:{enabled:true,perspective:.8,lighting:true,alpha:'dither'}},timings={original:[],lightCamera:[],dither:[]};
+ for(const opt of Object.values(modes)){now.p.setLook(opt);for(let i=0;i<10;i++)now.p.render();gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel)}
+ for(let round=0;round<15;round++){for(const key of round%2?Object.keys(modes).reverse():Object.keys(modes)){now.p.setLook(modes[key]);const start=performance.now();for(let j=0;j<15;j++)now.p.render();gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,pixel);timings[key].push((performance.now()-start)/15)}await new Promise(r=>requestAnimationFrame(r));}
+ const stats={};for(const [key,arr]of Object.entries(timings)){arr.sort((a,b)=>a-b);stats[key]={medianMs:arr[7],p95Ms:arr[14],batches:arr}}const ext=gl.getExtension('WEBGL_debug_renderer_info');report.performance={gpu:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),userAgent:navigator.userAgent,canvas:[now.c.width,now.c.height],triangles:12800,particles:6400,time:1.5,amount:.4,antialias:true,postEffects:'none',method:'15 alternating batches x 15 frames; readPixels sync; CPU+GPU+driver wall time',stats};
+ });
+ }finally{old.p.setImage(image);now.p.setImage(image);old.p.setSource(SAMPLES.find(s=>s.key==='depth-pop').source);now.p.setSource(SAMPLES.find(s=>s.key==='depth-pop').source);old.p.setAmount(.8);now.p.setLook(max());now.p.setAmount(.8);write();$('run').disabled=false;}
+};
+$('download').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(report,null,2)],{type:'application/json'}));a.download='render-look-results.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+</script>

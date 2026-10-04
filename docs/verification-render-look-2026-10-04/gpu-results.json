@@ -1,0 +1,246 @@
+{
+  "checks": [
+    {
+      "name": "元表示は改良前と画素一致：不透明/透過×3プリセット×amount 0/.4/.8",
+      "pass": true
+    },
+    {
+      "name": "全調整ONでもamount0の原画像が一致。不透明/透過",
+      "pass": true
+    },
+    {
+      "name": "カメラ/光/半透明を個別に切替、OFFで同じ画素へ復帰",
+      "pass": true
+    },
+    {
+      "name": "陰影を使わない既存メソッドでも半透明方式が効く",
+      "pass": true
+    },
+    {
+      "name": "半透明の前後2層：解析値・描画順逆転・α0/1",
+      "pass": true
+    },
+    {
+      "name": "3プリセット×3amount×20回の連続切替",
+      "pass": true
+    },
+    {
+      "name": "同条件の描画時間：交互バッチ、同期readPixels、中央値/p95",
+      "pass": true
+    }
+  ],
+  "performance": {
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36",
+    "canvas": [
+      960,
+      540
+    ],
+    "triangles": 12800,
+    "particles": 6400,
+    "time": 1.5,
+    "amount": 0.4,
+    "antialias": true,
+    "postEffects": "none",
+    "method": "15 alternating batches x 15 frames; readPixels sync; CPU+GPU+driver wall time",
+    "stats": {
+      "original": {
+        "medianMs": 0.6133333365122478,
+        "p95Ms": 0.7666666666666667,
+        "batches": [
+          0.4,
+          0.4,
+          0.4866666634877523,
+          0.5,
+          0.5199999968210857,
+          0.5333333333333333,
+          0.5800000031789144,
+          0.6133333365122478,
+          0.6200000127156575,
+          0.6599999904632569,
+          0.7,
+          0.7399999936421712,
+          0.7600000063578288,
+          0.7600000063578288,
+          0.7666666666666667
+        ]
+      },
+      "lightCamera": {
+        "medianMs": 0.5600000063578288,
+        "p95Ms": 0.8666666666666667,
+        "batches": [
+          0.4,
+          0.4066666603088379,
+          0.41333333651224774,
+          0.42666667302449546,
+          0.44666666984558107,
+          0.5466666539510091,
+          0.5600000063578288,
+          0.5600000063578288,
+          0.5933333396911621,
+          0.6,
+          0.6066666603088379,
+          0.6333333333333333,
+          0.6466666539510091,
+          0.7600000063578288,
+          0.8666666666666667
+        ]
+      },
+      "dither": {
+        "medianMs": 0.6600000063578287,
+        "p95Ms": 0.8266666571299235,
+        "batches": [
+          0.40666667620340985,
+          0.4800000031789144,
+          0.5066666603088379,
+          0.5466666539510091,
+          0.5466666698455811,
+          0.5600000063578288,
+          0.6199999968210856,
+          0.6600000063578287,
+          0.6799999872843424,
+          0.6933333396911621,
+          0.7399999936421712,
+          0.7733333428700765,
+          0.7800000031789144,
+          0.7933333396911622,
+          0.8266666571299235
+        ]
+      }
+    }
+  },
+  "overlap": {
+    "resolution": "256x256 linear RGB",
+    "expected": [
+      0.5,
+      0,
+      0.25
+    ],
+    "originalFrontFirst": [
+      0.5019607843134388,
+      0,
+      0
+    ],
+    "originalBackFirst": [
+      0.5019607843134388,
+      0,
+      0.2509803921567194
+    ],
+    "ditherBothOrders": [
+      0.4994049072265625,
+      0,
+      0.250640869140625
+    ],
+    "orderPixelMatch": true
+  },
+  "baselineDeltas": [
+    {
+      "key": "petals",
+      "amount": 0,
+      "transparent": false,
+      "delta": 0
+    },
+    {
+      "key": "petals",
+      "amount": 0.4,
+      "transparent": false,
+      "delta": 0
+    },
+    {
+      "key": "petals",
+      "amount": 0.8,
+      "transparent": false,
+      "delta": 0
+    },
+    {
+      "key": "vortex",
+      "amount": 0,
+      "transparent": false,
+      "delta": 0
+    },
+    {
+      "key": "vortex",
+      "amount": 0.4,
+      "transparent": false,
+      "delta": 0
+    },
+    {
+      "key": "vortex",
+      "amount": 0.8,
+      "transparent": false,
+      "delta": 0
+    },
+    {
+      "key": "depth-pop",
+      "amount": 0,
+      "transparent": false,
+      "delta": 0
+    },
+    {
+      "key": "depth-pop",
+      "amount": 0.4,
+      "transparent": false,
+      "delta": 0
+    },
+    {
+      "key": "depth-pop",
+      "amount": 0.8,
+      "transparent": false,
+      "delta": 0
+    },
+    {
+      "key": "petals",
+      "amount": 0,
+      "transparent": true,
+      "delta": 0
+    },
+    {
+      "key": "petals",
+      "amount": 0.4,
+      "transparent": true,
+      "delta": 0
+    },
+    {
+      "key": "petals",
+      "amount": 0.8,
+      "transparent": true,
+      "delta": 0
+    },
+    {
+      "key": "vortex",
+      "amount": 0,
+      "transparent": true,
+      "delta": 0
+    },
+    {
+      "key": "vortex",
+      "amount": 0.4,
+      "transparent": true,
+      "delta": 0
+    },
+    {
+      "key": "vortex",
+      "amount": 0.8,
+      "transparent": true,
+      "delta": 0
+    },
+    {
+      "key": "depth-pop",
+      "amount": 0,
+      "transparent": true,
+      "delta": 0
+    },
+    {
+      "key": "depth-pop",
+      "amount": 0.4,
+      "transparent": true,
+      "delta": 0
+    },
+    {
+      "key": "depth-pop",
+      "amount": 0.8,
+      "transparent": true,
+      "delta": 0
+    }
+  ]
+}

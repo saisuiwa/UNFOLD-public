@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNFOLD Sequence</title>
+<meta name="description" content="何枚もの画像を、崩して・立体にして・次の画像として開く。拍に合わせたシーケンス。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23d9f878'/%3E%3Cpath d='M7 7v13l9 6 9-6V7l-9 6z' fill='none' stroke='%23171c18' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@900&family=Noto+Serif+JP:wght@900&family=M+PLUS+Rounded+1c:wght@800&family=Dela+Gothic+One&family=Yusei+Magic&family=DotGothic16&display=swap">
+<style>
+  :root { --bg:#111718; --panel:#171e1f; --line:#2a3334; --ink:#eef0e2; --dim:#96a19b; --accent:#d9f878; --added:#7fd6ff; --phase-chaos:#ffb347; --phase-form:#a996ff; --warn:#ff8a6b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.55 -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  header { display:flex; align-items:center; gap:16px; padding:14px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header a { color:var(--ink); text-decoration:none; font-weight:800; letter-spacing:.04em; }
+  header a span { color:var(--accent); }
+  header .sub { color:var(--dim); font-size:12px; letter-spacing:.12em; }
+  header .back { margin-left:auto; color:var(--dim); font-weight:500; font-size:13px; }
+  main { display:grid; grid-template-columns: 340px minmax(0,1fr); grid-template-rows: minmax(0,1fr) auto; height: calc(100vh - 56px); }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; height:auto; } }
+  aside { border-right:1px solid var(--line); padding:16px; overflow:auto; min-height:0; }
+  @media (max-width: 900px) { aside { max-height:none; border-right:0; border-bottom:1px solid var(--line); } }
+  h2 { font-size:12px; letter-spacing:.14em; color:var(--dim); margin:18px 0 8px; font-weight:700; }
+  h2:first-child { margin-top:0; }
+  .drop { border:1.5px dashed var(--line); border-radius:12px; padding:16px; text-align:center; color:var(--dim); cursor:pointer; }
+  .drop.over { border-color:var(--accent); color:var(--ink); }
+  .slide { display:flex; gap:10px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px; margin-top:8px; }
+  .slide img { width:96px; height:54px; object-fit:cover; border-radius:6px; }
+  .slide-meta { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+  .slide-meta span { color:var(--dim); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .slide-tools { display:flex; gap:4px; }
+  .slide-tools button, .trans select, .trans input, .row input, .row select, .btn {
+    background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:7px; padding:4px 8px; font:inherit; font-size:12px; }
+  .trans { display:flex; flex-wrap:wrap; gap:6px; align-items:center; color:var(--accent); font-size:12px; padding:6px 4px 0 18px; }
+  .trans input[type=number] { width:54px; }
+  .trans input:not([type]) { width:110px; }
+  .trans .view-control { display:inline-flex; align-items:center; gap:5px; color:var(--dim); white-space:nowrap; }
+  .trans .view-control input { width:82px; padding:0; height:4px; accent-color:var(--accent); }
+  .row { display:flex; align-items:center; gap:8px; margin:6px 0; }
+  .row label { width:120px; color:var(--dim); font-size:12px; }
+  .row input[type=range] { flex:1; }
+  .stage-wrap { display:flex; flex-direction:column; padding:16px; gap:12px; overflow:auto; min-height:0; }
+  #seq-stage { max-height: 52vh; margin: 0 auto; }
+  #seq-stage { position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:12px; overflow:hidden; border:1px solid var(--line); }
+  #seq-canvas { width:100%; height:100%; display:block; }
+  .view-hint { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .transport { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .transport input[type=range] { flex:1; min-width:200px; }
+  #seq-play { width:44px; height:36px; font-size:16px; }
+  #seq-time { font:12px ui-monospace, monospace; color:var(--dim); }
+  #seq-phase { font:12px ui-monospace, monospace; color:var(--accent); }
+  .btn.primary { background:var(--accent); color:#172019; border:0; font-weight:800; padding:9px 16px; font-size:14px; cursor:pointer; }
+  .btn.primary:disabled { opacity:.5; }
+  progress { width:220px; }
+  video { width:100%; border-radius:10px; }
+  #seq-notice { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); opacity:0; background:var(--accent); color:#172019;
+    padding:10px 16px; border-radius:10px; font-weight:700; transition:.25s; pointer-events:none; }
+  #seq-notice.show { opacity:1; transform:translateX(-50%); }
+  .hint { color:var(--dim); font-size:12px; }
+  .lyr-thumb { width:96px; height:54px; border-radius:6px; background:#23292a; color:var(--ink); font-size:10px; line-height:1.3; padding:4px 6px; overflow:hidden; }
+  #lyr-text { width:100%; min-height:120px; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:8px; font:12px/1.6 inherit; resize:vertical; }
+  #lyr-rows { max-height:220px; overflow:auto; margin-top:6px; }
+  .lyr-row { display:flex; gap:6px; align-items:center; font-size:12px; margin:3px 0; }
+  .lyr-row input { width:72px; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:6px; padding:2px 4px; font:inherit; }
+  .lyr-row span { cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .model-library { border:1px solid #3c4d3b; background:#1d2922; border-radius:10px; padding:12px; margin:14px 0; }
+  .model-library h2 { margin:0 0 8px; color:var(--accent); }
+  #seq-model-list { max-height:260px; overflow-y:auto; }
+  .group-tabs { display:flex; gap:4px; overflow-x:auto; padding:6px 0 6px; scrollbar-width:thin; }
+  .group-tabs button { flex:none; padding:3px 9px; font-size:11px; line-height:1.5; border-radius:999px; white-space:nowrap; background:#1b2425; border:1px solid #33454a; color:var(--ink); cursor:pointer; }
+  .group-tabs button small { margin-left:5px; opacity:.6; font-size:10px; }
+  .group-tabs button[aria-selected=true] { background:#244457; border-color:#5fa9c9; color:#bfe6f8; }
+  .group-select { max-width:96px; font-size:11px; padding:2px 4px; background:#1b2021; color:var(--ink); border:1px solid #3a4547; border-radius:6px; }
+  .shape-filter { width:100%; box-sizing:border-box; margin:2px 0 4px; padding:5px 8px; background:#1b2021; color:var(--ink); border:1px solid #3a4547; border-radius:6px; }
+  .model-library .btn { width:100%; text-align:left; padding:8px 10px; cursor:pointer; }
+  .saved-model { display:flex; align-items:center; gap:8px; padding:5px 0; border-top:1px solid var(--line); }
+  .saved-model span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
+  .saved-model button { flex:none; cursor:pointer; }
+  #lyr-tap-overlay { position:absolute; inset:0; background:rgba(10,12,12,.82); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:20px; }
+  #lyr-tap-overlay[hidden] { display:none; }
+  #lyr-tap-now { font-size:clamp(20px,4vw,44px); font-weight:800; }
+  #lyr-tap-next { color:var(--dim); font-size:16px; }
+  #lyr-tap-btn { font-size:20px; padding:16px 40px; }
+
+  /* inspector */
+  .inspector { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-top:10px; }
+  .insp-title { font-weight:800; color:var(--accent); margin-bottom:6px; }
+  .insp-thumb { width:100%; border-radius:8px; margin-bottom:6px; }
+  .inspector input:not([type=checkbox]):not([type=range]), .inspector select { flex:1; min-width:0; }
+  .row.wrap { flex-wrap:wrap; }
+  /* timeline */
+  .timeline { grid-column:1 / -1; border-top:1px solid var(--line); background:#0e1314; user-select:none; }
+  .tl-bar { display:flex; align-items:center; gap:6px; padding:6px 10px; border-bottom:1px solid var(--line); flex-wrap:wrap; font-size:12px; }
+  .tl-bar .btn { padding:3px 9px; cursor:pointer; }
+  .tl-bar .btn:disabled { opacity:.35; cursor:default; }
+  .tl-sep { width:1px; height:18px; background:var(--line); margin:0 4px; }
+  .tl-toggle { display:inline-flex; align-items:center; gap:4px; color:var(--dim); cursor:pointer; }
+  .tl-status { margin-left:auto; color:var(--dim); font-size:11px; }
+  .tl-body { display:flex; }
+  .tl-heads { flex:none; width:64px; border-right:1px solid var(--line); }
+  .tl-head { display:flex; align-items:center; justify-content:center; color:var(--dim); font-size:11px; border-bottom:1px solid #1b2324; }
+  .tl-scroll { position:relative; flex:1; overflow-x:auto; overflow-y:hidden; cursor:text; }
+  .tl-scroll.drop { outline:2px dashed var(--accent); outline-offset:-2px; }
+  .tl-content { position:relative; }
+  .tl-ruler, .tl-wave { position:absolute; pointer-events:none; }
+  .tl-track { position:absolute; left:0; right:0; border-bottom:1px solid #1b2324; }
+  .tl-clip, .tl-trans, .tl-lyric, .tl-audio { position:absolute; top:4px; bottom:4px; border-radius:6px; overflow:hidden; cursor:grab; box-sizing:border-box; }
+  .tl-clip { background:#24302d; border:1px solid #3a4a45; display:flex; align-items:center; gap:6px; padding-right:8px; }
+  .tl-clip img { height:100%; aspect-ratio:16/9; object-fit:cover; flex:none; pointer-events:none; }
+  .tl-clip.lyric { background:#2f2531; border-color:#5a4260; }
+  .tl-name { font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; padding:0 6px; pointer-events:none; }
+  .tl-trans { top:14px; bottom:14px; background:repeating-linear-gradient(135deg,#3a4a1d 0 6px,#2d3a17 6px 12px); border:1px solid #6f8a30; color:#e7f7b0; display:flex; align-items:center; z-index:2; }
+  .tl-phases { position:absolute; left:0; right:0; bottom:0; height:4px; pointer-events:none; }
+  .phase-chip { display:inline-block; margin-left:10px; padding:1px 8px; border-radius:10px; font-size:11px; color:#141a1b; }
+  .phase-chip.chaos, .phase-dot.chaos { background:var(--phase-chaos); }
+  .phase-chip.form, .phase-dot.form { background:var(--phase-form); }
+  .phase-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+  /* 04 見た目: show only the settings that work where the playhead is (data-view is set by applyLookView) */
+  #pane-look[data-view="image"] [data-phase] { display:none; }
+  #pane-look[data-view="chaos"] [data-phase]:not([data-phase~="chaos"]) { display:none; }
+  #pane-look[data-view="form"] [data-phase]:not([data-phase~="form"]) { display:none; }
+  .look-view { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:4px; }
+  #look-mode { display:flex; }
+  #look-mode button { background:#1c2324; color:var(--dim); border:1px solid var(--line); padding:4px 12px; font:inherit; font-size:11px; cursor:pointer; }
+  #look-mode button:first-child { border-radius:7px 0 0 7px; }
+  #look-mode button:last-child { border-radius:0 7px 7px 0; border-left:0; }
+  #look-mode button[aria-pressed=true] { color:var(--accent); border-color:#6f8a30; background:#2b3323; font-weight:700; }
+  #look-view-label { font-size:12px; color:var(--dim); }
+  #look-view-hint { margin:2px 0 8px; }
+  #look-view-hint:empty { display:none; }
+  .tl-trans.flat { background:repeating-linear-gradient(135deg,#1d3a4a 0 6px,#172d3a 6px 12px); border-color:#3a7a9a; color:#bfe6f7; }
+  .tl-lyric { top:4px; bottom:4px; background:#3a2a1d; border:1px solid #8a6230; color:#f7e0b0; font-size:11px; padding:2px 6px; white-space:nowrap; text-overflow:ellipsis; }
+  .tl-lyric.chorus { background:#4a1d2e; border-color:#c0457a; color:#ffd2e4; }
+  .tl-lyric.linked::after { content:'🔗'; position:absolute; right:3px; top:2px; font-size:9px; }
+  .tl-audio { top:3px; bottom:3px; background:rgba(217,248,120,.07); border:1px solid #3c4d3b; }
+  .tl-clip.sel, .tl-trans.sel, .tl-lyric.sel { outline:2px solid var(--accent); outline-offset:-1px; }
+  .tl-edge { position:absolute; top:0; bottom:0; width:7px; cursor:ew-resize; z-index:3; }
+  .tl-edge.left { left:0; } .tl-edge.right { right:0; }
+  .tl-edge:hover { background:rgba(217,248,120,.35); }
+  .tl-playhead { position:absolute; left:0; top:0; width:2px; background:#ff5a5a; pointer-events:none; z-index:5; }
+  .tl-marker { position:absolute; width:3px; background:var(--accent); display:none; z-index:6; pointer-events:none; }
+
+  /* three-column layout like the single-image mode */
+  body:has(main.seq3) { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+  main.seq3 { flex:1; min-height:0; grid-template-columns: 290px minmax(0,1fr) 340px; grid-template-rows: minmax(0,1fr) auto; height:auto; }
+  .audio-pick { display:flex; flex-direction:column; gap:4px; margin-top:8px; }
+  .audio-pick input { font-size:11px; color:var(--dim); max-width:100%; }
+  main.seq3 > aside { min-height:0; overflow:auto; padding:14px; }
+  main.seq3 > aside.left { border-right:1px solid var(--line); }
+  main.seq3 > aside.right { border-left:1px solid var(--line); border-right:0; }
+  main.seq3 section + section { border-top:1px solid var(--line); margin-top:12px; padding-top:12px; }
+  .sec-title { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .sec-title h2, .sec-title h2 span { margin:0; }
+  .sec-title h2 { color:var(--ink); font-size:14px; letter-spacing:.02em; }
+  .sec-title h2 span { color:var(--accent); font-size:11px; padding-right:6px; }
+  .tag { font-size:10px; letter-spacing:.1em; color:var(--dim); }
+  .drop { padding:10px; font-size:13px; }
+  .choice-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  .choice-grid button { display:flex; flex-direction:column; align-items:center; justify-content:center; height:62px; gap:1px; background:#212728; color:var(--ink);
+    border:1px solid var(--line); border-radius:7px; font:inherit; font-size:13px; cursor:pointer; }
+  .choice-grid button:hover { border-color:#7b8a83; }
+  .choice-grid button[aria-pressed=true] { border-color:var(--accent); color:var(--accent); background:#2b3323; }
+  .choice-grid button.second { border-style:dashed; border-color:#8fb4d6; color:#bfe0ff; }
+  .choice-grid button.added { border-color:#3a6a82; }
+  .choice-grid button.added[aria-pressed=true] { border-color:var(--added); color:var(--added); background:#1d3440; }
+  .choice-grid small { font-size:9px; letter-spacing:.12em; color:#92a09a; }
+  .symbol { font-size:18px; line-height:1.1; font-family:serif; }
+  .choice-grid.disabled { opacity:.55; }
+  .shape-grid { max-height:340px; overflow-y:auto; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; margin:6px 0 8px; }
+  .shape-grid button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; height:54px; padding:2px; background:#212728; color:var(--ink);
+    border:1px solid var(--line); border-radius:7px; font:inherit; font-size:11px; cursor:pointer; overflow:hidden; }
+  .shape-grid button span { font-size:19px; font-family:serif; line-height:1; }
+  .shape-grid button[aria-pressed=true] { border-color:var(--accent); color:var(--accent); background:#2b3323; }
+  /* added GLBs: sky-blue frame and a small portrait of the model */
+  .shape-grid button.added { border-color:#2f5566; background:#1f2a2f; }
+  .shape-grid button.added:hover { border-color:#5fa9c9; }
+  .shape-grid button.added[aria-pressed=true] { border-color:var(--added); color:var(--added); background:#1d3440; }
+  .shape-grid button img { width:22px; height:22px; object-fit:contain; }
+  .saved-model img { width:28px; height:28px; object-fit:contain; flex:none; }
+  .panel-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
+  .eyebrow { font-size:10px; letter-spacing:.18em; color:var(--dim); font-weight:700; }
+  .tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin-bottom:12px; }
+  .tabs button { background:#1c2324; color:var(--dim); border:1px solid var(--line); border-radius:7px; padding:7px 2px; font:inherit; font-size:11px; cursor:pointer; }
+  .tabs button[aria-selected=true] { color:var(--accent); border-color:#6f8a30; background:#2b3323; font-weight:700; }
+  .pane[hidden] { display:none; }
+  .pane h2 { margin:14px 0 6px; }
+  .pane h2:first-child { margin-top:0; }
+  main.seq3 .inspector { margin-top:0; }
+  main.seq3 .stage-wrap { padding:12px 16px; gap:8px; }
+  main.seq3 #seq-stage { width:min(100%, calc((100vh - 360px) * 16 / 9)); max-height:none; margin:0 auto; }
+  main.seq3 .transport { width:min(100%, calc((100vh - 360px) * 16 / 9)); margin:0 auto; flex-wrap:nowrap; }
+  main.seq3 #seq-phase { text-align:center; }
+  @media (max-width: 1100px) {
+    body:has(main.seq3) { height:auto; overflow:auto; }
+    main.seq3 { grid-template-columns: 250px minmax(0,1fr); height:auto; }
+    main.seq3 > aside.right { grid-column: 1 / -1; border-left:0; border-top:1px solid var(--line); }
+    main.seq3 #seq-stage, main.seq3 .transport { width:100%; }
+  }
+  @media (max-width: 700px) { main.seq3 { grid-template-columns: 1fr; } }
+
+  .fx-row { margin:6px 0 8px; }
+  .fx-head { display:flex; justify-content:space-between; font-size:12px; color:var(--dim); margin-bottom:3px; }
+  .fx-head output { color:var(--accent); font-family:ui-monospace,monospace; font-size:11px; }
+  .fx-row input[type=range] { width:100%; accent-color:var(--accent); }
+  .fx-override { margin-top:10px; border-top:1px solid var(--line); padding-top:8px; }
+  .fx-override summary { cursor:pointer; color:var(--accent); font-size:12px; margin-bottom:6px; }
+  .cam-ends { display:inline-flex; align-items:center; gap:4px; }
+  .cam-num { width:64px; }
+  .btn.tiny { font-size:10px; padding:1px 6px; margin-top:2px; }
+  .insp-where { margin:6px 0 10px; padding:8px 10px; border:1px dashed var(--accent); border-radius:8px; font-size:12px; line-height:1.6; background:rgba(217,248,120,.06); }
+  .insp-where[hidden] { display:none; }
+  .insp-where .btn { margin-left:6px; }
+</style>
+<link rel="stylesheet" href="./method-editor.css?v=3">
+<link rel="stylesheet" href="./shot-motion.css?v=1">
+<link rel="stylesheet" href="./lyric-controls.css?v=2">
+</head>
+<body>
+<header>
+  <a href="./sequence.html">◈ UNFOLD <span>SEQUENCE</span></a>
+  <span class="sub">IMAGE → FORM → NEXT IMAGE</span>
+  <a class="back" href="./guide/">説明・GLB置き場</a>
+  <a class="back" style="margin-left:18px" href="./">← 1枚モード</a>
+</header>
+<main class="seq3">
+<aside class="left">
+  <section>
+    <div class="sec-title"><h2><span>01</span> 素材</h2><span class="tag" id="seq-count"></span></div>
+    <div class="drop" id="seq-drop">＋ 画像を追加（ドロップ／クリック）<br><span class="hint">タイムラインのブロックにドロップで差し替え</span></div>
+    <input type="file" id="seq-files" accept="image/png,image/jpeg,image/webp" multiple hidden>
+    <div class="audio-pick"><span class="hint">音楽（波形・MV・書き出し用）</span><input id="seq-audio" type="file" accept="audio/*"></div>
+    <div class="hint" id="seq-audio-name"></div>
+  </section>
+  <section>
+    <div class="sec-title"><h2><span>02</span> ぐちゃぐちゃにする</h2><span class="tag" id="seq-methods-tag">29 METHODS</span></div>
+    <p class="hint" id="seq-methods-hint">タイムラインの◆を選んでからクリック。⇧＋クリックで「戻り方」に。</p>
+    <div class="choice-grid" id="seq-methods" role="group" aria-label="崩れ方"></div>
+    <div class="quarantine" id="seq-quarantine" hidden></div>
+    <div class="row"><button class="btn" id="seq-shuffle">⤨ 崩れ方と形をおまかせ</button></div>
+  </section>
+</aside>
+<section class="stage-wrap">
+  <div id="seq-stage"><canvas id="seq-canvas"></canvas>
+    <div id="lyr-tap-overlay" hidden><div class="hint" id="lyr-tap-count"></div><div id="lyr-tap-now"></div><div id="lyr-tap-next"></div>
+      <button class="btn primary" id="lyr-tap-btn">TAP（スペース）</button><div class="hint">歌い出しでタップ・Backspaceで1行戻る・Escで終了</div><button class="btn" id="lyr-tap-stop">終了</button></div></div>
+  <div class="transport">
+    <button class="btn" id="seq-play">▶</button>
+    <input type="range" id="seq-scrub" min="0" max="1000" value="0">
+    <span id="seq-time"></span>
+    <button class="btn" id="seq-reset-view" title="立体化中はプレビューをドラッグで向きを調整できます">正面に戻す ↺</button>
+  </div>
+  <div id="seq-phase"></div>
+</section>
+<aside class="right">
+  <div class="panel-head"><span class="eyebrow">EDIT PANEL</span><strong>シーケンスを編集する</strong></div>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="edit" aria-selected="true">03 選択中</button>
+    <button role="tab" data-tab="look" aria-selected="false">04 見た目</button>
+    <button role="tab" data-tab="lyric" aria-selected="false">05 歌詞・曲</button>
+    <button role="tab" data-tab="export" aria-selected="false">動画保存</button>
+  </div>
+  <div class="pane" id="pane-edit">
+    <div id="seq-inspector" class="inspector"></div>
+  </div>
+  <div class="pane" id="pane-look" data-view="image" hidden>
+    <div class="look-view"><div id="look-mode" role="group" aria-label="表示する設定"><button type="button" data-mode="auto" aria-pressed="true">自動</button><button type="button" data-mode="all" aria-pressed="false">すべて</button></div><span id="look-view-label"></span></div>
+    <p class="hint" id="look-view-hint"></p>
+    <h2>リズム</h2>
+    <div class="row"><label>BPM</label><input id="seq-bpm" type="number" min="40" max="240" value="98" step="0.1"></div>
+    <div class="row"><label>1枚を見せる拍数</label><input id="seq-hold" type="number" min="0" max="32" value="4"></div>
+    <div class="row"><label>音楽の開始位置（秒）</label><input id="seq-offset" type="number" value="0" step="0.01"></div>
+    <h2>見た目</h2>
+    <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>崩れの強さ</label><input id="seq-strength" type="range" min="0" max="100" value="80"></div>
+    <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>ぐちゃぐちゃ中の引き</label><input id="seq-pullback" type="range" min="0" max="100" value="100" title="0%で画面いっぱいのまま崩れる。100%で今までどおり小さく引く"></div>
+    <div class="row" data-phase="form"><label><span class="phase-dot form"></span>立体化中の引き</label><input id="seq-form-pullback" type="range" min="0" max="100" value="100" title="0%で立体になっても画面いっぱいのまま。100%で今までどおり小さく引く"></div>
+    <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>粒の細かさ（GLB・文字）</label><input id="seq-detail" type="range" min="0" max="100" value="100" title="銀河・塵・雪など粒で崩すときの粒の大きさ。0%でプリセットと同じ、100%でモデルの面そのまま"></div>
+    <div class="row" data-phase="chaos"><p class="hint" id="seq-detail-note" aria-live="polite" style="margin:0 0 6px;line-height:1.6"></p></div>
+    <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>タイルの細かさ</label><input id="seq-tiles" type="range" min="0" max="100" value="50" title="ばらばら・砕ける・とける・シュレッダー・モザイク・星とハート・ブラインド・タイル反転・グリッチのタイルの大きさ。真ん中が今まで（16×16）。左に動かすと大きなタイルで荒々しく、右は細かく"></div>
+    <div class="row" data-phase="chaos"><p class="hint" id="seq-tiles-note" aria-live="polite" style="margin:0 0 6px;line-height:1.6"></p></div>
+    <div class="row" data-phase="form"><label><span class="phase-dot form"></span>プッシュイン</label><input id="seq-push" type="range" min="0" max="60" value="25"></div>
+    <div class="row" data-phase="chaos form"><label><span class="phase-dot chaos"></span><span class="phase-dot form"></span>拍のパルス</label><input id="seq-pulse" type="range" min="0" max="100" value="50"></div>
+    <div class="row" data-phase="form"><label><span class="phase-dot form"></span>シルエット感度</label><input id="seq-sil" type="range" min="0" max="100" value="50" title="背景が残るときは下げて、欠けるときは上げる"></div>
+    <div class="row"><label>画面いっぱいに表示</label><input id="seq-fill" type="checkbox" checked></div>
+    <div class="row"><label>背景色</label><input id="seq-bg" type="color" value="#111718"></div>
+    <div id="seq-fx"></div>
+    <div class="model-library"><h2>追加した立体の形（GLB）</h2><button class="btn" id="seq-model-add">＋ GLBを追加</button><a class="hint" href="./guide/glb.html" style="display:block;margin:6px 0 2px;color:#9ed8f3">GLB置き場（すぐ使える形）から追加 →</a><input id="seq-model-input" type="file" accept=".glb" multiple hidden><div id="seq-model-tabs"></div><div id="seq-model-list"></div><p class="hint" id="seq-model-status" role="status">保存したGLBを読み込み中…</p></div>
+  </div>
+  <div class="pane" id="pane-lyric" hidden></div>
+<div hidden id="legacy-lyric-controls">  <div class="pane" id="old-pane-lyric" hidden>
+    <p class="hint">歌詞を1行ずつ入れて、曲に合わせてタップ（または .json / .lrc を読み込み）→「MVを組む」。01の画像は背景と間奏に使うよ。/ で改行。</p>
+    <textarea id="lyr-text" placeholder="少しだけ触れる&#10;それだけで/形が曖昧になる&#10;…"></textarea>
+    <div class="row wrap"><button class="btn" id="lyr-apply">歌詞を反映</button><button class="btn" id="lyr-tap">▶ タップで合わせる</button></div>
+    <div class="row"><label>タイミング読込</label><input id="lyr-file" type="file" accept=".json,.lrc,.txt,application/json"></div>
+    <div class="row wrap"><button class="btn" id="lyr-save">タイミングを保存</button><button class="btn" id="lyr-tempo">曲からテンポを測る</button></div>
+    <div class="hint" id="lyr-status"></div>
+    <div id="lyr-rows"></div>
+    <div class="row"><label>カードの見た目</label><select id="lyr-style"><option value="sticker">ステッカー（切り貼り）</option><option value="simple">シンプル</option></select></div>
+    <div class="row"><label>書体</label><select id="lyr-font"></select></div>
+    <div class="row"><label>変形の長さ（拍）</label><input id="lyr-trans" type="number" min="1" max="16" value="4"></div>
+    <div class="row"><label>拍にスナップ</label><input id="lyr-snap" type="checkbox" checked></div>
+    <div class="row"><button class="btn primary" id="lyr-build">MVを組む</button></div>
+  </div>
+</div>
+  <div class="pane" id="pane-export" hidden>
+    <div class="row"><label>フレームレート</label><select id="seq-fps"><option>24</option><option>25</option><option selected>30</option><option>60</option></select></div>
+    <div class="row"><label>解像度</label><select id="seq-quality"><option value="720">720p</option><option value="1080" selected>1080p</option></select></div>
+    <div class="row"><label>画質</label><select id="seq-hq" title="高画質・最高は2倍の細かさで描いてから縮めるので、細かい粒やフチがきれいに出ます（書き出しは少し遅くなります）"><option value="std">標準（軽い）</option><option value="high" selected>高画質（おすすめ）</option><option value="max">最高（ファイル大）</option></select></div>
+    <div class="row"><label>形式</label><select id="seq-format" title="MP4はiPhone・QuickTime・動画編集アプリでそのまま使えます"><option value="mp4" selected>MP4（おすすめ）</option><option value="webm">WebM</option></select></div>
+    <div class="row"><label>音楽も入れる</label><input id="seq-with-audio" type="checkbox" checked></div>
+    <div class="row"><button class="btn primary" id="seq-export">動画を書き出す</button></div>
+    <div class="row"><progress id="seq-progress" max="100" value="0"></progress></div>
+    <div class="row"><a class="btn" id="seq-download" hidden>動画を保存</a></div>
+    <video id="seq-result" controls hidden></video>
+    <p class="hint">1コマずつ計算して書き出すので、パソコンが重くてもズレません。タブは開いたままでOK。</p>
+  </div>
+</aside>
+<section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
+</main>
+<div id="seq-notice"></div>
+<script type="module" src="./sequence.js?v=70"></script>
+</body>
+</html>

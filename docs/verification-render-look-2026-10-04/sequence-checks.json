@@ -1,0 +1,39 @@
+{
+  "restoreAfterReload": {
+    "enabled": true,
+    "perspective": 0.8,
+    "azimuth": 55,
+    "alpha": "dither"
+  },
+  "afterAllOff": [
+    {
+      "key": "enabled",
+      "value": false
+    },
+    {
+      "key": "perspective",
+      "value": "0.6"
+    },
+    {
+      "key": "lighting",
+      "value": true
+    },
+    {
+      "key": "azimuth",
+      "value": "-25"
+    },
+    {
+      "key": "elevation",
+      "value": "30"
+    },
+    {
+      "key": "shade",
+      "value": "0.6"
+    },
+    {
+      "key": "alpha",
+      "value": "original"
+    }
+  ],
+  "errors": []
+}

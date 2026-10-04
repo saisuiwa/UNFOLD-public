@@ -1,0 +1,8 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {parseLyrics,resolveUnknown} from '../../app/lyric-document.js';
+import {validateEmbedded} from '../../app/method-project.js';
+import * as project from '../../app/lyric-project.js';
+import {getTimings} from '../../app/lyric-timing.js';
+test('v3 method validation preserves custom code for normal import preparation',()=>{const result=validateEmbedded([{id:'cm-review',name:'保持',vertex:'vec3 userMethod(vec2 p,float amount){return vec3(p,0.);}' }],3);assert.equal(result.problems.length,0);assert.equal(result.methods.length,1);});
+test('editing first line to equal second never steals its timing or lock',()=>{const old=parseLyrics('間違えた歌詞\n同じ歌詞');Object.assign(old.events[0],{s:1});Object.assign(old.events[1],{s:20,locked:true});const d=parseLyrics('同じ歌詞\n同じ歌詞',old);assert.equal(d.events[1].id,old.events[1].id);assert.equal(d.events[1].s,20);assert.equal(d.events[1].locked,true);assert.notEqual(d.events[0].id,old.events[1].id);assert.notEqual(d.events[0].s,20);});
+test('timing file preserves instrumental boundaries, emphasis and provisional source',()=>{assert.equal(typeof project.lyricTimingFile,'function');const d=parseLyrics('*声*\n[Instrumental]\n[Verse]\n次の声');d.events[0].s=0;d.events[1].s=2;d.events[3].s=5;d.events[3].timingSource='provisional';const value=JSON.parse(project.lyricTimingFile(d,8));const restored=project.lyricTimingDocument(value);assert.deepEqual(restored,d);assert.equal(getTimings(restored,8).events.find(e=>e.section==='instrumental').kind,'section');assert.equal(restored.events[0].runs[0].emphasis,true);assert.equal(restored.events[3].timingSource,'provisional');});

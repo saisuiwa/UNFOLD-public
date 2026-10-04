@@ -1,0 +1,24 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><title>UNFOLD 回転・カメラ検証</title><style>body{background:#111b17;color:#e5efe4;font:14px system-ui;margin:20px}button{padding:10px}iframe{width:1050px;height:800px;border:1px solid #536954;display:block;margin:16px 0}pre{white-space:pre-wrap}</style><h1>回転・カメラの実画面検証</h1><button id="run">検証を実行</button><pre id="results">Ready</pre><div id="frames"></div><script type="module">
+const result=[],out=document.querySelector('#results'),delay=ms=>new Promise(r=>setTimeout(r,ms)),assert=(x,m)=>{if(!x)throw Error(m)},wait=async fn=>{for(let i=0;i<150;i++){if(fn())return;await delay(80)}throw Error('画面の準備がタイムアウト')};
+const write=()=>out.textContent=JSON.stringify(result,null,2);
+async function frame(src){const e=document.createElement('iframe');e.src=src;document.querySelector('#frames').append(e);await wait(()=>e.contentDocument?.querySelector('#timeline')&&e.contentDocument?.querySelector('#scene')?.width>0);await delay(300);return e}
+const change=(doc,selector,value,event='change')=>{const e=doc.querySelector(selector);assert(e,'Missing '+selector);if(e.type==='checkbox')e.checked=value;else e.value=value;e.dispatchEvent(new e.ownerDocument.defaultView.Event(event,{bubbles:true}));};
+const at=(doc,t)=>change(doc,'#timeline',t,'input');
+const px=doc=>{const c=doc.querySelector('#scene'),x=document.createElement('canvas');x.width=c.width;x.height=c.height;const g=x.getContext('2d');g.drawImage(c,0,0);return g.getImageData(0,0,x.width,x.height).data};
+const diff=(a,b)=>a.length!==b.length?Infinity:a.reduce((s,v,i)=>s+Math.abs(v-b[i]),0)/a.length;
+const check=async(name,fn)=>{try{await fn();result.push({name,pass:true})}catch(e){result.push({name,pass:false,error:e.message})}write()};
+const shot=(d,path,v)=>change(d,'[data-shot="'+path+'"]',v);
+document.querySelector('#run').onclick=async()=>{
+ document.querySelector('#run').disabled=true;result.length=0;const saved=localStorage.getItem('unfold-single-shot');localStorage.removeItem('unfold-single-shot');document.querySelector('#frames').replaceChildren();
+ try{
+ const current=await frame('../../app/index.html?qa-shot=2'),old=await frame('../../archive/app-before-shot-motion-20261004-153450/index.html?qa-shot=2');const d=current.contentDocument,o=old.contentDocument;
+ await wait(()=>d.querySelector('[data-shot="rotation.enabled"]'));
+ await check('初期OFFは旧版と一致：開始・立体化・戻り・終了',()=>{for(const t of [0,400,560,780,1000]){at(d,t);at(o,t);const delta=diff(px(d),px(o));assert(delta<.001,t+' 差分 '+delta)}});
+ await check('右左上下・斜め4方向・なし、入りと戻りの実描画',()=>{shot(d,'rotation.enabled',true);for(const [phase,t]of [['in',400],['out',760]]){const values=[];for(const direction of ['right','left','up','down','up-right','up-left','down-right','down-left','none']){shot(d,'rotation.'+phase+'Direction',direction);at(d,t);values.push(px(d));}for(let i=1;i<values.length;i++)assert(diff(values[0],values[i])>.01,phase+' direction '+i+' unchanged')}});
+ await check('回転＋カメラ有効でも冒頭と最後は元画像',()=>{shot(d,'rotation.inDirection','up-right');shot(d,'rotation.outDirection','down-left');shot(d,'camera.enabled',true);shot(d,'camera.from.x',-.4);shot(d,'camera.to.x',.25);shot(d,'camera.to.y',.3);shot(d,'camera.to.zoom',2);for(const t of [0,1000]){at(d,t);at(o,t);assert(diff(px(d),px(o))<.001,'original changed at '+t)}});
+ await check('カメラ移動が実描画に反映、OFFで同じ絵へ戻る',()=>{shot(d,'rotation.enabled',false);shot(d,'camera.enabled',false);at(d,560);const base=px(d);shot(d,'camera.enabled',true);assert(diff(base,px(d))>1,'camera had no effect');shot(d,'camera.enabled',false);assert(diff(base,px(d))<.001,'OFF changed legacy');});
+ await check('保存して再読み込み後も方向と位置・ズームを保持',async()=>{shot(d,'rotation.enabled',true);shot(d,'rotation.inDirection','up-left');shot(d,'camera.enabled',true);current.src='../../app/index.html?qa-shot=restore';await wait(()=>current.contentDocument?.querySelector('[data-shot="rotation.inDirection"]')?.value==='up-left');const x=current.contentDocument;assert(x.querySelector('[data-shot="camera.to.y"]').value==='0.3','target y not restored');assert(x.querySelector('[data-shot="camera.to.zoom"]').value==='2','zoom not restored')});
+ old.remove();
+ }catch(e){result.push({name:'setup',pass:false,error:e.message});write()}finally{if(saved===null)localStorage.removeItem('unfold-single-shot');else localStorage.setItem('unfold-single-shot',saved);document.querySelector('#run').disabled=false;write()}
+};
+</script></html>

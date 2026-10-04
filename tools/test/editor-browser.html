@@ -1,0 +1,81 @@
+<!doctype html><html lang="ja" translate="no"><meta charset="utf-8"><title>UNFOLD editor verification</title>
+<link rel="stylesheet" href="../../app/method-editor.css?v=3">
+<style>body{background:#101718;color:#edf2e7;font:14px system-ui;padding:24px}button{padding:12px}pre{white-space:pre-wrap}canvas.probe{width:320px;height:180px}</style>
+<h1>UNFOLD editor verification</h1><button id="run">Run browser checks</button><button id="open">Open editor</button><pre id="results">Ready</pre>
+<script type="module">
+import {createMethodEditor} from '../../app/method-editor.js?v=4';
+import {createPreview,makeTestImage} from '../../app/method-preview.js?v=4';
+import {vertexShader,fragmentShader} from '../../app/motion.js?v=25';
+import {compileUserMethod} from '../../app/custom-method.js';
+import {SAMPLES} from '../../app/method-samples.js?v=2';
+import {createTrial} from '../../app/method-trial.js';
+const $=id=>document.getElementById(id), delay=ms=>new Promise(r=>setTimeout(r,ms));
+const wait=async fn=>{for(let i=0;i<200;i++){if(fn())return;await delay(50)}throw Error('Timed out')};
+const assert=(x,m)=>{if(!x)throw Error(m)};
+let mainLook={enabled:false};
+const notes=[];
+const editor=createMethodEditor({vertexShader,fragmentShader,getPreviewImage:()=>makeTestImage(),notify:s=>notes.push(s),getRenderLook:()=>mainLook,onApplyRenderLook:v=>{mainLook=v},trial:createTrial({vertexShader,fragmentShader})});
+$('open').onclick=()=>editor.open();
+const input=(id,value)=>{$(id).value=value;$(id).dispatchEvent(new Event('input',{bubbles:true}))};
+const choose=key=>{$('method-samples').value=key;$('method-samples').dispatchEvent(new Event('change',{bubbles:true}))};
+const ready=()=>wait(()=>!$('method-save').disabled);
+const pixels=canvas=>{const c=document.createElement('canvas');c.width=canvas.width;c.height=canvas.height;const g=c.getContext('2d');g.drawImage(canvas,0,0);return g.getImageData(0,0,c.width,c.height).data};
+const diff=(a,b)=>a.reduce((sum,v,i)=>sum+Math.abs(v-b[i]),0)/a.length;
+const report=[];
+$('run').onclick=async()=>{
+ $('run').disabled=true;report.length=0;
+ const originalDraft=localStorage.getItem('unfold-method-draft');
+ const clipboardDescriptor=Object.getOwnPropertyDescriptor(navigator,'clipboard');
+ const check=async(name,fn)=>{try{await fn();report.push('PASS '+name)}catch(e){report.push('FAIL '+name+': '+e.message)} $('results').textContent=report.join('\n')};
+ try{
+ localStorage.removeItem('unfold-method-draft');editor.open();await ready();
+ await check('workbench controls',async()=>{assert($('method-copy'),'missing code copy');assert($('method-image'),'missing image input');assert($('method-amount-value'),'missing amount value');assert($('method-progress').max==='0.8','amount max must be 0.8')});
+ if(!$('method-copy'))return;
+ $('method-loop').checked=false;
+ const probe=document.createElement('canvas');probe.className='probe';document.body.append(probe);
+ const preview=createPreview(probe,{vertexShader,fragmentShader});preview.resize(320,180);preview.setImage(makeTestImage());
+ await check('three presets compile, preserve amount 0, visibly deform at 0.8',async()=>{
+   preview.setSource('vec3 userMethod(vec2 p,float amount){return vec3(p,0.);}');preview.setAmount(0);const zero=pixels(probe);
+   for(const key of ['petals','vortex','depth-pop']){
+    const s=SAMPLES.find(s=>s.key===key);assert(s,'missing '+key);
+    const errors=await compileUserMethod(preview.renderer,{vertexShader,fragmentShader,source:s.source});assert(!errors.length,key+JSON.stringify(errors));
+    preview.setSource(s.source);preview.setAmount(0);assert(diff(zero,pixels(probe))<.01,key+' amount 0 changed image');
+    for(const a of [.2,.4,.6,.8]){preview.setAmount(a);assert(diff(zero,pixels(probe))>1,key+' no visible motion at '+a)}
+    choose(key);await ready();assert($('method-code').value===s.source,key+' editor source mismatch');
+   }
+ });
+ await check('actual amount mapping',async()=>{input('method-progress','.8');await delay(80);assert($('method-amount-value').textContent==='0.80','wrong displayed value');input('method-progress','0');await delay(80);assert($('method-amount-value').textContent==='0.00','wrong zero')});
+ await check('invalid GLSL preserves last frame and recovers',async()=>{choose('depth-pop');await ready();input('method-progress','.6');await delay(80);const before=pixels($('method-canvas'));input('method-code','vec3 userMethod(vec2 p,float amount){return vec3(unknownName,0.);}');await wait(()=>$('method-errors').textContent.includes('unknownName'));assert($('method-save').disabled,'invalid code savable');assert(diff(before,pixels($('method-canvas')))<.01,'invalid code replaced good preview');choose('vortex');await ready()});
+ await check('copy failure selects code; later copy succeeds',async()=>{
+  const source=$('method-code').value;
+  Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async()=>{throw Error('denied')}}});$('method-copy').click();await delay(50);
+  assert($('method-code').selectionEnd-$('method-code').selectionStart===source.length,'fallback did not select code');assert($('method-status').textContent.includes('⌘C'),'missing manual copy hint');
+  let copied='';Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async s=>{copied=s}}});$('method-copy').click();await delay(50);assert(copied===source,'copy differs from editor');assert($('method-status').textContent.includes('コピーしました'),'missing copy success');
+ });
+ await check('image replacement retains code; invalid file retains preview; reopen works',async()=>{
+  input('method-progress','0');await delay(70);const before=pixels($('method-canvas')),source=$('method-code').value;
+  const c=document.createElement('canvas');c.width=320;c.height=180;const g=c.getContext('2d');g.fillStyle='#24eab5';g.fillRect(0,0,320,180);g.fillStyle='#153269';g.fillRect(40,40,200,80);
+  const blob=await new Promise(r=>c.toBlob(r));const file=new File([blob],'editor-test.png',{type:'image/png'});
+  const dt=new DataTransfer();dt.items.add(file);$('method-image').files=dt.files;$('method-image').dispatchEvent(new Event('change',{bubbles:true}));
+  await wait(()=>$('method-image-name').textContent.includes('editor-test.png'));assert($('method-code').value===source,'image changed source');await delay(80);assert(diff(before,pixels($('method-canvas')))>1,'new image not rendered');
+  const replacement=pixels($('method-canvas'));const bad=new DataTransfer();bad.items.add(new File(['bad'],'bad.png',{type:'image/png'}));$('method-image').files=bad.files;$('method-image').dispatchEvent(new Event('change',{bubbles:true}));await wait(()=>$('method-status').textContent.includes('読み込めません'));assert(diff(replacement,pixels($('method-canvas')))<.01,'invalid image changed picture');
+  for(let i=0;i<3;i++){editor.close();await delay(80);editor.open();await ready();$('method-loop').checked=false;input('method-progress','0');await delay(80);assert($('method-image-name').textContent.includes('editor-test.png'),'reopen lost image')}
+  input('method-progress','.6');await delay(80);assert(diff(replacement,pixels($('method-canvas')))>1,'method not reapplied');
+ });
+ await check('render controls apply to main, survive reopen, return to original',async()=>{
+  choose('depth-pop');await ready();input('method-progress','.4');await delay(80);const before=pixels($('method-canvas'));
+  const box=document.querySelector('.method-editor .render-look-controls')||document.querySelector('.render-look-controls');
+  const change=(key,value)=>{const e=box.querySelector('[data-look='+key+']');if(e.type==='checkbox')e.checked=value;else e.value=value;e.dispatchEvent(new Event(e.type==='range'?'input':'change',{bubbles:true}))};
+  change('enabled',true);change('perspective',.8);change('shade',.8);change('alpha','dither');await delay(80);assert(diff(before,pixels($('method-canvas')))>1,'render settings not applied');
+  Array.from(box.querySelectorAll('button')).find(b=>b.textContent.includes('本体にも適用')).click();assert(mainLook.enabled&&mainLook.alpha==='dither','main apply missing');
+  for(let i=0;i<3;i++){editor.close();await delay(70);editor.open();await ready();$('method-loop').checked=false;assert(box.querySelector('[data-look=enabled]').checked,'reopen lost main setting');}
+  input('method-progress','.4');change('enabled',false);await delay(80);assert(diff(before,pixels($('method-canvas')))<.01,'OFF did not restore editor');
+ });
+ preview.dispose();probe.remove();
+ }catch(e){report.push('FAIL setup: '+e.message)}finally{
+ editor.close();if(originalDraft===null)localStorage.removeItem('unfold-method-draft');else localStorage.setItem('unfold-method-draft',originalDraft);
+ if(clipboardDescriptor)Object.defineProperty(navigator,'clipboard',clipboardDescriptor);else delete navigator.clipboard;
+ $('results').textContent=report.join('\n');$('run').disabled=false;
+ }
+};
+</script>

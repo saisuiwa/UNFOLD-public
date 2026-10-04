@@ -1,0 +1,2 @@
+// Output block is indexed in video time. Samples outside the song remain silent.
+export function audioBlock(buffer,startSec,frameOffset,frames,channels){const out=new Float32Array(frames*channels),a=Math.round(startSec*buffer.sampleRate)+frameOffset,lo=Math.max(0,a),hi=Math.min(buffer.length,a+frames);if(hi>lo)for(let c=0;c<channels;c++)out.set(buffer.getChannelData(c).subarray(lo,hi),c*frames+lo-a);return out}

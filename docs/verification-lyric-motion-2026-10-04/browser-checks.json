@@ -1,0 +1,182 @@
+[
+  {
+    "name": "文字が背景に合成される",
+    "pass": true
+  },
+  {
+    "name": "表示区間外は背景と完全一致",
+    "pass": true
+  },
+  {
+    "name": "シークして戻っても同じ絵",
+    "pass": true
+  },
+  {
+    "name": "renderer状態を復元",
+    "pass": true
+  },
+  {
+    "name": "歌詞・曲のかんたん操作UI",
+    "pass": true
+  },
+  {
+    "name": "シーケンス連携API",
+    "pass": true
+  },
+  {
+    "name": "背景なしでも仮見本12秒",
+    "pass": true
+  },
+  {
+    "name": "背景なしでも文字表示",
+    "pass": true
+  },
+  {
+    "name": "背景あり文字表示",
+    "pass": true
+  },
+  {
+    "name": "文字OFFで元の背景pixel",
+    "pass": true
+  },
+  {
+    "name": "背景のtransition不変",
+    "pass": true
+  },
+  {
+    "name": "見出しを本文から分離",
+    "pass": true
+  },
+  {
+    "name": "固定したサビは再抽選でも維持",
+    "pass": true
+  },
+  {
+    "name": "おまかせUndo",
+    "pass": true
+  },
+  {
+    "name": "おまかせRedo",
+    "pass": true
+  },
+  {
+    "name": "タイムラインで歌詞だけ0.1秒移動",
+    "pass": true
+  },
+  {
+    "name": "空欄へ埋め込み歌詞を自動反映",
+    "pass": true
+  },
+  {
+    "name": "時刻付き歌詞と間奏",
+    "pass": true
+  },
+  {
+    "name": "曲全体の長さ",
+    "pass": true
+  },
+  {
+    "name": "既存の手入力を自動上書きしない",
+    "pass": true
+  },
+  {
+    "name": "候補ボタンで取り込み",
+    "pass": true
+  },
+  {
+    "name": "候補の取り込みUndo",
+    "pass": true
+  },
+  {
+    "name": "A→B読み込み競合はBを保持",
+    "pass": true
+  },
+  {
+    "name": "抽出中の手入力を保持",
+    "pass": true
+  },
+  {
+    "name": "歌詞のHTMLは文字として表示",
+    "pass": true
+  },
+  {
+    "name": "タップ途中停止を保存",
+    "pass": true
+  },
+  {
+    "name": "タップ途中再開",
+    "pass": true
+  },
+  {
+    "name": "保存・読み込みで歌詞を復元",
+    "pass": true
+  },
+  {
+    "name": "保存・読み込みでカメラを復元",
+    "pass": true
+  },
+  {
+    "name": "1280×720 長文・絵文字の安全域",
+    "pass": true
+  },
+  {
+    "name": "1920×1080 長文・絵文字の安全域",
+    "pass": true
+  },
+  {
+    "name": "720×1280 長文・絵文字の安全域",
+    "pass": true
+  },
+  {
+    "name": "IndexedDBへ歌詞と音楽を保存",
+    "pass": true
+  },
+  {
+    "name": "旧3D歌詞を画像+前面文字へ変換",
+    "pass": true
+  },
+  {
+    "name": "旧3D変換のUndoで元データを保持",
+    "pass": true
+  },
+  {
+    "name": "旧3D変換のRedo",
+    "pass": true
+  },
+  {
+    "name": "プロジェクト復元で古い抽出結果を無効化",
+    "pass": true
+  },
+  {
+    "name": "同期の再開で途中の編集・固定を保持",
+    "pass": true
+  },
+  {
+    "name": "全体設定に文字BPM・最大表示時間・全行移動",
+    "pass": true
+  },
+  {
+    "name": "行に区分変更を用意",
+    "pass": true
+  },
+  {
+    "name": "強調と改行の補助",
+    "pass": true
+  },
+  {
+    "name": "独立歌詞では旧連動操作を非表示",
+    "pass": true
+  },
+  {
+    "name": "文字入力のSpaceを同期操作が奪わない",
+    "pass": true
+  },
+  {
+    "name": "v3を実際に開いて自作メソッドと隔離状態を保持",
+    "pass": true
+  },
+  {
+    "name": "タイミングJSONを実画面から再読込して状態保持",
+    "pass": true
+  }
+]

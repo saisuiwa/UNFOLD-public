@@ -1,0 +1,881 @@
+{
+ "version": 1,
+ "groups": [
+  {
+   "name": "動物・生き物",
+   "id": "animal"
+  },
+  {
+   "name": "植物",
+   "id": "plant"
+  },
+  {
+   "name": "乗り物",
+   "id": "vehicle"
+  },
+  {
+   "name": "楽器・音楽",
+   "id": "music"
+  },
+  {
+   "name": "人物",
+   "id": "person"
+  },
+  {
+   "name": "もの・風景",
+   "id": "object"
+  },
+  {
+   "name": "キャラクター",
+   "id": "character"
+  }
+ ],
+ "models": [
+  {
+   "id": "whale",
+   "name": "クジラ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/whale.glb",
+   "bytes": 4650832,
+   "triangles": 193732
+  },
+  {
+   "id": "pegasus",
+   "name": "ペガサス",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/pegasus.glb",
+   "bytes": 4718612,
+   "triangles": 196748
+  },
+  {
+   "id": "dragon",
+   "name": "龍",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/dragon.glb",
+   "bytes": 4761536,
+   "triangles": 198363
+  },
+  {
+   "id": "bird",
+   "name": "鳥",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/bird.glb",
+   "bytes": 4631912,
+   "triangles": 192956
+  },
+  {
+   "id": "phoenix",
+   "name": "不死鳥",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/phoenix.glb",
+   "bytes": 4662752,
+   "triangles": 194287
+  },
+  {
+   "id": "koi",
+   "name": "鯉",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/koi.glb",
+   "bytes": 4769776,
+   "triangles": 198688
+  },
+  {
+   "id": "butterfly",
+   "name": "蝶",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/butterfly.glb",
+   "bytes": 4586416,
+   "triangles": 191048
+  },
+  {
+   "id": "jellyfish",
+   "name": "クラゲ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/jellyfish.glb",
+   "bytes": 4477584,
+   "triangles": 186536
+  },
+  {
+   "id": "crane",
+   "name": "鶴",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/crane.glb",
+   "bytes": 4627412,
+   "triangles": 192778
+  },
+  {
+   "id": "swan",
+   "name": "白鳥",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/swan.glb",
+   "bytes": 4726092,
+   "triangles": 196898
+  },
+  {
+   "id": "owl",
+   "name": "フクロウ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/owl.glb",
+   "bytes": 4576784,
+   "triangles": 190662
+  },
+  {
+   "id": "stag",
+   "name": "鹿",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/stag.glb",
+   "bytes": 4725072,
+   "triangles": 196848
+  },
+  {
+   "id": "fox",
+   "name": "キツネ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/fox.glb",
+   "bytes": 4751112,
+   "triangles": 197924
+  },
+  {
+   "id": "cat",
+   "name": "猫",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/cat.glb",
+   "bytes": 4698560,
+   "triangles": 195726
+  },
+  {
+   "id": "rabbit",
+   "name": "ウサギ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/rabbit.glb",
+   "bytes": 4695328,
+   "triangles": 195572
+  },
+  {
+   "id": "seahorse",
+   "name": "タツノオトシゴ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/seahorse.glb",
+   "bytes": 4740928,
+   "triangles": 197504
+  },
+  {
+   "id": "octopus",
+   "name": "タコ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/octopus.glb",
+   "bytes": 4751868,
+   "triangles": 197944
+  },
+  {
+   "id": "dolphin",
+   "name": "イルカ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/dolphin.glb",
+   "bytes": 4578096,
+   "triangles": 190702
+  },
+  {
+   "id": "turtle",
+   "name": "ウミガメ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/turtle.glb",
+   "bytes": 4597968,
+   "triangles": 191528
+  },
+  {
+   "id": "shark",
+   "name": "サメ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/shark.glb",
+   "bytes": 4573348,
+   "triangles": 190532
+  },
+  {
+   "id": "wolf",
+   "name": "オオカミ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/wolf.glb",
+   "bytes": 4745620,
+   "triangles": 197689
+  },
+  {
+   "id": "lion",
+   "name": "ライオン",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/lion.glb",
+   "bytes": 4702692,
+   "triangles": 195922
+  },
+  {
+   "id": "unicorn",
+   "name": "ユニコーン",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/unicorn.glb",
+   "bytes": 4727524,
+   "triangles": 197131
+  },
+  {
+   "id": "peacock",
+   "name": "孔雀",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/peacock.glb",
+   "bytes": 4717208,
+   "triangles": 197364
+  },
+  {
+   "id": "flamingo",
+   "name": "フラミンゴ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/flamingo.glb",
+   "bytes": 4735248,
+   "triangles": 197258
+  },
+  {
+   "id": "hummingbird",
+   "name": "ハチドリ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/hummingbird.glb",
+   "bytes": 4712704,
+   "triangles": 196330
+  },
+  {
+   "id": "elephant",
+   "name": "ゾウ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/elephant.glb",
+   "bytes": 4597192,
+   "triangles": 191498
+  },
+  {
+   "id": "horse",
+   "name": "馬",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/horse.glb",
+   "bytes": 4732828,
+   "triangles": 197242
+  },
+  {
+   "id": "tiger",
+   "name": "トラ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/tiger.glb",
+   "bytes": 4500016,
+   "triangles": 187454
+  },
+  {
+   "id": "penguin",
+   "name": "ペンギン",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/penguin.glb",
+   "bytes": 4581220,
+   "triangles": 190874
+  },
+  {
+   "id": "eagle",
+   "name": "ワシ",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/eagle.glb",
+   "bytes": 4722004,
+   "triangles": 196706
+  },
+  {
+   "id": "trex",
+   "name": "ティラノサウルス",
+   "group": "動物・生き物",
+   "groupId": "animal",
+   "file": "animal/trex.glb",
+   "bytes": 4760580,
+   "triangles": 198307
+  },
+  {
+   "id": "rose",
+   "name": "バラ",
+   "group": "植物",
+   "groupId": "plant",
+   "file": "plant/rose.glb",
+   "bytes": 4646476,
+   "triangles": 193455
+  },
+  {
+   "id": "sakura",
+   "name": "桜",
+   "group": "植物",
+   "groupId": "plant",
+   "file": "plant/sakura.glb",
+   "bytes": 4562672,
+   "triangles": 190060
+  },
+  {
+   "id": "sunflower",
+   "name": "ひまわり",
+   "group": "植物",
+   "groupId": "plant",
+   "file": "plant/sunflower.glb",
+   "bytes": 4587324,
+   "triangles": 191243
+  },
+  {
+   "id": "lotus",
+   "name": "蓮",
+   "group": "植物",
+   "groupId": "plant",
+   "file": "plant/lotus.glb",
+   "bytes": 4529708,
+   "triangles": 188702
+  },
+  {
+   "id": "bigtree",
+   "name": "大樹",
+   "group": "植物",
+   "groupId": "plant",
+   "file": "plant/bigtree.glb",
+   "bytes": 4570852,
+   "triangles": 190428
+  },
+  {
+   "id": "rocket",
+   "name": "ロケット",
+   "group": "乗り物",
+   "groupId": "vehicle",
+   "file": "vehicle/rocket.glb",
+   "bytes": 4632456,
+   "triangles": 192979
+  },
+  {
+   "id": "bicycle",
+   "name": "自転車",
+   "group": "乗り物",
+   "groupId": "vehicle",
+   "file": "vehicle/bicycle.glb",
+   "bytes": 4590472,
+   "triangles": 191876
+  },
+  {
+   "id": "vintagecar",
+   "name": "クラシックカー",
+   "group": "乗り物",
+   "groupId": "vehicle",
+   "file": "vehicle/vintagecar.glb",
+   "bytes": 4439188,
+   "triangles": 185043
+  },
+  {
+   "id": "sailboat",
+   "name": "帆船",
+   "group": "乗り物",
+   "groupId": "vehicle",
+   "file": "vehicle/sailboat.glb",
+   "bytes": 4523564,
+   "triangles": 190628
+  },
+  {
+   "id": "hotairballoon",
+   "name": "熱気球",
+   "group": "乗り物",
+   "groupId": "vehicle",
+   "file": "vehicle/hotairballoon.glb",
+   "bytes": 4707692,
+   "triangles": 196234
+  },
+  {
+   "id": "guitar",
+   "name": "ギター",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/guitar.glb",
+   "bytes": 4571224,
+   "triangles": 190516
+  },
+  {
+   "id": "violin",
+   "name": "バイオリン",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/violin.glb",
+   "bytes": 4614756,
+   "triangles": 192375
+  },
+  {
+   "id": "piano",
+   "name": "ピアノ",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/piano.glb",
+   "bytes": 4435580,
+   "triangles": 184882
+  },
+  {
+   "id": "saxophone",
+   "name": "サックス",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/saxophone.glb",
+   "bytes": 4659752,
+   "triangles": 194371
+  },
+  {
+   "id": "microphone",
+   "name": "マイク",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/microphone.glb",
+   "bytes": 4578840,
+   "triangles": 190778
+  },
+  {
+   "id": "headphones",
+   "name": "ヘッドホン",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/headphones.glb",
+   "bytes": 4671312,
+   "triangles": 194604
+  },
+  {
+   "id": "turntable",
+   "name": "ターンテーブル",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/turntable.glb",
+   "bytes": 4438712,
+   "triangles": 184935
+  },
+  {
+   "id": "cassette",
+   "name": "カセットテープ",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/cassette.glb",
+   "bytes": 4043624,
+   "triangles": 168485
+  },
+  {
+   "id": "boombox",
+   "name": "ラジカセ",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/boombox.glb",
+   "bytes": 4170296,
+   "triangles": 173715
+  },
+  {
+   "id": "drumkit",
+   "name": "ドラムセット",
+   "group": "楽器・音楽",
+   "groupId": "music",
+   "file": "music/drumkit.glb",
+   "bytes": 4663596,
+   "triangles": 194514
+  },
+  {
+   "id": "archer",
+   "name": "弓を射る女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/archer.glb",
+   "bytes": 4714420,
+   "triangles": 196458
+  },
+  {
+   "id": "dancer",
+   "name": "踊る女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/dancer.glb",
+   "bytes": 4711192,
+   "triangles": 196296
+  },
+  {
+   "id": "singer",
+   "name": "歌う女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/singer.glb",
+   "bytes": 4565580,
+   "triangles": 190252
+  },
+  {
+   "id": "sprint",
+   "name": "全力で走る女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/sprint.glb",
+   "bytes": 4778668,
+   "triangles": 199122
+  },
+  {
+   "id": "reach",
+   "name": "空へ手を伸ばす女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/reach.glb",
+   "bytes": 4755264,
+   "triangles": 198140
+  },
+  {
+   "id": "gunwoman",
+   "name": "銃を構える女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/gunwoman.glb",
+   "bytes": 4579900,
+   "triangles": 190906
+  },
+  {
+   "id": "kneel",
+   "name": "祈る女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/kneel.glb",
+   "bytes": 4625140,
+   "triangles": 192764
+  },
+  {
+   "id": "jump",
+   "name": "ジャンプする女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/jump.glb",
+   "bytes": 4613840,
+   "triangles": 192246
+  },
+  {
+   "id": "guitarist",
+   "name": "ギタリスト",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/guitarist.glb",
+   "bytes": 4766960,
+   "triangles": 198666
+  },
+  {
+   "id": "skater",
+   "name": "スケートボーダー",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/skater.glb",
+   "bytes": 4688360,
+   "triangles": 195334
+  },
+  {
+   "id": "swordswoman",
+   "name": "刀を構える女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/swordswoman.glb",
+   "bytes": 4658336,
+   "triangles": 194106
+  },
+  {
+   "id": "couple",
+   "name": "手をつなぐ二人",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/couple.glb",
+   "bytes": 4632288,
+   "triangles": 192993
+  },
+  {
+   "id": "sitting",
+   "name": "膝を抱えて座る女性",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/sitting.glb",
+   "bytes": 4706332,
+   "triangles": 196279
+  },
+  {
+   "id": "dj",
+   "name": "DJ",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/dj.glb",
+   "bytes": 4649488,
+   "triangles": 193762
+  },
+  {
+   "id": "astronaut",
+   "name": "宇宙飛行士",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/astronaut.glb",
+   "bytes": 4597720,
+   "triangles": 191563
+  },
+  {
+   "id": "robot",
+   "name": "ロボット",
+   "group": "人物",
+   "groupId": "person",
+   "file": "person/robot.glb",
+   "bytes": 4644668,
+   "triangles": 193540
+  },
+  {
+   "id": "castle",
+   "name": "お城",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/castle.glb",
+   "bytes": 4751884,
+   "triangles": 198159
+  },
+  {
+   "id": "lantern",
+   "name": "提灯",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/lantern.glb",
+   "bytes": 4497272,
+   "triangles": 187336
+  },
+  {
+   "id": "crown",
+   "name": "王冠",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/crown.glb",
+   "bytes": 4608640,
+   "triangles": 192080
+  },
+  {
+   "id": "lighthouse",
+   "name": "灯台",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/lighthouse.glb",
+   "bytes": 4579100,
+   "triangles": 190930
+  },
+  {
+   "id": "hourglass",
+   "name": "砂時計",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/hourglass.glb",
+   "bytes": 4555764,
+   "triangles": 189782
+  },
+  {
+   "id": "treasurechest",
+   "name": "宝箱",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/treasurechest.glb",
+   "bytes": 4513616,
+   "triangles": 188103
+  },
+  {
+   "id": "umbrella",
+   "name": "傘",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/umbrella.glb",
+   "bytes": 4576112,
+   "triangles": 190640
+  },
+  {
+   "id": "balloons",
+   "name": "風船",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/balloons.glb",
+   "bytes": 4671712,
+   "triangles": 194618
+  },
+  {
+   "id": "paperplane",
+   "name": "紙飛行機",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/paperplane.glb",
+   "bytes": 4572592,
+   "triangles": 190474
+  },
+  {
+   "id": "origamicrane",
+   "name": "折り紙の鶴",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/origamicrane.glb",
+   "bytes": 4582332,
+   "triangles": 190876
+  },
+  {
+   "id": "camera",
+   "name": "映写カメラ",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/camera.glb",
+   "bytes": 4357292,
+   "triangles": 181579
+  },
+  {
+   "id": "moon",
+   "name": "三日月",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/moon.glb",
+   "bytes": 4605808,
+   "triangles": 191856
+  },
+  {
+   "id": "wings",
+   "name": "天使の翼",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/wings.glb",
+   "bytes": 4557584,
+   "triangles": 189870
+  },
+  {
+   "id": "bigwave",
+   "name": "大波",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/bigwave.glb",
+   "bytes": 4582908,
+   "triangles": 190906
+  },
+  {
+   "id": "key",
+   "name": "古い鍵",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/key.glb",
+   "bytes": 4769160,
+   "triangles": 198678
+  },
+  {
+   "id": "pocketwatch",
+   "name": "懐中時計",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/pocketwatch.glb",
+   "bytes": 4532696,
+   "triangles": 188912
+  },
+  {
+   "id": "crystal",
+   "name": "水晶",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/crystal.glb",
+   "bytes": 4751404,
+   "triangles": 197924
+  },
+  {
+   "id": "feather",
+   "name": "羽根",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/feather.glb",
+   "bytes": 4512036,
+   "triangles": 188040
+  },
+  {
+   "id": "heart",
+   "name": "ハート（鍵穴つき）",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/heart.glb",
+   "bytes": 4759856,
+   "triangles": 198276
+  },
+  {
+   "id": "pattern",
+   "name": "幾何学模様",
+   "group": "もの・風景",
+   "groupId": "object",
+   "file": "object/pattern.glb",
+   "bytes": 4597476,
+   "triangles": 191594
+  },
+  {
+   "id": "eye",
+   "name": "AIの瞳の女性",
+   "group": "キャラクター",
+   "groupId": "character",
+   "file": "character/eye.glb",
+   "bytes": 4584412,
+   "triangles": 191040
+  },
+  {
+   "id": "lounge",
+   "name": "くつろぐ少女",
+   "group": "キャラクター",
+   "groupId": "character",
+   "file": "character/lounge.glb",
+   "bytes": 4475080,
+   "triangles": 186697
+  },
+  {
+   "id": "guitargirl",
+   "name": "ギターを弾く少女",
+   "group": "キャラクター",
+   "groupId": "character",
+   "file": "character/guitargirl.glb",
+   "bytes": 4595580,
+   "triangles": 191655
+  },
+  {
+   "id": "swords",
+   "name": "刀を抱えた女性たち",
+   "group": "キャラクター",
+   "groupId": "character",
+   "file": "character/swords.glb",
+   "bytes": 4511024,
+   "triangles": 188026
+  },
+  {
+   "id": "bikegirl",
+   "name": "空中バイクに乗る少女",
+   "group": "キャラクター",
+   "groupId": "character",
+   "file": "character/bikegirl.glb",
+   "bytes": 4590540,
+   "triangles": 191604
+  },
+  {
+   "id": "boy",
+   "name": "霧で半分隠れた少年",
+   "group": "キャラクター",
+   "groupId": "character",
+   "file": "character/boy.glb",
+   "bytes": 4467980,
+   "triangles": 186402
+  }
+ ]
+}
