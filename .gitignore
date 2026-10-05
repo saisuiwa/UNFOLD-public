@@ -43,3 +43,8 @@
 
 /tools/code-motion-font-build/.venv/
 /tools/code-motion-build/.deps/
+/tools/image-code-build/.deps/
+/tools/image-code-build/.test-deps/
+!/tools/image-code-build/package.json
+!/tools/image-code-build/package-lock.json
+!/tools/image-code-build/README.md

@@ -25,7 +25,7 @@ export function exportMethod(id, options) {
 export async function importMethodText(text, { notify = () => {} } = {}) {
   const { methods, problems } = parseMethodFile(text);
   if (!methods.length) { notify(problems[0] ?? 'メソッドが入っていませんでした。'); return { created: 0, reused: 0, problems }; }
-  const plan = await planImport({ embedded: methods, local: listCustom().map(c => ({ id: c.id, vertex: c.vertex })), hash: sourceHash, newId: newCustomId });
+  const plan = await planImport({ embedded: methods, local: listCustom(), hash: sourceHash, newId: newCustomId });
   registerQuarantined(plan.created);
   const names = plan.created.slice(0, 3).map(m => `「${m.name}」`).join('');
   const notes = [

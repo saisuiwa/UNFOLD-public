@@ -76,7 +76,7 @@ test('validateEmbedded: names and symbols are cleaned up', () => {
 });
 
 test('validateEmbedded: a file from a newer version is not guessed at', () => {
-  const { methods, problems } = validateEmbedded([entry()], 4);
+  const { methods, problems } = validateEmbedded([entry()], 5);
   assert.deepEqual(methods, []);
   assert.equal(problems.length, 1);
   assert.equal(validateEmbedded([entry()], 2).methods.length, 1);

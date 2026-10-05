@@ -112,7 +112,7 @@ export async function clearAutosave() {
 export async function exportFile(state) {
   const { json, assets } = await toJSON(state);
   // custom methods go into files only (not into the autosave of this browser, which keeps its own library): version 2 only when there are some
-  if (state.methods?.length) { json.methods = state.methods; json.version = Math.max(json.version,2); }
+  if (state.methods?.length) { json.methods = state.methods; json.version = Math.max(json.version,state.methods.some(m=>m.code)?4:2); }
   let offset = 0;
   json.assets = {};
   const parts = [];
@@ -149,7 +149,7 @@ export async function importFile(file) {
   if (new TextDecoder().decode(new Uint8Array(buf, 0, magic.length)) !== MAGIC) throw new Error('UNFOLDのプロジェクトファイル（.unfold）を選んでね。');
   const n = new DataView(buf, magic.length, 4).getUint32(0, true), start = magic.length + 4;
   const json = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, start, n)));
-  if(![1,2,3].includes(json.version))throw new Error('このプロジェクトのバージョンは未対応です。新しいUNFOLDで開いてください。');
+  if(![1,2,3,4].includes(json.version))throw new Error('このプロジェクトのバージョンは未対応です。新しいUNFOLDで開いてください。');
   if(json.lyricDocument)json.lyricDocument=cleanLyricDocument(json.lyricDocument);
   const base = start + n, blobs = new Map();
   for (const [id, a] of Object.entries(json.assets || {})) blobs.set(id, new Blob([buf.slice(base + a.offset, base + a.offset + a.size)], { type: a.type }));

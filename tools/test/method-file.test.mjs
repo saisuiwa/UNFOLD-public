@@ -44,7 +44,7 @@ test('parse: text that is not a method file is told so, not guessed at', () => {
   assert.match(none(JSON.stringify({ format: 'something-else', methods: [] })), /自作メソッドのファイルではありません/);
   assert.match(none(JSON.stringify({ format: 'unfold-method', version: 1 })), /メソッドが入っていません/);
   assert.match(none(JSON.stringify({ format: 'unfold-method', version: 1, methods: [] })), /メソッドが入っていません/);
-  assert.match(none(JSON.stringify({ format: 'unfold-method', version: 2, methods: [{ id: 'cm-x', name: 'x', vertex: GOOD.wave }] })), /新しい形式/);
+  assert.match(none(JSON.stringify({ format: 'unfold-method', version: 3, methods: [{ id: 'cm-x', name: 'x', vertex: GOOD.wave }] })), /新しい形式/);
   assert.match(none(undefined), /読めません/);
 });
 
