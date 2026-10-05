@@ -1,3 +1,4 @@
+import {imageTarget} from './image-method-target.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import {applyLyricStyle,setWordColor} from './lyric-style.js';
@@ -60,7 +61,7 @@ const CANVAS_W = 1920, CANVAS_H = 1080;
 let imageLayers=[],imageInputs=[];
 function imageLayerAt(i){return imageLayers[i]??=createImageMethodLayer(renderer,{onReady:()=>{if(!seq.recording)renderAt(seq.t)},onError:e=>notice(e.message)})}
 function imageTransition(tr){return tr&&(isImageMethodKey(tr.method)||isImageMethodKey(tr.method2))}
-function normalizeImageTransition(tr){if(imageTransition(tr)){tr.shape='none';tr.flow='return'}}
+function normalizeImageTransition(tr){if(imageTransition(tr)){tr.flow='return'}}
 async function prepareImageFrameAt(sec){renderAt(sec);for(let i=0;i<imageInputs.length;i++)if(imageInputs[i])await imageLayerAt(i).prepare(imageInputs[i]);renderAt(sec)}
 const MAX_SAVED_MODELS = 100;   // GLBs kept in this browser (each is a few MB, in IndexedDB)
 const SHAPE_ICONS = { sphere: '◉', torus: '◎', helix: '♧', mass: '✧', cube: '▣', heart: '♡', star: '☆', saturn: '♄', mobius: '∞', diamond: '◇', flower: '✿',
@@ -325,7 +326,7 @@ export function renderAt(sec) {
   let c = { distort: 0, form: 0, conceal: 0, swap: 0, spin: 0 };
   let tr = null;
   if (L.tr >= 0) { tr = seq.transitions[L.tr]; c = curves(L.u); }
-  const imageCode=imageTransition(tr);if(imageCode||tr?.shape === 'none')c.form=0;
+  const imageCode=imageTransition(tr);if(tr?.shape === 'none')c.form=0;
   // no solid + "pass through": one gesture — A breaks away, B flies in from the other side (no pause in the middle)
   const flow = imageCode?'return':tr?.shape === 'none' ? (tr.flow ?? 'through') : '';
   const through = flow === 'through', reveal = flow === 'reveal';
@@ -339,8 +340,8 @@ export function renderAt(sec) {
     c.conceal = smooth(.03, .2, u2) * (1 - smooth(.8, .97, u2));
     c.swap = u2 < .5 ? 0 : 1;
   }
-  if (tr && !imageCode&&tr.shape !== 'none') c.swap = swapCurve(tr, L.u, c.swap);   // a ◆ can keep the solid the first picture (lateSwap)
-  const key = tr&&!imageCode ? shapeKey(tr, L.tr) : 'sphere';
+  if (tr && tr.shape !== 'none') c.swap = swapCurve(tr, L.u, c.swap);   // a ◆ can keep the solid the first picture (lateSwap)
+  const key = tr ? shapeKey(tr, L.tr) : 'sphere';
   let geo = geoCache.get(key);
   if (!geo) {   // still being built: show the sphere grid meanwhile
     geo = geoCache.get('sphere');
@@ -348,7 +349,7 @@ export function renderAt(sec) {
   }
   if (mesh.geometry !== geo) mesh.geometry = geo;
   setMaterialTextures(seq.slides[L.i], tr ? seq.slides[L.i + 1] : null);
-  const isText = !imageCode&&isFlatShape(tr);
+  const isText = isFlatShape(tr);
   const isPreset = tr && (presetNames.includes(tr.shape) || savedModels.has(tr.shape) || isText);
   u.uTime.value = sec;
   u.uThrough.value = through && L.u >= .5 ? 1 : 0;
@@ -367,11 +368,11 @@ export function renderAt(sec) {
   u.uSeed.value = 28 + (L.tr >= 0 ? L.tr * 37 : 0); u.uMethod.value = pick.uMethod;
   u.uMethod2.value = pick.uMethod2; u.uMethodMix.value = imageCode?0:tr?.method2 ? smooth(.30, .62, L.u) : 0;
   u.uShape.value = tr && BUILTIN_IDS[tr.shape] !== undefined ? BUILTIN_IDS[tr.shape] : 0;
-  u.uPreset.value = !imageCode&&isPreset ? 1 : 0; u.uProject.value = isText ? 1 : 0; u.uConceal.value = imageCode?0:concealAmount(tr, c.conceal); u.uSwap.value = c.swap;
+  u.uPreset.value = isPreset ? 1 : 0; u.uProject.value = isText ? 1 : 0; u.uConceal.value = imageCode?0:concealAmount(tr, c.conceal); u.uSwap.value = c.swap;
   // full turn ends at identity; flat words only wobble, and without a solid there is nothing to turn
-  const turn = imageCode||tr?.shape === 'none' ? 0 : isText ? 0.18 * Math.sin(c.spin * Math.PI * 2) : c.spin * Math.PI * 2;
+  const turn = tr?.shape === 'none' ? 0 : isText ? 0.18 * Math.sin(c.spin * Math.PI * 2) : c.spin * Math.PI * 2;
   const shot=cleanShot(tr?.shot);
-  const cm = seq.cam,orientation=imageCode?c.distort:c.form;
+  const cm = seq.cam,orientation=imageCode&&tr.shape==='none'?c.distort:c.form;
   mesh.rotation.set((-.16 + (tr?.viewX || 0) - cm.orbit * .45) * c.form,
     (isPreset && !isText ? .2 : .35) * c.form + turn + (tr?.viewY || 0) * c.form + (tr ? cm.orbit * 2.2 * (L.u - .5) * c.form : 0), 0);
   const spin=tr&&(tr.shape!=='none'||imageCode)?rotationAt(shot.rotation,L.u,'sequence'):null;
@@ -413,8 +414,8 @@ export function renderAt(sec) {
   u.uGlass.value = imageCode?0:fx.glass;
   sceneBlur.render(scene, view, imageCode?0:fx.blur, imageCode?0:fx.glitch, imageCode?0:fx.chroma, sec, imageCode?{}:{ ...fx, neonColor: seq.fx.neonColor });
   if(imageCode){
-   const duration=tr.beats*beatSec(),f=imageFrame(L.u*duration,duration,seq.strength),mix=tr.method2?smooth(.30,.62,L.u):0,fade=smoothImage(L.u/.025)*smoothImage((1-L.u)/.025),keys=[tr.method,tr.method2];
-   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&seq.strength>0)imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
+   const duration=tr.beats*beatSec(),f=imageFrame(L.u*duration,duration,seq.strength,{form:c.form}),mix=tr.method2?smooth(.30,.62,L.u):0,fade=smoothImage(L.u/.025)*smoothImage((1-L.u)/.025),keys=[tr.method,tr.method2];
+   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
   }else imageLayers.forEach(l=>l.reset());
   drawLyrics(videoSec);
   safety.afterDraw();
@@ -478,7 +479,7 @@ function updateTransport(sec, L) {
   $('seq-scrub').value = total ? Math.round(sec / total * 1000) : 0;
   $('seq-phase').textContent = L.tr >= 0 ? `${L.i + 1} → ${L.i + 2}　${methodLabel(seq.transitions[L.tr].method)} / ${shapeLabel(seq.transitions[L.tr])}` : `${L.i + 1} / ${seq.slides.length}`;
   const ph = phaseOf(L);
-  if (ph) $('seq-phase').append(Object.assign(document.createElement('span'), { className: 'phase-chip ' + ph, textContent: imageTransition(seq.transitions[L.tr])?'コード演出':PHASE_LABELS[ph] }));
+  if (ph) $('seq-phase').append(Object.assign(document.createElement('span'), { className: 'phase-chip ' + ph, textContent: imageTransition(seq.transitions[L.tr])&&seq.transitions[L.tr].shape==='none'?'コード演出':PHASE_LABELS[ph] }));
   lookPhase = ph;
   applyLookView();
   updateInspectorWhere();
@@ -1112,13 +1113,13 @@ function inspectTransition(box, title, i, tr) {
   const m2 = selectOf([['', '同じ崩れ方で戻る'], ...methodEntries(tr.method2).map(([k, v]) => [k, v + 'で戻る'])], tr.method2 || '');
   field(box, '戻り方（ミックス）', m2).onchange = () => edit(() => { tr.method2 = m2.value;normalizeImageTransition(tr); });
   const imageCode=imageTransition(tr);
-  const on = document.createElement('input'); on.type = 'checkbox'; on.checked = !imageCode&&tr.shape !== 'none';on.disabled=!!imageCode;
+  const on = document.createElement('input'); on.type = 'checkbox'; on.checked = tr.shape !== 'none';
   field(box, '立体化する', on).onchange = () => edit(() => {
     if (on.checked) tr.shape = tr.shapePrev && tr.shapePrev !== 'none' ? tr.shapePrev : 'sphere';
     else { tr.shapePrev = tr.shape; tr.shape = 'none'; }
   });
   const hint = document.createElement('p'); hint.className = 'hint';
-  hint.textContent = imageCode?'JavaScript画像メソッド：立体形状・絵柄シャッフル・画面効果は初期版では未対応。カメラは共通、戻り方ミックスは映像クロスフェードです。':on.checked ? '画像 → ぐちゃぐちゃ → 立体 → 次の画像' : '画像 → ぐちゃぐちゃ → 次の画像（立体化を飛ばす）';
+  hint.textContent = imageCode?'JavaScript画像メソッド：画像 → 物理演出 → 選んだ立体 → 次の画像。立体化をオフにもできます。絵柄シャッフル・画面効果は未対応。メソッドのミックスは映像クロスフェードです。':on.checked ? '画像 → ぐちゃぐちゃ → 立体 → 次の画像' : '画像 → ぐちゃぐちゃ → 次の画像（立体化を飛ばす）';
   box.append(hint);
   const mix = document.createElement('input'); mix.type = 'checkbox'; mix.checked = tr.mixTiles !== false;mix.disabled=!!imageCode;
   mix.title = '崩れている間、画像を断片に分けて混ぜます。オフにすると、絵柄がそのまま貼られます（世界地図の画像なら、球が本物の地球儀になります）。';
@@ -1133,7 +1134,7 @@ function inspectTransition(box, title, i, tr) {
     late.title = 'オフ（初期値）：立体の途中で、次の画像に入れ替わります。オンにすると、立体の間は前の画像のままで、立体が崩れてから次の画像になります（世界地図なら、地球儀のまま崩れます）。';
     field(box, '立体は前の画像のまま', late).onchange = () => edit(() => { if (late.checked) tr.lateSwap = true; else delete tr.lateSwap; });
   }
-  if (!on.checked) {
+  if (!on.checked&&!imageCode) {
     const flow = selectOf([['through', '通り抜ける（崩れて去り、次が反対側から来る）'], ['reveal', '吹き飛んで次が現れる（次の画像はそのまま）'], ['return', '行って戻る（同じ動きで戻る）']], tr.flow ?? 'through');
     field(box, '流れ方', flow).onchange = () => edit(() => { tr.flow = flow.value; });
   }
@@ -1721,7 +1722,7 @@ try {
   onRegistryChange(() => { renderMethodGrid(); renderInspector(); if (!seq.playing) renderAt(seq.t); });
   safety = createSafety({ notify: notice });
   methodTrial = createTrial({ vertexShader, fragmentShader });
-  methodEditor = createImageMethodEditor({ vertexShader, fragmentShader, notify: notice, safety, trial: methodTrial, onExportFile: record => downloadMethodFile([record], { notify: notice }), getRenderLook: () => seq.renderLook, onApplyRenderLook: value => { if(seq.recording)return;seq.renderLook=cleanRenderLook(value);renderFxPanel();renderAt(seq.t);scheduleSave(); }, getPreviewImage: () => {const i=seq.selection?.i??locate(seq.t).i;return seq.slides[i]?slideCanvas(seq.slides[i]):null} });
+  methodEditor = createImageMethodEditor({ vertexShader, fragmentShader, notify: notice, safety, trial: methodTrial, onExportFile: record => downloadMethodFile([record], { notify: notice }), getRenderLook: () => seq.renderLook, onApplyRenderLook: value => { if(seq.recording)return;seq.renderLook=cleanRenderLook(value);renderFxPanel();renderAt(seq.t);scheduleSave(); }, getPreviewImage: () => {const i=seq.selection?.i??locate(seq.t).i;return seq.slides[i]?slideCanvas(seq.slides[i]):null},getPreviewTarget:()=>{const i=seq.selection?.kind==='tr'?seq.selection.i:Math.max(0,locate(seq.t).tr);const tr=seq.transitions[i];if(!tr||tr.shape==='none')return null;const geo=geoCache.get(shapeKey(tr,i));return geo?imageTarget(geo,{shape:tr.shape,preset:presetNames.includes(tr.shape)||savedModels.has(tr.shape)||isFlatShape(tr),project:!!isFlatShape(tr)}):null} });
   methodEnabler = createEnabler({ compile: source => compileUserMethod(renderer, { vertexShader, fragmentShader, source }), trial: source => methodTrial.run(source), safety, notify: notice });
   quarantineBanner = createQuarantineBanner($('seq-quarantine'), { onReview: id => methodEditor.open({ id, review: true }), onEnable: id => isImageMethodKey(id)?methodEditor.open({id,review:true}):methodEnabler.enable(id) });
   // saved custom methods come back when the page opens; from then on every change in the registry is saved

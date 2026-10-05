@@ -31,3 +31,14 @@ node tools/test/image-method-edge.mjs
 
 Browser tests create their own sample images and audio. No user assets are used.
 Generated MP4s, screenshots and results go to ignored `tools/out/image-code-physics/`.
+
+Solid extension tests use port 8776 with the repository root served locally:
+
+```sh
+python3 -m http.server 8776 --bind 127.0.0.1
+node tools/test/image-solid-browser.mjs
+node tools/test/image-solid-integration.mjs
+node tools/test/image-solid-ui.mjs
+```
+
+They generate a GLB fixture in memory and use isolated browser storage. No user assets are uploaded.

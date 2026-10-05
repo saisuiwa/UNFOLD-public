@@ -1,3 +1,4 @@
+import {imageTarget} from './image-method-target.js';
 import {encodeCanvasVideo} from './frame-video.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
@@ -36,7 +37,7 @@ let activeGroup=loadActive('unfold-glb-tab');   // the GLB tab in use (the same 
 const customShapes=new Map(),savedModels=new Map();let customSerial=0,importing=false;
 const $=id=>document.getElementById(id);
 const loadShot=()=>{try{return cleanShot(JSON.parse(localStorage.getItem('unfold-single-shot')||'null'))}catch{return cleanShot()}};
-const state={shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+const state={imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
@@ -53,7 +54,7 @@ function makeSample(){
  return c;
 }
 function geometryFor(w,h){
- const custom=isImageMethodKey(state.method)?null:customShapes.get(state.shape);
+ const custom=customShapes.get(state.shape);
  if(custom){const data=custom.data,g=new THREE.BufferGeometry(),positions=new Float32Array(data.target.length);
   for(let i=0;i<data.uv.length/2;i++){positions[i*3]=(data.uv[i*2]-.5)*w;positions[i*3+1]=(data.uv[i*2+1]-.5)*h}
   g.setAttribute('position',new THREE.BufferAttribute(positions,3));g.setAttribute('uv',new THREE.BufferAttribute(data.uv,2));g.setAttribute('cell',new THREE.BufferAttribute(data.cell,2));g.setAttribute('part',new THREE.BufferAttribute(particleParts(data,state.detail),4));g.setAttribute('targetPosition',new THREE.BufferAttribute(data.target,3));applyTiles(THREE,g,tilesAcross(state.tiles));return g;
@@ -81,11 +82,11 @@ function resize(){
 }
 function setCamera(aspect){const height=Math.max(5.4,6.8/aspect);camera.left=-height*aspect/2;camera.right=height*aspect/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix()}
 function render(){
- if(!mesh)return;const imageCode=isImageMethodKey(state.method),m=motionAt(state.t),u=mesh.material.uniforms;if(imageCode)m.form=0;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
+ if(!mesh)return;const imageCode=isImageMethodKey(state.method),m=motionAt(state.t),u=mesh.material.uniforms;if(imageCode&&!state.imageSolid)m.form=0;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
  u.uDistort.value=imageCode?0:m.distort;u.uForm.value=m.form;u.uStrength.value=state.strength;u.uDepth.value=state.depth;u.uSeed.value=state.seed;u.uMethod.value=pick.uMethod;u.uMethod2.value=pick.uMethod2;u.uShape.value=shapeIds[state.shape]??0;
  u.uPreset.value=(presetNames.includes(state.shape)||customShapes.has(state.shape))?1:0;u.uProject.value=customShapes.get(state.shape)?.kind==='text'?1:0;u.uConceal.value=!imageCode&&state.mystery?smooth(.08,.24,state.t)*(1-smooth(.80,.94,state.t)):0;
  // All camera motion fades out with deformation, guaranteeing a flat identical final image.
- const preset=u.uPreset.value===1,orientation=imageCode?m.distort:m.form;
+ const preset=u.uPreset.value===1,orientation=imageCode&&!state.imageSolid?m.distort:m.form;
  const isText=customShapes.get(state.shape)?.kind==='text';
  const base=preset?(state.shape==='pegasus'?-.30:.20):.42;
  mesh.rotation.set(((preset?-.06:-.18)+state.viewX)*orientation,isText?(.12+state.viewY)*orientation:(base+state.viewY)*orientation+m.turn-(preset?motionAt(.56).turn*m.form:0),0);renderer.setClearColor(state.bg,1);
@@ -103,13 +104,13 @@ function render(){
  const view=syncPerspective(camera,perspCam,state.renderLook.enabled?state.renderLook.perspective:0);
  u.uGlass.value=imageCode?0:fx.glass;sceneBlur.render(scene,view,imageCode?0:fx.blur,imageCode?0:fx.glitch,imageCode?0:fx.chroma,fx.seconds,imageCode?{}:fx);
  imageInput=null;
- if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength);imageInput={id:state.method,imageA:sourceCanvas,imageB:sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};const fade=smoothImage(state.t/.025)*smoothImage((1-state.t)/.025);if(fade>0&&state.strength>0)getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
+ if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText}):null,id:state.method,imageA:sourceCanvas,imageB:sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};const fade=smoothImage(state.t/.025)*smoothImage((1-state.t)/.025);if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
  safety?.afterDraw();updateTransport(m);
 }
 function updateTransport(m=motionAt(state.t)){
  $('timeline').value=Math.round(state.t*1000);$('current-time').textContent=(state.t*state.duration).toFixed(1).padStart(4,'0');$('total-time').textContent=state.duration.toFixed(1)+' s';
- const titles=['01 / 元の画像','02 / ぐちゃぐちゃ',isImageMethodKey(state.method)?'03 / コード演出':'03 / 立体化','04 / 元どおり'];$('phase-badge').textContent=titles[m.phase];
- $('stage-caption').textContent=['ここから、変化がはじまる。','かたちをほどいて、自由に。',isImageMethodKey(state.method)?'画像片が動く、コードの演出。':'平面から、もうひとつのかたちへ。','最後は、最初の一枚へ。'][m.phase];
+ const titles=['01 / 元の画像','02 / ぐちゃぐちゃ',isImageMethodKey(state.method)&&!state.imageSolid?'03 / コード演出':'03 / 立体化','04 / 元どおり'];$('phase-badge').textContent=titles[m.phase];
+ $('stage-caption').textContent=['ここから、変化がはじまる。','かたちをほどいて、自由に。',isImageMethodKey(state.method)&&!state.imageSolid?'画像片が動く、コードの演出。':'平面から、もうひとつのかたちへ。','最後は、最初の一枚へ。'][m.phase];
  document.querySelectorAll('.chapters button').forEach((b,i)=>b.classList.toggle('current',i===m.phase));
  $('play').textContent=state.playing?'Ⅱ':'▶';$('play').setAttribute('aria-label',state.playing?'一時停止':'再生');
 }
@@ -124,18 +125,18 @@ function showInspectorPane(name){
 // the grain and tile sliders only reach some methods (and, for grain, some shapes): say so beside them
 function updateSliderNotes(){const g=$('particle-detail-note'),t=$('tile-size-note');if(g)g.textContent=grainSingleNote({method:state.method,shapeHasGrain:customShapes.has(state.shape)}).text;if(t)t.textContent=tileSingleNote({method:state.method},state.tiles).text}
 function syncImageControls(){
- const code=isImageMethodKey(state.method);document.querySelector('#pane-shape .form-section').hidden=code;
- let hint=$('image-shape-note');if(!hint){hint=document.createElement('p');hint.id='image-shape-note';hint.className='hint';$('pane-shape').prepend(hint)}hint.hidden=!code;hint.textContent='この画像メソッドは「立体形状なし」です。回転・カメラは下で設定できます。画像片・重力・反発はメソッドの編集画面で変更できます。';
+ const code=isImageMethodKey(state.method);document.querySelector('#pane-shape .form-section').hidden=false;
+ let toggle=$('image-solid');if(!toggle){const label=document.createElement('label');label.id='image-solid-control';label.className='range-label';toggle=document.createElement('input');toggle.id='image-solid';toggle.type='checkbox';toggle.onchange=()=>{state.imageSolid=toggle.checked;syncImageControls();render()};label.append(toggle,' 立体化する');document.querySelector('#pane-shape .form-section').prepend(label)}toggle.checked=state.imageSolid;$('image-solid-control').hidden=!code;
+ let hint=$('image-shape-note');if(!hint){hint=document.createElement('p');hint.id='image-shape-note';hint.className='hint';$('pane-shape').prepend(hint)}hint.hidden=!code;hint.textContent='画像片が選んだ立体・GLBへ集まり、画像へ戻ります。「立体化する」をオフにすると物理演出だけになります。';
  for(const id of ['tile-size','randomize','mystery','fx-blur','fx-chroma','fx-glitch','fx-bloom','fx-neon','fx-glass','fx-scan','fx-grain','fx-vignette','fx-bokeh'])if($(id))$(id).disabled=code;
- $('intensity').min=code?0:10;$('tab-shape').textContent=code?'03 カメラ':'03 立体';
- const chapter=document.querySelector('.chapters [data-time="0.60"] b');if(chapter)chapter.textContent=code?'コード演出':'立体化';
+ $('intensity').min=code?0:10;$('tab-shape').textContent='03 立体';
+ const chapter=document.querySelector('.chapters [data-time="0.60"] b');if(chapter)chapter.textContent=code&&!state.imageSolid?'コード演出':'立体化';
 }
 function setChoice(container,key,value){
- if(key==='shape'&&isImageMethodKey(state.method)){notice('JavaScript画像メソッドは現在「立体形状なし」です。GLSLを選ぶと立体化できます。');return;}
  const wasImage=isImageMethodKey(state.method);state[key]=value;
  if(key==='method'&&wasImage!==isImageMethodKey(value)){const {x:w,y:h}=mesh.material.uniforms.uSize.value;const old=mesh.geometry;mesh.geometry=geometryFor(w,h);old.dispose();}
  if(key==='method')syncImageControls();
- if(key==='method'){let note=$('image-code-note');if(!note){note=document.createElement('p');note.id='image-code-note';$('methods').after(note)}note.hidden=!isImageMethodKey(value);note.textContent='JavaScript＋物理演算：画像から演出して元へ戻ります。立体形状・絵柄シャッフル・画面効果は現在未対応。回転・カメラは使えます。';}
+ if(key==='method'){let note=$('image-code-note');if(!note){note=document.createElement('p');note.id='image-code-note';$('methods').after(note)}note.hidden=!isImageMethodKey(value);note.textContent='JavaScript＋物理演算：画像 → 物理演出 → 選んだ立体 → 元の画像。「03 立体」で形とオン・オフを選べます。絵柄シャッフル・既存の画面効果は未対応です。';}
  if(key==='shape'){
   const {x:w,y:h}=mesh.material.uniforms.uSize.value;const old=mesh.geometry;mesh.geometry=geometryFor(w,h);old.dispose();
   $('remove-model').hidden=!customShapes.has(value);updateGroupBox();
@@ -280,7 +281,7 @@ function wireControls(){
  renderControls=createRenderControls({value:state.renderLook,onChange:value=>{if(state.recording)return;state.renderLook=value;render()}});$('pane-effects').prepend(renderControls.element);
  safety=createSafety({notify:notice});
  const methodTrial=createTrial({vertexShader,fragmentShader});
- methodEditor=createImageMethodEditor({vertexShader,fragmentShader,notify:notice,safety,trial:methodTrial,onExportFile:record=>downloadMethodFile([record],{notify:notice}),getRenderLook:()=>state.renderLook,onApplyRenderLook:value=>{if(state.recording)return;state.renderLook=cleanRenderLook(value);renderControls.setValue(state.renderLook);render()},getPreviewImage:()=>sourceCanvas});
+ methodEditor=createImageMethodEditor({vertexShader,fragmentShader,notify:notice,safety,trial:methodTrial,onExportFile:record=>downloadMethodFile([record],{notify:notice}),getRenderLook:()=>state.renderLook,onApplyRenderLook:value=>{if(state.recording)return;state.renderLook=cleanRenderLook(value);renderControls.setValue(state.renderLook);render()},getPreviewImage:()=>sourceCanvas,getPreviewTarget:()=>imageTarget(mesh.geometry,{shape:state.shape,preset:presetNames.includes(state.shape)||customShapes.has(state.shape),project:customShapes.get(state.shape)?.kind==='text'})});
  methodEnabler=createEnabler({compile:source=>compileUserMethod(renderer,{vertexShader,fragmentShader,source}),trial:source=>methodTrial.run(source),safety,notify:notice});
  renderMethodTiles();
  onRegistryChange(()=>{if(!isImageMethodKey(state.method))state.method=resolveKey(state.method);syncImageControls();renderMethodTiles();updateSliderNotes();render()});
@@ -291,7 +292,7 @@ function wireControls(){
  addEventListener('pagehide',()=>safety.pageHide());
  // grain size of added shapes in the particle methods: only the grouping of faces changes, never the solid itself
  $('particle-detail').addEventListener('input',e=>{state.detail=Number(e.target.value)/100;$('particle-detail-value').textContent=e.target.value+'%';
-  const custom=isImageMethodKey(state.method)?null:customShapes.get(state.shape);if(custom)mesh.geometry.setAttribute('part',new THREE.BufferAttribute(particleParts(custom.data,state.detail),4));render()});
+  const custom=customShapes.get(state.shape);if(custom)mesh.geometry.setAttribute('part',new THREE.BufferAttribute(particleParts(custom.data,state.detail),4));render()});
  updateSliderNotes();
  $('tile-size').addEventListener('input',e=>{state.tiles=Number(e.target.value)/100;const n=tilesAcross(state.tiles);$('tile-size-value').textContent=`${n}×${n}${n===16?'・標準':''}`;applyTiles(THREE,mesh.geometry,n);updateSliderNotes();render()});
  $('shapes').addEventListener('click',e=>{const b=e.target.closest('[data-shape]');if(b)setChoice('shapes','shape',b.dataset.shape)});

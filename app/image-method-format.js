@@ -16,7 +16,7 @@ export function cleanImageCode(v){
 }
 export function imageMethodIdentity(m){return m.code?JSON.stringify(cleanImageCode(m.code)):m.vertex;}
 export const smoothImage=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
-export function imageFrame(time,duration,strength=.8){
+export function imageFrame(time,duration,strength=.8,{form=0}={}){
  const progress=Math.max(0,Math.min(1,time/Math.max(.001,duration))),envelope=smoothImage(progress/.22)*(1-smoothImage((progress-.76)/.24));
- return {clipTime:progress*duration,duration,progress,amount:envelope*strength,form:0,phase:progress<.5?'enter':'exit',direction:progress<.5?1:-1,imageMix:smoothImage((progress-.42)/.16)};
+ return {clipTime:progress*duration,duration,progress,amount:envelope*strength,form:progress>0&&progress<1?Math.max(0,Math.min(1,Number(form)||0)):0,phase:progress<.5?'enter':'exit',direction:progress<.5?1:-1,imageMix:smoothImage((progress-.42)/.16)};
 }

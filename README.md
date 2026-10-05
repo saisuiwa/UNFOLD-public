@@ -1,12 +1,16 @@
 # UNFOLD
 
+## ローカル最新版：JavaScriptメソッドの立体化（2026-10-05）
+
+JavaScript＋物理演算でも、画像片が選んだ立体・GLBへ集まって画像に戻れるように拡張。1枚モードは「03 立体」、シーケンスは◆変形の「立体化する」で選択します。コードエディタにも立体プレビューを追加。操作と対応範囲は [画像コードメソッド](docs/image-code-methods.md)、確認結果は [立体化の検証記録](docs/image-solid-verification-2026-10-05.md)。この拡張はまだ公開版に反映していません。
+
 ## 現在の公開版（2026-10-05）
 
 https://unfold.saisuiwa.com/ に `864801b` を公開済み。画像メソッドのJavaScript＋物理演算（Three.js／Troika Text／GSAP／Rapier）を含みます。配信282ファイルの一致と公開サイトでの動作を確認しました。公開物・バージョン・検証証跡は [公開記録](docs/publication-image-code-2026-10-05.md)。以下の古い更新記録にある「未公開」は、その記録時点の状態です。
 
 現在のアプリ本体、公開用ZIP、デモ動画、読み込んで使うGLB、以前の版と作業記録をこのフォルダにまとめています。
 
-- `app/` — 現在の公開版（Cloudflare、2026-10-05）のソース。`index.html` が1枚モード、`sequence.html` がシーケンスです。
+- `app/` — ローカル最新版のソース。公開との差分は上記参照。`index.html` が1枚モード、`sequence.html` がシーケンスです。
 - `releases/UNFOLD-Test-custom-methods-glb-2026-10-04.zip` — **現在のNetlify公開版（2026-10-04 00:45 に公開）**。自作メソッド・画像ごとのカメラ・新しい形（龍・クジラ…）・位置どおり貼るGLB・GLB100個まで、など2026-10-02〜04の更新が全部入り。公開前の確認結果は `docs/公開前チェックリスト_自作メソッド.md` の §7。
 - `releases/UNFOLD-Test-glb-dashboard-mp4-2026-09-30.zip` — 1つ前の公開版（2026-09-30 22:07）。戻すときはこれ（Netlifyの Deploys 一覧から前のデプロイを選んで Publish deploy でもOK）。引きスライダー・追加した形のダッシュボード・粒の細かさ・MP4書き出し入り。
 - `releases/UNFOLD-Test-effects-camera-2026-09-29.zip` — 1つ前の公開版（2026-09-29 22:24）。演出・カメラ入り。
