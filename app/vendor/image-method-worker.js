@@ -91,10 +91,10 @@ const __offscreenDocument={createElement(tag){if(tag==='canvas')return new Offsc
 #endif`,CJ=`#ifdef USE_AOMAP
 	float ambientOcclusion = ( texture2D( aoMap, vAoMapUv ).r - 1.0 ) * aoMapIntensity + 1.0;
 	reflectedLight.indirectDiffuse *= ambientOcclusion;
-	#if defined( USE_CLEARCOAT ) 
+	#if defined( USE_CLEARCOAT )
 		clearcoatSpecularIndirect *= ambientOcclusion;
 	#endif
-	#if defined( USE_SHEEN ) 
+	#if defined( USE_SHEEN )
 		sheenSpecularIndirect *= ambientOcclusion;
 	#endif
 	#if defined( USE_ENVMAP ) && defined( STANDARD )
@@ -579,7 +579,7 @@ vec4 sRGBTransferOETF( in vec4 value ) {
 	#else
 		uniform sampler2D envMap;
 	#endif
-	
+
 #endif`,YJ=`#ifdef USE_ENVMAP
 	uniform float reflectivity;
 	#if defined( USE_BUMPMAP ) || defined( USE_NORMALMAP ) || defined( PHONG ) || defined( LAMBERT )
@@ -596,7 +596,7 @@ vec4 sRGBTransferOETF( in vec4 value ) {
 		#define ENV_WORLDPOS
 	#endif
 	#ifdef ENV_WORLDPOS
-		
+
 		varying vec3 vWorldPosition;
 	#else
 		varying vec3 vReflect;
@@ -1854,7 +1854,7 @@ gl_Position = projectionMatrix * mvPosition;`,J0=`#ifdef DITHERING
 	float getPointShadow( sampler2D shadowMap, vec2 shadowMapSize, float shadowIntensity, float shadowBias, float shadowRadius, vec4 shadowCoord, float shadowCameraNear, float shadowCameraFar ) {
 		float shadow = 1.0;
 		vec3 lightToPosition = shadowCoord.xyz;
-		
+
 		float lightToPositionLength = length( lightToPosition );
 		if ( lightToPositionLength - shadowCameraFar <= 0.0 && lightToPositionLength - shadowCameraNear >= 0.0 ) {
 			float dp = ( lightToPositionLength - shadowCameraNear ) / ( shadowCameraFar - shadowCameraNear );			dp += shadowBias;
@@ -3923,7 +3923,7 @@ if (rad != 0.0) {
   position.xz = vec2(sin(angle) * rad, rad - cos(angle) * rad);
   normal.xz = vec2(sin(angle), cos(angle));
 }
-  
+
 position = uTroikaOrient * position;
 normal = uTroikaOrient * normal;
 
@@ -3958,7 +3958,7 @@ varying vec2 vTroikaGlyphDimensions;
 
 float troikaSdfValueToSignedDistance(float alpha) {
   // Inverse of exponential encoding in webgl-sdf-generator
-  
+
   float maxDimension = max(vTroikaGlyphDimensions.x, vTroikaGlyphDimensions.y);
   float absDist = (1.0 - pow(2.0 * (alpha > 0.5 ? 1.0 - alpha : alpha), 1.0 / uTroikaSDFExponent)) * maxDimension;
   float signedDist = absDist * (alpha > 0.5 ? -1.0 : 1.0);
@@ -3977,7 +3977,7 @@ float troikaGlyphUvToDistance(vec2 uv) {
 }
 
 float troikaGetAADist() {
-  
+
   #if defined(GL_OES_standard_derivatives) || __VERSION__ >= 300
   return length(fwidth(vTroikaGlyphUV * vTroikaGlyphDimensions)) * 0.5;
   #else
@@ -3988,12 +3988,12 @@ float troikaGetAADist() {
 float troikaGetFragDistValue() {
   vec2 clampedGlyphUV = clamp(vTroikaGlyphUV, 0.5 / uTroikaSDFGlyphSize, 1.0 - 0.5 / uTroikaSDFGlyphSize);
   float distance = troikaGlyphUvToDistance(clampedGlyphUV);
- 
+
   // Extrapolate distance when outside bounds:
-  distance += clampedGlyphUV == vTroikaGlyphUV ? 0.0 : 
+  distance += clampedGlyphUV == vTroikaGlyphUV ? 0.0 :
     length((vTroikaGlyphUV - clampedGlyphUV) * vTroikaGlyphDimensions);
 
-  
+
 
   return distance;
 }
@@ -4058,14 +4058,14 @@ troika-three-text/dist/troika-three-text.esm.js:
   *)
   (*!
   Custom bundle of woff2otf (https://github.com/arty-name/woff2otf) with fflate
-  (https://github.com/101arrowz/fflate) for use in Troika text rendering. 
-  Original licenses apply: 
+  (https://github.com/101arrowz/fflate) for use in Troika text rendering.
+  Original licenses apply:
   - fflate: https://github.com/101arrowz/fflate/blob/master/LICENSE (MIT)
   - woff2otf.js: https://github.com/arty-name/woff2otf/blob/master/woff2otf.js (Apache2)
   *)
   (*!
   Custom bundle of @unicode-font-resolver/client v1.0.2 (https://github.com/lojjic/unicode-font-resolver)
-  for use in Troika text rendering. 
+  for use in Troika text rendering.
   Original MIT license applies
   *)
 
