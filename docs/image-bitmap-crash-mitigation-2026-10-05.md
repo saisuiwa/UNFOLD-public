@@ -18,3 +18,15 @@ The original native crash was not reproduced in the isolated test browser. Do no
 - Public elephant GLB: 191,498 original triangles, downloaded only. Headful Chrome / Apple M4 Metal / deviceScaleFactor 2. Twelve switches between sphere and elephant across three bundled JavaScript presets, waiting for real Worker frames: 24 frames, no crash before or after mitigation. Earlier rapid-switch tests also did not reproduce the crash.
 
 Remaining confirmation: the user's newly authored method and project have not been reproduced. If it recurs, capture that method and the selection/playback state; do not clear browser storage.
+
+## Publication
+
+Published the mitigation to https://unfold.saisuiwa.com/ after local verification.
+
+- Source commit: `d235e9d26e56e4851be761cbde9d83d69a3cb10d`
+- Cloudflare version: `e8720b64-ee47-4ed5-97b2-91fc8417c296`
+- Previous version: `5e3de57c-334e-4d0a-9048-9b42a5fcda32`
+- Release directory: `releases/unfold-image-crash-fix-2026-10-05/`
+- All 285 public assets passed hash / MIME verification.
+- Public Sequence smoke: six actual sphere/elephant clicks across the three bundled JS methods, waiting for returned Worker frames; 12 frames, zero crashes or page errors. This used only the public elephant model and synthetic images, in isolated browser storage.
+- User reported the operation succeeded before this update. Therefore this release is a targeted mitigation, not evidence that the reported intermittent crash is conclusively fixed.
