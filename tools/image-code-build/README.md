@@ -42,3 +42,12 @@ node tools/test/image-solid-ui.mjs
 ```
 
 They generate a GLB fixture in memory and use isolated browser storage. No user assets are uploaded.
+
+GPU bitmap crash mitigation regression (serve repository root on port 8777):
+
+```sh
+node tools/test/image-bitmap-browser.mjs
+```
+
+This injects a failure for direct GPU-backed image flips and verifies CPU-backed
+image transfer and the rendered image orientation. It does not reproduce a native Chrome crash.
