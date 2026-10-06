@@ -17,3 +17,9 @@ test('invalid or unavailable draft storage is reported without overwriting it',(
  const s=store();s.setItem(DRAFTS_KEY,'broken');assert.throws(()=>readDrafts(s));assert.equal(s.getItem(DRAFTS_KEY),'broken');
  assert.throws(()=>writeDrafts({setItem(){throw Error('quota')}},{active:'',drafts:{}}),/保存/);
 });
+import {createMotionLibrary} from '../../app/lyric-library.js';
+test('editing a saved text motion updates only that block and preserves its id',()=>{
+ const s=store(),lib=createMotionLibrary(s),first=lib.save({name:'first',motion:{code:{version:1,source:'return {update(){}};'}}}),second=lib.save({name:'second',motion:{code:{version:1,source:'return {update(t){}};'}}});
+ const updated=lib.update(first.id,{name:'edited',motion:{code:{version:1,source:'return {update(t){const x=t;}};'}}});
+ assert.equal(updated.id,first.id);assert.equal(lib.list().length,2);assert.equal(lib.list()[0].name,'edited');assert.deepEqual(lib.list()[1],second);assert.throws(()=>lib.update('missing',updated));
+});

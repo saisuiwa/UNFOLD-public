@@ -29,7 +29,13 @@ export function createMotionLibrary(storage){
  function list(){let raw;try{raw=getStore().getItem(MOTION_LIBRARY_KEY)}catch{throw Error('ブラウザの保存場所を開けません。ファイルに保存してください。')}
   if(!raw)return [];try{const data=JSON.parse(raw);if(!Array.isArray(data)||data.length>100)throw Error();return data.map(x=>({...cleanMotionRecord(x),id:String(x.id)}))}catch{throw Error('保存済みモーションを読み込めません。既存データは変更していません。')}
  }
- return {list,save(value){const item=cleanMotionRecord(value),items=list(),key=JSON.stringify(item.motion),same=items.find(x=>JSON.stringify(x.motion)===key);
+ return {list,update(id,value){
+  const item=cleanMotionRecord(value),items=list(),index=items.findIndex(x=>x.id===id);
+  if(index<0)throw Error('更新するモーションが見つかりません。コピーとして保存してください。');
+  const result={...item,id};items[index]=result;
+  try{getStore().setItem(MOTION_LIBRARY_KEY,JSON.stringify(items))}catch{throw Error('保存できませんでした。空き容量を確認するか、ファイルに保存してください。')}
+  return structuredClone(result);
+ },save(value){const item=cleanMotionRecord(value),items=list(),key=JSON.stringify(item.motion),same=items.find(x=>JSON.stringify(x.motion)===key);
   if(same)return structuredClone(same);
   if(items.length>=100)throw Error('モーションは100個までです。');
   let id='lm-'+hash(key);while(items.some(x=>x.id===id))id+='x';const result={...item,id};
