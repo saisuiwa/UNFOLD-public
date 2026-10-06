@@ -24,22 +24,24 @@
 ### Task 1: Authoring state and asset helpers
 Files: app/workshop-data.js, tools/test/workshop.test.mjs.
 Interfaces: colorFormats(hex), imageScale(w,h), readDrafts/writeDrafts(storage,state), loadWorkshopImage(file), assetStore().get/put.
-- [ ] Write failing tests for normalized colors, bad sizes, drafts without execution and preserving corrupted storage.
-- [ ] Run node --test tools/test/workshop.test.mjs; confirm expected failure, implement helpers, rerun PASS.
-- [ ] Commit helpers and tests.
+- [x] Write failing tests for normalized colors, bad sizes, drafts without execution and preserving corrupted storage.
+- [x] Run node --test tools/test/workshop.test.mjs; confirm expected failure, implement helpers, rerun PASS.
+- [x] Commit helpers and tests.
 
 ### Task 2: Workshop page and one-runtime preview
 Files: app/workshop.html/css/js, app/workshop-preview.js, tools/test/workshop-browser.mjs.
 Interfaces: createWorkshopPreview(host).prepare(draft,images), render(time,strength), dispose(); uses existing runtime contracts.
-- [ ] Add browser tests expecting workshop title/cards/editor, explicit JS preview, drafts across selection/reload, color copies and rendering.
-- [ ] Run browser test on port 8778; confirm missing page behavior fails; implement page and renderer adapter.
-- [ ] Verify actual pixels, error/timeout recovery, force stop, repeated selection, image/reference restoration and mobile layout.
-- [ ] Commit page, tests and verification evidence.
+- [x] Add browser tests expecting workshop title/cards/editor, explicit JS preview, drafts across selection/reload, color copies and rendering.
+- [x] Run browser test on port 8778; confirm missing page behavior fails; implement page and renderer adapter.
+- [x] Verify actual pixels, error/timeout recovery, force stop, repeated selection, image/reference restoration and mobile layout.
+- [x] Commit page, tests and verification evidence.
 
 ### Task 3: Existing library and app handoff
 Files: app/workshop-library.js, app/workshop-link.js, app/app.js, app/sequence.js, app/index.html, app/sequence.html, app/guide/*.html.
 Interfaces: addWorkshopItem(draft), savedWorkshopItems(), announceWorkshopItem({kind,id}); attachWorkshopLink({apply,notify}).
-- [ ] Add failing browser tests: save/reload/edit, import, shared file format, add confirmation and selected app block application.
-- [ ] Implement existing-store writes and explicit app invitation, preserving undo and no automatic execution on notification.
-- [ ] Run full Node suite and browser tests; verify 3 renderers and mobile screenshot visually.
-- [ ] Commit and request whole-branch independent review, address material findings and report local completion without deployment.
+- [x] Add failing browser tests: save/reload/edit, import, shared file format, add confirmation and selected app block application.
+- [x] Implement existing-store writes and explicit app invitation, preserving undo and no automatic execution on notification.
+- [x] Run full Node suite and browser tests; verify 3 renderers and mobile screenshot visually.
+- [x] Commit and request whole-branch independent review, address material findings and report local completion without deployment.
+
+Completion evidence: docs/method-workshop-2026-10-06.md. Browser and Node checks passed. Independent review findings fixed; branch kept locally with no push or deployment.

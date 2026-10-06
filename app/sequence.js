@@ -1,3 +1,4 @@
+import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
@@ -1760,6 +1761,21 @@ try {
   timeline.fit();
   resize();
   requestAnimationFrame(tick);
+  attachWorkshopLink({notify:notice,beforeApply:item=>{
+    if(seq.recording)throw Error('書き出しが終わってから適用してください。');
+    if(item.kind==='text'){if(seq.selection?.kind!=='lyric'||!lyricSelectedId)throw Error('タイムラインの歌詞を選んでから使ってください。');return {lyricId:lyricSelectedId,document:seq.lyricDocument};}
+    if(seq.selection?.kind!=='tr'||!seq.transitions[seq.selection.i])throw Error('タイムラインの◆変形を選んでから使ってください。');
+    return {tr:seq.transitions[seq.selection.i]};
+  },apply:async(item,target,activate)=>{
+    if(seq.recording)throw Error('書き出しが終わってから適用してください。');
+    if(item.kind==='text'){
+      if(seq.lyricDocument!==target.document)throw Error('歌詞が変更されました。もう一度適用してください。');
+      await lyricAction({type:'lyric-style',id:target.lyricId,patch:item.motion});
+    }else{
+      const tr=target.tr;if(!seq.transitions.includes(tr))throw Error('変形が変更されました。もう一度適用してください。');
+      const method=activate();edit(()=>{tr.method=method.id;normalizeImageTransition(tr)});showTab('edit');
+    }
+  }});
   window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile };
   window.unfoldMethods = { registerCustom, unregisterCustom, setCustomStatus, listCustom, variants, editor: methodEditor, persistence: methodPersistence, safety, enabler: methodEnabler, transfer: { importFile: importMethodFile, importText: importMethodText, download: downloadMethodFile } };
 } catch (e) {

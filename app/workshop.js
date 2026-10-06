@@ -8,6 +8,7 @@ import {createWorkshopPreview,testImage} from './workshop-preview.js';
 import {savedWorkshopItems,addWorkshopItem,announceWorkshopItem,workshopFile,importedDrafts} from './workshop-library.js';
 const $=id=>document.getElementById(id),node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});
 const samples=[...SAMPLES.map(s=>({key:'sample:glsl:'+s.key,kind:'glsl',name:s.name,source:s.source})),...IMAGE_METHOD_PRESETS.map((s,i)=>({key:'sample:image:'+i,kind:'image',name:s.name,source:s.code.source,params:s.code.params})),...CODE_MOTION_PRESETS.map((s,i)=>({key:'sample:text:'+i,kind:'text',name:s.name,source:s.source}))];
+let saving=false;
 let state={active:'',drafts:{}},draft,saved=[],kind='glsl',storageOK=true,current=null,serial=0,playing=false,busy=false,time=0,checked='',last=0,libraryError='',assetRevision=0;
 const preview=createWorkshopPreview($('preview-host')),assets=assetStore(),images={a:null,b:null,reference:null},urls={},assetVersions={};
 const notice=(message,type='idle')=>{$('status').textContent=message;$('status').dataset.state=type};
@@ -29,7 +30,7 @@ function fill(){
 function diagram(index){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 256 144');svg.setAttribute('aria-hidden','true');const add=(tag,attrs)=>{const n=document.createElementNS(svg.namespaceURI,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);svg.append(n);return n};add('rect',{width:256,height:144,fill:'#0b191a'});add('path',{d:'M20 113H236 M20 72H236 M20 31H236',stroke:'#253d37','stroke-width':.5});for(let y=0;y<4;y++)for(let x=0;x<7;x++){const n=y*7+x,angle=(index%3===0?Math.sin(n)*15:index%3===1?(x-3)*9:Math.cos(n*3)*28),dx=Math.sin(n*(index+1))*(index%3+1)*4,dy=Math.cos(n+index)*9;add('rect',{x:41+x*24+dx,y:28+y*23+dy,width:17,height:17,rx:2,fill:['#d9f878','#78ddff','#9c9de7'][Math.floor(n/7)%3],opacity:.65+(n%3)*.12,transform:`rotate(${angle} ${50+x*24+dx} ${36+y*23+dy})`})}return svg;}
 function cards(){
  const all=new Map(samples.map(x=>[x.key,x]));for(const x of saved)all.set(x.key,x);for(const x of Object.values(state.drafts))if(x.key&&!x.key.startsWith('sample:'))all.set(x.key,x);
- const query=$('search').value.trim().toLowerCase(),items=[...all.values()].filter(x=>x.kind===kind&&(!query||x.name.toLowerCase().includes(query)));$('card-count').textContent=items.length+' BLOCKS';$('cards').replaceChildren();
+ const query=$('search').value.trim().toLowerCase(),items=[...all.values()].filter(x=>x.kind===kind&&(!query||(state.drafts[x.key]||x).name.toLowerCase().includes(query)));$('card-count').textContent=items.length+' BLOCKS';$('cards').replaceChildren();
  items.forEach((item,i)=>{const d=state.drafts[item.key]||item,b=node('button');b.className='card';b.dataset.card=item.key;b.setAttribute('aria-pressed',String(draft?.key===item.key));b.setAttribute('aria-label',item.key.startsWith('sample:')?d.name+' 選んでプレビュー':d.name+' 編集');
  if(d.thumb){const img=node('img');img.src=d.thumb;img.alt=d.name+'のプレビュー';b.append(img)}else b.append(diagram(i));
  const tag=node('span',item.key.startsWith('sample:')?'SAMPLE':d.savedId?'MY METHOD':'DRAFT');tag.className='card-tag';const info=node('div');info.className='card-info';info.append(node('strong',d.name),node('small',d.thumb?'実際の描画から':item.key.startsWith('sample:')?'図解 · タップして試す':'下書き · 開いて編集'));b.append(tag,info);b.onclick=async()=>{select(item);if(item.key.startsWith('sample:')&&!draft.dirty&&draft.source===item.source)await run()};$('cards').append(b)});
@@ -52,24 +53,40 @@ function colorChange(value){try{const f=colorFormats(value);draft.color=f.hex;$(
 $('color').oninput=()=>colorChange($('color').value);$('hex').onchange=()=>colorChange($('hex').value);$('accent').oninput=()=>{draft.accent=$('accent').value;if(kind==='text')edit();else stash()};
 for(const p of LYRIC_PALETTES){const b=node('button');b.title=p.name;b.setAttribute('aria-label','配色 '+p.name);b.style.setProperty('--a',p.color);b.style.setProperty('--b',p.emphasisColor);b.onclick=()=>{draft.accent=p.emphasisColor;$('accent').value=p.emphasisColor;colorChange(p.color)};$('palettes').append(b)}
 document.querySelectorAll('[data-copy-color]').forEach(b=>b.onclick=()=>{try{const value=colorFormats($('hex').value)[b.dataset.copyColor];$('color-code').textContent=value;copy(value)}catch(e){notice(e.message,'error')}});
-async function showAsset(key,value,persist=true){
- const mine=assetVersions[key]=(assetVersions[key]||0)+1;
+const nextAssetVersion=key=>assetVersions[key]=(assetVersions[key]||0)+1;
+async function showAsset(key,value,persist=true,mine=nextAssetVersion(key)){
+ if(mine!==assetVersions[key])return false;
  if(persist)await assets.put(key,value);
- if(mine!==assetVersions[key])return;
- if(!value){images[key]=null;if(urls[key])URL.revokeObjectURL(urls[key]);delete urls[key];$('thumb-'+key).hidden=true;return}
- const loaded=await loadWorkshopImage(new File([value.blob],value.name,{type:value.blob.type}));if(mine!==assetVersions[key])return;images[key]=loaded.canvas;if(urls[key])URL.revokeObjectURL(urls[key]);urls[key]=URL.createObjectURL(loaded.blob);$('thumb-'+key).src=urls[key];$('thumb-'+key).hidden=false;
+ if(mine!==assetVersions[key])return false;
+ if(!value){images[key]=null;if(urls[key])URL.revokeObjectURL(urls[key]);delete urls[key];$('thumb-'+key).hidden=true;return true;}
+ const loaded=await loadWorkshopImage(new File([value.blob],value.name,{type:value.blob.type}));if(mine!==assetVersions[key])return false;images[key]=loaded.canvas;if(urls[key])URL.revokeObjectURL(urls[key]);urls[key]=URL.createObjectURL(loaded.blob);$('thumb-'+key).src=urls[key];$('thumb-'+key).hidden=false;return true;
 }
-for(const key of ['a','b','reference'])$('image-'+key).onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;try{const loaded=await loadWorkshopImage(file);await showAsset(key,{blob:loaded.blob,name:loaded.name});if(key!=='reference'){assetRevision++;edit()}notice('画像を読み込み、このブラウザに保存しました。')}catch(error){notice(error.message,'error')}};
-$('reference-use').onclick=async()=>{try{const value=await assets.get('reference');if(!value)throw Error('先に参照画像を選んでください。');await showAsset('a',value);assetRevision++;edit()}catch(e){notice(e.message,'error')}};
+for(const key of ['a','b','reference'])$('image-'+key).onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;const mine=nextAssetVersion(key);try{const loaded=await loadWorkshopImage(file);if(!await showAsset(key,{blob:loaded.blob,name:loaded.name},true,mine))return;if(key!=='reference'){assetRevision++;edit()}notice('画像を読み込み、このブラウザに保存しました。')}catch(error){notice(error.message,'error')}};
+$('reference-use').onclick=async()=>{const mine=nextAssetVersion('a');try{const value=await assets.get('reference');if(!value)throw Error('先に参照画像を選んでください。');if(!await showAsset('a',value,true,mine))return;assetRevision++;edit()}catch(e){notice(e.message,'error')}};
 $('reset-images').onclick=async()=>{try{await Promise.all(['a','b'].map(k=>showAsset(k,null)));assetRevision++;edit()}catch(e){notice(e.message,'error')}};
 function requireChecked(){if(!checked||checked!==signature())throw Error('現在のコードと設定をプレビューしてから追加してください。')}
-$('add-unfold').onclick=async()=>{try{requireChecked();const receipt=await addWorkshopItem(draft);draft.savedId=receipt.id;draft.dirty=false;draft.key='saved:'+receipt.id;stash();saved=await savedWorkshopItems();cards();announceWorkshopItem(receipt);$('handoff').hidden=false;$('open-single').hidden=receipt.kind==='text';$('open-single').href='./?workshopMethod='+encodeURIComponent(receipt.id);$('open-sequence').href='./sequence.html?'+(receipt.kind==='text'?'workshopMotion=':'workshopMethod=')+encodeURIComponent(receipt.id);notice('UNFOLDに追加しました。本体で選んだブロックに使えます。','ready')}catch(e){notice(e.message,'error')}};
+$('add-unfold').onclick=async()=>{
+ if(saving)return;
+ try{
+  requireChecked();saving=true;$('add-unfold').disabled=true;
+  const submitted=structuredClone(draft),revision=JSON.stringify(submitted),receipt=await addWorkshopItem(submitted);
+  const completed={...submitted,savedId:receipt.id,dirty:false,key:'saved:'+receipt.id};
+  const unchanged=draft.key===submitted.key&&JSON.stringify(draft)===revision;
+  // A slow save owns only its submitted revision; switching or editing never transfers its identity.
+  if(receipt.previousId&&JSON.stringify(state.drafts[submitted.key])===revision)delete state.drafts[submitted.key];
+  if(unchanged)draft=completed;
+  if(completed.key!==submitted.key||JSON.stringify(state.drafts[submitted.key])===revision)state.drafts[completed.key]=completed;
+  stash();saved=await savedWorkshopItems();cards();announceWorkshopItem(receipt);
+  if(draft===completed){$('handoff').hidden=false;$('open-single').hidden=receipt.kind==='text';$('open-single').href='./?workshopMethod='+encodeURIComponent(receipt.id);$('open-sequence').href='./sequence.html?'+(receipt.kind==='text'?'workshopMotion=':'workshopMethod=')+encodeURIComponent(receipt.id);}
+  notice('「'+submitted.name+'」をUNFOLDに追加しました。'+(receipt.previousId?'変更前のブロックも残しています。':'本体で選んだブロックに使えます。'),current?'ready':'idle');
+ }catch(e){notice(e.message,'error')}finally{saving=false;$('add-unfold').disabled=false}
+};
 $('export-file').onclick=()=>{try{requireChecked();const value=workshopFile(draft),url=URL.createObjectURL(new Blob([value.text],{type:'application/json'})),a=node('a');a.href=url;a.download=(draft.name.replace(/[\\/:*?"<>|]/g,'')||'method')+value.extension;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){notice(e.message,'error')}};
 $('import-file').onclick=()=>$('file-import').click();$('file-import').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{if(f.size>2e6)throw Error('共有ファイルは2MB以内にしてください。');const items=importedDrafts(await f.text()).map(d=>defaults({...d,key:'draft:'+crypto.randomUUID(),dirty:true}));stash();for(const d of items)state.drafts[d.key]=d;select(items[0]);notice('下書きに取り込みました。内容を確認してプレビューしてください。')}catch(e){notice(e.message,'error')}};
 function tick(now){const dt=Math.min(.1,(now-last)/1000);last=now;if(playing&&current&&!busy&&!document.hidden){time=(time+dt)%6;render()}requestAnimationFrame(tick)}
 addEventListener('visibilitychange',()=>{if(document.hidden)stop('非表示になったため実行を停止しました。')});addEventListener('pagehide',()=>{stash();stop();Object.values(urls).forEach(u=>URL.revokeObjectURL(u))});
 async function boot(){try{state=readDrafts(localStorage)}catch(e){storageOK=false;libraryError=e.message}try{saved=await savedWorkshopItems()}catch(e){libraryError+=' '+e.message}try{for(const m of await listModels())$('shape').append(new Option('GLB：'+m.name,m.id))}catch(e){libraryError+=' GLB一覧を読み込めません。'}
  for(const key of ['a','b','reference'])try{await showAsset(key,await assets.get(key),false)}catch(e){libraryError+=' 保存した画像を読み込めません。'}
- select(state.drafts[state.active]||samples[0]);if(libraryError)notice(libraryError,'error');requestAnimationFrame(tick);
+ select(state.drafts[state.active]||samples[0]);document.querySelector('main').inert=false;if(libraryError)notice(libraryError,'error');requestAnimationFrame(tick);
 }
 boot().catch(e=>notice(e.message,'error'));

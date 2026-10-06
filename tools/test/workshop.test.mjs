@@ -23,3 +23,11 @@ test('editing a saved text motion updates only that block and preserves its id',
  const updated=lib.update(first.id,{name:'edited',motion:{code:{version:1,source:'return {update(t){const x=t;}};'}}});
  assert.equal(updated.id,first.id);assert.equal(lib.list().length,2);assert.equal(lib.list()[0].name,'edited');assert.deepEqual(lib.list()[1],second);assert.throws(()=>lib.update('missing',updated));
 });
+import {workshopFile,importedDrafts} from '../../app/workshop-library.js';
+import {buildMotionFile,parseMotionFile} from '../../app/lyric-library.js';
+test('editing a text motion preserves existing motion settings through import and export',()=>{
+ const value={name:'styled',motion:{size:120,speed:2,position:'bottom',direction:'left',code:{version:1,source:'return {update(){}};'}}};
+ const original=parseMotionFile(buildMotionFile(value)).motion;
+ const draft=importedDrafts(buildMotionFile(value))[0];draft.name='edited';
+ assert.deepEqual(parseMotionFile(workshopFile(draft).text).motion,original);
+});

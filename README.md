@@ -1,5 +1,9 @@
 # UNFOLD
 
+## ローカル追加：メソッド工房（2026-10-06・未公開）
+
+`app/workshop.html` に、GLSL・画像JavaScript／物理・文字JavaScriptを作れる制作ページを追加しました。ブロックから実動プレビュー、コード編集、画像／参照画像、配色、下書き復元、既存UNFOLDへの追加まで1ページで行えます。変更前のメソッドは残すため、既存作品の別ブロックを書き換えません。使い方・確認結果は [工房の記録](docs/method-workshop-2026-10-06.md)。`codex/method-workshop` ブランチでローカル確認済み。公開・GitHubへのpushはしていません。
+
 ## 現在の公開版：JavaScriptメソッドの立体化（2026-10-05）
 
 JavaScript＋物理演算でも、画像片が選んだ立体・GLBへ集まって画像に戻れるように拡張。1枚モードは「03 立体」、シーケンスは◆変形の「立体化する」で選択します。コードエディタにも立体プレビューを追加。操作と対応範囲は [画像コードメソッド](docs/image-code-methods.md)、確認結果は [立体化の検証記録](docs/image-solid-verification-2026-10-05.md)。https://unfold.saisuiwa.com/ へ公開済み。配信285ファイルと公開画面での両モードの動作を確認しました。[公開記録](docs/publication-image-solids-2026-10-05.md)。
