@@ -1,4 +1,6 @@
-# メソッド工房 — ローカル完成版（未公開）
+# メソッド工房 — 使い方とローカル検証記録
+
+2026-10-06公開済み：[工房を開く](https://unfold.saisuiwa.com/workshop)。公開後の検証・復旧情報は [公開記録](publication-workshop-2026-10-06.md)。以下は公開前のローカル完了時点の記録です。
 
 作業場所：`/Volumes/ORICO/UNFOLD/.worktrees/method-workshop`。ブランチ：`codex/method-workshop`、開始点：`3376738`。本体の公開版、既存ユーザーの保存データ、無関係な未追跡ファイルには変更していません。公開・push・依存追加なし。
 

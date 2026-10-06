@@ -1,10 +1,10 @@
 # UNFOLD
 
-## ローカル追加：メソッド工房（2026-10-06・未公開）
+## 現在の公開版：メソッド工房（2026-10-06）
 
-`app/workshop.html` に、GLSL・画像JavaScript／物理・文字JavaScriptを作れる制作ページを追加しました。ブロックから実動プレビュー、コード編集、画像／参照画像、配色、下書き復元、既存UNFOLDへの追加まで1ページで行えます。変更前のメソッドは残すため、既存作品の別ブロックを書き換えません。使い方・確認結果は [工房の記録](docs/method-workshop-2026-10-06.md)。`codex/method-workshop` ブランチでローカル確認済み。公開・GitHubへのpushはしていません。
+[メソッド工房](https://unfold.saisuiwa.com/workshop) を公開しました。GLSL・画像JavaScript／物理・文字JavaScriptのブロック選択、実動プレビュー、コード編集、参照画像・配色、下書き復元、UNFOLD本体への追加に対応。変更前のメソッドは残し、既存作品の別ブロックを書き換えません。公開ソース `4ac4af5`、全292配信ファイルの一致と3方式・保存・本体連携・390px表示を確認済み。個人の画像・曲・下書きは非公開です。[使い方](docs/method-workshop-2026-10-06.md) / [公開・復旧記録](docs/publication-workshop-2026-10-06.md)。GitHubへのpushなし。
 
-## 現在の公開版：JavaScriptメソッドの立体化（2026-10-05）
+## 前の公開：JavaScriptメソッドの立体化（2026-10-05）
 
 JavaScript＋物理演算でも、画像片が選んだ立体・GLBへ集まって画像に戻れるように拡張。1枚モードは「03 立体」、シーケンスは◆変形の「立体化する」で選択します。コードエディタにも立体プレビューを追加。操作と対応範囲は [画像コードメソッド](docs/image-code-methods.md)、確認結果は [立体化の検証記録](docs/image-solid-verification-2026-10-05.md)。https://unfold.saisuiwa.com/ へ公開済み。配信285ファイルと公開画面での両モードの動作を確認しました。[公開記録](docs/publication-image-solids-2026-10-05.md)。
 
@@ -14,7 +14,7 @@ https://unfold.saisuiwa.com/ に `864801b` を公開済み。画像メソッド�
 
 現在のアプリ本体、公開用ZIP、デモ動画、読み込んで使うGLB、以前の版と作業記録をこのフォルダにまとめています。
 
-- `app/` — 現在の公開版（Cloudflare、2026-10-05）のソース。`index.html` が1枚モード、`sequence.html` がシーケンスです。
+- `app/` — 現在の公開版（Cloudflare、2026-10-06）のソース。`index.html` が1枚モード、`sequence.html` がシーケンスです。
 - `releases/UNFOLD-Test-custom-methods-glb-2026-10-04.zip` — **現在のNetlify公開版（2026-10-04 00:45 に公開）**。自作メソッド・画像ごとのカメラ・新しい形（龍・クジラ…）・位置どおり貼るGLB・GLB100個まで、など2026-10-02〜04の更新が全部入り。公開前の確認結果は `docs/公開前チェックリスト_自作メソッド.md` の §7。
 - `releases/UNFOLD-Test-glb-dashboard-mp4-2026-09-30.zip` — 1つ前の公開版（2026-09-30 22:07）。戻すときはこれ（Netlifyの Deploys 一覧から前のデプロイを選んで Publish deploy でもOK）。引きスライダー・追加した形のダッシュボード・粒の細かさ・MP4書き出し入り。
 - `releases/UNFOLD-Test-effects-camera-2026-09-29.zip` — 1つ前の公開版（2026-09-29 22:24）。演出・カメラ入り。
