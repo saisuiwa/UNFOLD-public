@@ -2,12 +2,13 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 const {chromium}=await import(new URL('../../.worktrees/method-workshop/tools/image-code-build/.test-deps/node_modules/playwright-core/index.mjs',import.meta.url));
-const out=fileURLToPath(new URL('../out/surface-study/',import.meta.url));await mkdir(out,{recursive:true});
+const out=(process.env.UNFOLD_TEST_OUT||fileURLToPath(new URL('../out/surface-study/',import.meta.url))).replace(/\/?$/,'/');await mkdir(out,{recursive:true});
+const base=(process.env.UNFOLD_BASE_URL||'http://127.0.0.1:8779/').replace(/\/?$/,'/');
 const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
 const errors=[];
 try{
  const p=await browser.newPage({viewport:{width:1440,height:1050}});p.on('pageerror',e=>errors.push(e.message));p.on('crash',()=>errors.push('page crash'));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
- await p.route('**/favicon.ico',r=>r.fulfill({status:204,body:''}));await p.goto('http://127.0.0.1:8779/workshop.html');await p.waitForFunction(()=>document.querySelector('main')&&!document.querySelector('main').inert);
+ await p.route('**/favicon.ico',r=>r.fulfill({status:204,body:''}));await p.goto(base+'workshop.html');await p.waitForFunction(()=>document.querySelector('main')&&!document.querySelector('main').inert);
  const count=await p.evaluate(async()=>{const {IMAGE_METHOD_PRESETS}=await import('./image-method-presets.js');return IMAGE_METHOD_PRESETS.filter(x=>x.previewShape==='none').length});assert.equal(count,8,'surface samples must be available');
  const results=await p.evaluate(async()=>{
   const {createImageMethodRuntime}=await import('./image-method-runtime.js'),{imageFrame}=await import('./image-method-format.js'),{IMAGE_METHOD_PRESETS}=await import('./image-method-presets.js'),THREE=await import('./vendor/three.module.min.js');

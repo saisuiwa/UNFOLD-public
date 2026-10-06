@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 const dependency=new URL('../../.worktrees/method-workshop/tools/image-code-build/.test-deps/node_modules/playwright-core/index.mjs',import.meta.url);
 const {chromium}=await import(dependency);
 const base=process.env.UNFOLD_BASE_URL||'https://unfold.saisuiwa.com/';
-const out=new URL('../../releases/unfold-workshop-2026-10-06/',import.meta.url).pathname;
+const out=(process.env.UNFOLD_RELEASE_DIR||new URL('../../releases/unfold-workshop-2026-10-06/',import.meta.url).pathname).replace(/\/?$/,'/');
 const manifest=JSON.parse(await readFile(out+'manifest.json','utf8'));
 const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
 const report={url:base,commit:manifest.commit,errors:[],renderers:[],handoff:[]};
