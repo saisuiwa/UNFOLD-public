@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>UNFOLD Motion Library QA</title><style>body{background:#142020;color:#eaffde;font:16px system-ui}canvas{width:640px;max-width:100%}pre{white-space:pre-wrap}</style><h1>文字モーション集の検証</h1><canvas id="stage"></canvas><pre id="results">検証中</pre><script type="module">
+import * as T from '/app/vendor/three.module.min.js';
+import {parseLyrics} from '/app/lyric-document.js?v=2';
+import {BUILTIN_MOTIONS} from '/app/lyric-recipe.js';
+import {createLyricOverlay} from '/app/lyric-overlay.js?v=6';
+const results=[],test=(name,pass)=>results.push({name,pass:!!pass});
+try{
+ const r=new T.WebGLRenderer({canvas:document.querySelector('canvas'),preserveDrawingBuffer:true});r.setSize(640,360,false);r.setClearColor('#142020');const overlay=createLyricOverlay(r);
+ const pixels=()=>{const a=new Uint8Array(r.domElement.width*r.domElement.height*4);r.getContext().readPixels(0,0,r.domElement.width,r.domElement.height,6408,5121,a);return a};
+ const draw=(doc,t)=>{r.clear();overlay.render(doc,t,{duration:6,bpm:120});return pixels()};
+ for(const item of BUILTIN_MOTIONS){const doc=parseLyrics('小さな*光*を/明日へつなぐ');Object.assign(doc.events[0],{s:0,e:6,motion:item.motion});await overlay.prepare(doc);r.clear();const bg=pixels(),a=draw(doc,2.8);draw(doc,5);const b=draw(doc,2.8);test(item.id+' visible',a.some((v,i)=>v!==bg[i]));test(item.id+' reverse seek identical',a.every((v,i)=>v===b[i]));test(item.id+' outside invisible',draw(doc,7).every((v,i)=>v===bg[i]));const c=draw(doc,3.4);if(item.id!=='impact')test(item.id+' sustain moves',a.some((v,i)=>v!==c[i]));
+ r.setSize(1280,720,false);const resized=draw(doc,2.8),fresh=createLyricOverlay(r);await fresh.prepare(doc);r.clear();fresh.render(doc,2.8,{duration:6,bpm:120});const freshPixels=pixels();test(item.id+' export resolution matches fresh renderer',resized.every((v,i)=>v===freshPixels[i]));fresh.dispose();r.setSize(640,360,false);test(item.id+' resolution restored',draw(doc,2.8).every((v,i)=>v===a[i]));
+ }
+ test('renderer autoClear preserved',r.autoClear===true);overlay.dispose();
+}catch(e){test(e.stack||e.message,false)}
+document.querySelector('#results').textContent=JSON.stringify(results,null,2);document.body.dataset.done='true';
+</script>

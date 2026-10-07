@@ -1,9 +1,14 @@
-import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=4';
-import {createLyricControls} from './lyric-controls.js?v=5';
+import {attachWorkshopLink} from './workshop-link.js';
+import {imageTarget} from './image-method-target.js';
+import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
+import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
+import {applyLyricStyle,setWordColor} from './lyric-style.js';
+import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=3';
+import {createLyricControls} from './lyric-controls.js?v=7';
 import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=4';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
-import {createLyricOverlay} from './lyric-overlay.js?v=4';
-import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=2';
+import {createLyricOverlay} from './lyric-overlay.js?v=6';
+import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=3';
 import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPreviewTime} from './lyric-timing.js?v=3';
 import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=2';
@@ -32,7 +37,7 @@ import { lookView, lookViewText } from './look-view.js?v=1';
 import { BUILTIN_KEYS, getCustom, isCustomKey, isUsable, listCustom, methodEntries, methodLabel, newCustomId, onRegistryChange, registerCustom, setCustomStatus, unregisterCustom } from './method-registry.js';
 import { compileUserMethod, createVariants } from './custom-method.js';
 import { createPersistence, openStore, sourceHash } from './method-library.js';
-import { createMethodEditor } from './method-editor.js?v=6';
+import { createImageMethodEditor } from './image-method-editor.js';
 import { createSafety } from './method-safety.js';
 import { createTrial } from './method-trial.js';
 import { collectMethods, planImport, registerQuarantined, remapTransitions, validateEmbedded } from './method-project.js?v=2';
@@ -43,7 +48,7 @@ import { cleanFx, concealAmount, mixFx, swapCurve } from './fx-mix.js';
 import { CAM_EASES, CAM_PRESETS, CAM_RANGES, camEnds, camLife, camValues, cleanCam, legacyKenBurns, lifeProgress, mixCam } from './camera-work.js?v=1';
 import { openMethodMenu } from './method-menu.js';
 import { methodButtons, syncMethodTiles } from './method-tiles.js';
-import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=7';
+import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=8';
 
 const $ = id => document.getElementById(id);
 // every method (the built-in ones and the ones users add) is listed in method-registry.js
@@ -54,6 +59,11 @@ const PRESET_LABELS = { human: '人', pegasus: 'ペガサス', whale: 'クジラ
 const SPECIAL_SHAPES = { text: '立体文字', silB: 'シルエット（次の画像）', silA: 'シルエット（今の画像）', none: '形にしない（崩れるだけ）' };
 const FONT_LABELS = { classic: '英字クラシック', ...Object.fromEntries(Object.entries(FONTS).map(([k, f]) => [k, f.label])) };
 const CANVAS_W = 1920, CANVAS_H = 1080;
+let imageLayers=[],imageInputs=[];
+function imageLayerAt(i){return imageLayers[i]??=createImageMethodLayer(renderer,{onReady:()=>{if(!seq.recording)renderAt(seq.t)},onError:e=>notice(e.message)})}
+function imageTransition(tr){return tr&&(isImageMethodKey(tr.method)||isImageMethodKey(tr.method2))}
+function normalizeImageTransition(tr){if(imageTransition(tr)){tr.flow='return'}}
+async function prepareImageFrameAt(sec){renderAt(sec);for(let i=0;i<imageInputs.length;i++)if(imageInputs[i])await imageLayerAt(i).prepare(imageInputs[i]);renderAt(sec)}
 const MAX_SAVED_MODELS = 100;   // GLBs kept in this browser (each is a few MB, in IndexedDB)
 const SHAPE_ICONS = { sphere: '◉', torus: '◎', helix: '♧', mass: '✧', cube: '▣', heart: '♡', star: '☆', saturn: '♄', mobius: '∞', diamond: '◇', flower: '✿',
   human: '♙', pegasus: '♞', whale: '鯨', dragon: '龍', flock: '鳥', spheres: '⁘', apple: '♧', icecream: '▽', text: '字', silB: '◐', silA: '◑' };
@@ -93,7 +103,7 @@ export const seq = {
 };
 
 let lyricOverlay, lyricControls;
-const audioGate=createImportGate();let audioURL='',lyricRevision=0,lyricExtraction=null,lyricStatus='',lyricTap=null,lyricTapping=false,lyricSelectedId=null;
+const audioGate=createImportGate();let audioURL='',lyricRevision=0,lyricExtraction=null,lyricStatus='',lyricFontStatus='',lyricTap=null,lyricTapping=false,lyricSelectedId=null;let lyricPreviewStop=null;
 let renderer, scene, camera, perspCam, mesh, sceneBlur, backdrop, variants, methodEditor, methodPersistence, safety, methodTrial, methodEnabler, quarantineBanner;   // backdrop: the next picture held still behind a "reveal" change
 const geoCache = new Map();   // shape key -> geometry
 const savedModels = new Map();
@@ -274,7 +284,8 @@ function backgroundSeconds() {
   return beats * beatSec();
 }
 export function totalSeconds(){return movieDuration({document:seq.lyricDocument,audioDuration:seq.audioBuffer?.duration||0,offset:seq.offset,backgroundDuration:backgroundSeconds()});}
-export function setLyricDocument(doc,{fromTap=false}={}){if(seq.recording)return;if(!fromTap){if(lyricTapping)stopPlay();lyricTap=null;lyricTapping=false;}seq.lyricDocument=cleanLyricDocument(doc);seq.t=Math.min(seq.t,totalSeconds());refreshUI();lyricOverlay?.prepare(seq.lyricDocument).then(()=>{if(!seq.recording)renderAt(seq.t)});}
+async function prepareDocumentFont(){const doc=seq.lyricDocument;try{await lyricOverlay?.prepare(doc);if(doc!==seq.lyricDocument)return;lyricFontStatus='';if(!seq.recording)renderAt(seq.t)}catch(e){if(doc!==seq.lyricDocument)return;lyricFontStatus=e.message}lyricControls?.refresh()}
+export function setLyricDocument(doc,{fromTap=false}={}){if(seq.recording)return;if(!fromTap){if(lyricTapping)stopPlay();lyricTap=null;lyricTapping=false;}seq.lyricDocument=cleanLyricDocument(doc);seq.t=Math.min(seq.t,totalSeconds());refreshUI();prepareDocumentFont();}
 function drawLyrics(sec){lyricOverlay?.render(seq.lyricDocument,sec+seq.offset,{duration:seq.audioBuffer?.duration||12,bpm:seq.lyricMotion.bpm,width:renderer.domElement.width,height:renderer.domElement.height});}
 function locate(sec) {
   // -> {i: slide index shown (or from), tr: transition index or -1, u: 0..1 inside transition, beat}
@@ -308,17 +319,17 @@ function setMaterialTextures(a, b) {
   u.uImage.value = slideTexture(a); u.uImageB.value = slideTexture(b || a);
 }
 export function renderAt(sec) {
-  const videoSec=sec;
-  if (!seq.slides.length) { renderer.setClearColor(seq.bg, 1); renderer.clear(); drawLyrics(videoSec); if(!seq.recording)updateTransport(videoSec,{i:-1,tr:-1,u:0});return; }
+  const videoSec=sec;imageInputs=[];
+  if (!seq.slides.length) { imageLayers.forEach(l=>l.reset());renderer.setClearColor(seq.bg, 1); renderer.clear(); drawLyrics(videoSec); if(!seq.recording)updateTransport(videoSec,{i:-1,tr:-1,u:0});return; }
   sec=Math.min(sec,backgroundSeconds());
   const L = locate(sec);
   const u = mesh.material.uniforms;
   let c = { distort: 0, form: 0, conceal: 0, swap: 0, spin: 0 };
   let tr = null;
   if (L.tr >= 0) { tr = seq.transitions[L.tr]; c = curves(L.u); }
-  if (tr?.shape === 'none') c.form = 0;
+  const imageCode=imageTransition(tr);if(tr?.shape === 'none')c.form=0;
   // no solid + "pass through": one gesture — A breaks away, B flies in from the other side (no pause in the middle)
-  const flow = tr?.shape === 'none' ? (tr.flow ?? 'through') : '';
+  const flow = imageCode?'return':tr?.shape === 'none' ? (tr.flow ?? 'through') : '';
   const through = flow === 'through', reveal = flow === 'reveal';
   if (reveal) {   // only the current picture breaks away; the next one waits untouched underneath
     c.distort = smooth(0, .9, L.u);
@@ -350,21 +361,23 @@ export function renderAt(sec) {
   u.uDraw.value = !tr ? 1 : L.u < .5 ? 1 - smooth(.06, .44, L.u) : smooth(.56, .94, L.u);
   u.uDistort.value = c.distort; u.uForm.value = c.form; u.uStrength.value = seq.strength; u.uDepth.value = seq.depth;
   // custom methods have their own shader: swap it in (uniforms are shared, so `u` stays valid)
-  const pick = variants.pick(tr ? tr.method : '', tr?.method2 || '');
+  const firstJS=isImageMethodKey(tr?.method),secondJS=isImageMethodKey(tr?.method2);
+  const pick = imageCode?variants.pick(firstJS?(secondJS?'':tr?.method2):tr?.method):variants.pick(tr ? tr.method : '', tr?.method2 || '');
+  if(imageCode&&firstJS&&(!tr.method2||secondJS))u.uDistort.value=0;
   if (mesh.material !== pick.material) mesh.material = pick.material;
   safety.beforeDraw(pick.used);
   u.uSeed.value = 28 + (L.tr >= 0 ? L.tr * 37 : 0); u.uMethod.value = pick.uMethod;
-  u.uMethod2.value = pick.uMethod2; u.uMethodMix.value = tr?.method2 ? smooth(.30, .62, L.u) : 0;
+  u.uMethod2.value = pick.uMethod2; u.uMethodMix.value = imageCode?0:tr?.method2 ? smooth(.30, .62, L.u) : 0;
   u.uShape.value = tr && BUILTIN_IDS[tr.shape] !== undefined ? BUILTIN_IDS[tr.shape] : 0;
-  u.uPreset.value = isPreset ? 1 : 0; u.uProject.value = isText ? 1 : 0; u.uConceal.value = concealAmount(tr, c.conceal); u.uSwap.value = c.swap;
+  u.uPreset.value = isPreset ? 1 : 0; u.uProject.value = isText ? 1 : 0; u.uConceal.value = imageCode?0:concealAmount(tr, c.conceal); u.uSwap.value = c.swap;
   // full turn ends at identity; flat words only wobble, and without a solid there is nothing to turn
   const turn = tr?.shape === 'none' ? 0 : isText ? 0.18 * Math.sin(c.spin * Math.PI * 2) : c.spin * Math.PI * 2;
   const shot=cleanShot(tr?.shot);
-  const cm = seq.cam;
+  const cm = seq.cam,orientation=imageCode&&tr.shape==='none'?c.distort:c.form;
   mesh.rotation.set((-.16 + (tr?.viewX || 0) - cm.orbit * .45) * c.form,
     (isPreset && !isText ? .2 : .35) * c.form + turn + (tr?.viewY || 0) * c.form + (tr ? cm.orbit * 2.2 * (L.u - .5) * c.form : 0), 0);
-  const spin=tr&&tr.shape!=='none'?rotationAt(shot.rotation,L.u,'sequence'):null;
-  if(spin){mesh.rotation.set((tr.viewX||0)*c.form,(tr.viewY||0)*c.form,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
+  const spin=tr&&(tr.shape!=='none'||imageCode)?rotationAt(shot.rotation,L.u,'sequence'):null;
+  if(spin){mesh.rotation.set((tr.viewX||0)*orientation,(tr.viewY||0)*orientation,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
   // camera: push-in with the shape, a pulse on every beat while it is 3D
   const bp = (sec + seq.offset - seq.phase) / beatSec(), frac = bp - Math.floor(bp);
   const beatKick = Math.exp(-frac * 7) * seq.pulse * (c.distort > 0.02 ? 1 : 0);
@@ -399,8 +412,12 @@ export function renderAt(sec) {
   const env = tr ? Math.max(c.distort, c.form) : 0;
   const fx = mixFx(FX_KEYS, { global: seq.fx, from: seq.slides[L.i].fx, to: tr ? (seq.slides[L.i + 1]?.fx ?? {}) : null, trFx: tr?.fx, u: L.u, env, late: tr?.lateSwap === true && tr.shape !== 'none' });
   applyRenderLook(u, seq.renderLook);
-  u.uGlass.value = fx.glass;
-  sceneBlur.render(scene, view, fx.blur, fx.glitch, fx.chroma, sec, { ...fx, neonColor: seq.fx.neonColor });
+  u.uGlass.value = imageCode?0:fx.glass;
+  sceneBlur.render(scene, view, imageCode?0:fx.blur, imageCode?0:fx.glitch, imageCode?0:fx.chroma, sec, imageCode?{}:{ ...fx, neonColor: seq.fx.neonColor });
+  if(imageCode){
+   const duration=tr.beats*beatSec(),f=imageFrame(L.u*duration,duration,seq.strength,{form:c.form}),mix=tr.method2?smooth(.30,.62,L.u):0,fade=smoothImage(L.u/.025)*smoothImage((1-L.u)/.025),keys=[tr.method,tr.method2];
+   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
+  }else imageLayers.forEach(l=>l.reset());
   drawLyrics(videoSec);
   safety.afterDraw();
   if (!seq.recording) updateTransport(videoSec, L);
@@ -463,7 +480,7 @@ function updateTransport(sec, L) {
   $('seq-scrub').value = total ? Math.round(sec / total * 1000) : 0;
   $('seq-phase').textContent = L.tr >= 0 ? `${L.i + 1} → ${L.i + 2}　${methodLabel(seq.transitions[L.tr].method)} / ${shapeLabel(seq.transitions[L.tr])}` : `${L.i + 1} / ${seq.slides.length}`;
   const ph = phaseOf(L);
-  if (ph) $('seq-phase').append(Object.assign(document.createElement('span'), { className: 'phase-chip ' + ph, textContent: PHASE_LABELS[ph] }));
+  if (ph) $('seq-phase').append(Object.assign(document.createElement('span'), { className: 'phase-chip ' + ph, textContent: imageTransition(seq.transitions[L.tr])&&seq.transitions[L.tr].shape==='none'?'コード演出':PHASE_LABELS[ph] }));
   lookPhase = ph;
   applyLookView();
   updateInspectorWhere();
@@ -569,13 +586,15 @@ function setCamera(aspect) {
 // std = one pass at the output size (as before); high / max draw at 2× and shrink, so fine grains and edges stay crisp, with a higher bitrate
 const EXPORT_LOOKS = { std: { ss: 1, bpp: 0 }, high: { ss: 2, bpp: .5 }, max: { ss: 2, bpp: .8 } };
 // format: 'webm' (VP9/VP8 + Opus) or 'mp4' (H.264 + AAC — plays in QuickTime, iPhone and most editors)
-export async function exportVideo({ fps = 30, quality = 1080, look = 'high', format = 'webm', from = 0, to = null, onProgress } = {}) {
+export async function exportVideo({ fps = 30, quality = 1080, look = 'high', format = 'webm', from = 0, to = null, onProgress, signal } = {}) {
   if (!('VideoEncoder' in window)) throw new Error('このブラウザは WebCodecs に対応していません（Chrome で開いてね）');
+  signal?.throwIfAborted();
   if(seq.recording)throw new Error('書き出し中です。');
   seq.recording=true;lyricControls?.refresh();
   try {
   await lyricOverlay?.prepare(seq.lyricDocument);
   await variants.ready();      // a custom method that is still compiling would be exported as the default method
+  if(seq.transitions.some(tr=>[tr.method,tr.method2].some(k=>isImageMethodKey(k)&&!isUsable(k))))throw Error('未確認・停止中の画像コードがあります。編集画面でプレビューして保存してください。');
   const switchedOff = seq.transitions.filter(tr => [tr.method, tr.method2].some(k => k && isCustomKey(k) && !isUsable(k))).length;
   if (switchedOff) notice(`止まっている自作メソッドを使う◆が${switchedOff}か所あります。「くしゃくしゃ」で書き出します。`);
   await prepareShapes();
@@ -613,8 +632,9 @@ export async function exportVideo({ fps = 30, quality = 1080, look = 'high', for
   const n = Math.round((end - from) * fps);
   try {
     for (let k = 0; k < n; k++) {
-      if (error) throw error;
-      renderAt(from + k / fps);
+      signal?.throwIfAborted();if (error) throw error;
+      await lyricOverlay?.prepareFrame(seq.lyricDocument,from+k/fps+seq.offset,{duration:seq.audioBuffer?.duration||12,bpm:seq.lyricMotion.bpm,width:renderer.domElement.width,height:renderer.domElement.height});
+      await prepareImageFrameAt(from + k / fps);signal?.throwIfAborted();
       if (sx) sx.drawImage($('seq-canvas'), 0, 0, w, h);
       const frame = new VideoFrame(small || $('seq-canvas'), { timestamp: Math.round(k * 1e6 / fps), duration: Math.round(1e6 / fps) });
       enc.encode(frame, { keyFrame: k % (fps * 2) === 0 });
@@ -622,7 +642,7 @@ export async function exportVideo({ fps = 30, quality = 1080, look = 'high', for
       while (enc.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 4));
       if (k % 10 === 0) { onProgress?.(k / n); await new Promise(r => setTimeout(r, 0)); }
     }
-    await enc.flush();
+    await enc.flush();signal?.throwIfAborted();if(error)throw error;
   } finally {
     enc.close();
     seq.recording = false;
@@ -663,13 +683,24 @@ export async function loadAudio(blob,name='',assetId,{restoring=false}={}){
  refreshUI();
 }
 function syncOverlayLyrics(){if(seq.lyricDocument)seq.lyrics=getTimings(seq.lyricDocument,seq.audioBuffer?.duration||12).events.map(e=>({id:e.id,s:e.start,e:e.end,t:e.kind==='section'?'▸ '+(SECTION_LABELS[e.section]||e.raw):e.text,k:e.section,isBoundary:e.kind==='section'}));}
-function lyricState(){return {document:seq.lyricDocument,audioName:seq.audioName,audioDuration:seq.audioBuffer?.duration||0,playing:seq.playing,recording:seq.recording,songSec:seq.t+seq.offset,offset:seq.offset,lyricMotion:seq.lyricMotion,extraction:lyricExtraction,status:lyricStatus,tapping:lyricTapping,tapCurrent:lyricTap?.current(),selectedId:lyricSelectedId,legacy:!seq.lyricDocument&&seq.slides.some(s=>s.lyric)};}
+function lyricState(){return {document:seq.lyricDocument,audioName:seq.audioName,audioDuration:seq.audioBuffer?.duration||0,playing:seq.playing,recording:seq.recording,songSec:seq.t+seq.offset,offset:seq.offset,lyricMotion:seq.lyricMotion,extraction:lyricExtraction,status:[lyricStatus,lyricFontStatus].filter(Boolean).join('\n'),tapping:lyricTapping,tapCurrent:lyricTap?.current(),selectedId:lyricSelectedId,legacy:!seq.lyricDocument&&seq.slides.some(s=>s.lyric)};}
 function applyCandidate(c){const d=c.synced?importTimedLyrics(c.lines,'embedded'):parseLyrics(c.text,seq.lyricDocument);setLyricDocument(assignLyricMotions(d,{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7}));lyricStatus=c.synced?'時刻付き歌詞を取り込みました。':'歌詞を取り込みました。タイミングは仮配置です。';}
+function showLyricPreview(id,replay=false){
+ const t=getTimings(seq.lyricDocument,seq.audioBuffer?.duration||12).events.find(e=>e.id===id&&e.kind==='line');if(!t)return;
+ const start=Math.max(0,t.start-seq.offset),end=Math.min(totalSeconds(),t.end-seq.offset);if(end<=start){lyricStatus='この歌詞は動画の時間外です。開始時刻・曲の開始位置を確認してください。';lyricControls?.refresh();return}
+ const hold=start+Math.min((end-start)*.5,2);seek(replay?start:hold);if(replay){startPlay();lyricPreviewStop={end,hold}}
+}
 export async function lyricAction(a){
  if(seq.recording)return;
+ if(a.type==='select-lyric'){const i=seq.lyrics.findIndex(e=>e.id===a.id);if(i>=0){timelineApi.select({kind:'lyric',i});showLyricPreview(a.id)}return}
+ if(a.type==='preview-lyric'){showLyricPreview(a.id,true);return}
+ if(a.type==='lyric-style'){if(!seq.lyricDocument?.events.some(e=>e.id===a.id&&e.kind==='line'))return;lyricRevision++;edit(()=>setLyricDocument(applyLyricStyle(seq.lyricDocument,a)));showLyricPreview(a.id,!!a.replay);return}
+ if(a.type==='word-color'){lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id&&e.kind==='line');if(!e)return;e.colors=setWordColor(e.colors,e.text,a.start,a.end,a.color);setLyricDocument(d)});showLyricPreview(a.id);return}
+ if(a.type==='studio'){stopPlay();lyricControls?.openStudio(a.id);return}
+ if(a.type==='recipe-apply'){if(!seq.lyricDocument?.events.some(e=>e.kind==='line'))throw Error('先に歌詞を入れてください。');const motion=cleanMotion(a.motion);if(!motion.recipe)throw Error('文字モーションを選んでください。');lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument);for(const e of d.events)if(e.kind==='line'&&!e.locked)e.motion=structuredClone(motion);d.enabled=true;setLyricDocument(d)});return}
  if(a.type==='text-edit'){lyricRevision++;return}
  if(a.type==='audio'){await loadAudio(a.file,a.file.name);return}
- if(a.type==='text'){if(a.value===(seq.lyricDocument?.sourceText||''))return;lyricRevision++;lyricTap=null;lyricTapping=false;edit(()=>setLyricDocument(assignLyricMotions(parseLyrics(a.value,seq.lyricDocument),{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7})));return}
+ if(a.type==='text'){if(a.value===(seq.lyricDocument?.sourceText||''))return;lyricRevision++;lyricTap=null;lyricTapping=false;edit(()=>setLyricDocument(assignLyricMotions(parseLyrics(a.value,seq.lyricDocument),{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7,preserveExisting:true})));return}
  if(a.type==='import'){const value=await a.file.text();let restored=null;if(/\.json$/i.test(a.file.name))restored=lyricTimingDocument(JSON.parse(value));lyricRevision++;edit(()=>setLyricDocument(restored||assignLyricMotions(/\.(json|lrc)$/i.test(a.file.name)?importTimedLyrics(parseTimings(value,a.file.name),'file'):parseLyrics(value),{style:'readable',seed:7})));return}
  if(a.type==='candidate'){const c=lyricExtraction?.candidates.find(c=>c.id===a.id);if(c){lyricRevision++;edit(()=>applyCandidate(c))}return}
  if(a.type==='shuffle'){
@@ -681,8 +712,8 @@ export async function lyricAction(a){
   stopPlay();seek(Math.max(0,at-seq.offset));startPlay();
   lyricStatus='動きを割り当てて、歌詞のある位置から再生しています。';lyricControls?.refresh();return
  }
- if(a.type==='resolve'){lyricRevision++;edit(()=>setLyricDocument(assignLyricMotions(resolveUnknown(seq.lyricDocument,a.id,a.decision),{style:seq.lyricDocument.style,seed:seq.lyricDocument.seed})));return}
- if(a.type==='edit'){lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id);if(!e)return;const patch={...a.patch};if(patch.section)patch.sectionOverride=patch.section;if(patch.raw!=null){patch.runs=lyricRuns(patch.raw);patch.text=patch.runs.map(x=>x.text).join('')}if(patch.motion)patch.motion=cleanMotion(patch.motion);Object.assign(e,patch);d.sourceText=d.events.map(e=>e.raw).join('\n');setLyricDocument(d)});return}
+ if(a.type==='resolve'){lyricRevision++;edit(()=>setLyricDocument(assignLyricMotions(resolveUnknown(seq.lyricDocument,a.id,a.decision),{style:seq.lyricDocument.style,seed:seq.lyricDocument.seed,preserveExisting:true})));return}
+ if(a.type==='edit'){lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id);if(!e)return;const patch={...a.patch};if(patch.section)patch.sectionOverride=patch.section;if(patch.raw!=null){if(patch.raw!==e.raw)patch.colors=[];patch.runs=lyricRuns(patch.raw);patch.text=patch.runs.map(x=>x.text).join('')}if(patch.motion)patch.motion=cleanMotion(patch.motion);Object.assign(e,patch);d.sourceText=d.events.map(e=>e.raw).join('\n');setLyricDocument(d)});return}
  if(a.type==='nudge'){edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id),t=getTimings(d,seq.audioBuffer?.duration||12).events.find(e=>e.id===a.id);if(e&&t)e.s=t.start;setLyricDocument(moveLyric(d,a.id,a.delta))});return}
  if(a.type==='settings'){edit(()=>setLyricDocument({...seq.lyricDocument,...a.patch}));return}
  if(a.type==='motion-settings'){edit(()=>{seq.lyricMotion=cleanLyricSettings({...seq.lyricMotion,...a.patch})});return}
@@ -894,12 +925,12 @@ function renderMethodGrid() {
     tag: $('seq-methods-tag'),
     onAdd: () => methodEditor.open(),
     onImport: () => pickMethodFile({ notify: notice }),
-    onMenu: (id, anchor) => openMethodMenu(anchor, id, { onEdit: key => methodEditor.open({ id: key }), onDuplicate: key => methodEditor.open({ copyOf: key }), onDelete: deleteCustomMethod, onEnable: key => methodEnabler.enable(key), onReview: key => methodEditor.open({ id: key, review: true }), onExport: key => exportMethod(key, { notify: notice }) }),
+    onMenu: (id, anchor) => openMethodMenu(anchor, id, { onEdit: key => methodEditor.open({ id: key }), onDuplicate: key => methodEditor.open({ copyOf: key }), onDelete: deleteCustomMethod, onEnable: key => isImageMethodKey(key)?methodEditor.open({id:key,review:true}):methodEnabler.enable(key), onReview: key => methodEditor.open({ id: key, review: true }), onExport: key => exportMethod(key, { notify: notice }) }),
     onPick: (k, e) => {
       const j = targetTransition();
       if (j < 0) { notice('画像を2枚以上並べると、その間の◆に崩れ方を付けられるよ。'); return; }
       const tr = seq.transitions[j];
-      edit(() => { if (e.shiftKey) tr.method2 = tr.method2 === k || tr.method === k ? '' : k; else tr.method = k; seq.selection = { kind: 'tr', i: j }; });
+      edit(() => { if (e.shiftKey) tr.method2 = tr.method2 === k || tr.method === k ? '' : k; else tr.method = k; normalizeImageTransition(tr);seq.selection = { kind: 'tr', i: j }; });
       showTab('edit');
     },
   });
@@ -1079,18 +1110,19 @@ function inspectSlide(box, title, i, s) {
 function inspectTransition(box, title, i, tr) {
   title.textContent = `◆ 変形 ${i + 1} → ${i + 2}`;
   const m = selectOf(methodEntries(tr.method), tr.method);
-  field(box, '崩れ方', m).onchange = () => edit(() => { tr.method = m.value; });
+  field(box, '崩れ方', m).onchange = () => edit(() => { tr.method = m.value;normalizeImageTransition(tr); });
   const m2 = selectOf([['', '同じ崩れ方で戻る'], ...methodEntries(tr.method2).map(([k, v]) => [k, v + 'で戻る'])], tr.method2 || '');
-  field(box, '戻り方（ミックス）', m2).onchange = () => edit(() => { tr.method2 = m2.value; });
+  field(box, '戻り方（ミックス）', m2).onchange = () => edit(() => { tr.method2 = m2.value;normalizeImageTransition(tr); });
+  const imageCode=imageTransition(tr);
   const on = document.createElement('input'); on.type = 'checkbox'; on.checked = tr.shape !== 'none';
   field(box, '立体化する', on).onchange = () => edit(() => {
     if (on.checked) tr.shape = tr.shapePrev && tr.shapePrev !== 'none' ? tr.shapePrev : 'sphere';
     else { tr.shapePrev = tr.shape; tr.shape = 'none'; }
   });
   const hint = document.createElement('p'); hint.className = 'hint';
-  hint.textContent = on.checked ? '画像 → ぐちゃぐちゃ → 立体 → 次の画像' : '画像 → ぐちゃぐちゃ → 次の画像（立体化を飛ばす）';
+  hint.textContent = imageCode?'JavaScript画像メソッド：画像 → 物理演出 → 選んだ立体 → 次の画像。立体化をオフにもできます。絵柄シャッフル・画面効果は未対応。メソッドのミックスは映像クロスフェードです。':on.checked ? '画像 → ぐちゃぐちゃ → 立体 → 次の画像' : '画像 → ぐちゃぐちゃ → 次の画像（立体化を飛ばす）';
   box.append(hint);
-  const mix = document.createElement('input'); mix.type = 'checkbox'; mix.checked = tr.mixTiles !== false;
+  const mix = document.createElement('input'); mix.type = 'checkbox'; mix.checked = tr.mixTiles !== false;mix.disabled=!!imageCode;
   mix.title = '崩れている間、画像を断片に分けて混ぜます。オフにすると、絵柄がそのまま貼られます（世界地図の画像なら、球が本物の地球儀になります）。';
   field(box, '絵柄を混ぜる', mix).onchange = () => edit(() => { if (mix.checked) delete tr.mixTiles; else tr.mixTiles = false; });
   if (savedModels.has(tr.shape)) {
@@ -1103,7 +1135,7 @@ function inspectTransition(box, title, i, tr) {
     late.title = 'オフ（初期値）：立体の途中で、次の画像に入れ替わります。オンにすると、立体の間は前の画像のままで、立体が崩れてから次の画像になります（世界地図なら、地球儀のまま崩れます）。';
     field(box, '立体は前の画像のまま', late).onchange = () => edit(() => { if (late.checked) tr.lateSwap = true; else delete tr.lateSwap; });
   }
-  if (!on.checked) {
+  if (!on.checked&&!imageCode) {
     const flow = selectOf([['through', '通り抜ける（崩れて去り、次が反対側から来る）'], ['reveal', '吹き飛んで次が現れる（次の画像はそのまま）'], ['return', '行って戻る（同じ動きで戻る）']], tr.flow ?? 'through');
     field(box, '流れ方', flow).onchange = () => edit(() => { tr.flow = flow.value; });
   }
@@ -1192,7 +1224,7 @@ function restore(snap) {
   seq.lyricDocument=cleanLyricDocument(snap.lyricDocument);seq.lyricMotion=cleanLyricSettings(snap.lyricMotion);
   if(seq.audioBlob!==snap.audioBlob){stopPlay();if(audioURL)URL.revokeObjectURL(audioURL);audioURL=snap.audioBlob?URL.createObjectURL(snap.audioBlob):'';seq.audio=audioURL?new Audio(audioURL):null;}
   Object.assign(seq,{audioBlob:snap.audioBlob,audioOwner:snap.audioOwner,audioName:snap.audioName||'',audioBuffer:snap.audioBuffer});$('seq-audio-name').textContent=seq.audioName;
-  lyricOverlay?.prepare(seq.lyricDocument).then(()=>renderAt(seq.t));
+  lyricOverlay?.prepare(seq.lyricDocument).then(()=>renderAt(seq.t)).catch(e=>notice(e.message));
   const old = new Map(seq.slides.map(s => [s.id, s]));
   seq.slides = snap.slides.map(x => {
     const o = old.get(x.id);
@@ -1433,7 +1465,7 @@ async function restoreProject(json, blobs) {
   renderLyricRows();
   refreshUI();
   await prepareShapes().catch(e => console.warn(e));
-  await lyricOverlay?.prepare(seq.lyricDocument);
+  await prepareDocumentFont();
   renderAt(0);
 }
 async function convertLyricProject(){if(seq.recording)return;await releaseSaveFile();beginEdit();const result=convertLegacyLyrics(seq);seq.slides.forEach(dropTexture);seq.slides=result.slides.map(s=>({...s,...(!s.img&&!s.lyric?{img:blankImage()}:{})}));seq.transitions=result.transitions;seq.link=false;seq.selection=null;setLyricDocument(result.document);endEdit();lyricStatus='テキストモーション版を作りました。元ファイルとは別名で保存してください。';}
@@ -1450,7 +1482,7 @@ async function exportProject() {
 // enables them. Code that is already here (the same code) is reused. The ◆ of the file are pointed at the local ids before the project is restored.
 async function prepareImportedMethods(json) {
   const { methods, problems } = validateEmbedded(json.methods, json.version);
-  const plan = await planImport({ embedded: methods, local: listCustom().map(c => ({ id: c.id, vertex: c.vertex })), hash: sourceHash, newId: newCustomId });
+  const plan = await planImport({ embedded: methods, local: listCustom(), hash: sourceHash, newId: newCustomId });
   registerQuarantined(plan.created);
   json.transitions = remapTransitions(json.transitions, plan.map);
   return { created: plan.created.length, createdIds: plan.created.map(m => m.id), reused: plan.reused.length, problems };
@@ -1502,7 +1534,7 @@ const timelineApi = {
     return { label: label + (tr.fx && Object.keys(tr.fx).length ? ' ✦' : ''), flat: tr.shape === 'none', bands: tr.shape === 'none' ? [['chaos', 3, 97]] : PHASE_BANDS, title: `${label}（${+tr.beats.toFixed(2)}拍）\nドラッグで切り替え位置、両端で長さ` };
   },
   isLinked: k => seq.link && linkedTransition(seq.lyrics[k]?.id) >= 0,
-  select: sel => {if(sel.kind==='lyric'&&seq.lyricDocument){lyricSelectedId=seq.lyrics[sel.i]?.id;seq.selection=sel;showTab('lyric');lyricControls?.refresh();timeline.render();return} seq.selection = sel; renderInspector(); renderMethodGrid(); timeline.render(); showTab('edit'); },
+  select: sel => {if(sel.kind==='lyric'&&seq.lyricDocument){lyricSelectedId=seq.lyrics[sel.i]?.id;seq.selection=sel;showTab('lyric');lyricControls?.refresh();lyricControls?.revealQuick();timeline.render();return} seq.selection = sel; renderInspector(); renderMethodGrid(); timeline.render(); showTab('edit'); },
   seek, beginEdit, endEdit, snapshotTimes, dragEdit, moveSlide, replaceSlide, insertImages, undo, redo,
   editLyricText: i => { timelineApi.select({ kind: 'lyric', i }); setTimeout(() => { const t = $('insp-lyric-text'); t?.focus(); t?.select(); }, 0); },
   setLink: on => edit(() => { seq.link = on; }),
@@ -1557,7 +1589,7 @@ function wire() {
     if (!f) return;
     try { await loadAudio(f, f.name); } catch (err) { console.error(err); notice('音楽を読み込めませんでした。'); }
   };
-  lyricControls=createLyricControls({getState:lyricState,onAction:lyricAction});$('pane-lyric').append(lyricControls.element);
+  lyricControls=createLyricControls({getState:lyricState,onAction:lyricAction});$('pane-lyric').append(lyricControls.element);if(location.hash==='#lyric')showTab('lyric');
   $('seq-with-audio').onchange=e=>{seq.withAudio=e.target.checked;scheduleSave()};
   $('seq-offset').onchange = e => edit(()=>{seq.offset=Number(e.target.value);});
   $('seq-play').onclick = () => togglePlay();
@@ -1597,13 +1629,14 @@ function wire() {
     }
     renderAt(seq.t);
   };
+  let exportController=null;const cancelExport=document.createElement('button');cancelExport.id='seq-export-cancel';cancelExport.textContent='書き出しを中止';cancelExport.hidden=true;cancelExport.onclick=()=>exportController?.abort(new DOMException('書き出しを中止しました。','AbortError'));$('seq-export').after(cancelExport);
   $('seq-export').onclick = async () => {
     stopPlay();
     if(seq.lyricDocument){const check=getTimings(seq.lyricDocument,seq.audioBuffer?.duration||12),pending=seq.lyricDocument.events.filter(e=>e.decision==='pending');if(pending.length){notice(`未分類の行が${pending.length}行あります。歌詞・曲タブで扱いを選んでください。`);showTab('lyric');return}if(check.issues.length){notice(check.issues.map(x=>x.message).join(' / '));showTab('lyric');return}if(check.events.some(e=>e.provisional)&&!confirm('仮タイミングの歌詞があります。この配置のまま動画を書き出しますか？'))return;}
     const fps = Number($('seq-fps').value), q = Number($('seq-quality').value), look = $('seq-hq').value, format = $('seq-format').value;
-    $('seq-export').disabled = true;
+    $('seq-export').disabled = true;exportController=new AbortController();cancelExport.hidden=false;
     try {
-      const blob = await exportVideo({ fps, quality: q, look, format, onProgress: p => { $('seq-progress').value = p * 100; } });
+      const blob = await exportVideo({ fps, quality: q, look, format, signal:exportController.signal, onProgress: p => { $('seq-progress').value = p * 100; } });
       const url = URL.createObjectURL(blob);
       $('seq-download').href = url;
       $('seq-download').download = `unfold-sequence-${Date.now()}.${format}`;
@@ -1611,9 +1644,10 @@ function wire() {
       $('seq-result').src = url; $('seq-result').hidden = false;
       notice(`書き出し完了：${(blob.size / 1048576).toFixed(1)} MB（${fps}fps・コマ落ちなし）`);
     } catch (e) { console.error(e); notice(e.message || '書き出しに失敗しました'); }
-    finally { $('seq-export').disabled = false; }
+    finally { $('seq-export').disabled = false;cancelExport.hidden=true;exportController=null; }
   };
   document.addEventListener('keydown', e => {
+    if(document.querySelector('dialog.motion-studio[open]'))return;
     const typing=['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)||e.target.isContentEditable||e.isComposing;
     if(lyricTapping&&!typing){if(e.code==='Space'){e.preventDefault();lyricAction({type:'tap-now'})}else if(e.code==='Backspace'){e.preventDefault();lyricAction({type:'tap-back'})}else if(e.code==='Escape')lyricAction({type:'tap-stop'});return}
     if(seq.recording)return;
@@ -1630,13 +1664,14 @@ function wire() {
 let playStart = 0, playFrom = 0;
 function togglePlay() { seq.playing ? stopPlay() : startPlay(); }
 function startPlay() {
+  lyricPreviewStop=null;
   if (!totalSeconds()||seq.recording) return;
   if (seq.t >= totalSeconds() - 0.01) seq.t = 0;
   seq.playing = true; playFrom = seq.t; playStart = performance.now();
   if(seq.audio){seq.audio.currentTime=Math.max(0,seq.t+seq.offset);if(seq.t+seq.offset>=0)seq.audio.play().catch(()=>notice('音楽の再生ボタンをもう一度押してください。'));}
   $('seq-play').textContent = 'Ⅱ';
 }
-function stopPlay() { seq.playing = false; seq.audio?.pause(); $('seq-play').textContent = '▶'; applyLookView(); }
+function stopPlay() { lyricPreviewStop=null;seq.playing = false; seq.audio?.pause(); $('seq-play').textContent = '▶'; applyLookView(); }
 let lastTickAt = 0;
 function tick(now) {
   // the time between animation frames, for the watch on custom methods (only while playing, never while exporting)
@@ -1646,6 +1681,7 @@ function tick(now) {
     const wallTime=playFrom+(now-playStart)/1000;
     if(seq.audio&&seq.audio.paused&&!seq.audio.ended&&wallTime+seq.offset>=0&&seq.t+seq.offset<0)seq.audio.play().catch(()=>{});
     seq.t = seq.audio && !seq.audio.paused ? seq.audio.currentTime - seq.offset : playFrom + (now - playStart) / 1000;
+    if(lyricPreviewStop&&seq.t>=lyricPreviewStop.end){const hold=lyricPreviewStop.hold;stopPlay();seq.t=hold}
     if (seq.t >= totalSeconds()) { seq.t = totalSeconds(); stopPlay(); }
     renderAt(seq.t);
     timeline?.setTime(seq.t);
@@ -1671,7 +1707,7 @@ try {
   renderer = new THREE.WebGLRenderer({ canvas: $('seq-canvas'), antialias: true, alpha: false, preserveDrawingBuffer: true });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   sceneBlur = new SceneBlur(renderer);
-  lyricOverlay=createLyricOverlay(renderer);
+  lyricOverlay=createLyricOverlay(renderer,{onReady:()=>{if(!seq.recording)renderAt(seq.t)},onError:e=>{lyricFontStatus=e.message;lyricControls?.refresh()}});
   scene = new THREE.Scene();
   camera = new THREE.OrthographicCamera(-4.8, 4.8, 2.7, -2.7, .1, 100);
   camera.position.z = 10;
@@ -1687,9 +1723,9 @@ try {
   onRegistryChange(() => { renderMethodGrid(); renderInspector(); if (!seq.playing) renderAt(seq.t); });
   safety = createSafety({ notify: notice });
   methodTrial = createTrial({ vertexShader, fragmentShader });
-  methodEditor = createMethodEditor({ vertexShader, fragmentShader, notify: notice, safety, trial: methodTrial, onExportFile: record => downloadMethodFile([record], { notify: notice }), getRenderLook: () => seq.renderLook, onApplyRenderLook: value => { if(seq.recording)return;seq.renderLook=cleanRenderLook(value);renderFxPanel();renderAt(seq.t);scheduleSave(); }, getPreviewImage: () => (seq.slides[0] ? slideCanvas(seq.slides[0]) : null) });
+  methodEditor = createImageMethodEditor({ vertexShader, fragmentShader, notify: notice, safety, trial: methodTrial, onExportFile: record => downloadMethodFile([record], { notify: notice }), getRenderLook: () => seq.renderLook, onApplyRenderLook: value => { if(seq.recording)return;seq.renderLook=cleanRenderLook(value);renderFxPanel();renderAt(seq.t);scheduleSave(); }, getPreviewImage: () => {const i=seq.selection?.i??locate(seq.t).i;return seq.slides[i]?slideCanvas(seq.slides[i]):null},getPreviewTarget:()=>{const i=seq.selection?.kind==='tr'?seq.selection.i:Math.max(0,locate(seq.t).tr);const tr=seq.transitions[i];if(!tr||tr.shape==='none')return null;const geo=geoCache.get(shapeKey(tr,i));return geo?imageTarget(geo,{shape:tr.shape,preset:presetNames.includes(tr.shape)||savedModels.has(tr.shape)||isFlatShape(tr),project:!!isFlatShape(tr)}):null} });
   methodEnabler = createEnabler({ compile: source => compileUserMethod(renderer, { vertexShader, fragmentShader, source }), trial: source => methodTrial.run(source), safety, notify: notice });
-  quarantineBanner = createQuarantineBanner($('seq-quarantine'), { onReview: id => methodEditor.open({ id, review: true }), onEnable: id => methodEnabler.enable(id) });
+  quarantineBanner = createQuarantineBanner($('seq-quarantine'), { onReview: id => methodEditor.open({ id, review: true }), onEnable: id => isImageMethodKey(id)?methodEditor.open({id,review:true}):methodEnabler.enable(id) });
   // saved custom methods come back when the page opens; from then on every change in the registry is saved
   methodPersistence = createPersistence({ store: openStore(), onError: () => notice('自作メソッドをこのブラウザに保存できませんでした。') });
   // saving starts first, so that what recoverFromCrash switches off is saved too
@@ -1725,6 +1761,21 @@ try {
   timeline.fit();
   resize();
   requestAnimationFrame(tick);
+  attachWorkshopLink({notify:notice,beforeApply:item=>{
+    if(seq.recording)throw Error('書き出しが終わってから適用してください。');
+    if(item.kind==='text'){if(seq.selection?.kind!=='lyric'||!lyricSelectedId)throw Error('タイムラインの歌詞を選んでから使ってください。');return {lyricId:lyricSelectedId,document:seq.lyricDocument};}
+    if(seq.selection?.kind!=='tr'||!seq.transitions[seq.selection.i])throw Error('タイムラインの◆変形を選んでから使ってください。');
+    return {tr:seq.transitions[seq.selection.i]};
+  },apply:async(item,target,activate)=>{
+    if(seq.recording)throw Error('書き出しが終わってから適用してください。');
+    if(item.kind==='text'){
+      if(seq.lyricDocument!==target.document)throw Error('歌詞が変更されました。もう一度適用してください。');
+      await lyricAction({type:'lyric-style',id:target.lyricId,patch:item.motion});
+    }else{
+      const tr=target.tr;if(!seq.transitions.includes(tr))throw Error('変形が変更されました。もう一度適用してください。');
+      const method=activate();edit(()=>{tr.method=method.id;normalizeImageTransition(tr)});showTab('edit');
+    }
+  }});
   window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile };
   window.unfoldMethods = { registerCustom, unregisterCustom, setCustomStatus, listCustom, variants, editor: methodEditor, persistence: methodPersistence, safety, enabler: methodEnabler, transfer: { importFile: importMethodFile, importText: importMethodText, download: downloadMethodFile } };
 } catch (e) {

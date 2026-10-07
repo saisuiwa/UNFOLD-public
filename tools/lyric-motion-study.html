@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>UNFOLD — Type Motion Studies</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eeeee8;color:#20231f;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif}main{max-width:1320px;margin:auto;padding:28px 36px}header{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid #bfc2b6;padding-bottom:20px}h1{font-size:28px;letter-spacing:-1px;margin:4px 0}h1 span{font-weight:400}small,.eyebrow{font-size:11px;letter-spacing:2px}.tag{border:1px solid #aab09d;padding:7px 10px;border-radius:24px;font-size:12px}.intro{font-size:14px;color:#666c5e;line-height:1.8;margin:17px 0}section{display:grid;grid-template-columns:1fr 246px;gap:22px}.viewer{min-width:0}canvas{width:100%;display:block;aspect-ratio:16/9;background:#111712;border-radius:3px}.bar{display:flex;align-items:center;gap:12px;margin:13px 0}.bar input{flex:1;min-width:50px;accent-color:#35472a}.time{font:12px monospace;min-width:84px}button,select{font:inherit;cursor:pointer;border:1px solid #b8bcae;background:transparent;color:inherit;padding:8px 12px;border-radius:4px}button:hover{background:#dfe4d5}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #5e8946;outline-offset:3px}#toggle{min-width:94px}aside h2{font-size:11px;letter-spacing:2px;font-weight:500;margin:0 0 12px}.choice{width:100%;text-align:left;display:block;margin-bottom:8px;padding:13px 12px}.choice b{display:block;font-size:14px}.choice small{font-size:10px;color:#71796a;letter-spacing:.7px}.choice[aria-pressed=true]{background:#202b1c;color:#f0f6dc;border-color:#202b1c}.choice[aria-pressed=true] small{color:#c2d398}.settings{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:12px;padding-top:12px;border-top:1px solid #c6cabd}.settings label{display:flex;align-items:center;gap:6px}.settings input[type=range]{width:88px;accent-color:#35472a}.notes{margin-top:17px;display:grid;grid-template-columns:1fr 1fr;gap:24px;font-size:13px;line-height:1.7}.notes b{font-size:14px}.notes p{margin:4px 0;color:#646d5b}.footer{font-size:11px;color:#76806a;margin-top:20px;line-height:1.8}.sources{display:flex;gap:18px;margin-top:8px}.sources a{color:#455c36}.phase{margin-left:auto;font-size:11px;color:#66765a}@media(max-width:820px){main{padding:20px}section{grid-template-columns:1fr}aside{display:grid;grid-template-columns:1fr 1fr;gap:6px}aside h2{grid-column:1/-1}.choice{margin:0}.notes{grid-template-columns:1fr;gap:10px}.tag{display:none}header h1{font-size:23px}}
+</style>
+<main><header><div><div class="eyebrow">UNFOLD / MOTION RESEARCH 01</div><h1>文字が、演出になる。<span>Type studies</span></h1></div><div class="tag">比較用試作 · 本体への組込み前</div></header>
+<p class="intro">6つの構成に、表示中の揺れ・呼吸・グリッチ・波ワープ・残像を重ねる比較試作。定位置に着いたあとも、文字に余韻が続きます。</p>
+<section><div class="viewer"><canvas id="stage" width="1280" height="720" aria-label="選んだ文字演出のプレビュー"></canvas>
+<div class="bar"><button id="toggle">一時停止</button><input id="seek" type="range" min="0" max="6" step="0.01" value="0" aria-label="再生位置"><output class="time" id="time">0.00 / 6.00</output><button id="hold">読ませる瞬間</button></div>
+<div class="settings"><label>背景 <select id="background"><option value="dark">暗い背景</option><option value="light">明るい背景</option><option value="busy">動く背景</option></select></label><label>動き <input id="energy" type="range" min="0.5" max="1.4" step="0.1" value="1" aria-label="動きの強さ"></label><label><input type="checkbox" id="tour">6案を順番に再生</label><span id="phase" class="phase"></span></div>
+<div class="settings"><label>表示中の動き <select id="sustain"><option value="mix">構成に合わせてミックス</option value="none">なし（比較）</option><option value="sway">ゆらゆら</option><option value="breathe">呼吸する明滅</option><option value="glitch">短いグリッチ</option><option value="warp">波ワープ</option><option value="echo">ゆれる残像</option></select></label><label>効果の強さ <input id="fxStrength" type="range" min="0" max="1" step="0.1" value="0.6" aria-label="表示中の効果の強さ"></label><button id="sustainPlay">表示中を再生</button></div>
+<p id="fxNote" class="intro" style="font-size:12px;margin:10px 0"></p>
+<div class="notes"><div><b id="title"></b><p id="description"></p></div><div><b>曲の中での使いどころ</b><p id="use"></p></div></div></div><aside id="choices"><h2>COMPOSITION / 6 STUDIES</h2></aside></section>
+<div class="footer">各6秒・無音の構成見本です。歌声への自動同期、任意の歌詞の組版、動画書き出しはこの比較用ページには含みません。図形・コードはこの試作用に作成。外部の映像・フォントは使用していません。<div class="sources"><a href="https://www.dia.studio/work/spotify-the-drop-weekly" target="_blank" rel="noopener">DIA / Typography</a><a href="https://www.ordinaryfolk.co/process" target="_blank" rel="noopener">Ordinary Folk / Timing</a><a href="https://www.pentagram.com/work/channel-4" target="_blank" rel="noopener">Pentagram / System</a></div></div></main>
+<script>
+'use strict';
+const $=id=>document.getElementById(id),c=$('stage'),g=c.getContext('2d');
+const studies=[
+ ['01　余白で読ませる','EDITORIAL / MASK','語句ごとにマスクから滑り出し、大小の差で視線を導く。線とアクセントは文字より先に動く。','Aメロ、語りかける歌詞。長い文章は主役の語と補足に分ける。'],
+ ['02　拍を打つ、大きな言葉','IMPACT / ELASTIC','大きな語句が一度だけ弾み、斜めの色面と組み合わさる。読ませる時間には振動を止める。','サビの頭、決めの言葉。大きい演出の連続を避けて印象を残す。'],
+ ['03　縦に流れる、静かな詩','VERTICAL / POETIC','右から左へ柱を組み、文字が柔らかく連なる。細い線とゆっくりした余韻を添える。','静かなAメロ、ブリッジ。実装では句読点と英数字の縦組みも扱う。'],
+ ['04　響きが広がる','ECHO / DEPTH','輪郭の反復が奥から現れ、中央の語へ視線を集める。主役の歌詞は最後まで一つに保つ。','サビ終わり、余韻のある一語。補助の反復文字は装飾として薄くする。'],
+ ['05　ばらばらから、一つへ','SCATTER / ASSEMBLE','離れた文字が曲線に沿って集まり、意味のある一行になる。集まった後は位置を固定する。','「つながる」「集まる」などの歌詞。UNFOLDの画像変形とも関係を作れる。'],
+ ['06　一文字を、風景に','GLYPH / POSTER','巨大な輪郭の一文字と小さな語句を組む。帯のワイプで画面の構成自体を切り替える。','曲の転換点、終盤の一節。歌詞をただ中央に置く構成から変化を付ける。']
+];
+let selected=0,t=0,playing=!matchMedia('(prefers-reduced-motion: reduce)').matches,prev=0;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)},out=x=>1-Math.pow(1-clamp(x),4),lerp=(a,b,x)=>a+(b-a)*x;
+const enter=(s,d=.65)=>out((t-s)/d),exit=(s=5.15,d=.7)=>smooth((t-s)/d);
+let ink='#f0f4e8',accent='#dcfb87',muted='#9ba797',energy=1;
+const family='"Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
+const glyphCache=new Map();
+function glyphRaster(txt,size,color,outline,weight,serif){
+ const font=`${weight} ${size}px ${serif?'"Hiragino Mincho ProN", "Yu Mincho", serif':family}`;
+ const key=JSON.stringify([txt,size,color,outline,font]);if(glyphCache.has(key))return glyphCache.get(key);
+ const buf=document.createElement('canvas'),ctx=buf.getContext('2d');ctx.font=font;const width=ctx.measureText(txt).width,pad=Math.ceil(size*.25+8);buf.width=Math.ceil(width+pad*2);buf.height=Math.ceil(size*1.8+pad*2);
+ ctx.font=font;ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.strokeStyle=color;ctx.lineWidth=Math.max(1.5,size*.013);ctx.lineJoin='round';if(outline)ctx.strokeText(txt,pad,buf.height/2);else ctx.fillText(txt,pad,buf.height/2);
+ const entry={buf,width,pad};if(glyphCache.size>100)glyphCache.clear();glyphCache.set(key,entry);return entry;
+}
+function fxChoice(){const choice=$('sustain').value;return choice==='mix'?['sway','glitch','breathe','echo','warp','warp'][selected]:choice}
+const fxDescriptions={none:'表示中の効果なし。登場と退場だけを比較できます。',sway:'表示中も、位置と傾きがゆっくり揺れ続けます。',breathe:'小さな伸縮とゆっくりした明滅。文字を完全には消さず、呼吸のように動きます。',glitch:'短い時間だけ色ずれと横帯のずれを重ねます。白黒の全画面点滅は使いません。',warp:'文字の画像を細い列に分け、連続して波打たせる2D変形。別の文字へ変わる字形モーフとは異なります。',echo:'主役の文字の周りに薄い色の残像が揺れ続けます。'};
+function type(txt,x,y,size,{color=ink,alpha=1,rotate=0,scale=1,outline=false,weight=800,serif=false,align='center'}={}){
+ const effect=fxChoice(),strength=Number($('fxStrength').value),env=smooth((t-1.15)/.65)*(1-smooth((t-5.05)/.5)),a=size>=35?strength*env:0,phase=[...txt].reduce((n,ch)=>n+ch.codePointAt(0),0)*.137;
+ if(effect==='sway'||$('sustain').value==='mix'){x+=Math.sin(t*1.2+phase)*size*.035*a;y+=Math.sin(t*1.65+phase)*size*.045*a;rotate+=Math.sin(t*.85+phase)*.023*a}
+ if(effect==='breathe'){scale*=1+Math.sin(t*2+phase)*.035*a;alpha*=1-(.5+.5*Math.sin(t*2+phase))*.3*a}
+ g.save();g.globalAlpha*=clamp(alpha);g.translate(x,y);g.rotate(rotate);g.scale(scale,scale);g.font=`${weight} ${size}px ${serif?'"Hiragino Mincho ProN", "Yu Mincho", serif':family}`;g.textAlign=align;g.textBaseline='middle';g.lineJoin='round';g.fillStyle=color;g.strokeStyle=color;g.lineWidth=Math.max(1.5,size*.013);
+ const paint=()=>outline?g.strokeText(txt,0,0):g.fillText(txt,0,0);
+ if(effect==='warp'&&a>0){
+  const {buf,width,pad}=glyphRaster(txt,size,color,outline,weight,serif),left=(align==='left'?0:align==='right'?-width:-width/2)-pad;
+  for(let xx=0;xx<buf.width;xx+=2){const w=Math.min(2,buf.width-xx),wave=Math.sin(xx/Math.max(40,size*1.6)+t*2.1+phase)*size*.12*a;g.drawImage(buf,xx,0,w,buf.height,left+xx,-buf.height/2+wave,w,buf.height)}
+ }else{
+  if(effect==='echo'&&a>0){for(let j=3;j>=1;j--){g.save();g.globalAlpha*=.13*a*(4-j);g.fillStyle=j%2?'#57d9ef':'#f58bb8';g.strokeStyle=g.fillStyle;g.translate(Math.sin(t*1.2+phase-j*.3)*size*.08*j*a,Math.cos(t*.9+phase-j*.4)*size*.03*j*a);paint();g.restore()}}
+  const burst=effect==='glitch'&&a>0&&((t+phase*.01)%2.2)<.32;
+  if(burst){g.save();g.globalAlpha*=.65*a;g.fillStyle='#30dfff';g.strokeStyle=g.fillStyle;g.translate(-size*.05*a,0);paint();g.fillStyle='#ff508a';g.strokeStyle=g.fillStyle;g.translate(size*.1*a,0);paint();g.restore()}
+  paint();
+  if(burst){const {buf,width,pad}=glyphRaster(txt,size,color,outline,weight,serif),left=(align==='left'?0:align==='right'?-width:-width/2)-pad,sy=Math.floor(buf.height*(.35+.18*Math.sin(Math.floor(t*12))));g.globalAlpha*=.8;g.drawImage(buf,0,sy,buf.width,Math.max(2,size*.14),left+Math.sin(Math.floor(t*15)+phase)*size*.13*a,sy-buf.height/2,buf.width,Math.max(2,size*.14))}
+ }
+ g.restore();
+}
+function rect(x,y,w,h,color,alpha=1){g.save();g.globalAlpha*=clamp(alpha);g.fillStyle=color;g.fillRect(x,y,w,h);g.restore()}
+function line(x,y,xx,yy,color=muted,a=1){g.save();g.globalAlpha*=clamp(a);g.strokeStyle=color;g.lineWidth=1.5;g.beginPath();g.moveTo(x,y);g.lineTo(xx,yy);g.stroke();g.restore()}
+function masked(txt,x,y,size,delay,opts={}){const q=enter(delay);g.save();g.beginPath();g.rect(x-540,y-size*.63,1080,size*1.28);g.clip();type(txt,x,y+(1-q)*size*1.35*energy,size,{...opts,alpha:q});g.restore()}
+function background(){
+ const light=$('background').value==='light';ink=light?'#202e2b':'#f0f4e8';accent=light?'#476236':'#dcfb87';muted=light?'#7a8c81':'#9ba797';rect(0,0,1280,720,light?'#e6e8dd':'#101b1a');
+ if($('background').value==='busy'){
+  for(let i=0;i<8;i++){g.save();g.translate(640+Math.sin(t*.48+i)*340,360+Math.cos(t*.31+i*.8)*170);g.rotate(t*.1+i*.39);g.fillStyle=['#336eff','#ac408c','#31aea5'][i%3];g.fillRect(-170,-170,340,340);g.restore()}
+  rect(0,0,1280,720,'#071d20',.64);
+ }
+ line(55,61,1225,61,muted,.25);type(`UNFOLD / TYPE STUDY ${String(selected+1).padStart(2,'0')}`,58,39,11,{align:'left',weight:500,color:muted});type('MOTION / HOLD / TRANSITION',1224,39,11,{align:'right',weight:500,color:muted});
+}
+function editorial(){
+ const ex=exit();g.save();g.translate(0,-ex*60*energy);g.globalAlpha=1-ex;
+ rect(115,203,6,enter(0)*282,accent);masked('ひとつの',405,270,55,.15,{align:'center',weight:500});masked('言葉から',545,384,126,.38);
+ const q=enter(.65);rect(798,449,230*q,42,accent);type('世界が動き出す',913,470,22,{color:$('background').value==='light'?'#fff':'#172319',alpha:q});
+ line(144,540,144+990*enter(.25),540,muted,.45);type('A SMALL WORD. A WIDER WORLD.',145,574,13,{align:'left',color:muted,alpha:enter(.9),weight:500});g.restore();
+}
+function impact(){
+ const ex=exit();g.save();g.translate(640,360);g.rotate(-.075*energy);g.globalAlpha=1-ex;
+ const q=enter(.05,.75);g.save();g.translate(0,0);g.scale(q,1);rect(-475,-142,950,274,accent);g.restore();
+ const u=clamp((t-.3)/.85),bounce=1-Math.exp(-7*u)*Math.cos(11*u);type('その先へ',0,-5,165,{color:$('background').value==='light'?'#fff':'#172319',scale:Math.max(.01,1+(bounce-1)*energy),alpha:enter(.3,.3)});g.restore();
+ masked('まだ見たことのない',620,174,35,.05,{weight:500});masked('景色を、つくろう。',651,575,44,.8);
+ for(let i=0;i<4;i++){const a=i*Math.PI/2+.4,q2=enter(.5,.6);line(640+Math.cos(a)*505,355+Math.sin(a)*205,640+Math.cos(a)*(505+q2*35),355+Math.sin(a)*(205+q2*35),accent,(1-ex)*q2)}
+}
+function vertical(){
+ const ex=exit();rect(435,128,410,480,$('background').value==='light'?'#fff':'#dfe7d4',.05*(1-ex));
+ ['夜の余白に','そっと','音が咲く'].forEach((word,col)=>{const xx=787-col*146;[...word].forEach((ch,i)=>{const q=enter(.15+col*.3+i*.085,.95),yy=189+i*71;type(ch,xx+(1-q)*18*energy,yy+(1-q)*20*energy-ex*28,51,{serif:true,weight:500,alpha:q*(1-ex),color:col===1?accent:ink})})});
+ line(915,157,915,157+enter(.1,1.6)*386,accent,.7*(1-ex));type('静けさにも、リズムがある。',640,643,18,{weight:400,color:muted,alpha:enter(1.25)*(1-ex)});
+}
+function echo(){
+ const ex=exit();for(let i=5;i>=1;i--){const q=enter(i*.09,.85),scale=.65+i*.22+(1-q)*.16*energy;type('響け',640+(1-q)*15*i,360,170,{outline:true,scale,alpha:(.05+(5-i)*.018)*q*(1-ex),color:accent})}
+ const q=enter(.4,.85);type('響け',640,361,170,{scale:1+(1-q)*.6*energy,alpha:q*(1-ex)});masked('この声の、その向こうへ',640,570,27,.9,{weight:500});
+ const radius=210+enter(.1,1.6)*100;g.save();g.globalAlpha=.2*(1-ex);g.strokeStyle=accent;g.beginPath();g.arc(640,356,radius,-Math.PI*.8,-Math.PI*.8+enter(.2,1.3)*Math.PI*1.1);g.stroke();g.restore();
+}
+function assemble(){
+ const word='つながっていく',chars=[...word],ex=exit();chars.forEach((ch,i)=>{const q=enter(.15+i*.1,1.05),angle=i*2.399,xx=640+(i-(chars.length-1)/2)*123,yy=356;const dx=Math.cos(angle)*235*energy,dy=Math.sin(angle)*230*energy;
+  if(q>.01&&q<.99)line(xx+dx*(1-q),yy+dy*(1-q),xx+dx*(1-q)*.55,yy+dy*(1-q)*.55,accent,.16*(1-ex));
+  type(ch,xx+dx*(1-q)+Math.sin(q*Math.PI)*Math.sin(angle)*45*energy,yy+dy*(1-q)+Math.sin(q*Math.PI)*Math.cos(angle)*45*energy-ex*(i%2?1:-1)*90,103,{rotate:(1-q)*Math.sin(angle)*.8*energy,scale:.75+.25*q,alpha:Math.min(q*3,1)*(1-ex),color:i===3?accent:ink});
+ });
+ rect(190,448,900*enter(1.5,1),2,accent,(1-ex)*.6);type('点が集まり、ひとつの意味になる。',640,522,26,{alpha:enter(1.6)*(1-ex),weight:500,color:muted});
+}
+function poster(){
+ const ex=exit();g.save();g.beginPath();g.rect(65,92,1150,550);g.clip();const q=enter(.05,1.15);
+ type('光',400-(1-q)*320*energy,365,535,{outline:true,alpha:.32*q*(1-ex),rotate:-.06*energy,color:accent});
+ rect(647,213,390*enter(.3),71,accent,1-ex);type('あしたへ',840,249,42,{color:$('background').value==='light'?'#fff':'#172319',alpha:enter(.65)*(1-ex)});
+ masked('連れていく',840,358,61,.65);masked('小さな光',840,454,79,.92);line(672,528,672+345*enter(1.2),528,muted,1-ex);
+ rect(65,92,1150*ex,550,accent,ex);g.restore();
+}
+const renderers=[editorial,impact,vertical,echo,assemble];renderers.push(poster);
+studies.forEach((s,i)=>{const b=document.createElement('button');b.className='choice';b.innerHTML=`<b>${s[0]}</b><small>${s[1]}</small>`;b.onclick=()=>{playing=true;select(i)};$('choices').append(b)});
+function select(i){selected=i;t=0;studies.forEach((s,j)=>$('choices').children[j+1].setAttribute('aria-pressed',i===j?'true':'false'));$('title').textContent=studies[i][0];$('description').textContent=studies[i][2];$('use').textContent=studies[i][3];draw()}
+function draw(){energy=Number($('energy').value);background();g.save();g.globalAlpha=1-smooth((t-5.85)/.15);renderers[selected]();g.restore();$('seek').value=t;$('time').textContent=`${t.toFixed(2)} / 6.00`;$('phase').textContent=t<1.9?'登場':t<5.15?'表示中の動き':'退場';$('toggle').textContent=playing?'一時停止':'再生';$('fxNote').textContent=fxDescriptions[fxChoice()]}
+$('toggle').onclick=()=>{playing=!playing;draw()};$('hold').onclick=()=>{playing=false;t=2.8;draw()};$('seek').oninput=()=>{playing=false;t=+$('seek').value;draw()};$('background').onchange=draw;$('energy').oninput=draw;
+$('sustain').onchange=()=>{t=1.9;playing=true;draw()};$('fxStrength').oninput=draw;$('sustainPlay').onclick=()=>{t=1.9;playing=true;draw()};
+function frame(now){if(playing){t+=Math.min(.1,(now-prev)/1000);if(t>=6){t%=6;if($('tour').checked)select((selected+1)%studies.length)}draw()}prev=now;requestAnimationFrame(frame)}
+select(0);requestAnimationFrame(frame);
+</script></html>

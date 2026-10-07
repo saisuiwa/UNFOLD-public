@@ -1,3 +1,8 @@
+import {attachWorkshopLink} from './workshop-link.js';
+import {imageTarget} from './image-method-target.js';
+import {encodeCanvasVideo} from './frame-video.js';
+import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
+import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=2';
 import { createShotControls } from './shot-motion-controls.js?v=2';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
@@ -13,9 +18,9 @@ import {particleParts} from './model-layout.js?v=10';
 import {createTextShape,validateText} from './text-shape.js?v=9';
 import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from './mask-shape.js?v=5';
 import {effectsAt,SceneBlur} from './effects.js?v=28';
-import {BUILTIN_KEYS,listCustom,onRegistryChange,registerCustom,resolveKey,setCustomStatus,unregisterCustom} from './method-registry.js';
+import {BUILTIN_KEYS,getCustom,listCustom,onRegistryChange,registerCustom,resolveKey,setCustomStatus,unregisterCustom} from './method-registry.js';
 import {createPersistence,openStore} from './method-library.js';
-import {createMethodEditor} from './method-editor.js?v=6';
+import {createImageMethodEditor} from './image-method-editor.js';
 import {createSafety} from './method-safety.js';
 import {createTrial} from './method-trial.js';
 import {createEnabler} from './method-verify.js';
@@ -25,12 +30,15 @@ import {grainSingleNote,tileSingleNote} from './slider-notes.js?v=1';
 import {applyTiles,tilesAcross} from './tile-size.js?v=1';
 import {methodButtons,syncMethodTiles} from './method-tiles.js';
 import {compileUserMethod,createVariants} from './custom-method.js';
+let imageLayer,imageInput;
+function getImageLayer(){return imageLayer??=createImageMethodLayer(renderer,{onReady:()=>{if(!state.recording)render()},onError:e=>notice(e.message)})}
+async function prepareImageFrame(){render();if(imageInput)await getImageLayer().prepare(imageInput);render()}
 const MAX_SAVED_MODELS=100;   // GLBs kept in this browser (shared with the sequence page)
 let activeGroup=loadActive('unfold-glb-tab');   // the GLB tab in use (the same one the sequence page remembers)
 const customShapes=new Map(),savedModels=new Map();let customSerial=0,importing=false;
 const $=id=>document.getElementById(id);
 const loadShot=()=>{try{return cleanShot(JSON.parse(localStorage.getItem('unfold-single-shot')||'null'))}catch{return cleanShot()}};
-const state={shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+const state={imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
@@ -75,16 +83,16 @@ function resize(){
 }
 function setCamera(aspect){const height=Math.max(5.4,6.8/aspect);camera.left=-height*aspect/2;camera.right=height*aspect/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix()}
 function render(){
- if(!mesh)return;const m=motionAt(state.t),u=mesh.material.uniforms;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
- u.uDistort.value=m.distort;u.uForm.value=m.form;u.uStrength.value=state.strength;u.uDepth.value=state.depth;u.uSeed.value=state.seed;u.uMethod.value=pick.uMethod;u.uMethod2.value=pick.uMethod2;u.uShape.value=shapeIds[state.shape]??0;
- u.uPreset.value=(presetNames.includes(state.shape)||customShapes.has(state.shape))?1:0;u.uProject.value=customShapes.get(state.shape)?.kind==='text'?1:0;u.uConceal.value=state.mystery?smooth(.08,.24,state.t)*(1-smooth(.80,.94,state.t)):0;
+ if(!mesh)return;const imageCode=isImageMethodKey(state.method),m=motionAt(state.t),u=mesh.material.uniforms;if(imageCode&&!state.imageSolid)m.form=0;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
+ u.uDistort.value=imageCode?0:m.distort;u.uForm.value=m.form;u.uStrength.value=state.strength;u.uDepth.value=state.depth;u.uSeed.value=state.seed;u.uMethod.value=pick.uMethod;u.uMethod2.value=pick.uMethod2;u.uShape.value=shapeIds[state.shape]??0;
+ u.uPreset.value=(presetNames.includes(state.shape)||customShapes.has(state.shape))?1:0;u.uProject.value=customShapes.get(state.shape)?.kind==='text'?1:0;u.uConceal.value=!imageCode&&state.mystery?smooth(.08,.24,state.t)*(1-smooth(.80,.94,state.t)):0;
  // All camera motion fades out with deformation, guaranteeing a flat identical final image.
- const preset=u.uPreset.value===1;
+ const preset=u.uPreset.value===1,orientation=imageCode&&!state.imageSolid?m.distort:m.form;
  const isText=customShapes.get(state.shape)?.kind==='text';
  const base=preset?(state.shape==='pegasus'?-.30:.20):.42;
- mesh.rotation.set(((preset?-.06:-.18)+state.viewX)*m.form,isText?(.12+state.viewY)*m.form:(base+state.viewY)*m.form+m.turn-(preset?motionAt(.56).turn*m.form:0),0);renderer.setClearColor(state.bg,1);
+ mesh.rotation.set(((preset?-.06:-.18)+state.viewX)*orientation,isText?(.12+state.viewY)*orientation:(base+state.viewY)*orientation+m.turn-(preset?motionAt(.56).turn*m.form:0),0);renderer.setClearColor(state.bg,1);
  const spin=rotationAt(state.shot.rotation,state.t,'single');
- if(spin){mesh.rotation.set(state.viewX*m.form,state.viewY*m.form,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
+ if(spin){mesh.rotation.set(state.viewX*orientation,state.viewY*orientation,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
  const fx=effectsAt(state.t,state.duration,state);
  const imageSize=u.uSize.value,frameW=camera.right-camera.left,frameH=camera.top-camera.bottom;
  const fillZoom=Math.max(frameW/imageSize.x,frameH/imageSize.y);
@@ -95,12 +103,15 @@ function render(){
  camera.zoom=move.zoom;camera.position.x=move.x;camera.position.y=move.y;camera.rotation.z=move.roll;camera.updateProjectionMatrix();
  applyRenderLook(u,state.renderLook);
  const view=syncPerspective(camera,perspCam,state.renderLook.enabled?state.renderLook.perspective:0);
- u.uGlass.value=fx.glass;sceneBlur.render(scene,view,fx.blur,fx.glitch,fx.chroma,fx.seconds,fx);safety?.afterDraw();updateTransport(m);
+ u.uGlass.value=imageCode?0:fx.glass;sceneBlur.render(scene,view,imageCode?0:fx.blur,imageCode?0:fx.glitch,imageCode?0:fx.chroma,fx.seconds,imageCode?{}:fx);
+ imageInput=null;
+ if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText}):null,id:state.method,imageA:sourceCanvas,imageB:sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};const fade=smoothImage(state.t/.025)*smoothImage((1-state.t)/.025);if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
+ safety?.afterDraw();updateTransport(m);
 }
 function updateTransport(m=motionAt(state.t)){
  $('timeline').value=Math.round(state.t*1000);$('current-time').textContent=(state.t*state.duration).toFixed(1).padStart(4,'0');$('total-time').textContent=state.duration.toFixed(1)+' s';
- const titles=['01 / 元の画像','02 / ぐちゃぐちゃ','03 / 立体化','04 / 元どおり'];$('phase-badge').textContent=titles[m.phase];
- $('stage-caption').textContent=['ここから、変化がはじまる。','かたちをほどいて、自由に。','平面から、もうひとつのかたちへ。','最後は、最初の一枚へ。'][m.phase];
+ const titles=['01 / 元の画像','02 / ぐちゃぐちゃ',isImageMethodKey(state.method)&&!state.imageSolid?'03 / コード演出':'03 / 立体化','04 / 元どおり'];$('phase-badge').textContent=titles[m.phase];
+ $('stage-caption').textContent=['ここから、変化がはじまる。','かたちをほどいて、自由に。',isImageMethodKey(state.method)&&!state.imageSolid?'画像片が動く、コードの演出。':'平面から、もうひとつのかたちへ。','最後は、最初の一枚へ。'][m.phase];
  document.querySelectorAll('.chapters button').forEach((b,i)=>b.classList.toggle('current',i===m.phase));
  $('play').textContent=state.playing?'Ⅱ':'▶';$('play').setAttribute('aria-label',state.playing?'一時停止':'再生');
 }
@@ -114,8 +125,19 @@ function showInspectorPane(name){
 }
 // the grain and tile sliders only reach some methods (and, for grain, some shapes): say so beside them
 function updateSliderNotes(){const g=$('particle-detail-note'),t=$('tile-size-note');if(g)g.textContent=grainSingleNote({method:state.method,shapeHasGrain:customShapes.has(state.shape)}).text;if(t)t.textContent=tileSingleNote({method:state.method},state.tiles).text}
+function syncImageControls(){
+ const code=isImageMethodKey(state.method);document.querySelector('#pane-shape .form-section').hidden=false;
+ let toggle=$('image-solid');if(!toggle){const label=document.createElement('label');label.id='image-solid-control';label.className='range-label';toggle=document.createElement('input');toggle.id='image-solid';toggle.type='checkbox';toggle.onchange=()=>{state.imageSolid=toggle.checked;syncImageControls();render()};label.append(toggle,' 立体化する');document.querySelector('#pane-shape .form-section').prepend(label)}toggle.checked=state.imageSolid;$('image-solid-control').hidden=!code;
+ let hint=$('image-shape-note');if(!hint){hint=document.createElement('p');hint.id='image-shape-note';hint.className='hint';$('pane-shape').prepend(hint)}hint.hidden=!code;hint.textContent='画像片が選んだ立体・GLBへ集まり、画像へ戻ります。「立体化する」をオフにすると物理演出だけになります。';
+ for(const id of ['tile-size','randomize','mystery','fx-blur','fx-chroma','fx-glitch','fx-bloom','fx-neon','fx-glass','fx-scan','fx-grain','fx-vignette','fx-bokeh'])if($(id))$(id).disabled=code;
+ $('intensity').min=code?0:10;$('tab-shape').textContent='03 立体';
+ const chapter=document.querySelector('.chapters [data-time="0.60"] b');if(chapter)chapter.textContent=code&&!state.imageSolid?'コード演出':'立体化';
+}
 function setChoice(container,key,value){
- state[key]=value;
+ const wasImage=isImageMethodKey(state.method);state[key]=value;
+ if(key==='method'&&wasImage!==isImageMethodKey(value)){const {x:w,y:h}=mesh.material.uniforms.uSize.value;const old=mesh.geometry;mesh.geometry=geometryFor(w,h);old.dispose();}
+ if(key==='method')syncImageControls();
+ if(key==='method'){let note=$('image-code-note');if(!note){note=document.createElement('p');note.id='image-code-note';$('methods').after(note)}note.hidden=!isImageMethodKey(value);note.textContent='JavaScript＋物理演算：画像 → 物理演出 → 選んだ立体 → 元の画像。「03 立体」で形とオン・オフを選べます。絵柄シャッフル・既存の画面効果は未対応です。';}
  if(key==='shape'){
   const {x:w,y:h}=mesh.material.uniforms.uSize.value;const old=mesh.geometry;mesh.geometry=geometryFor(w,h);old.dispose();
   $('remove-model').hidden=!customShapes.has(value);updateGroupBox();
@@ -251,7 +273,7 @@ function wireControls(){
    tag:$('methods-tag'),
    onAdd:()=>methodEditor.open(),
    onImport:()=>pickMethodFile({notify:notice}),
-   onMenu:(id,anchor)=>openMethodMenu(anchor,id,{onEdit:key=>methodEditor.open({id:key}),onDuplicate:key=>methodEditor.open({copyOf:key}),onDelete:key=>{unregisterCustom(key);notice('自作メソッドを削除しました。')},onEnable:key=>methodEnabler.enable(key),onReview:key=>methodEditor.open({id:key,review:true}),onExport:key=>exportMethod(key,{notify:notice})}),
+   onMenu:(id,anchor)=>openMethodMenu(anchor,id,{onEdit:key=>methodEditor.open({id:key}),onDuplicate:key=>methodEditor.open({copyOf:key}),onDelete:key=>{if(state.method===key)setChoice('methods','method','crumple');unregisterCustom(key);notice('自作メソッドを削除しました。')},onEnable:key=>isImageMethodKey(key)?methodEditor.open({id:key,review:true}):methodEnabler.enable(key),onReview:key=>methodEditor.open({id:key,review:true}),onExport:key=>exportMethod(key,{notify:notice})}),
    onPick:key=>setChoice('methods','method',key),
   });
   methodButtons($('methods')).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.method===state.method)));
@@ -260,10 +282,10 @@ function wireControls(){
  renderControls=createRenderControls({value:state.renderLook,onChange:value=>{if(state.recording)return;state.renderLook=value;render()}});$('pane-effects').prepend(renderControls.element);
  safety=createSafety({notify:notice});
  const methodTrial=createTrial({vertexShader,fragmentShader});
- methodEditor=createMethodEditor({vertexShader,fragmentShader,notify:notice,safety,trial:methodTrial,onExportFile:record=>downloadMethodFile([record],{notify:notice}),getRenderLook:()=>state.renderLook,onApplyRenderLook:value=>{if(state.recording)return;state.renderLook=cleanRenderLook(value);renderControls.setValue(state.renderLook);render()},getPreviewImage:()=>sourceCanvas});
+ methodEditor=createImageMethodEditor({vertexShader,fragmentShader,notify:notice,safety,trial:methodTrial,onExportFile:record=>downloadMethodFile([record],{notify:notice}),getRenderLook:()=>state.renderLook,onApplyRenderLook:value=>{if(state.recording)return;state.renderLook=cleanRenderLook(value);renderControls.setValue(state.renderLook);render()},getPreviewImage:()=>sourceCanvas,getPreviewTarget:()=>imageTarget(mesh.geometry,{shape:state.shape,preset:presetNames.includes(state.shape)||customShapes.has(state.shape),project:customShapes.get(state.shape)?.kind==='text'})});
  methodEnabler=createEnabler({compile:source=>compileUserMethod(renderer,{vertexShader,fragmentShader,source}),trial:source=>methodTrial.run(source),safety,notify:notice});
  renderMethodTiles();
- onRegistryChange(()=>{state.method=resolveKey(state.method);renderMethodTiles();updateSliderNotes();render()});
+ onRegistryChange(()=>{if(!isImageMethodKey(state.method))state.method=resolveKey(state.method);syncImageControls();renderMethodTiles();updateSliderNotes();render()});
  // saved custom methods come back when the page opens; from then on every change in the registry is saved
  methodPersistence=createPersistence({store:openStore(),onError:()=>notice('自作メソッドをこのブラウザに保存できませんでした。')});
  // saving starts first, so that what recoverFromCrash switches off is saved too
@@ -328,6 +350,7 @@ async function startExport(){
  await variants.ready();
  if(state.recording||importing)return;
  const format=formats.find(f=>f.ext===$('format').value);if(!format){notice('動画保存に対応したブラウザで開いてね。');return}
+ if(isImageMethodKey(state.method))return startImageExport(format);
  const [w,h]=outputSize(),savedT=state.t,range=getRange(),disabled=[];let stream,recorder,frameId,cancelled=false,failed=false,finished=false;
  const parts=[];let start;
  state.recording=true;state.playing=false;state.t=range.from;
@@ -368,10 +391,30 @@ async function startExport(){
   frameId=requestAnimationFrame(record);
  }catch(e){console.error(e);failed=true;stop();cleanup();notice('書き出しを開始できませんでした。720pまたは別の保存形式を試してね。')}
 }
+async function startImageExport(format){
+ if(!('VideoEncoder' in window)){notice('物理メソッドの動画保存はWebCodecs対応のChromeで開いてください。');return}
+ if(getCustom(state.method)?.status!=='ok'){notice('コードを編集してプレビュー・保存してから書き出してください。');return}
+ const [width,height]=outputSize(),savedT=state.t,range=getRange(),disabled=[];let cancelled=false;
+ state.recording=true;state.playing=false;recordJob={cancel(){cancelled=true}};
+ document.querySelectorAll('button,input,select,textarea').forEach(el=>{if(el.id!=='cancel-export'){disabled.push([el,el.disabled]);el.disabled=true}});
+ $('export-progress').hidden=false;$('export-result').hidden=true;$('progress').value=0;$('progress-label').textContent='画像・物理演算を準備しています…';
+ try{
+  renderer.setPixelRatio(1);renderer.setSize(width,height,false);setCamera(width/height);
+  const blob=await encodeCanvasVideo({canvas:$('scene'),width,height,fps:30,seconds:range.seconds,format:format.ext,cancelled:()=>cancelled,
+   async draw(seconds){state.t=Math.min(1,range.from+seconds/state.duration);await prepareImageFrame()},
+   onProgress:p=>{$('progress').value=Math.round(p*100);$('progress-label').textContent=`コマごとに書き出し中… ${Math.round(p*100)}% · 物理計算が終わってから保存します`;}});
+  if(cancelled)throw new DOMException('書き出しを中止しました。','AbortError');
+  if(lastVideoUrl)URL.revokeObjectURL(lastVideoUrl);lastVideoUrl=URL.createObjectURL(blob);
+  $('result-video').src=lastVideoUrl;$('download').href=lastVideoUrl;$('download').download=`unfold-image-${new Date().toISOString().replace(/[:.]/g,'-')}.${format.ext}`;
+  $('result-info').textContent=`${format.label} · ${width} × ${height} · ${range.seconds.toFixed(1)}秒 · ${(blob.size/1048576).toFixed(1)} MB`;$('export-result').hidden=false;notice('動画ができました。「動画を保存」から保存できます。');
+ }catch(e){notice(e.message||'動画を書き出せませんでした。');}
+ finally{state.recording=false;state.t=savedT;recordJob=null;disabled.forEach(([el,was])=>el.disabled=was);$('export-progress').hidden=true;resize();}
+}
 let previous=performance.now();function tick(now){if(state.playing&&!state.recording&&!document.hidden)safety?.tick(now-previous);const dt=Math.min((now-previous)/1000,.1);previous=now;if(state.playing&&!state.recording){state.t+=dt/state.duration;if(state.t>1){if(state.loop){const from=state.previewRange?getRange().from:0;state.t=from+(state.t-1)%(1-from)}else{state.t=1;state.playing=false}}render()}requestAnimationFrame(tick)}
 try{
  renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,alpha:false,preserveDrawingBuffer:true});$('scene').addEventListener('webglcontextlost',()=>safety?.contextLost());renderer.outputColorSpace=THREE.SRGBColorSpace;sceneBlur=new SceneBlur(renderer);
  scene=new THREE.Scene();camera=new THREE.OrthographicCamera(-4.8,4.8,2.7,-2.7,.1,100);camera.position.z=10;
  setSource(makeSample(),'カラーテスト・サンプル');wireControls();loadSavedModels();detectFormats();updateRange();resize();requestAnimationFrame(tick);
+ attachWorkshopLink({notify:notice,apply:(item,target,activate)=>{if(state.recording)throw Error('書き出しが終わってから適用してください。');if(item.kind==='text')throw Error('文字モーションはシーケンスの歌詞に使えます。');setChoice('methods','method',activate().id);}});
  window.unfold={state,motionAt,setTime,render,loadImage,outputSize};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
 }catch(e){console.error(e);$('stage-error').hidden=false;$('stage-error').textContent='3D表示を開始できませんでした。WebGL対応のChromeまたはSafariで開いてね。';$('export').disabled=$('export-top').disabled=true}

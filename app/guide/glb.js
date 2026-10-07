@@ -61,9 +61,7 @@ function card(m) {
   const done = have.has(m.name);
   add.textContent = done ? '追加済み ✓' : 'UNFOLDに追加'; add.disabled = done || host !== 'ok' || busy;
   add.onclick = () => addMany([m]);
-  const dl = document.createElement('a'); dl.className = 'btn small'; dl.textContent = '保存'; dl.title = 'GLBファイルをダウンロード';
-  if (host === 'ok') { dl.href = GLB_BASE + m.file; dl.download = m.name + '.glb'; } else dl.setAttribute('aria-disabled', 'true');
-  acts.append(add, dl); body.append(h, meta, acts); el.append(img, body);
+  acts.append(add); body.append(h, meta, acts); el.append(img, body);
   return el;
 }
 

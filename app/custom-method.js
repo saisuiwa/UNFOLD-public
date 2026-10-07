@@ -115,7 +115,7 @@ export function createVariants({ renderer, vertexShader, fragmentShader, uniform
   };
   // every usable custom method gets its own shader as soon as it is registered (or tried again), not when a ◆ first needs it:
   // a broken one is switched off right away, and a working one is ready before it is used
-  const prepareAll = () => { for (const c of listCustom()) if (c.status === 'ok') build([c.id]); };
+  const prepareAll = () => { for (const c of listCustom()) if (c.status === 'ok' && !c.code) build([c.id]); };
   const stopListening = onRegistryChange(() => { prune(); prepareAll(); });
 
   function settle(v) {
@@ -144,8 +144,8 @@ export function createVariants({ renderer, vertexShader, fragmentShader, uniform
   function pick(keyA, keyB = '') {
     let a = keyA ? resolveKey(keyA) : DEFAULT_KEY, b = keyB ? resolveKey(keyB) : '';
     for (;;) {
-      const ids = [...new Set([a, b].filter(isCustomKey))];
-      if (!ids.length) return { material: base, uMethod: BUILTIN_IDS[a], uMethod2: b ? BUILTIN_IDS[b] : 0, used: [] };
+      const ids = [...new Set([a, b].filter(k=>isCustomKey(k)&&!getCustom(k)?.code))];
+      if (!ids.length) return { material: base, uMethod: BUILTIN_IDS[a]??0, uMethod2: b ? (BUILTIN_IDS[b]??0) : 0, used: [] };
       const v = build(ids);
       if (v.state === 'ok') {
         const number = key => ids.indexOf(key) === 0 ? SLOT_A : SLOT_B;

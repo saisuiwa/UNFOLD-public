@@ -65,15 +65,16 @@ page = f'''<!doctype html>
     <a href="./">説明</a>
     <a href="./methods.html" aria-current="page">メソッド集</a>
     <a href="./samples.html">サンプル集</a>
+    <a href="./motions.html">モーション集</a>
     <a href="./glb.html">GLB置き場</a>
-  </nav>
+  <a href="../workshop.html">メソッド工房</a></nav>
   <span class="spacer"></span>
   <a class="btn small" href="../">1枚モード</a>
   <a class="btn small lime" href="../sequence.html">シーケンス</a>
 </div></header>
 
 <main>
-  <div class="eyebrow">METHODS</div>
+  <div class="eyebrow">METHODS</div><p class="note"><a class="btn lime" href="../workshop.html">＋ メソッド工房で作る・試す</a>　コード、参照画像、色パレットをひとつの画面で。</p>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">メソッド集</h1>
   <p class="lede">絵が崩れる動き（メソッド）は、標準で <b>29種類</b>。どれも同じ2枚の絵（港の油絵 → ネオンの街）で動かした見本です。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note">使うときは、1枚モードの「ぐちゃぐちゃにする」、またはシーケンスの◆を選んだ「崩れ方」から選びます。立体になる前の、崩れていく部分の動きです。</p>

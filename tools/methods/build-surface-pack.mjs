@@ -1,0 +1,10 @@
+import {mkdir,writeFile} from 'node:fs/promises';
+import {SURFACE_METHOD_PRESETS} from '../../app/image-surface-presets.js';
+import {buildMethodFile,parseMethodFile} from '../../app/method-file.js';
+const out=new URL('../out/surface-pack/',import.meta.url);await mkdir(out,{recursive:true});
+const records=SURFACE_METHOD_PRESETS.map(p=>({...p,id:'im-unfold-'+p.key+'-v1'}));
+const text=buildMethodFile(records),parsed=parseMethodFile(text);if(parsed.problems.length)throw Error(parsed.problems.join('\n'));
+await writeFile(new URL('画像の質感エフェクト8種.unfoldmethod',out),text);
+for(const p of records)await writeFile(new URL(p.name+'.js',out),p.code.source+'\n');
+await writeFile(new URL('使い方.txt',out),'工房の「画像 JavaScript」から各カードを選び、プレビュー → UNFOLDに追加。\n共有ファイル .unfoldmethod は「ファイルを取り込む」で開いてください。コード欄には貼りません。\nコード欄には、各 .js ファイルの内容だけを貼れます。\n1枚モード：03 立体の「立体化する」をオフ。\nシーケンス：変形ブロックの形を「形にしない（崩れるだけ）」に。\n正面で見たいときは回転なしにしてください。\n開始・終了は画像に戻ります。燃えたまま・消えたまま終了する機能ではありません。\n');
+console.log('8 methods exported to '+out.pathname);

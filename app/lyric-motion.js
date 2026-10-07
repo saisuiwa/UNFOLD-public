@@ -1,3 +1,5 @@
+import {cleanCodeMotion} from './code-motion-format.js';
+import {normalizeRecipe,BUILTIN_MOTIONS} from './lyric-recipe.js';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));const ease=t=>1-(1-t)**3;
 export function graphemes(t){return typeof Intl.Segmenter==='function'?[...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(t)].map(x=>x.segment):String(t).match(/(?:\P{Mark}\p{Mark}*(?:\u200d\P{Mark}\p{Mark}*)*|\p{Mark}+)/gu)||[]}
 // Text motions, one entry per preset. To add one, add an entry here: the per-line select, the file check and the samples page all read this table.
@@ -17,8 +19,17 @@ export const TEXT_MOTIONS={
 };
 // what a frame looks like at rest, and how far each part may go (a bad entry cannot push the text off the screen or make it vanish)
 const REST={x:0,y:0,scale:1,reveal:1,emphasis:1},RANGE={x:[-10,10],y:[-10,10],scale:[.05,4],reveal:[0,1],emphasis:[.05,4]};
-export function cleanMotion(m={}){m=m&&typeof m==='object'?m:{};return {preset:Object.hasOwn(TEXT_MOTIONS,m.preset)?m.preset:'float',direction:['left','right','up','down'].includes(m.direction)?m.direction:'up',color:/^#[\da-f]{6}$/i.test(m.color)?m.color:'#ffffff',emphasisColor:/^#[\da-f]{6}$/i.test(m.emphasisColor)?m.emphasisColor:'#d9f878',size:clamp(Number(m.size)||64,32,160),position:m.position==='center'?'center':'bottom',font:typeof m.font==='string'?m.font:'gothic',speed:clamp(Number(m.speed)||1,.5,2)}}
+export function cleanMotion(m={}){m=m&&typeof m==='object'?m:{};return {preset:Object.hasOwn(TEXT_MOTIONS,m.preset)?m.preset:'float',direction:['left','right','up','down'].includes(m.direction)?m.direction:'up',color:/^#[\da-f]{6}$/i.test(m.color)?m.color:'#ffffff',emphasisColor:/^#[\da-f]{6}$/i.test(m.emphasisColor)?m.emphasisColor:'#d9f878',size:clamp(Number(m.size)||64,32,160),position:m.position==='center'?'center':'bottom',font:typeof m.font==='string'?m.font:'gothic',speed:clamp(Number(m.speed)||1,.5,2),...(m.code?{code:cleanCodeMotion(m.code)}:m.recipe?.version===1?{recipe:normalizeRecipe(m.recipe)}:{})}}
 function hash(s){let n=2166136261;for(const c of s)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0}
-export function assignLyricMotions(doc,{style='readable',seed=7}={}){const d=structuredClone(doc);d.style=style;d.seed=seed;for(const e of d.events){if(e.kind!=='line'||e.locked)continue;const k=hash(`${seed}:${e.section}:${e.id}`),chorus=e.section==='chorus',choices=style==='pop'?['slide','pop','reveal','emphasis']:style==='soft'?['float','reveal']:['float','slide'];e.motion=cleanMotion({preset:chorus?(style==='soft'?'float':'pop'):choices[k%choices.length],direction:['left','right','up','down'][k%4],size:chorus?86:64,emphasisColor:style==='pop'?'#ffd16b':style==='soft'?'#b5dbff':'#d9f878'})}return d}
+export function assignLyricMotions(doc,{style='readable',seed=7,preserveExisting=false}={}){
+ const d=structuredClone(doc);d.style=style;d.seed=seed;let previous='';
+ for(const e of d.events){if(e.kind!=='line')continue;if(e.locked||(preserveExisting&&e.motion)){previous=e.motion?.recipe?.layout||'';continue}
+ const k=hash(`${seed}:${e.section}:${e.id}`),chorus=e.section==='chorus';
+ const choices=style==='soft'?['vertical','editorial','echo']:style==='pop'?['impact','assemble','poster','echo']:['editorial','assemble','vertical'];
+ let pick=choices[k%choices.length];if(chorus&&style!=='soft')pick=['impact','echo','poster'][k%3];if(pick===previous)pick=choices[(choices.indexOf(pick)+1+choices.length)%choices.length];
+ const template=BUILTIN_MOTIONS.find(x=>x.id===pick).motion;
+ e.motion=cleanMotion({...template,size:chorus?86:64,emphasisColor:style==='pop'?'#ffd16b':style==='soft'?'#b5dbff':'#d9f878'});previous=pick;
+ }return d;
+}
 export function motionAt(e,t,bpm=120){const m=cleanMotion(e.motion),duration=e.end-e.start,p=clamp((t-e.start)/Math.max(.001,duration),0,1),span=Math.min(.65/m.speed,Math.max(.01,duration*.35)),intro=clamp((t-e.start)/span,0,1),out=clamp((e.end-t)/span,0,1),q=ease(intro),v={opacity:t<e.start||t>=e.end?0:Math.min(q,out),...REST},part=TEXT_MOTIONS[m.preset].fn({m,e,t,p,q,intro,duration,bpm});for(const k in RANGE){const n=part?.[k];if(Number.isFinite(n))v[k]=clamp(n,...RANGE[k])}return v}
 export function layoutText(runs,{width,height,font,size=64,measure}){const maxW=width*.9,maxH=height*.8;let fontSize=size;let lines=[];for(let attempt=0;attempt<60;attempt++){lines=[{runs:[],width:0}];for(const run of runs)for(const char of graphemes(run.text)){let line=lines.at(-1);if(char==='\n'){lines.push({runs:[],width:0});continue}const w=measure(char,fontSize,font);if(line.width+w>maxW&&line.runs.length){line={runs:[],width:0};lines.push(line)}line.runs.push({text:char,emphasis:run.emphasis});line.width+=w}if(lines.length*fontSize*1.3<=maxH&&Math.max(...lines.map(l=>l.width))<=maxW)break;fontSize*=.9;}return {lines,size:fontSize,bounds:{x:width*.05,y:height*.1,width:Math.max(0,...lines.map(l=>l.width)),height:lines.length*fontSize*1.3}}}

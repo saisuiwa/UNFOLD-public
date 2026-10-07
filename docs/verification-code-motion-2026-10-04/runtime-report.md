@@ -1,0 +1,34 @@
+# Isolated code motion runtime verification — 2026-10-04
+
+Implemented parent client → opaque sandbox iframe → dedicated Worker. Bundled local Three 0.180.0, Troika 0.52.4 and GSAP 3.13.0. Host sends only source, lyric/runs, dimensions/style, font bytes and seed. Network CSP permits blob/data only; no main DOM or storage. Deadlines terminate the Worker and discard pending requests. Worker serializes rendering requests and transfers ImageBitmap. Parent validates bitmap type and closes stale replies. Default font uses parent-owned gothic.ttf. Code errors propagate explicitly.
+
+Troika's bundled canvas allocation uses an OffscreenCanvas adapter; no DOM is exposed. CPU SDF generation and in-worker typesetting avoid nested Troika workers. Text sync completes immediately when no rebuild is needed. Whole-text createText inherits per-run colorRanges. API includes runs/duration and seeded random.
+
+## Actual Chrome browser results
+
+Test page: http://127.0.0.1:8774/tools/test/code-motion-runtime.html, isolated agent-created tab. All assertions passed:
+
+- Japanese Three/Troika/GSAP rendered nontransparent bitmap.
+- Seek .5 → 1 → .5 produced identical pixel hash 1487625066.
+- Thrown source error rejected preparation.
+- Infinite initialization loop timed out and terminated Worker.
+- Infinite update loop timed out and terminated Worker.
+- Worker source sees no document or localStorage.
+- Fetch to HTTP localhost was rejected by CSP.
+- Export bitmap returned exact 1280 × 720 dimensions.
+
+Node --check passed for runtime and worker entry; git diff --check passed. Build creates ~872KB trusted worker bundle. Dependency license files and lock included.
+
+Remaining verification belongs to parent integration: editor/save/project activation, host latest-frame behavior, PC font bridge, MP4 encoding/decoding. Arbitrary update(time) authors must derive animation state from absolute time for deterministic seeking. Font loader failures are surfaced through fatal error forwarding; fonts with unsupported glyphs can trigger blocked fallback and fail explicitly.
+
+## API follow-up verification
+
+Added fontSize/bpm alongside runs/duration, direct new Text local font defaults, and per-render traversal to synchronize Text objects created during update. Bridge initialization accepts only its parent window. Chrome regression reran ALL PASS including new assertion for fontSize=64, bpm=96, duration=4 and first-frame Japanese text created dynamically through new api.Text(). Parent layer review identified pump/reset races and reported them for parent-owned correction.
+
+## MultiText follow-up and independent review
+
+Focused tools/test/code-motion-multitext.html Chrome QA: Ribbon first-frame at640/1280/640/1280 returned respectively 10287/37886/10287/37886 nontransparent pixels with maximum RGB255; ALL PASS including authors starting Text.sync() themselves before host sync. Host sync now awaits synccomplete while either rebuild or typesetting remains pending.
+
+Diagnosed Ribbon apparent blank export: injecting empty colorRanges={} assigns black glyph colors in Troika. createText now uses null when no run ranges exist, preserving explicit single-character colors. Parent corrected Neon shadow empty ranges separately.
+
+Independent review covered current format/library/font bridge, runtime isolation, editor, code-layer, overlay and export await path. Reported editor scrub busy race and queued frame resurrection after reset; parent corrected both (latest scrub scheduling; enqueue epoch guard). Read-only recheck confirms those corrections. No further actionable issue identified in reviewed paths; parent actual integration/MP4 regression remains completion evidence.

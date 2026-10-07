@@ -1,8 +1,26 @@
 # UNFOLD
 
+## 現在の公開版：画像の質感エフェクト8種（2026-10-06）
+
+[メソッド工房](https://unfold.saisuiwa.com/workshop) に、焦げ穴と炎、インク、水彩、霜、電撃、酸、絵の具、風化を追加して公開しました。従来のJavaScriptサンプルでも選べます。実描画の見本から選択し、コード編集・共有ができます。[使い方と検証](docs/image-surface-effects-2026-10-06.md)。1枚モードは「立体化する」をオフ、シーケンスは「形にしない」で使用します。
+
+302配信ファイルの一致と、8種類×両モードの16通りを公開URLで確認済み。[公開・復旧記録](docs/publication-surface-effects-2026-10-06.md)。
+
+## 前の公開：メソッド工房（2026-10-06）
+
+[メソッド工房](https://unfold.saisuiwa.com/workshop) を公開しました。GLSL・画像JavaScript／物理・文字JavaScriptのブロック選択、実動プレビュー、コード編集、参照画像・配色、下書き復元、UNFOLD本体への追加に対応。変更前のメソッドは残し、既存作品の別ブロックを書き換えません。公開ソース `4ac4af5`、全292配信ファイルの一致と3方式・保存・本体連携・390px表示を確認済み。個人の画像・曲・下書きは非公開です。[使い方](docs/method-workshop-2026-10-06.md) / [公開・復旧記録](docs/publication-workshop-2026-10-06.md)。GitHubへのpushなし。
+
+## 前の公開：JavaScriptメソッドの立体化（2026-10-05）
+
+JavaScript＋物理演算でも、画像片が選んだ立体・GLBへ集まって画像に戻れるように拡張。1枚モードは「03 立体」、シーケンスは◆変形の「立体化する」で選択します。コードエディタにも立体プレビューを追加。操作と対応範囲は [画像コードメソッド](docs/image-code-methods.md)、確認結果は [立体化の検証記録](docs/image-solid-verification-2026-10-05.md)。https://unfold.saisuiwa.com/ へ公開済み。配信285ファイルと公開画面での両モードの動作を確認しました。[公開記録](docs/publication-image-solids-2026-10-05.md)。
+
+## 前の公開：JavaScript・物理演算の初期版（2026-10-05）
+
+https://unfold.saisuiwa.com/ に `864801b` を公開済み。画像メソッドのJavaScript＋物理演算（Three.js／Troika Text／GSAP／Rapier）を含みます。配信282ファイルの一致と公開サイトでの動作を確認しました。公開物・バージョン・検証証跡は [公開記録](docs/publication-image-code-2026-10-05.md)。以下の古い更新記録にある「未公開」は、その記録時点の状態です。
+
 現在のアプリ本体、公開用ZIP、デモ動画、読み込んで使うGLB、以前の版と作業記録をこのフォルダにまとめています。
 
-- `app/` — 現在の公開版（Cloudflare、2026-10-04）のソース。`index.html` が1枚モード、`sequence.html` がシーケンスです。
+- `app/` — 現在の公開版（Cloudflare、2026-10-06・質感エフェクト8種入り）のソース。`index.html` が1枚モード、`sequence.html` がシーケンスです。
 - `releases/UNFOLD-Test-custom-methods-glb-2026-10-04.zip` — **現在のNetlify公開版（2026-10-04 00:45 に公開）**。自作メソッド・画像ごとのカメラ・新しい形（龍・クジラ…）・位置どおり貼るGLB・GLB100個まで、など2026-10-02〜04の更新が全部入り。公開前の確認結果は `docs/公開前チェックリスト_自作メソッド.md` の §7。
 - `releases/UNFOLD-Test-glb-dashboard-mp4-2026-09-30.zip` — 1つ前の公開版（2026-09-30 22:07）。戻すときはこれ（Netlifyの Deploys 一覧から前のデプロイを選んで Publish deploy でもOK）。引きスライダー・追加した形のダッシュボード・粒の細かさ・MP4書き出し入り。
 - `releases/UNFOLD-Test-effects-camera-2026-09-29.zip` — 1つ前の公開版（2026-09-29 22:24）。演出・カメラ入り。
@@ -123,6 +141,21 @@ Mac内の移動は公開中のサイトや管理画面に影響しません。�
 音楽・歌詞・画像を外部サービスへ送信しません。FLAC/Vorbis等の歌詞タグ抽出は対象外です。フォントは既存のWebフォント設定を使用し、オフラインではシステムフォントへフォールバックします。
 
 検証と見本動画：[歌詞MV検証記録](docs/verification-lyric-motion-2026-10-04/REPORT.md)。起動は従来どおり `python3 tools/serve.py`、[ローカルシーケンス](http://127.0.0.1:8771/sequence.html)。
+
+## モーション集・自作（2026-10-04）
+
+「歌詞・曲 → モーション集・自作」で6つの文字構成を選び、登場・表示中・退場を組み合わせられます。揺れ・明滅・グリッチ・波ワープ・残像は最大3種類まで重ねられ、名前付き保存、`.unfoldmotion`ファイルの受け渡し、AI依頼文とJSON編集に対応。各行へ個別適用、または固定していない行へ一括適用できます。
+
+[モーション集](app/guide/motions.html)は同じ描画器による動く見本です。編集済みの歌詞時刻・固定・Undo/Redo・プロジェクト保存を保持します。文字間の本格モーフィングは未実装。公開サイトは未更新。[検証記録](docs/verification-motion-library-2026-10-04/REPORT.md)。
+
+
+### 歌詞のその場編集・PCフォント（2026-10-04）
+
+タイムラインで歌詞を選び、右側の「動き・色・書体」から直接編集できます。言葉をタップして単語だけの色、行・全歌詞の配色、PCインストール済みフォントやフォントファイルに対応。色・書体を変えずにモーションを試せます。[使い方と検証](docs/verification-lyric-inline-2026-10-04/REPORT.md)。
+
+## Custom text motions
+
+In the lyric inline editor, choose **動き → ＋追加・コードで作る**. The editor combines Three.js, Troika Text and GSAP using an isolated, seekable JavaScript API. Preview before adding a reusable block; export/import `.unfoldmotion` files to share motions. Existing recipe files still work. See [author guide](app/guide/code-motions.html) and [verification report](docs/verification-code-motion-2026-10-04/integration-report.md). Standard fonts and runtime dependencies are bundled locally.
 
 ## 毎日のサンプル追加（2026-10-07〜）
 

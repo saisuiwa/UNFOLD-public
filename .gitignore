@@ -40,3 +40,17 @@
 **/*.pem
 **/*.key
 /tools/out/
+
+# Bundled, redistributable font binaries used offline by Troika.
+!/app/vendor/motion-fonts/*.ttf
+
+/tools/code-motion-font-build/.venv/
+/tools/code-motion-build/.deps/
+/tools/image-code-build/.deps/
+/tools/image-code-build/.test-deps/
+!/tools/image-code-build/package.json
+!/tools/image-code-build/package-lock.json
+!/tools/image-code-build/README.md
+
+# Rendered previews made solely from the synthetic surface-effect test image.
+!/app/assets/surface-previews/*.jpg

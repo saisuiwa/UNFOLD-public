@@ -6,8 +6,8 @@ import { validateEmbedded } from './method-project.js';
 export const METHOD_FILE = { format: 'unfold-method', version: 1, extension: '.unfoldmethod', maxChars: 600000, maxName: 30 };
 
 export function buildMethodFile(records) {
-  const methods = records.map(c => ({ id: c.id, name: c.name, symbol: c.symbol, vertex: c.vertex, look: null, params: [] }));
-  return `${JSON.stringify({ format: METHOD_FILE.format, version: METHOD_FILE.version, methods }, null, 2)}\n`;
+  const methods = records.map(c => ({id:c.id,name:c.name,symbol:c.symbol,...(c.code?{engine:'image-js',code:c.code}:{vertex:c.vertex}),look:null,params:[]}));
+  return `${JSON.stringify({ format: METHOD_FILE.format, version: records.some(c=>c.code)?2:METHOD_FILE.version, methods }, null, 2)}\n`;
 }
 
 // the name of the method as a file name, without what file names cannot hold
@@ -24,7 +24,7 @@ export function parseMethodFile(text) {
   let data;
   try { data = JSON.parse(text); } catch { return fail('ファイルの中身が読めません（自作メソッドのファイルではないかも）。'); }
   if (!data || typeof data !== 'object' || data.format !== METHOD_FILE.format) return fail('UNFOLDの自作メソッドのファイルではありません。');
-  if (typeof data.version === 'number' && data.version > METHOD_FILE.version) return fail('新しい形式のファイルなので、読み込めませんでした。UNFOLDを新しくしてから、もう一度試してね。');
+  if (typeof data.version === 'number' && data.version > 2) return fail('新しい形式のファイルなので、読み込めませんでした。UNFOLDを新しくしてから、もう一度試してね。');
   if (!Array.isArray(data.methods) || !data.methods.length) return fail('メソッドが入っていません。');
-  return validateEmbedded(data.methods);
+  return validateEmbedded(data.methods,data.version===2?4:3);
 }

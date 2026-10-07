@@ -1,0 +1,44 @@
+[
+  {
+    "key": "gothic",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf",
+    "sourceSHA256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+    "weight": 900,
+    "outputBytes": 5756568
+  },
+  {
+    "key": "mincho",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifjp/NotoSerifJP%5Bwght%5D.ttf",
+    "sourceSHA256": "2fd527ba12b6a44ec30d796d633360da0aeba6c5d4af1304ce12bb4dc15a7dfc",
+    "weight": 900,
+    "outputBytes": 8072012
+  },
+  {
+    "key": "round",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/mplusrounded1c/MPLUSRounded1c-ExtraBold.ttf",
+    "sourceSHA256": "8e7c15901dca87f1451b356dda594f7d092ba252a5dcc47da74523a242493c36",
+    "weight": null,
+    "outputBytes": 3628512
+  },
+  {
+    "key": "dela",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/delagothicone/DelaGothicOne-Regular.ttf",
+    "sourceSHA256": "4ff87a0965f1b0505e5a2c58424bc6ad3cff27e56a82f21c2fc9d6b0e3857ee2",
+    "weight": null,
+    "outputBytes": 2508848
+  },
+  {
+    "key": "marker",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/yuseimagic/YuseiMagic-Regular.ttf",
+    "sourceSHA256": "82098615f39ed9da6a8ccc674b9006e49c70dd5b775a7a1697f6bedd22ce25a2",
+    "weight": null,
+    "outputBytes": 3134968
+  },
+  {
+    "key": "dot",
+    "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/dotgothic16/DotGothic16-Regular.ttf",
+    "sourceSHA256": "3ad9af88726d42b40f7f365f0dcac785af73cf20ea6f1d5b44e57cc21150b8f1",
+    "weight": null,
+    "outputBytes": 2069236
+  }
+]

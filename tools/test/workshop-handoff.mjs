@@ -1,0 +1,6 @@
+import {chromium} from '../image-code-build/.test-deps/node_modules/playwright-core/index.mjs';
+import assert from 'node:assert/strict';
+const b=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+try{const c=await b.newContext(),p=await c.newPage();await p.goto('http://127.0.0.1:8778/workshop.html');await p.waitForFunction(()=>document.querySelector('#code')?.value);await p.locator('#name').fill('工房のテスト');await p.locator('#preview-run').click();await p.waitForFunction(()=>document.querySelector('#status')?.dataset.state==='ready');await p.locator('#add-unfold').click();await p.locator('#handoff').waitFor();const href=await p.locator('#open-single').getAttribute('href'),id=new URL(href,'http://127.0.0.1:8778').searchParams.get('workshopMethod');
+const main=await c.newPage();await main.goto('http://127.0.0.1:8778/'+href);await main.waitForFunction(()=>window.unfold);await main.locator('#workshop-apply').click({timeout:3000});await main.waitForFunction(id=>unfold.state.method===id,id);assert.equal(await main.evaluate(()=>unfold.state.method),id);
+console.log('workshop add and single app handoff PASS');}finally{await b.close()}
