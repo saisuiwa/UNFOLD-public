@@ -123,3 +123,12 @@ Mac内の移動は公開中のサイトや管理画面に影響しません。�
 音楽・歌詞・画像を外部サービスへ送信しません。FLAC/Vorbis等の歌詞タグ抽出は対象外です。フォントは既存のWebフォント設定を使用し、オフラインではシステムフォントへフォールバックします。
 
 検証と見本動画：[歌詞MV検証記録](docs/verification-lyric-motion-2026-10-04/REPORT.md)。起動は従来どおり `python3 tools/serve.py`、[ローカルシーケンス](http://127.0.0.1:8771/sequence.html)。
+
+## 毎日のサンプル追加（2026-10-07〜）
+
+メソッド（崩れ方）・グラフィックモーション・テキストモーションのサンプルを、毎日1つずつ足して検証し、通ったものだけ `main` に入れるルーティンです。手順は [docs/daily-samples-routine.md](docs/daily-samples-routine.md)、追加の記録は [docs/daily-samples-log.md](docs/daily-samples-log.md)。
+
+- 見本のページ：`/guide/samples.html`（マウスを載せると動く。ソースは `app/guide/samples.html`、`node tools/build_guide_samples.mjs` で作る。プレビューのJPG/MP4は `app/guide/samples/`、`node tools/make_sample_previews.mjs` で作る）。
+- 足す場所：メソッドとグラフィックは `app/method-samples.js` の `SAMPLES`、テキストは `app/lyric-motion.js` の `TEXT_MOTIONS`（表に1つ足すだけで、歌詞パネルの「動き」の選択肢にも出ます。既存5つの数値は変わらないことをテストで固定）。
+- 足したあとの検証：`node tools/verify_daily.mjs --expect-new=<日付>`（単体テスト・GPUでの3つの検査・プレビューの形式・全ページの表示・`?v=` の上げ忘れ・ログまで）。変えたファイルの `?v=` は `node tools/bump_module_version.mjs app/<ファイル>.js` で、HTMLまで玉突きで上がります。
+- 公開サイトは自動では変わりません。更新するときは、これまでどおり `app/` を Cloudflare にアップロードしてください（`docs/公開手順_Cloudflare.md`）。

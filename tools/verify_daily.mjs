@@ -5,11 +5,12 @@
 //        the GPU check and the preview check then look at the samples added on that day or later (the older ones were checked on their day)
 // Steps: unit tests - the samples' own rules on the GPU (the editor's three checks, warnings count as failures) - previews (files, size, video format, decodes)
 //        - generated pages are up to date - every page opens without errors - the samples page works - the editor lists the samples
-//        - changed modules got a new ?v= - the daily log mentions every new sample.
+//        - the lyric panel lists the text motions - changed modules got a new ?v= - the daily log mentions every new sample.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, writeFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
+import { TEXT_MOTIONS } from '../app/lyric-motion.js';
 import { launchBrowser } from './lib/browser.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
 import { MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
@@ -214,6 +215,31 @@ try {
       if (!group) problems.push(`no group "${label}" in the editor`);
       else if (JSON.stringify(group.options) !== JSON.stringify(want)) problems.push(`group "${label}" lists ${group.options.join(',')} but the samples are ${want.join(',')}`);
     }
+    for (const p of page.problems) problems.push(p);
+    await page.close();
+    need(!problems.length, problems.join('\n'));
+  });
+
+  await step('the lyric panel offers every text motion, and the last one can be chosen', async () => {
+    const page = await newPage({ width: 1440, height: 900 });
+    await page.goto(`${server.url}/sequence.html`, { waitUntil: 'load' });
+    await page.waitForSelector('button[data-tab="lyric"]');
+    await page.click('button[data-tab="lyric"]');
+    await page.fill('#lm-source', '[Verse]\nきみと、はじまる\nもういちど、*うた*を');
+    await page.waitForFunction(() => document.querySelectorAll('#pane-lyric .lm-rows select').length > 0, null, { timeout: 10000 });
+    const last = Object.keys(TEXT_MOTIONS).at(-1);
+    const seen = await page.evaluate(async last => {
+      const motionSelect = () => [...document.querySelectorAll('#pane-lyric .lm-rows select')].find(s => [...s.options].some(o => o.value === 'float'));
+      const options = [...motionSelect().options].map(o => `${o.value}:${o.text}`);
+      const select = motionSelect();
+      select.value = last; select.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 400));
+      return { options, chosen: motionSelect().value };
+    }, last);
+    const want = Object.entries(TEXT_MOTIONS).map(([key, m]) => `${key}:${m.label}`);
+    const problems = [];
+    if (JSON.stringify(seen.options) !== JSON.stringify(want)) problems.push(`the select lists ${seen.options.join(', ')} but the table has ${want.join(', ')}`);
+    if (seen.chosen !== last) problems.push(`choosing "${last}" did not stick (the select shows "${seen.chosen}")`);
     for (const p of page.problems) problems.push(p);
     await page.close();
     need(!problems.length, problems.join('\n'));
