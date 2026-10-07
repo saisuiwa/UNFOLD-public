@@ -3,6 +3,7 @@
 //   node tools/verify_daily.mjs --expect-new=2026-10-08
 //        the daily run: the samples added on that day (Japan time) must be exactly one method, one graphic and one text motion;
 //        the GPU check and the preview check then look at the samples added on that day or later (the older ones were checked on their day)
+//   --base=REF   what the ?v= numbers are compared with (default origin/main)
 // Steps: unit tests - the samples' own rules on the GPU (the editor's three checks, warnings count as failures) - previews (files, size, video format, decodes)
 //        - generated pages are up to date - every page opens without errors - the samples page works - the editor lists the samples
 //        - the lyric panel lists the text motions - changed modules got a new ?v= - the daily log mentions every new sample.
@@ -11,6 +12,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync, statSync } from '
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { TEXT_MOTIONS } from '../app/lyric-motion.js';
+import { versionedImport, versionedImportGrep } from './lib/module-version.mjs';
 import { launchBrowser } from './lib/browser.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
 import { MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
@@ -18,6 +20,7 @@ import { MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/sam
 const REPO = fileURLToPath(new URL('../', import.meta.url));
 const FIRST_BATCH = '2026-10-04';                                   // the samples that were there before the daily routine (same as in build_guide_samples.mjs)
 const args = process.argv.slice(2);
+const baseRef = (args.find(a => a.startsWith('--base=')) || '').slice(7) || 'origin/main';
 const expectNew = (args.find(a => a.startsWith('--expect-new=')) || '').slice(13);
 if (expectNew && !/^\d{4}-\d{2}-\d{2}$/.test(expectNew)) { console.error('--expect-new needs a day like 2026-10-08'); process.exit(2); }
 const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);           // Japan time
@@ -107,15 +110,15 @@ await step('the daily log mentions every sample added after the first batch', ()
 // ---- 6. changed modules got a new ?v=
 await step('every changed app module has a raised ?v= on its imports', () => {
   const git = (...a) => spawnSync('git', a, { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 26 });
-  if (git('rev-parse', '--verify', '-q', 'origin/main').status !== 0) return 'skipped (no origin/main to compare with)';
-  const changed = git('diff', '--name-only', 'origin/main', '--', 'app').stdout.split('\n').filter(f => /^app\/[^/]+\.js$/.test(f));
+  if (git('rev-parse', '--verify', '-q', baseRef).status !== 0) return `skipped (no ${baseRef} to compare with)`;
+  const changed = git('diff', '--name-only', baseRef, '--', 'app').stdout.split('\n').filter(f => /^app\/[^/]+\.js$/.test(f));
   const pages = [...readdirSync(join(REPO, 'app')).filter(f => /\.(js|html)$/.test(f)).map(f => join(REPO, 'app', f))];
   const text = pages.map(f => readFileSync(f, 'utf8')).join('\n');
   const problems = [];
   for (const file of changed) {
-    const base = file.slice(4), pattern = new RegExp(`${base.replace(/\./g, '\\.')}\\?v=(\\d+)`, 'g');
-    const now = [...text.matchAll(pattern)].map(m => Number(m[1]));
-    const old = git('grep', '-h', '-o', '-E', `${base.replace(/\./g, '\\.')}\\?v=[0-9]+`, 'origin/main', '--', 'app').stdout.split('\n').filter(Boolean).map(s => Number(s.split('=')[1]));
+    const base = file.slice(4), pattern = versionedImport(base);
+    const now = [...text.matchAll(pattern)].map(m => Number(m[2]));
+    const old = git('grep', '-h', '-o', '-E', versionedImportGrep(base), baseRef, '--', 'app').stdout.split('\n').filter(Boolean).map(s => Number(s.split('=')[1]));
     if (!old.length || !now.length) continue;                                           // nobody imports it with a ?v= (or it is new): nothing to raise
     if (Math.max(...now) <= Math.max(...old)) problems.push(`${file} changed but its imports still say ?v=${Math.max(...now)} (node tools/bump_module_version.mjs ${file})`);
     if (new Set(now).size > 1) problems.push(`${file} is imported with different ?v= numbers (${[...new Set(now)].join(', ')}): two copies would load`);
@@ -139,19 +142,20 @@ try {
   // what is missing in a clean clone on purpose: the old method gallery's videos, the GLB thumbnails, the browser's own favicon request
   const expectedMissing = path => path === '/favicon.ico' || path.startsWith('/guide/methods/') || /^\/guide\/(glb|thumbs?)\//.test(path);
 
+  const PAGES = ['/index.html', '/sequence.html', '/workshop.html', '/guide/', '/guide/methods.html', '/guide/samples.html', '/guide/motions.html', '/guide/code-motions.html', '/guide/glb.html'];
   await step('every page opens without errors and without missing files', async () => {
     const problems = [];
-    for (const path of ['/index.html', '/sequence.html', '/guide/', '/guide/methods.html', '/guide/samples.html', '/guide/glb.html']) {
+    for (const path of PAGES) {
       server.requests.length = 0;
       const page = await newPage();
       await page.goto(server.url + path, { waitUntil: 'load' });
-      await page.waitForTimeout(path.includes('html') && /^\/(index|sequence)/.test(path) ? 2500 : 600);
+      await page.waitForTimeout(/^\/(index|sequence|workshop)/.test(path) ? 2500 : 600);
       const missing = [...new Set(server.requests.filter(r => r.status >= 400 && !expectedMissing(r.path.split('?')[0])).map(r => r.path))];
       for (const p of [...page.problems, ...missing.map(m => `missing file: ${m}`)]) problems.push(`${path}: ${p}`);
       await page.close();
     }
     need(!problems.length, problems.join('\n'));
-    return '6 pages';
+    return `${PAGES.length} pages`;
   });
 
   await step(`method / graphic samples pass the editor's checks on the GPU (${recent.filter(i => i.source).length})`, async () => {
@@ -201,8 +205,11 @@ try {
     const page = await newPage();
     await page.goto(`${server.url}/sequence.html`, { waitUntil: 'load' });
     await page.waitForFunction(() => window.unfoldMethods?.editor, null, { timeout: 30000 });
-    const listed = await page.evaluate(async () => {
-      await window.unfoldMethods.editor.open();
+    // "＋自作メソッド" first asks GLSL or JavaScript; the presets are in the GLSL editor
+    await page.evaluate(() => window.unfoldMethods.editor.open());
+    await page.getByRole('button', { name: 'GLSLで作る' }).click();
+    await page.waitForSelector('#method-samples', { state: 'attached', timeout: 10000 });
+    const listed = await page.evaluate(() => {
       const out = [...document.querySelectorAll('#method-samples optgroup')].map(g => ({ label: g.label, options: [...g.querySelectorAll('option')].map(o => o.value) }));
       window.unfoldMethods.editor.close();
       return out;
@@ -230,7 +237,7 @@ try {
     const last = Object.keys(TEXT_MOTIONS).at(-1);
     const seen = await page.evaluate(async last => {
       const motionSelect = () => [...document.querySelectorAll('#pane-lyric .lm-rows select')].find(s => [...s.options].some(o => o.value === 'float'));
-      const options = [...motionSelect().options].map(o => `${o.value}:${o.text}`);
+      const options = [...motionSelect().options].filter(o => o.value).map(o => `${o.value}:${o.text}`);   // a leading empty option means "this line uses a motion from the library"
       const select = motionSelect();
       select.value = last; select.dispatchEvent(new Event('change', { bubbles: true }));
       await new Promise(r => setTimeout(r, 400));

@@ -3,11 +3,11 @@
 <style>body{background:#101718;color:#edf2e7;font:14px system-ui;padding:24px}button{padding:12px}pre{white-space:pre-wrap}canvas.probe{width:320px;height:180px}</style>
 <h1>UNFOLD editor verification</h1><button id="run">Run browser checks</button><button id="open">Open editor</button><pre id="results">Ready</pre>
 <script type="module">
-import {createMethodEditor} from '../../app/method-editor.js?v=6';
+import {createMethodEditor} from '../../app/method-editor.js?v=7';
 import {createPreview,makeTestImage} from '../../app/method-preview.js?v=4';
-import {vertexShader,fragmentShader} from '../../app/motion.js?v=25';
+import {vertexShader,fragmentShader} from '../../app/motion.js?v=26';
 import {compileUserMethod} from '../../app/custom-method.js';
-import {SAMPLES} from '../../app/method-samples.js?v=4';
+import {SAMPLES} from '../../app/method-samples.js?v=5';
 import {createTrial} from '../../app/method-trial.js';
 const $=id=>document.getElementById(id), delay=ms=>new Promise(r=>setTimeout(r,ms));
 const wait=async fn=>{for(let i=0;i<200;i++){if(fn())return;await delay(50)}throw Error('Timed out')};

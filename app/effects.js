@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {smooth} from './motion.js?v=25';
+import {smooth} from './motion.js?v=26';
 // Timeline of the single-image mode's effects. The "look" effects (scanlines, grain, vignette) stay on the whole time;
 // the motion effects fade in with the break-up and out again before the picture returns.
 export function effectsAt(t,duration,{blur=0,push=0,shake=0,chroma=0,glitch=0,bloom=0,neon=0,glass=0,scan=0,grain=0,vignette=0,bokeh=0}={}){

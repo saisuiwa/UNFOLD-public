@@ -1,4 +1,4 @@
-import {compileLyricScene,evaluateLyricNode} from './lyric-scene.js?v=2';
+import {compileLyricScene,evaluateLyricNode} from './lyric-scene.js?v=4';
 import {lyricFontCSS,prepareLyricFont} from './lyric-fonts.js';
 const fontFor=lyricFontCSS;
 export async function prepareMotionFont(motion,text){await prepareLyricFont(motion?.font,text)}

@@ -6,6 +6,7 @@
 import { readdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { versionedImport } from './lib/module-version.mjs';
 
 const APP = fileURLToPath(new URL('../app/', import.meta.url));
 const TEST_PAGES = fileURLToPath(new URL('./test/', import.meta.url));   // the browser test pages import app modules with ?v= too
@@ -21,7 +22,7 @@ function bump(target) {
   const name = basename(target);
   if (bumped.has(name)) return;
   bumped.add(name);
-  const pattern = new RegExp(`(${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\?v=)(\\d+)`, 'g');
+  const pattern = versionedImport(name);
   const found = files.map(file => ({ file, text: readFileSync(file, 'utf8') })).filter(({ text }) => text.match(pattern));
   const numbers = found.flatMap(({ text }) => [...text.matchAll(pattern)].map(m => Number(m[2])));
   if (!numbers.length) { console.log(`${name}: no import with ?v= found (nothing to raise)`); return; }

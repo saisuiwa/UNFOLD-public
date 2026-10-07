@@ -1,4 +1,4 @@
-import {cleanMotion,graphemes} from './lyric-motion.js?v=4';
+import {cleanMotion,graphemes} from './lyric-motion.js?v=26';
 import {normalizeRecipe} from './lyric-recipe.js';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)},ease=x=>1-(1-clamp(x))**3;

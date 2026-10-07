@@ -1,10 +1,10 @@
 import {openCodeMotionEditor} from './code-motion-editor.js';
 import {savedLyricFonts,lyricFontLabel} from './lyric-fonts.js';
 import {BUILTIN_MOTIONS,LAYOUTS,ENTRANCES,SUSTAINS,EXITS,normalizeRecipe} from './lyric-recipe.js';
-import {cleanMotion} from './lyric-motion.js?v=4';
+import {cleanMotion} from './lyric-motion.js?v=26';
 import {lyricRuns} from './lyric-document.js?v=3';
 import {createMotionLibrary,buildMotionFile,parseMotionFile,motionAIPrompt} from './lyric-library.js';
-import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=2';
+import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=4';
 const node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});
 let active=null;
 export function downloadMotion(record){const blob=new Blob([buildMotionFile(record)],{type:'application/json'}),url=URL.createObjectURL(blob),a=node('a');a.href=url;a.download=(record.name.replace(/[\\/:*?"<>|\u0000-\u001f]/g,'').slice(0,40)||'motion')+'.unfoldmotion';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}

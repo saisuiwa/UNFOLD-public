@@ -1,5 +1,5 @@
 <!doctype html><meta charset="utf-8"><title>大きな輪郭文字の色</title><style>body{background:#101819;color:white;font:16px system-ui}canvas{width:800px;max-width:100%}</style><h1>元の文字色を、大きな輪郭文字にも</h1><canvas width="960" height="540"></canvas><pre id="results">検証中</pre><script type="module">
-import {createLyricPainter,prepareMotionFont} from '/app/lyric-painter.js?v=2';
+import {createLyricPainter,prepareMotionFont} from '/app/lyric-painter.js?v=4';
 import {BUILTIN_MOTIONS} from '/app/lyric-recipe.js';
 const c=document.querySelector('canvas'),ctx=c.getContext('2d',{willReadFrequently:true}),p=createLyricPainter(),motion=BUILTIN_MOTIONS.find(m=>m.id==='poster').motion,checks=[];
 const event={text:'まわれ まわれ\n私の世界',runs:[{text:'ま',color:'#ff0000'},{text:'われ まわれ\n'},{text:'私',color:'#ff0000'},{text:'の世界'}],motion,start:0,end:6};

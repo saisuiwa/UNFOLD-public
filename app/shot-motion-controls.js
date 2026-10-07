@@ -1,4 +1,4 @@
-import { cleanShot, DIRECTIONS, cameraPadRect, cameraPadPoint } from './shot-motion.js?v=2';
+import { cleanShot, DIRECTIONS, cameraPadRect, cameraPadPoint } from './shot-motion.js?v=26';
 const NS='http://www.w3.org/2000/svg';
 export function createShotControls({value,onChange,getDuration=()=>10,getImage=()=>null}={}){
  let state=cleanShot(value),endpoint='from',fit={x:0,y:0,width:320,height:180};

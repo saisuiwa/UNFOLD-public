@@ -3,7 +3,7 @@ import {newCustomId,registerCustom} from './method-registry.js';
 import {IMAGE_RUNTIME,newImageMethodId,cleanImageCode} from './image-method-format.js';
 import {createMotionLibrary,parseMotionFile,buildMotionFile} from './lyric-library.js';
 import {approveCodeMotion} from './code-motion-format.js';
-import {cleanMotion} from './lyric-motion.js?v=4';
+import {cleanMotion} from './lyric-motion.js?v=26';
 import {buildMethodFile,parseMethodFile} from './method-file.js';
 export const WORKSHOP_CHANNEL='unfold-workshop-library-v1';
 const store=openStore();

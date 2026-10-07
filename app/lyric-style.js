@@ -1,4 +1,4 @@
-import {cleanMotion} from './lyric-motion.js?v=4';
+import {cleanMotion} from './lyric-motion.js?v=26';
 export const LYRIC_PALETTES=[
  {name:'ミント',color:'#c5f57b',emphasisColor:'#ffb454'},
  {name:'ソーダ',color:'#78ddff',emphasisColor:'#fff29a'},

@@ -58,8 +58,9 @@ const page = `<!doctype html>
     <a href="./">説明</a>
     <a href="./methods.html">メソッド集</a>
     <a href="./samples.html" aria-current="page">サンプル集</a>
+    <a href="./motions.html">モーション集</a>
     <a href="./glb.html">GLB置き場</a>
-  </nav>
+  <a href="../workshop.html">メソッド工房</a></nav>
   <span class="spacer"></span>
   <a class="btn small" href="../">1枚モード</a>
   <a class="btn small lime" href="../sequence.html">シーケンス</a>
@@ -69,7 +70,7 @@ const page = `<!doctype html>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
   <p class="lede">自作メソッド（崩れ方・グラフィックモーション）と、歌詞のテキストモーションのサンプルです。毎日少しずつ増えます（いまは <b>${total}個</b>、最後に増えたのは ${day(latest)}）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
-  <p class="note"><b>崩れ方・グラフィック</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「プリセット…」から選ぶとコードが入ります。そのまま使っても、書き換えてもOKです。<br><b>テキスト</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
+  <p class="note"><b>崩れ方・グラフィック</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。そのまま使っても、書き換えてもOKです。<br><b>テキスト</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">

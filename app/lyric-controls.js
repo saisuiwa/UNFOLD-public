@@ -1,8 +1,8 @@
-import {createLyricQuick} from './lyric-quick.js?v=2';
-import {openMotionStudio} from './lyric-studio.js?v=2';
+import {createLyricQuick} from './lyric-quick.js?v=4';
+import {openMotionStudio} from './lyric-studio.js?v=4';
 import {SECTIONS,SECTION_LABELS} from './lyric-document.js?v=3';
 import {getTimings} from './lyric-timing.js?v=2';
-import {cleanMotion,TEXT_MOTIONS} from './lyric-motion.js?v=4';
+import {cleanMotion,TEXT_MOTIONS} from './lyric-motion.js?v=26';
 const node=(tag,text,cls)=>Object.assign(document.createElement(tag),{...(text==null?{}:{textContent:text}),...(cls?{className:cls}:{})});
 export function createLyricControls({getState,onAction}){
  const element=node('div',null,'lm-controls');element.id='lyric-motion-controls';let timer,composing=false;

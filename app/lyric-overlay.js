@@ -1,11 +1,11 @@
 import {createCodeMotionLayer} from './code-motion-layer.js';
 import {isCodeMotionApproved} from './code-motion-format.js';
 import {getCodeMotionFont} from './lyric-fonts.js';
-import {createLyricPainter} from './lyric-painter.js?v=2';
+import {createLyricPainter} from './lyric-painter.js?v=4';
 import * as THREE from './vendor/three.module.min.js';
 import {lyricFontCSS,prepareLyricFont} from './lyric-fonts.js';
 import {activeLyric} from './lyric-timing.js?v=2';
-import {cleanMotion,layoutText,motionAt} from './lyric-motion.js?v=4';
+import {cleanMotion,layoutText,motionAt} from './lyric-motion.js?v=26';
 export function createLyricOverlay(renderer,callbacks={}){
   const codeLayer=createCodeMotionLayer(callbacks);
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d'),painter=createLyricPainter();
