@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {colorFormats,imageScale,readDrafts,writeDrafts,DRAFTS_KEY} from '../../app/workshop-data.js';
+import {colorFormats,imageScale,readDrafts,writeDrafts,sampleEdited,DRAFTS_KEY} from '../../app/workshop-data.js';
 test('palette produces matching three code formats without accepting executable text',()=>{
  assert.deepEqual(colorFormats('#FF0080'),{hex:'#ff0080',js:'0xff0080',glsl:'vec3(1.0000, 0.0000, 0.5020)'});
  for(const v of ['red','#fff','#ffffff;alert(1)',null])assert.throws(()=>colorFormats(v));
@@ -30,4 +30,15 @@ test('editing a text motion preserves existing motion settings through import an
  const original=parseMotionFile(buildMotionFile(value)).motion;
  const draft=importedDrafts(buildMotionFile(value))[0];draft.name='edited';
  assert.deepEqual(parseMotionFile(workshopFile(draft).text).motion,original);
+});
+test('a sample draft counts as edited once it has left the sample, so the card can offer to put it back',()=>{
+ const sample={key:'sample:text:2',kind:'text',name:'リボンの波',source:'return {update(){}};'};
+ assert.equal(sampleEdited(undefined,sample),false);                                   // no stored draft: the sample itself is shown
+ assert.equal(sampleEdited({...sample},sample),false);                                 // a stored copy that was only previewed
+ assert.equal(sampleEdited({...sample,dirty:false},sample),false);
+ assert.equal(sampleEdited({...sample,dirty:true},sample),true);                       // any edit sets dirty
+ assert.equal(sampleEdited({...sample,source:'const tiles = createImageTiles();'},sample),true);   // code replaced, even without the dirty flag
+ assert.equal(sampleEdited({...sample,kind:'image'},sample),true);                     // code of another kind under a sample's key
+ assert.equal(sampleEdited({...sample,name:'別の名前'},sample),true);                  // renamed
+ assert.equal(sampleEdited({...sample,dirty:true},undefined),false);                   // not a sample: nothing to go back to
 });

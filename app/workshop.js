@@ -3,7 +3,7 @@ import {IMAGE_METHOD_PRESETS} from './image-method-presets.js';
 import {CODE_MOTION_PRESETS,codeMotionPrompt} from './code-motion-presets.js';
 import {LYRIC_PALETTES} from './lyric-style.js';
 import {listModels} from './model-library.js?v=4';
-import {readDrafts,writeDrafts,colorFormats,loadWorkshopImage,assetStore} from './workshop-data.js';
+import {readDrafts,writeDrafts,sampleEdited,colorFormats,loadWorkshopImage,assetStore} from './workshop-data.js';
 import {createWorkshopPreview,testImage} from './workshop-preview.js';
 import {savedWorkshopItems,addWorkshopItem,announceWorkshopItem,workshopFile,importedDrafts} from './workshop-library.js';
 const $=id=>document.getElementById(id),node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});
@@ -12,7 +12,11 @@ let saving=false;
 let state={active:'',drafts:{}},draft,saved=[],kind='glsl',storageOK=true,current=null,serial=0,playing=false,busy=false,time=0,checked='',last=0,libraryError='',assetRevision=0;
 const preview=createWorkshopPreview($('preview-host')),assets=assetStore(),images={a:null,b:null,reference:null},urls={},assetVersions={};
 const notice=(message,type='idle')=>{$('status').textContent=message;$('status').dataset.state=type};
-function stash(){if(!draft)return;state.active=draft.key;state.drafts[draft.key]=structuredClone(draft);if(!storageOK)return;try{writeDrafts(localStorage,state);$('draft-status').textContent='下書き保存済み'}catch(e){$('draft-status').textContent='保存できません';notice(e.message,'error')}}
+const original=key=>samples.find(x=>x.key===key);
+let resetShown=false;
+// The button and the card follow whether the open sample has left the original; the list is only redrawn when that flips.
+function syncReset(){const edited=!!(draft&&sampleEdited(draft,original(draft.key)));$('reset-sample').hidden=!edited;if(edited!==resetShown){resetShown=edited;cards()}}
+function stash(){if(!draft)return;state.active=draft.key;state.drafts[draft.key]=structuredClone(draft);syncReset();if(!storageOK)return;try{writeDrafts(localStorage,state);$('draft-status').textContent='下書き保存済み'}catch(e){$('draft-status').textContent='保存できません';notice(e.message,'error')}}
 function stop(message){serial++;playing=false;current=null;checked='';preview.dispose();$('preview-play').textContent='再生／一時停止';if(message)notice(message);}
 function edit(){stop('変更しました。プレビューで確認してください。');draft.dirty=true;delete draft.thumb;draft.updated=Date.now();$('handoff').hidden=true;stash();}
 const signature=()=>JSON.stringify([draft.kind,draft.source,draft.params,draft.words,draft.font,draft.color,draft.accent,draft.shape,assetRevision]);
@@ -31,9 +35,9 @@ function diagram(index){const svg=document.createElementNS('http://www.w3.org/20
 function cards(){
  const all=new Map(samples.map(x=>[x.key,x]));for(const x of saved)all.set(x.key,x);for(const x of Object.values(state.drafts))if(x.key&&!x.key.startsWith('sample:'))all.set(x.key,x);
  const query=$('search').value.trim().toLowerCase(),items=[...all.values()].filter(x=>x.kind===kind&&(!query||(state.drafts[x.key]||x).name.toLowerCase().includes(query)));$('card-count').textContent=items.length+' BLOCKS';$('cards').replaceChildren();
- items.forEach((item,i)=>{const d=state.drafts[item.key]||item,b=node('button');b.className='card';b.dataset.card=item.key;b.setAttribute('aria-pressed',String(draft?.key===item.key));b.setAttribute('aria-label',item.key.startsWith('sample:')?d.name+' 選んでプレビュー':d.name+' 編集');
+ items.forEach((item,i)=>{const d=state.drafts[item.key]||item,edited=item.key.startsWith('sample:')&&sampleEdited(state.drafts[item.key],item),b=node('button');b.className='card';b.dataset.card=item.key;b.setAttribute('aria-pressed',String(draft?.key===item.key));b.setAttribute('aria-label',item.key.startsWith('sample:')?d.name+' 選んでプレビュー':d.name+' 編集');
  if(d.thumb){const img=node('img');img.src=d.thumb;img.alt=d.name+'のプレビュー';b.append(img)}else b.append(diagram(i));
- const tag=node('span',item.key.startsWith('sample:')?'SAMPLE':d.savedId?'MY METHOD':'DRAFT');tag.className='card-tag';const info=node('div');info.className='card-info';info.append(node('strong',d.name),node('small',d.thumb?'実際の描画から':item.key.startsWith('sample:')?'図解 · タップして試す':'下書き · 開いて編集'));b.append(tag,info);b.onclick=async()=>{select(item);if(item.key.startsWith('sample:')&&!draft.dirty&&draft.source===item.source)await run()};$('cards').append(b)});
+ const tag=node('span',edited?'EDITED':item.key.startsWith('sample:')?'SAMPLE':d.savedId?'MY METHOD':'DRAFT');tag.className='card-tag';const info=node('div');info.className='card-info';info.append(node('strong',d.name),node('small',edited?'編集した版 · 元に戻せます':d.thumb?'実際の描画から':item.key.startsWith('sample:')?'図解 · タップして試す':'下書き · 開いて編集'));b.append(tag,info);b.onclick=async()=>{select(item);if(item.key.startsWith('sample:')&&!draft.dirty&&draft.source===item.source)await run()};$('cards').append(b)});
 }
 function thumbnail(){if(!current)return;const c=document.createElement('canvas');c.width=256;c.height=144;c.getContext('2d').drawImage(current.canvas,0,0,256,144);draft.thumb=c.toDataURL('image/jpeg',.65);stash();cards();}
 async function render(){if(!current||busy)return;busy=true;const own=serial,r=current;try{await r.render(time,Number($('strength').value));if(own===serial){$('time').value=time;$('clock').textContent=time.toFixed(2)+' / 6.00'}}catch(e){if(own===serial){stop();notice(e.message,'error')}}finally{busy=false}}
@@ -47,6 +51,8 @@ for(const k of ['columns','gravity','bounce','seed'])$(k).oninput=()=>{draft.par
 $('search').oninput=cards;document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{const item=Object.values(state.drafts).findLast(x=>x.kind===b.dataset.kind)||samples.find(x=>x.kind===b.dataset.kind);select(item)});
 function newDraft(copy=false){const base=copy?draft:samples.find(x=>x.kind===kind);const d={...structuredClone(base),key:'draft:'+crypto.randomUUID(),name:copy?(draft.name+' コピー').slice(0,kind==='text'?40:20):'新しいメソッド',dirty:true};delete d.savedId;delete d.thumb;select(d)}
 $('new-draft').onclick=()=>newDraft();$('duplicate').onclick=()=>newDraft(true);
+// A sample you edited stays on its card; this puts the original back (the edit is dropped, "コピーを作る" first keeps it).
+$('reset-sample').onclick=async()=>{const sample=original(draft?.key);if(!sample||!confirm('「'+sample.name+'」への編集は消えて、元のサンプルに戻ります。\n残したいときは、先に「コピーを作る」を押してください。\n元に戻しますか？'))return;stop();delete state.drafts[sample.key];draft=null;select(sample);await run();if(current)notice('「'+sample.name+'」を元のサンプルに戻しました。再生・追加・共有ができます。','ready')};
 async function copy(value){try{await navigator.clipboard.writeText(value);notice('コピーしました。')}catch{const area=node('textarea');area.value=value;area.setAttribute('aria-label','手動コピー用');$('status').after(area);area.focus();area.select();notice('コピーできませんでした。選択した文字を手動でコピーしてください。')}}
 $('copy-code').onclick=()=>copy(draft.source);$('copy-prompt').onclick=()=>copy(kind==='glsl'?aiTemplate():kind==='text'?codeMotionPrompt():`UNFOLD画像メソッドのJavaScript関数本体を書いてください。外部importは不可。api.THREE, Text, gsap, RAPIER, root, size, params, createImageTiles, createImagePlane, createText, physics.bind/floor/at, random, returnTime, assemble が利用可能。return {timeline,physicsTime(frame),update(frame)}。timelineはpaused:true。frame.clipTime/duration/progress/amount/form/imageMix。サイズはワールド単位。最大32000文字。画像片と剛体は1024個以内。同じ時刻は同じ結果に。独自の物理step、実時間、累積加算は避ける。画像片はcreateImageTilesで作れば既存の立体へ集合する。createImagePlaneのマテリアルはShaderMaterialで、material.color/opacityだけでは画像の色や透明度は変わらない。表面の色・穴はfragmentShaderとuniformsで実装する。表面演出は工房と作品で立体化なしを指定する。\n参考:\n${draft.source}\n希望する動き：`);
 function colorChange(value){try{const f=colorFormats(value);draft.color=f.hex;$('color').value=f.hex;$('hex').value=f.hex;$('color-code').textContent=f.hex;if(kind==='text')edit();else stash()}catch(e){notice(e.message,'error')}}

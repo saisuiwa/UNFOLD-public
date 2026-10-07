@@ -13,6 +13,8 @@ export function readDrafts(storage){
  catch{throw Error('工房の下書きを読み込めません。保存データは変更していません。');}
 }
 export function writeDrafts(storage,state){try{storage.setItem(DRAFTS_KEY,JSON.stringify(state));}catch{throw Error('下書きを保存できません。コードをコピーして保管してください。');}}
+// A sample card shows its stored draft in place of the sample once one exists, so an edit stays on the card for good. This says whether that draft has left the sample (changed, renamed, or code of another kind), i.e. whether it can be put back.
+export const sampleEdited=(draft,sample)=>!!draft&&!!sample&&(draft.dirty===true||draft.source!==sample.source||draft.kind!==sample.kind||draft.name!==sample.name);
 export async function loadWorkshopImage(file){
  if(!file||!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>20*1024*1024)throw Error('20MB以下のPNG・JPG・WebPを選んでください。');
  const url=URL.createObjectURL(file),image=new Image();
