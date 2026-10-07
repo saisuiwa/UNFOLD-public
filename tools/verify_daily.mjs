@@ -46,7 +46,8 @@ const recent = expectNew ? items.filter(i => i.added >= expectNew) : items;     
 await step('unit tests', () => {
   const dir = join(REPO, 'tools/test');
   const files = readdirSync(dir).filter(f => f.endsWith('.test.mjs')).map(f => join('tools/test', f));
-  const run = spawnSync('node', ['--test', ...files], { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 26 });
+  // tap: the counts below are read from its "# pass N" lines; newer Node versions print another format (ℹ pass N) when no reporter is named
+  const run = spawnSync('node', ['--test', '--test-reporter=tap', ...files], { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 26 });
   const count = key => Number((new RegExp(`^# ${key} (\\d+)`, 'm').exec(run.stdout) || [])[1] ?? NaN);
   const failed = [...run.stdout.matchAll(/^not ok \d+ - (.+)$/gm)].map(m => m[1]);
   need(run.status === 0 && count('fail') === 0, `${count('fail')} failed: ${failed.slice(0, 8).join(' | ')}\n${run.stdout.split('\n').filter(l => /^#\s+(Error|AssertionError)|expected|actual|message:/.test(l)).slice(0, 12).join('\n')}`);
