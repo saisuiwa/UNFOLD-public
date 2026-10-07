@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><title>preview: image method</title>
+<!-- A page for the preview maker and the daily check: one JavaScript image method (physics, surface effects) run by the app's own runtime. -->
+<body style="margin:0;background:#101819"><canvas id="c" width="480" height="270"></canvas>
+<script type="module">
+import { createImageMethodRuntime } from '/image-method-runtime.js';
+import { imageFrame } from '/image-method-format.js';
+import { makeTestImage } from '/method-preview.js';
+import * as THREE from '/vendor/three.module.min.js';
+
+const W = 480, H = 270, out = document.getElementById('c'), ctx = out.getContext('2d', { willReadFrequently: true });
+const camera = new THREE.OrthographicCamera(-4, 4, 2.25, -2.25, .1, 100);
+camera.position.z = 10; camera.updateMatrixWorld();
+const second = document.createElement('canvas');
+second.width = 640; second.height = 360;
+{ const g = second.getContext('2d'), grad = g.createLinearGradient(0, 0, 640, 360); grad.addColorStop(0, '#173a46'); grad.addColorStop(1, '#4b2f55'); g.fillStyle = grad; g.fillRect(0, 0, 640, 360); g.fillStyle = '#d9f878'; g.font = 'bold 120px sans-serif'; g.textAlign = 'center'; g.fillText('NEXT', 320, 220); }
+const config = (time, duration, amount) => ({ ...imageFrame(time, duration, amount), width: W, height: H, bg: '#101819', camera: { projection: camera.projectionMatrix.toArray(), world: camera.matrixWorld.toArray() } });
+
+window.previewImage = {
+  // runs the preset over a clip and reports what it did; frames: [seconds, ...]; also returns the pictures if wanted
+  async run(code, { duration = 6, amount = .8, times = [0, .9, 1.8, 2.7, 3.6, 5.6, 6], keep = false, quality = .9 } = {}) {
+    const image = makeTestImage(640, 360), runtime = createImageMethodRuntime(), frames = [];
+    let first = null;
+    try {
+      await runtime.prepare({ code, imageA: image, imageB: second, size: { width: 6.4, height: 3.6 }, target: null });
+      for (const time of times) {
+        const started = performance.now(), bitmap = await runtime.render(config(time, duration, amount));
+        ctx.clearRect(0, 0, W, H); ctx.drawImage(bitmap, 0, 0); bitmap.close();
+        const bytes = ctx.getImageData(0, 0, W, H).data;
+        first ??= bytes;
+        let changed = 0, hash = 2166136261;
+        for (let i = 0; i < bytes.length; i += 4) {
+          for (let j = 0; j < 4; j++) hash = Math.imul(hash ^ bytes[i + j], 16777619);
+          if (Math.abs(bytes[i] - first[i]) + Math.abs(bytes[i + 1] - first[i + 1]) + Math.abs(bytes[i + 2] - first[i + 2]) > 35) changed++;
+        }
+        frames.push({ time, changed, hash, ms: Math.round(performance.now() - started), ...(keep ? { url: out.toDataURL('image/jpeg', quality) } : {}) });
+      }
+    } finally { runtime.dispose(); }
+    return frames;
+  },
+};
+window.previewReady = true;
+</script>
+</html>

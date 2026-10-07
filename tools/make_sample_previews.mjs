@@ -5,6 +5,7 @@
 //   node tools/make_sample_previews.mjs --only=petals   only the ones whose id or key matches (comma separated; ids look like method-petals)
 //   --crf=N   the video quality (higher = smaller file, default 33)
 // Needs: Chromium (through Playwright) and ffmpeg with libx264.
+// What draws each kind: method / graphic -> the editor's preview; image -> the image method runtime (physics, surface effects); codetext -> the code motion runtime; text -> the lyric overlay.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -14,6 +15,7 @@ import { startStaticServer } from './lib/static-server.mjs';
 import { MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
 
 const FPS = 24;
+const IMAGE = { fps: 20, frames: 116, poster: 1.8 };                                       // a 6 second clip of the app's runtime, shown 0 -> 5.75 s; the poster is at 1.8 s unless the sample says otherwise
 const METHOD = { frames: 58, maxAmount: .8, posterAmount: .45, posterTime: 1 };            // 0 -> 0.8 -> 0 in 2.4 s: it breaks and comes back
 const TEXT = { text: 'きみと、*はじまる*', start: .3, end: 3.3, duration: 3.6, size: 150, poster: .2 };   // the poster is taken just after the line starts (0.2 s in, or the motion's own `poster`), where the presets still look different
 
@@ -38,11 +40,21 @@ try {
     const problems = [];
     page.on('pageerror', e => problems.push(String(e).slice(0, 200)));
     try {
-      const isText = item.group === 'text';
-      await page.goto(`${server.url}/__tools/preview/${isText ? 'text' : 'method'}.html`);
+      const isText = item.group === 'text', page_ = { text: 'text', codetext: 'code-text', image: 'image' }[item.group] || 'method';
+      await page.goto(`${server.url}/__tools/preview/${page_}.html`);
       await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
-      let shots, poster;
-      if (isText) {
+      let shots, poster, fps = FPS;
+      if (item.group === 'codetext') {
+        const times = Array.from({ length: Math.round(TEXT.duration * FPS) }, (_, i) => i / FPS), at = TEXT.start + (item.poster ?? TEXT.poster);
+        const run = (opts) => page.evaluate(({ source, opts }) => window.previewCodeText.run(source, opts), { source: item.source, opts: { start: TEXT.start, end: TEXT.end, keep: true, ...opts } });
+        shots = (await run({ times })).map(f => f.url);
+        poster = (await run({ times: [at], quality: .88 }))[0].url;
+      } else if (item.group === 'image') {
+        fps = IMAGE.fps;
+        const times = Array.from({ length: IMAGE.frames }, (_, i) => i / IMAGE.fps), run = opts => page.evaluate(({ code, opts }) => window.previewImage.run(code, opts), { code: item.code, opts: { keep: true, ...opts } });
+        shots = (await run({ times })).map(f => f.url);
+        poster = (await run({ times: [item.poster ?? IMAGE.poster], quality: .88 }))[0].url;
+      } else if (isText) {
         await page.evaluate(opts => window.previewText.load(opts), { text: TEXT.text, preset: item.key, start: TEXT.start, end: TEXT.end, size: TEXT.size, duration: TEXT.duration });
         const frames = Math.round(TEXT.duration * FPS);
         shots = await page.evaluate(({ frames, fps }) => Array.from({ length: frames }, (_, i) => window.previewText.shot(i / fps)), { frames, fps: FPS });
@@ -63,7 +75,7 @@ try {
       shots.forEach((url, i) => writeFileSync(join(dir, `f${String(i).padStart(3, '0')}.jpg`), decode(url)));
       const files = previewFiles(item.id);
       writeFileSync(join(dir, 'poster.jpg'), decode(poster));
-      execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(dir, 'f%03d.jpg'), '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf),
+      execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', join(dir, 'f%03d.jpg'), '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf),
         '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', join(dir, 'out.mp4')]);
       renameSync(join(dir, 'poster.jpg'), files.jpg);
       renameSync(join(dir, 'out.mp4'), files.mp4);

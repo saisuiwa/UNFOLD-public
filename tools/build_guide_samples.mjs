@@ -8,8 +8,7 @@ import { GROUPS, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs
 
 const OUT = fileURLToPath(new URL('../app/guide/samples.html', import.meta.url));
 const esc = text => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const SYMBOLS = { text: '文' };
-const GROUP_NOTES = { method: '崩れ方', graphic: 'グラフィック', text: 'テキスト' };
+const SYMBOLS = { text: '文', codetext: '文' };
 
 const items = catalog().map((item, order) => ({ ...item, order })).sort((a, b) => b.added.localeCompare(a.added) || a.order - b.order);   // newest day first; within a day the groups keep their order
 const latest = items.reduce((day, item) => (item.added > day ? item.added : day), '0000-00-00');
@@ -25,9 +24,9 @@ const card = item => {
         <img src="./samples/${item.id}.jpg" alt="${esc(item.name)}の途中の絵" loading="lazy" width="480" height="270">
       </div>`
     : '<div class="shot none">プレビュー準備中</div>';
-  const how = item.group === 'text'
-    ? `<p class="how">歌詞の行の「動き」で「${esc(item.name)}」を選びます。</p>`
-    : `<details><summary>コードを見る</summary><pre><code>${esc(item.source)}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>`;
+  const code = item.source ? `<details><summary>コードを見る</summary><pre><code>${esc(item.source)}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>` : '';
+  const way = { image: 'メソッド工房の「画像・立体・物理」のサンプルから選びます。', codetext: 'メソッド工房の「文字モーション」のサンプルから選びます。', text: `歌詞の行の「動き」で「${esc(item.name)}」を選びます。` }[item.group];
+  const how = (way ? `<p class="how">${way}</p>` : '') + code;
   return `    <article class="method" data-cat="${item.group}">
       ${media}
       <div class="body">
@@ -47,8 +46,8 @@ const page = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>UNFOLD サンプル集 — 自作メソッドとテキストモーション</title>
-<meta name="description" content="UNFOLDの自作メソッド（崩れ方・グラフィックモーション）と、歌詞のテキストモーションのサンプル${total}個を、動く見本で紹介します。毎日増えます。">
+<title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル${total}個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -69,8 +68,8 @@ const page = `<!doctype html>
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（崩れ方・グラフィックモーション）と、歌詞のテキストモーションのサンプルです。毎日少しずつ増えます（いまは <b>${total}個</b>、最後に増えたのは ${day(latest)}）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
-  <p class="note"><b>崩れ方・グラフィック</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。そのまま使っても、書き換えてもOKです。<br><b>テキスト</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>${total}個</b>、最後に増えたのは ${day(latest)}）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">

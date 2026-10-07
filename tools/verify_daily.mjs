@@ -1,10 +1,11 @@
 // The check that stands between a day's new samples and Git. It prints PASS / FAIL for each step and exits 1 if anything failed.
 //   node tools/verify_daily.mjs                       everything, for all samples (a few minutes)
 //   node tools/verify_daily.mjs --expect-new=2026-10-08
-//        the daily run: the samples added on that day (Japan time) must be exactly one method, one graphic and one text motion;
+//        the daily run: the samples added on that day (Japan time) must be exactly one GLSL method, one JavaScript image method and one text code motion;
 //        the GPU check and the preview check then look at the samples added on that day or later (the older ones were checked on their day)
 //   --base=REF   what the ?v= numbers are compared with (default origin/main)
-// Steps: unit tests - the samples' own rules on the GPU (the editor's three checks, warnings count as failures) - previews (files, size, video format, decodes)
+// Steps: unit tests - the GLSL samples on the GPU (the editor's three checks, warnings count as failures) - the image methods and the text code motions in the app's own runtimes
+//        - previews (files, size, video format, decodes)
 //        - generated pages are up to date - every page opens without errors - the samples page works - the editor lists the samples
 //        - the lyric panel lists the text motions - changed modules got a new ?v= - the daily log mentions every new sample.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -15,7 +16,7 @@ import { TEXT_MOTIONS } from '../app/lyric-motion.js';
 import { versionedImport, versionedImportGrep } from './lib/module-version.mjs';
 import { launchBrowser } from './lib/browser.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
-import { MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
+import { DAILY_GROUPS, MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
 
 const REPO = fileURLToPath(new URL('../', import.meta.url));
 const FIRST_BATCH = '2026-10-04';                                   // the samples that were there before the daily routine (same as in build_guide_samples.mjs)
@@ -54,12 +55,12 @@ await step('unit tests', () => {
 
 // ---- 2. the quota of the day
 if (expectNew) {
-  await step(`exactly one new method, graphic and text motion on ${expectNew}`, () => {
+  await step(`exactly one new GLSL method, image method and text code motion on ${expectNew}`, () => {
     const added = items.filter(i => i.added === expectNew);
-    const counts = Object.fromEntries(['method', 'graphic', 'text'].map(g => [g, added.filter(i => i.group === g).length]));
-    need(counts.method === 1 && counts.graphic === 1 && counts.text === 1, `added on ${expectNew}: method ${counts.method}, graphic ${counts.graphic}, text ${counts.text} (each must be 1)`);
+    const counts = Object.fromEntries(DAILY_GROUPS.map(g => [g, added.filter(i => i.group === g).length]));
+    need(DAILY_GROUPS.every(g => counts[g] === 1), `added on ${expectNew}: ${DAILY_GROUPS.map(g => `${g} ${counts[g]}`).join(', ')} (each must be 1)`);
     need(!items.some(i => i.added > expectNew), `something is dated after ${expectNew}: ${items.filter(i => i.added > expectNew).map(i => i.id).join(', ')}`);
-    return added.map(i => i.id).join(', ');
+    return added.filter(i => DAILY_GROUPS.includes(i.group)).map(i => i.id).join(', ');
   });
 }
 
@@ -158,15 +159,59 @@ try {
     return `${PAGES.length} pages`;
   });
 
-  await step(`method / graphic samples pass the editor's checks on the GPU (${recent.filter(i => i.source).length})`, async () => {
+  const glsl = recent.filter(i => i.group === 'method' || i.group === 'graphic');
+  await step(`GLSL samples pass the editor's checks on the GPU (${glsl.length})`, async () => {
     const page = await newPage();
     await page.goto(`${server.url}/__tools/preview/method.html`);
     await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
     const problems = [];
-    for (const item of recent.filter(i => i.source)) {
+    for (const item of glsl) {
       const result = await page.evaluate(source => window.previewMethod.verify(source), item.source);
       if (!result.ok) problems.push(`${item.id}: ${result.stage} — ${result.problems.join(' / ')}`);
       else if (result.warnings.length) problems.push(`${item.id}: warning — ${result.warnings.join(' / ')} (a sample must show a real change)`);
+    }
+    for (const p of page.problems) problems.push(`page: ${p}`);
+    await page.close();
+    need(!problems.length, problems.join('\n'));
+  });
+
+  const images = recent.filter(i => i.group === 'image');
+  await step(`image methods run in the app's runtime and show an effect (${images.length})`, async () => {
+    const page = await newPage();
+    await page.goto(`${server.url}/__tools/preview/image.html`);
+    await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
+    const problems = [];
+    for (const item of images) {
+      let frames;
+      try { frames = await page.evaluate(code => window.previewImage.run(code), item.code); } catch (error) { problems.push(`${item.id}: ${String(error.message).split('\n')[0]}`); continue; }
+      const at = t => frames.find(f => f.time === t);
+      if (frames.some(f => f.ms > 5000)) problems.push(`${item.id}: a frame took ${Math.max(...frames.map(f => f.ms))} ms (limit 5000)`);
+      if (at(1.8).changed < 2000) problems.push(`${item.id}: at 1.8 s only ${at(1.8).changed} pixels differ from the original picture (it must show an effect: 2000 or more)`);
+      if (new Set(frames.map(f => f.hash)).size < 5) problems.push(`${item.id}: the picture hardly changes over the clip (${new Set(frames.map(f => f.hash)).size} different frames of ${frames.length})`);
+    }
+    for (const p of page.problems) problems.push(`page: ${p}`);
+    await page.close();
+    need(!problems.length, problems.join('\n'));
+  });
+
+  const codetexts = recent.filter(i => i.group === 'codetext');
+  await step(`text code motions run, stay in the frame and fade out (${codetexts.length})`, async () => {
+    const page = await newPage();
+    await page.goto(`${server.url}/__tools/preview/code-text.html`);
+    await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
+    const problems = [], W = 480, H = 270, times = [0, .45, .9, 1.5, 2.0, 2.8, 3.4];
+    for (const item of codetexts) {
+      let frames;
+      try { frames = await page.evaluate(({ source, times }) => window.previewCodeText.run(source, { times }), { source: item.source, times }); } catch (error) { problems.push(`${item.id}: ${String(error.message).split('\n')[0]}`); continue; }
+      const at = t => frames.find(f => f.time === t), mid = at(1.5), later = at(2.0), gone = at(3.4);
+      if (frames.some(f => f.ms > 5000)) problems.push(`${item.id}: a frame took ${Math.max(...frames.map(f => f.ms))} ms (limit 5000)`);
+      for (const f of [mid, later]) {
+        if (f.pixels < 400) problems.push(`${item.id}: nothing readable at ${f.time} s in the middle of the line (${f.pixels} pixels)`);
+        else if (f.pixels > W * H * .5) problems.push(`${item.id}: the text covers more than half of the picture at ${f.time} s`);
+        else if (f.box[0] < W * .02 || f.box[1] < H * .02 || f.box[2] > W * .98 || f.box[3] > H * .98) problems.push(`${item.id}: the text touches the edge of the picture at ${f.time} s (${f.box.join(',')})`);
+      }
+      if (new Set([at(.45), at(.9), mid].map(f => f.hash)).size < 2) problems.push(`${item.id}: the picture does not change while the line comes in`);
+      if (gone.pixels > mid.pixels * .05) problems.push(`${item.id}: still ${gone.pixels} pixels of text after the line has ended (it must fade out by its duration)`);
     }
     for (const p of page.problems) problems.push(`page: ${p}`);
     await page.close();

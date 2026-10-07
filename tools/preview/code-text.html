@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><title>preview: code text motion</title>
+<!-- A page for the preview maker and the daily check: one text code motion (Three / Troika / GSAP) run by the app's own isolated runtime over a plain background. -->
+<body style="margin:0;background:#111718"><canvas id="c" width="480" height="270"></canvas>
+<script type="module">
+import { createCodeMotionLayer } from '/code-motion-layer.js';
+import { approveCodeMotion } from '/code-motion-format.js';
+import { lyricRuns } from '/lyric-document.js';
+
+const W = 480, H = 270, out = document.getElementById('c'), g = out.getContext('2d', { willReadFrequently: true });
+// the same quiet dusk picture the preset text motions are shown on (see text.html)
+const back = document.createElement('canvas');
+back.width = W; back.height = H;
+{
+  const b = back.getContext('2d'), grad = b.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, '#173a46'); grad.addColorStop(.55, '#2b3b63'); grad.addColorStop(1, '#4b2f55');
+  b.fillStyle = grad; b.fillRect(0, 0, W, H);
+  for (const [x, y, r, c] of [[.18, .3, .32, '#7fd0e8'], [.78, .22, .26, '#f0b8ff'], [.62, .85, .4, '#ffcf8a'], [.1, .9, .22, '#a7ffcf']]) {
+    const radial = b.createRadialGradient(x * W, y * H, 0, x * W, y * H, r * W);
+    radial.addColorStop(0, c + '55'); radial.addColorStop(1, c + '00');
+    b.fillStyle = radial; b.fillRect(0, 0, W, H);
+  }
+}
+
+window.previewCodeText = {
+  // Runs the code over a clip. times: seconds; keep: also return a picture per time. Reports, per time, how much text there is and where.
+  async run(source, { text = 'きみと、*はじまる*', start = .3, end = 3.3, times = [0, .45, .9, 1.5, 2.0, 2.8, 3.4], keep = false, quality = .92 } = {}) {
+    approveCodeMotion(source);                                   // this page only: the app asks a person to approve code first
+    const layer = createCodeMotionLayer(), runs = lyricRuns(text), frames = [];
+    const event = { id: 'preview', text: runs.map(r => r.text).join(''), runs, start, end, motion: { preset: 'float', direction: 'up', color: '#ffffff', emphasisColor: '#d9f878', size: 72, position: 'center', font: 'gothic', speed: 1, code: { version: 1, source } } };
+    try {
+      for (const time of times) {
+        const started = performance.now(), bitmap = await layer.prepareFrame(event, time, { width: W, height: H, bpm: 120 });
+        g.clearRect(0, 0, W, H); g.drawImage(back, 0, 0); g.drawImage(bitmap, 0, 0);
+        // what the code drew on its own (transparent where there is no text)
+        const probe = document.createElement('canvas'); probe.width = W; probe.height = H;
+        const pc = probe.getContext('2d', { willReadFrequently: true }); pc.drawImage(bitmap, 0, 0);
+        const alpha = pc.getImageData(0, 0, W, H).data;
+        let pixels = 0, x0 = W, y0 = H, x1 = -1, y1 = -1, hash = 2166136261;
+        for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+          const a = alpha[(y * W + x) * 4 + 3];
+          hash = Math.imul(hash ^ a, 16777619);
+          if (a > 24) { pixels++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        }
+        frames.push({ time, pixels, box: pixels ? [x0, y0, x1, y1] : null, hash, ms: Math.round(performance.now() - started), ...(keep ? { url: out.toDataURL('image/jpeg', quality) } : {}) });
+      }
+    } finally { layer.dispose(); }
+    return frames;
+  },
+};
+window.previewReady = true;
+</script>
+</html>
