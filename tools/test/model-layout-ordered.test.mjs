@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { modelLayout } from '../../app/model-layout.js';
-import * as before from '../../archive/app-before-ordered-glb-2026-10-03/model-layout.js';
+import { existsSync } from 'node:fs';
+
+// The old copy lives in archive/ (not in Git). Without it the comparison is skipped, like in registry.test.mjs.
+const OLD = new URL('../../archive/app-before-ordered-glb-2026-10-03/model-layout.js', import.meta.url);
+const before = existsSync(OLD) ? await import(OLD.href) : null;
 
 // a small bumpy "sphere" of triangles, in a scrambled order
 function sphereTriangles(n = 40) {
@@ -16,7 +20,7 @@ function sphereTriangles(n = 40) {
   return new Float32Array(tris.flat());
 }
 
-test('the default layout is exactly what it was before the ordered option existed', () => {
+test('the default layout is exactly what it was before the ordered option existed', { skip: !before }, () => {
   const input = sphereTriangles();
   const a = modelLayout(input), b = before.modelLayout(input);
   assert.deepEqual(Array.from(a.target), Array.from(b.target));

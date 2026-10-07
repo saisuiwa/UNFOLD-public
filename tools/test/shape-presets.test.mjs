@@ -2,7 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { presetNames, presetTargets } from '../../app/shape-presets.js';
-import * as before from '../../archive/app-before-new-shapes-2026-10-03/shape-presets.js';
+import { existsSync } from 'node:fs';
+
+// The old copy lives in archive/ (not in Git). Without it the comparison is skipped, like in registry.test.mjs.
+const OLD = new URL('../../archive/app-before-new-shapes-2026-10-03/shape-presets.js', import.meta.url);
+const before = existsSync(OLD) ? await import(OLD.href) : null;
 
 const hash = a => createHash('sha1').update(Buffer.from(a.buffer, a.byteOffset, a.byteLength)).digest('hex');
 
@@ -18,7 +22,7 @@ test('the new shapes are there, and the old ones are still there', () => {
   for (const n of ['human', 'pegasus', 'apple', 'icecream', 'whale', 'dragon', 'flock', 'spheres']) assert.ok(presetNames.includes(n), n);
 });
 
-test('apple and ice cream are exactly what they were (same numbers as before the new shapes)', () => {
+test('apple and ice cream are exactly what they were (same numbers as before the new shapes)', { skip: !before }, () => {
   for (const n of ['apple', 'icecream']) assert.equal(hash(presetTargets(n)), hash(before.presetTargets(n)), n);
 });
 
