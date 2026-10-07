@@ -159,9 +159,9 @@ In the lyric inline editor, choose **動き → ＋追加・コードで作る**
 
 ## 毎日のサンプル追加（2026-10-07〜）
 
-メソッド（崩れ方）・グラフィックモーション・テキストモーションのサンプルを、毎日1つずつ足して検証し、通ったものだけ `main` に入れるルーティンです。手順は [docs/daily-samples-routine.md](docs/daily-samples-routine.md)、追加の記録は [docs/daily-samples-log.md](docs/daily-samples-log.md)。
+メソッド工房のサンプルと同じ3種類を、毎日1つずつ足して検証し、通ったものだけ `main` に入れるルーティンです。手順は [docs/daily-samples-routine.md](docs/daily-samples-routine.md)、追加の記録は [docs/daily-samples-log.md](docs/daily-samples-log.md)。
 
-- 見本のページ：`/guide/samples.html`（マウスを載せると動く。ソースは `app/guide/samples.html`、`node tools/build_guide_samples.mjs` で作る。プレビューのJPG/MP4は `app/guide/samples/`、`node tools/make_sample_previews.mjs` で作る）。
-- 足す場所：メソッドとグラフィックは `app/method-samples.js` の `SAMPLES`、テキストは `app/lyric-motion.js` の `TEXT_MOTIONS`（表に1つ足すだけで、歌詞パネルの「動き」の選択肢にも出ます。既存5つの数値は変わらないことをテストで固定）。
-- 足したあとの検証：`node tools/verify_daily.mjs --expect-new=<日付>`（単体テスト・GPUでの3つの検査・プレビューの形式・全ページの表示・`?v=` の上げ忘れ・ログまで）。変えたファイルの `?v=` は `node tools/bump_module_version.mjs app/<ファイル>.js` で、HTMLまで玉突きで上がります。
+- 足す場所（3種類を1つずつ）：メソッド＝GLSL は `app/method-samples.js` の `SAMPLES`、グラフィックモーション＝JavaScriptの画像メソッドは `app/image-method-daily.js`、テキストモーション＝文字のコードモーションは `app/code-motion-daily.js`。後ろの2つは、Macで作られたプリセット（`image-method-presets.js` `code-motion-presets.js`）の末尾につながって、工房とエディタのサンプルに出ます。以前の GLSL の `graphic` と、かんたん設定の文字の動き（`TEXT_MOTIONS`、歌詞パネルの「動き」の選択肢）は残してあり、新しくは足しません。
+- 見本のページ：`/guide/samples.html`（マウスを載せると動く。ソースは `app/guide/samples.html`、`node tools/build_guide_samples.mjs` で作る。プレビューのJPG/MP4は `app/guide/samples/`、`node tools/make_sample_previews.mjs` が、GLSLはエディタのプレビュー、画像メソッドと文字コードはアプリ本物の実行環境、かんたん設定の文字は歌詞の描画器で描いて作る）。
+- 足したあとの検証：`node tools/verify_daily.mjs --expect-new=<日付>`（単体テスト・GLSLのGPU検査・画像メソッドと文字コードの実行（効果が出る／画面に収まる／終わりで消える）・プレビューの形式・全ページの表示・`?v=` の上げ忘れ・ログまで）。GLSLを変えたときの `?v=` は `node tools/bump_module_version.mjs app/<ファイル>.js` で、HTMLまで玉突きで上がります。
 - 公開サイトは自動では変わりません。更新するときは、これまでどおり `app/` を Cloudflare にアップロードしてください（`docs/公開手順_Cloudflare.md`）。

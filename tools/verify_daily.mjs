@@ -7,7 +7,7 @@
 // Steps: unit tests - the GLSL samples on the GPU (the editor's three checks, warnings count as failures) - the image methods and the text code motions in the app's own runtimes
 //        - previews (files, size, video format, decodes)
 //        - generated pages are up to date - every page opens without errors - the samples page works - the editor lists the samples
-//        - the lyric panel lists the text motions - changed modules got a new ?v= - the daily log mentions every new sample.
+//        - the method workshop lists and runs the new samples - the lyric panel lists the text motions - changed modules got a new ?v= - the daily log mentions every new sample.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, writeFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -212,6 +212,31 @@ try {
       }
       if (new Set([at(.45), at(.9), mid].map(f => f.hash)).size < 2) problems.push(`${item.id}: the picture does not change while the line comes in`);
       if (gone.pixels > mid.pixels * .05) problems.push(`${item.id}: still ${gone.pixels} pixels of text after the line has ended (it must fade out by its duration)`);
+    }
+    for (const p of page.problems) problems.push(`page: ${p}`);
+    await page.close();
+    need(!problems.length, problems.join('\n'));
+  });
+
+  const kindOf = { method: 'glsl', graphic: 'glsl', image: 'image', codetext: 'text' }, inWorkshop = recent.filter(i => kindOf[i.group]);   // the preset text motions are not in the workshop
+  await step(`the method workshop lists the new samples and runs each one itself (${inWorkshop.length})`, async () => {
+    const page = await newPage({ width: 1440, height: 1000 });
+    await page.goto(`${server.url}/workshop.html`, { waitUntil: 'load' });
+    await page.waitForFunction(() => document.querySelector('main') && !document.querySelector('main').inert, null, { timeout: 30000 });
+    const problems = [];
+    for (const item of inWorkshop) {
+      await page.locator(`[data-kind="${kindOf[item.group]}"]`).click();
+      const card = await page.evaluate(({ kind, key, name }) => {
+        const cards = [...document.querySelectorAll('[data-card^="sample:"]')];
+        const hit = kind === 'glsl' ? cards.find(c => c.dataset.card === `sample:glsl:${key}`) : cards.find(c => c.querySelector('strong')?.textContent === name);
+        return hit?.dataset.card || null;
+      }, { kind: kindOf[item.group], key: item.key, name: item.name });
+      if (!card) { problems.push(`${item.id}: not listed in the workshop's "${kindOf[item.group]}" samples`); continue; }
+      await page.evaluate(() => { const s = document.querySelector('#status'); if (s) { s.dataset.state = ''; s.textContent = ''; } });
+      await page.locator(`[data-card="${card}"]`).click();
+      try { await page.waitForFunction(() => ['ready', 'error'].includes(document.querySelector('#status')?.dataset.state), null, { timeout: 45000 }); } catch { problems.push(`${item.id}: the workshop did not finish its own check in 45 s`); continue; }
+      const state = await page.locator('#status').getAttribute('data-state');
+      if (state !== 'ready') problems.push(`${item.id}: the workshop's own check says "${(await page.locator('#status').textContent()).slice(0, 100)}"`);
     }
     for (const p of page.problems) problems.push(`page: ${p}`);
     await page.close();
