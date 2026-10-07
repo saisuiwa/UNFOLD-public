@@ -1,16 +1,19 @@
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));const ease=t=>1-(1-t)**3;
 export function graphemes(t){return typeof Intl.Segmenter==='function'?[...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(t)].map(x=>x.segment):String(t).match(/(?:\P{Mark}\p{Mark}*(?:\u200d\P{Mark}\p{Mark}*)*|\p{Mark}+)/gu)||[]}
 // Text motions, one entry per preset. To add one, add an entry here: the per-line select, the file check and the samples page all read this table.
-// label: the name in the select. desc: one line for the samples page. added: the day it was added (YYYY-MM-DD, Japan time). fn(c): returns only the parts of the frame it moves —
+// label: the name in the select. desc: one line for the samples page. added: the day it was added (YYYY-MM-DD, Japan time).
+// poster (optional): how many seconds after the line starts the still picture of the samples page is taken (0.2 if left out; pick the moment the motion is easiest to see). fn(c): returns only the parts of the frame it moves —
 //   x, y (in text heights), scale, reveal (0..1: how much of the line is written), emphasis (scale of *emphasised* words). Anything else stays at rest.
 // c = { m: the cleaned motion, e: the line, t: time (s), p: 0..1 through the line, q: eased intro 0..1, intro: linear intro 0..1, duration (s), bpm }
 // The fade in and out (opacity) is shared by all of them. New entries go at the end: that is the order in the select.
+const bounceOut=x=>{const n=7.5625,d=2.75;return x<1/d?n*x*x:x<2/d?n*(x-=1.5/d)*x+.75:x<2.5/d?n*(x-=2.25/d)*x+.9375:n*(x-=2.625/d)*x+.984375};   // 0 -> 1, landing with bounces
 export const TEXT_MOTIONS={
   float:{label:'ふわっと',desc:'下から少し浮かびながら、ふわっと現れます。',added:'2026-10-04',fn:({q})=>({y:(1-q)*.55})},
   slide:{label:'流れ込む',desc:'選んだ方向から、すっと流れ込んできます。',added:'2026-10-04',fn:({m,q})=>{const sign=['left','up'].includes(m.direction)?-1:1;return {[['left','right'].includes(m.direction)?'x':'y']:sign*(1-q)*2.5}}},
   reveal:{label:'一文字ずつ',desc:'文字が一つずつ、順番に現れます。',added:'2026-10-04',fn:({m,e,t,duration})=>({reveal:clamp((t-e.start)/Math.min(duration*.7,1.5/m.speed),0,1)})},
   pop:{label:'弾む',desc:'ぽんと大きくなってから、弾んで落ち着きます。',added:'2026-10-04',fn:({intro})=>({scale:1+(1-intro)*Math.sin(intro*Math.PI*2.4)*.32})},
-  emphasis:{label:'強調',desc:'*強調*した言葉が、拍に合わせてどくんと膨らみます。',added:'2026-10-04',fn:({e,t,p,bpm})=>({emphasis:1+.13*Math.sin(clamp((t-e.start)*bpm/60,0,1)*Math.PI)*(1-p)})}
+  emphasis:{label:'強調',desc:'*強調*した言葉が、拍に合わせてどくんと膨らみます。',added:'2026-10-04',fn:({e,t,p,bpm})=>({emphasis:1+.13*Math.sin(clamp((t-e.start)*bpm/60,0,1)*Math.PI)*(1-p)})},
+  bounce:{label:'落ちて弾む',desc:'上から落ちてきて、床に当たったように弾みながら止まります。',added:'2026-10-07',poster:.14,fn:({intro})=>({y:-1.6*(1-bounceOut(intro))})}
 };
 // what a frame looks like at rest, and how far each part may go (a bad entry cannot push the text off the screen or make it vanish)
 const REST={x:0,y:0,scale:1,reveal:1,emphasis:1},RANGE={x:[-10,10],y:[-10,10],scale:[.05,4],reveal:[0,1],emphasis:[.05,4]};

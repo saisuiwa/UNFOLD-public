@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.min.js';
 import {FONTS,ensureFont} from './mask-shape.js?v=5';
 import {activeLyric} from './lyric-timing.js?v=2';
-import {cleanMotion,layoutText,motionAt} from './lyric-motion.js?v=3';
+import {cleanMotion,layoutText,motionAt} from './lyric-motion.js?v=4';
 export function createLyricOverlay(renderer){
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.minFilter=THREE.LinearFilter;texture.generateMipmaps=false;

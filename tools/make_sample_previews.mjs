@@ -15,7 +15,7 @@ import { MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/sam
 
 const FPS = 24;
 const METHOD = { frames: 58, maxAmount: .8, posterAmount: .45, posterTime: 1 };            // 0 -> 0.8 -> 0 in 2.4 s: it breaks and comes back
-const TEXT = { text: 'きみと、*はじまる*', start: .3, end: 3.3, duration: 3.6, size: 150, poster: .5 };   // the poster is taken just after the line starts (0.2 s in), where the presets still look different
+const TEXT = { text: 'きみと、*はじまる*', start: .3, end: 3.3, duration: 3.6, size: 150, poster: .2 };   // the poster is taken just after the line starts (0.2 s in, or the motion's own `poster`), where the presets still look different
 
 const args = process.argv.slice(2);
 const force = args.includes('--force');
@@ -46,7 +46,7 @@ try {
         await page.evaluate(opts => window.previewText.load(opts), { text: TEXT.text, preset: item.key, start: TEXT.start, end: TEXT.end, size: TEXT.size, duration: TEXT.duration });
         const frames = Math.round(TEXT.duration * FPS);
         shots = await page.evaluate(({ frames, fps }) => Array.from({ length: frames }, (_, i) => window.previewText.shot(i / fps)), { frames, fps: FPS });
-        poster = await page.evaluate(t => window.previewText.shot(t, .88), TEXT.poster);
+        poster = await page.evaluate(t => window.previewText.shot(t, .88), TEXT.start + (item.poster ?? TEXT.poster));
       } else {
         const loaded = await page.evaluate(source => window.previewMethod.load(source), item.source);
         if (!loaded.ok) throw new Error(`does not compile: ${loaded.errors.join(' / ')}`);
@@ -54,7 +54,7 @@ try {
           const k = 1 - Math.abs(2 * i / (n - 1) - 1);
           return window.previewMethod.shot(max * k * k * (3 - 2 * k), i / fps);
         }), { n: METHOD.frames, fps: FPS, max: METHOD.maxAmount });
-        poster = await page.evaluate(({ a, t }) => window.previewMethod.shot(a, t, .88), { a: METHOD.posterAmount, t: METHOD.posterTime });
+        poster = await page.evaluate(({ a, t }) => window.previewMethod.shot(a, t, .88), { a: item.poster ?? METHOD.posterAmount, t: METHOD.posterTime });
       }
       // a sample that shows nothing new is not worth a preview: the first frame and the middle one must differ
       if (shots[0] === shots[shots.length >> 1] || poster === shots[0]) throw new Error('the picture does not change');

@@ -43,6 +43,7 @@ test('every entry has a name, an explanation and a function; names are unique', 
     assert.ok(typeof entry.label === 'string' && entry.label.length >= 2 && entry.label.length <= 12, `${key}: label`);
     assert.ok(typeof entry.desc === 'string' && entry.desc.length >= 10 && entry.desc.length <= 60, `${key}: desc`);
     assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(entry.added) && new Date(`${entry.added}T00:00:00Z`).toISOString().startsWith(entry.added), `${key}: added is a real day (YYYY-MM-DD)`);
+    assert.ok(entry.poster === undefined || (Number.isFinite(entry.poster) && entry.poster >= .05 && entry.poster <= 1.5), `${key}: poster is a time in seconds (0.05 to 1.5) or left out`);
     assert.equal(typeof entry.fn, 'function', key);
   }
   assert.equal(new Set(keys.map(k => TEXT_MOTIONS[k].label)).size, keys.length, 'labels are unique');

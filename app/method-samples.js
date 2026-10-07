@@ -14,6 +14,7 @@ export const SAMPLE_GROUPS = [['method', '崩れ方'], ['graphic', 'グラフィ
 
 // key: lower-case letters, digits and "-". name: shown in the select (up to 12 characters). symbol: one character for the tile.
 // desc: one line for the samples page. added: the day it was added (YYYY-MM-DD, Japan time); the samples page shows the newest first.
+// poster (optional): the amount (0.05 to 0.8) at which the still picture of the samples page is taken (0.45 if left out; pick the moment the method is easiest to read).
 // source: the userMethod code; its first line is a comment that says what it does.
 export const SAMPLES = [
   { key: 'petals', name: '花びらが舞う', symbol: '花', category: 'method', desc: '粒が花びらになって、風に揺れながら手前へ舞い上がります。', added: '2026-10-04', source: `// 粒が花びらになり、風に揺れながら手前へ舞う
@@ -71,6 +72,28 @@ vec3 userMethod(vec2 p, float amount) {
   gGlow = amount * (.35 + .65 * sin(uTime * (3. + ph(4.) * 5.) + ph(5.) * 6.2832)) * .9;
   gLocal = 1.;                      // 粒ごとの形を使う
   return vec3(q, z);
+}` },
+  { key: 'sand-fall', name: '砂になって落ちる', symbol: '砂', category: 'method', desc: '絵が細かい砂粒になって、上のほうから順にさらさらと落ちていきます。', added: '2026-10-07', poster: .28, source: `// 粒が砂になって、上の粒から順に、だんだん速く落ちていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float top = c.y / uSize.y + .5;                          // 0 = 下、1 = 上
+  float delay = (1. - top) * .3 + ph(1.) * .12;            // 上の粒ほど早く落ち始める
+  float e = smoothstep(delay, delay + .3, amount);
+  vec2 q = c + l * (1. - .3 * e);                          // 粒が少し小さな砂になる
+  q.x += sin(e * 7. + ph(2.) * 6.2832 + uTime * 1.2) * .06 * e + (ph(3.) - .5) * .25 * e;
+  q.y -= e * e * (1.2 + ph(4.) * 1.8);                     // 重さで、だんだん速く
+  gKind = 2.;                                              // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .2 * e;
+  gLocal = 1.;
+  return vec3(q, (ph(5.) - .5) * .5 * e);
+}` },
+  { key: 'stripe-slide', name: 'ストライプスライド', symbol: '縞', category: 'graphic', desc: '横の帯が一本おきに左右へ、時間差でスライドして流れていきます。', added: '2026-10-07', source: `// 絵を8本の横帯に分けて、一本おきに左右へ、ずらしながら滑らせる
+vec3 userMethod(vec2 p, float amount) {
+  float row = floor(cell.y * 8.);                          // タイルの位置で帯を決める（帯のなかで形が崩れない）
+  float side = mod(row, 2.) * 2. - 1.;                     // 帯ごとに 右(+1) と 左(-1)
+  float delay = hash(vec2(row, 3.)) * .1;                  // 帯ごとに少しだけ時間差
+  float e = smoothstep(delay, delay + .7, amount);
+  return vec3(p.x + side * e * uSize.x, p.y, 0.);
 }` },
 ];
 

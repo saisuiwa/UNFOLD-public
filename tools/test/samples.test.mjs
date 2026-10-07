@@ -26,6 +26,7 @@ test('every sample has a clean key, a short name, a category, a one-line explana
     assert.ok(groups.includes(s.category), `${s.key}: category`);
     assert.ok(s.desc.length >= 10 && s.desc.length <= 60 && s.desc.endsWith('。'), `${s.key}: desc`);
     assert.ok(isDay(s.added), `${s.key}: added is a real day (YYYY-MM-DD)`);
+    assert.ok(s.poster === undefined || (Number.isFinite(s.poster) && s.poster >= .05 && s.poster <= .8), `${s.key}: poster is an amount (0.05 to 0.8) or left out`);
     assert.ok(s.source.startsWith('//'), `${s.key}: the first line is a comment`);
     assert.ok(/vec3 userMethod\(vec2 p, float amount\)/.test(s.source), `${s.key}: signature`);
   }

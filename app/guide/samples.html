@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドとテキストモーション</title>
-<meta name="description" content="UNFOLDの自作メソッド（崩れ方・グラフィックモーション）と、歌詞のテキストモーションのサンプル11個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（崩れ方・グラフィックモーション）と、歌詞のテキストモーションのサンプル14個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -24,15 +24,68 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（崩れ方・グラフィックモーション）と、歌詞のテキストモーションのサンプルです。毎日少しずつ増えます（いまは <b>11個</b>、最後に増えたのは 10/4）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（崩れ方・グラフィックモーション）と、歌詞のテキストモーションのサンプルです。毎日少しずつ増えます（いまは <b>14個</b>、最後に増えたのは 10/7）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「プリセット…」から選ぶとコードが入ります。そのまま使っても、書き換えてもOKです。<br><b>テキスト</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>11</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>5</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>1</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">テキストモーション<small>5</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>14</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>6</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">テキストモーション<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-sand-fall.mp4" role="button" tabindex="0" aria-label="砂になって落ちるの動きを再生">
+        <img src="./samples/method-sand-fall.jpg" alt="砂になって落ちるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">砂</i>砂になって落ちる<span class="new">NEW</span><small>SAND-FALL</small></h3>
+        <p>絵が細かい砂粒になって、上のほうから順にさらさらと落ちていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 粒が砂になって、上の粒から順に、だんだん速く落ちていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float top = c.y / uSize.y + .5;                          // 0 = 下、1 = 上
+  float delay = (1. - top) * .3 + ph(1.) * .12;            // 上の粒ほど早く落ち始める
+  float e = smoothstep(delay, delay + .3, amount);
+  vec2 q = c + l * (1. - .3 * e);                          // 粒が少し小さな砂になる
+  q.x += sin(e * 7. + ph(2.) * 6.2832 + uTime * 1.2) * .06 * e + (ph(3.) - .5) * .25 * e;
+  q.y -= e * e * (1.2 + ph(4.) * 1.8);                     // 重さで、だんだん速く
+  gKind = 2.;                                              // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .2 * e;
+  gLocal = 1.;
+  return vec3(q, (ph(5.) - .5) * .5 * e);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/7 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="graphic">
+      <div class="shot" data-clip="./samples/graphic-stripe-slide.mp4" role="button" tabindex="0" aria-label="ストライプスライドの動きを再生">
+        <img src="./samples/graphic-stripe-slide.jpg" alt="ストライプスライドの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">縞</i>ストライプスライド<span class="new">NEW</span><small>STRIPE-SLIDE</small></h3>
+        <p>横の帯が一本おきに左右へ、時間差でスライドして流れていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 絵を8本の横帯に分けて、一本おきに左右へ、ずらしながら滑らせる
+vec3 userMethod(vec2 p, float amount) {
+  float row = floor(cell.y * 8.);                          // タイルの位置で帯を決める（帯のなかで形が崩れない）
+  float side = mod(row, 2.) * 2. - 1.;                     // 帯ごとに 右(+1) と 左(-1)
+  float delay = hash(vec2(row, 3.)) * .1;                  // 帯ごとに少しだけ時間差
+  float e = smoothstep(delay, delay + .7, amount);
+  return vec3(p.x + side * e * uSize.x, p.y, 0.);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">グラフィックモーション</span><span class="when">10/7 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="text">
+      <div class="shot" data-clip="./samples/text-bounce.mp4" role="button" tabindex="0" aria-label="落ちて弾むの動きを再生">
+        <img src="./samples/text-bounce.jpg" alt="落ちて弾むの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>落ちて弾む<span class="new">NEW</span><small>BOUNCE</small></h3>
+        <p>上から落ちてきて、床に当たったように弾みながら止まります。</p>
+        <p class="how">歌詞の行の「動き」で「落ちて弾む」を選びます。</p>
+        <span class="tag">テキストモーション</span><span class="when">10/7 追加</span>
+      </div>
+    </article>
     <article class="method" data-cat="method">
       <div class="shot" data-clip="./samples/method-petals.mp4" role="button" tabindex="0" aria-label="花びらが舞うの動きを再生">
         <img src="./samples/method-petals.jpg" alt="花びらが舞うの途中の絵" loading="lazy" width="480" height="270">

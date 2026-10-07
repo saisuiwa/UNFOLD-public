@@ -1,6 +1,6 @@
 import {SECTIONS,SECTION_LABELS} from './lyric-document.js?v=2';
 import {getTimings} from './lyric-timing.js?v=2';
-import {cleanMotion,TEXT_MOTIONS} from './lyric-motion.js?v=3';
+import {cleanMotion,TEXT_MOTIONS} from './lyric-motion.js?v=4';
 const node=(tag,text,cls)=>Object.assign(document.createElement(tag),{...(text==null?{}:{textContent:text}),...(cls?{className:cls}:{})});
 export function createLyricControls({getState,onAction}){
  const element=node('div',null,'lm-controls');element.id='lyric-motion-controls';let timer,composing=false;
