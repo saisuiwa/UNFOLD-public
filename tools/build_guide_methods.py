@@ -56,7 +56,7 @@ page = f'''<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD メソッド集 — 29種類の崩れ方</title>
 <meta name="description" content="UNFOLDの崩れ方（メソッド）29種類を、動く見本で紹介します。自作メソッドの作り方も。">
-<link rel="stylesheet" href="./guide.css?v=1">
+<link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
 <header class="top"><div class="top-in">
@@ -64,6 +64,7 @@ page = f'''<!doctype html>
   <nav aria-label="ページ">
     <a href="./">説明</a>
     <a href="./methods.html" aria-current="page">メソッド集</a>
+    <a href="./samples.html">サンプル集</a>
     <a href="./glb.html">GLB置き場</a>
   </nav>
   <span class="spacer"></span>
@@ -74,7 +75,7 @@ page = f'''<!doctype html>
 <main>
   <div class="eyebrow">METHODS</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">メソッド集</h1>
-  <p class="lede">絵が崩れる動き（メソッド）は、標準で <b>29種類</b>。どれも同じ2枚の絵（港の油絵 → ネオンの街）で動かした見本です。カードをクリック（タップ）すると動きます。</p>
+  <p class="lede">絵が崩れる動き（メソッド）は、標準で <b>29種類</b>。どれも同じ2枚の絵（港の油絵 → ネオンの街）で動かした見本です。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note">使うときは、1枚モードの「ぐちゃぐちゃにする」、またはシーケンスの◆を選んだ「崩れ方」から選びます。立体になる前の、崩れていく部分の動きです。</p>
 
   <section style="margin-top:34px">
@@ -114,20 +115,11 @@ vec3 userMethod(vec2 p, float amount) {{
   </section>
 </main>
 <footer>
-  <a href="../">1枚モード</a> ・ <a href="../sequence.html">シーケンス</a> ・ <a href="./">説明</a> ・ <a href="./glb.html">GLB置き場</a>
+  <a href="../">1枚モード</a> ・ <a href="../sequence.html">シーケンス</a> ・ <a href="./">説明</a> ・ <a href="./samples.html">サンプル集</a> ・ <a href="./glb.html">GLB置き場</a>
   <p style="margin-top:10px">© 2026 UNFOLD</p>
 </footer>
+<script src="./preview-play.js?v=1" type="module"></script>
 <script>
-// play a clip on click / Enter; only one at a time (the videos are loaded only when asked for)
-const stop = shot => {{ shot.classList.remove('playing'); shot.querySelector('video')?.remove(); }};
-document.addEventListener('click', e => {{
-  const shot = e.target.closest('.shot'); if (!shot) return;
-  if (shot.classList.contains('playing')) return stop(shot);
-  document.querySelectorAll('.shot.playing').forEach(stop);
-  const v = document.createElement('video'); v.src = shot.dataset.clip; v.muted = true; v.loop = true; v.playsInline = true; v.autoplay = true;
-  shot.append(v); shot.classList.add('playing'); v.play().catch(() => {{}});
-}});
-document.addEventListener('keydown', e => {{ if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('shot')) {{ e.preventDefault(); e.target.click(); }} }});
 // filter chips
 const chips = [...document.querySelectorAll('.chip')];
 chips.forEach(c => c.addEventListener('click', () => {{

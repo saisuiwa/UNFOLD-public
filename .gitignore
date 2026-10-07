@@ -13,6 +13,9 @@
 !/app/**/*.html
 !/app/**/*.json
 !/app/**/*.txt
+# the previews on the samples page (a few small ones are added every day; tools/make_sample_previews.mjs makes them)
+!/app/guide/samples/*.jpg
+!/app/guide/samples/*.mp4
 /tools/**
 !/tools/**/
 !/tools/**/*.py

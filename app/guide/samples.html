@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNFOLD サンプル集 — 自作メソッドとテキストモーション</title>
+<meta name="description" content="UNFOLDの自作メソッド（崩れ方・グラフィックモーション）と、歌詞のテキストモーションのサンプル11個を、動く見本で紹介します。毎日増えます。">
+<link rel="stylesheet" href="./guide.css?v=2">
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="brand" href="../"><b>◈</b>UNFOLD</a>
+  <nav aria-label="ページ">
+    <a href="./">説明</a>
+    <a href="./methods.html">メソッド集</a>
+    <a href="./samples.html" aria-current="page">サンプル集</a>
+    <a href="./glb.html">GLB置き場</a>
+  </nav>
+  <span class="spacer"></span>
+  <a class="btn small" href="../">1枚モード</a>
+  <a class="btn small lime" href="../sequence.html">シーケンス</a>
+</div></header>
+
+<main>
+  <div class="eyebrow">SAMPLES</div>
+  <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
+  <p class="lede">自作メソッド（崩れ方・グラフィックモーション）と、歌詞のテキストモーションのサンプルです。毎日少しずつ増えます（いまは <b>11個</b>、最後に増えたのは 10/4）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="note"><b>崩れ方・グラフィック</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「プリセット…」から選ぶとコードが入ります。そのまま使っても、書き換えてもOKです。<br><b>テキスト</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
+
+  <section style="margin-top:34px">
+    <ul class="chips" aria-label="分類で絞り込む">
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>11</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>5</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>1</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">テキストモーション<small>5</small></button></li>
+    </ul>
+    <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-petals.mp4" role="button" tabindex="0" aria-label="花びらが舞うの動きを再生">
+        <img src="./samples/method-petals.jpg" alt="花びらが舞うの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">花</i>花びらが舞う<small>PETALS</small></h3>
+        <p>粒が花びらになって、風に揺れながら手前へ舞い上がります。</p>
+        <details><summary>コードを見る</summary><pre><code>// 粒が花びらになり、風に揺れながら手前へ舞う
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float delay = (c.x / uSize.x + .5) * .22 + ph(1.) * .16;
+  float e = smoothstep(delay, delay + .4, amount);
+  float spin = e * (4. + ph(2.) * 6. + uTime * (1. + ph(3.) * 2.));
+  vec2 leaf = rot(spin) * (l * mix(vec2(1.), vec2(2.4, 3.2), e));
+  leaf.x *= mix(1., cos(spin * 1.7 + ph(4.) * 6.2832), e);
+  vec2 q = c + leaf + vec2(e * (1. + ph(5.) * 1.8),
+    -e * e * (.4 + ph(6.)) + sin(e * 6. + ph(7.) * 6.2832 + uTime * 1.5) * .25 * e);
+  gKind = 8.; gLocal = 1.;
+  return vec3(q, (ph(8.) - .5) * 1.4 * e + sin(spin) * .2 * e);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-vortex.mp4" role="button" tabindex="0" aria-label="渦に吸い込むの動きを再生">
+        <img src="./samples/method-vortex.jpg" alt="渦に吸い込むの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">渦</i>渦に吸い込む<small>VORTEX</small></h3>
+        <p>中心に近いほど強く回りながら、渦に吸い込まれます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 中心に近いほど強く回して、中心へ縮める
+vec3 userMethod(vec2 p, float amount) {
+  float r = length(p);
+  vec2 q = rot(amount * 3.4 / (r + .35)) * p * (1. - amount * .6 * exp(-r * .5));
+  return vec3(q, -amount * .9 * exp(-r * r * .7));
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-wave.mp4" role="button" tabindex="0" aria-label="波打つの動きを再生">
+        <img src="./samples/method-wave.jpg" alt="波打つの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">波</i>波打つ<small>WAVE</small></h3>
+        <p>縦にも横にも、ゆらゆらと波打ちます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 縦と横にゆらゆら揺らす
+vec3 userMethod(vec2 p, float amount) {
+  vec2 q = p;
+  q.x += sin(p.y * 6. + uSeed) * amount * .6;
+  q.y += sin(p.x * 5. + uSeed) * amount * .48;
+  return vec3(q, 0.);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-scatter.mp4" role="button" tabindex="0" aria-label="ばらばらに飛ぶの動きを再生">
+        <img src="./samples/method-scatter.jpg" alt="ばらばらに飛ぶの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">ば</i>ばらばらに飛ぶ<small>SCATTER</small></h3>
+        <p>タイルごとに回りながら、ばらばらに散らばります。</p>
+        <details><summary>コードを見る</summary><pre><code>// タイルごとにランダムに回って散らばる（cell はタイルの位置）
+vec3 userMethod(vec2 p, float amount) {
+  float n = hash(cell);
+  vec2 center = (cell - .5) * uSize;
+  vec2 q = center + rot((n - .5) * 6.28 * amount) * (p - center) * (1. - amount * .2);
+  q += vec2(n - .5, hash(cell + 5.) - .5) * 2.0 * amount;
+  return vec3(q, 0.);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-sparkle.mp4" role="button" tabindex="0" aria-label="きらめく粒の動きを再生">
+        <img src="./samples/method-sparkle.jpg" alt="きらめく粒の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">粒</i>きらめく粒<small>SPARKLE</small></h3>
+        <p>画像が小さな粒に分かれて、ちかちか光ります。</p>
+        <details><summary>コードを見る</summary><pre><code>// 画像が小さな粒に分かれて、ちかちか光る（partC() は粒の中心）
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC();
+  vec2 l = p - c;
+  vec2 q = c + l * (1. + amount * .6) + vec2(ph(1.) - .5, ph(2.) - .5) * .25 * amount;
+  float z = (ph(3.) - .5) * .6 * amount;
+  gKind = 4.;                       // 粒の見た目: 4 = きらめき
+  gGlow = amount * (.35 + .65 * sin(uTime * (3. + ph(4.) * 5.) + ph(5.) * 6.2832)) * .9;
+  gLocal = 1.;                      // 粒ごとの形を使う
+  return vec3(q, z);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="graphic">
+      <div class="shot" data-clip="./samples/graphic-depth-pop.mp4" role="button" tabindex="0" aria-label="立体ポップの動きを再生">
+        <img src="./samples/graphic-depth-pop.jpg" alt="立体ポップの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">立</i>立体ポップ<small>DEPTH-POP</small></h3>
+        <p>タイルが傾きながら手前に飛び出して、奥行きが生まれます。</p>
+        <details><summary>コードを見る</summary><pre><code>// タイルが手前に飛び出す。傾きと拡縮で正投影でも奥行きが見える
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = (cell - .5) * uSize;
+  float n = hash(cell);
+  float e = smoothstep(n * .18, .65 + n * .15, amount);
+  vec2 l = rot((n - .5) * e * 1.2) * (p - c) * (1. - .3 * e);
+  float tilt = (hash(cell + 3.) - .5) * 2.3 * e;
+  vec2 q = c * (1. + .18 * e) + vec2(l.x, l.y * cos(tilt));
+  q += vec2((n - .5) * .18, (hash(cell + 7.) - .5) * .25) * e;
+  return vec3(q, l.y * sin(tilt) + (.25 + n * n * 1.7) * e);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">グラフィックモーション</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="text">
+      <div class="shot" data-clip="./samples/text-float.mp4" role="button" tabindex="0" aria-label="ふわっとの動きを再生">
+        <img src="./samples/text-float.jpg" alt="ふわっとの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>ふわっと<small>FLOAT</small></h3>
+        <p>下から少し浮かびながら、ふわっと現れます。</p>
+        <p class="how">歌詞の行の「動き」で「ふわっと」を選びます。</p>
+        <span class="tag">テキストモーション</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="text">
+      <div class="shot" data-clip="./samples/text-slide.mp4" role="button" tabindex="0" aria-label="流れ込むの動きを再生">
+        <img src="./samples/text-slide.jpg" alt="流れ込むの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>流れ込む<small>SLIDE</small></h3>
+        <p>選んだ方向から、すっと流れ込んできます。</p>
+        <p class="how">歌詞の行の「動き」で「流れ込む」を選びます。</p>
+        <span class="tag">テキストモーション</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="text">
+      <div class="shot" data-clip="./samples/text-reveal.mp4" role="button" tabindex="0" aria-label="一文字ずつの動きを再生">
+        <img src="./samples/text-reveal.jpg" alt="一文字ずつの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>一文字ずつ<small>REVEAL</small></h3>
+        <p>文字が一つずつ、順番に現れます。</p>
+        <p class="how">歌詞の行の「動き」で「一文字ずつ」を選びます。</p>
+        <span class="tag">テキストモーション</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="text">
+      <div class="shot" data-clip="./samples/text-pop.mp4" role="button" tabindex="0" aria-label="弾むの動きを再生">
+        <img src="./samples/text-pop.jpg" alt="弾むの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>弾む<small>POP</small></h3>
+        <p>ぽんと大きくなってから、弾んで落ち着きます。</p>
+        <p class="how">歌詞の行の「動き」で「弾む」を選びます。</p>
+        <span class="tag">テキストモーション</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="text">
+      <div class="shot" data-clip="./samples/text-emphasis.mp4" role="button" tabindex="0" aria-label="強調の動きを再生">
+        <img src="./samples/text-emphasis.jpg" alt="強調の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>強調<small>EMPHASIS</small></h3>
+        <p>*強調*した言葉が、拍に合わせてどくんと膨らみます。</p>
+        <p class="how">歌詞の行の「動き」で「強調」を選びます。</p>
+        <span class="tag">テキストモーション</span><span class="when">10/4 追加</span>
+      </div>
+    </article>
+    </div>
+  </section>
+</main>
+<footer>
+  <a href="../">1枚モード</a> ・ <a href="../sequence.html">シーケンス</a> ・ <a href="./">説明</a> ・ <a href="./methods.html">メソッド集</a> ・ <a href="./glb.html">GLB置き場</a>
+  <p style="margin-top:10px">© 2026 UNFOLD</p>
+</footer>
+<script src="./preview-play.js?v=1" type="module"></script>
+<script>
+// filter chips
+const chips = [...document.querySelectorAll('.chip')];
+chips.forEach(c => c.addEventListener('click', () => {
+  chips.forEach(x => x.setAttribute('aria-pressed', String(x === c)));
+  const f = c.dataset.filter;
+  document.querySelectorAll('.method').forEach(m => { m.hidden = f !== 'all' && m.dataset.cat !== f; });
+}));
+// copy the code of a card
+document.addEventListener('click', async e => {
+  const button = e.target.closest('[data-copy]'); if (!button) return;
+  const text = button.parentElement.querySelector('pre').textContent;
+  try { await navigator.clipboard.writeText(text); button.textContent = 'コピーしました'; } catch { button.textContent = 'コピーできませんでした（コードを選んでコピーしてください）'; }
+  setTimeout(() => { button.textContent = 'コードをコピー'; }, 2200);
+});
+</script>
+</body>
+</html>

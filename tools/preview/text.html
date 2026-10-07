@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><title>preview: text motion</title>
+<!-- A page for tools/make_sample_previews.mjs: one lyric line drawn by the app's own overlay (createLyricOverlay) over a plain background. -->
+<body style="margin:0;background:#111718"><canvas id="c" width="480" height="270"></canvas>
+<script type="module">
+import * as THREE from '/vendor/three.module.min.js';
+import { createLyricOverlay } from '/lyric-overlay.js';
+import { importTimedLyrics } from '/lyric-document.js';
+import { cleanMotion } from '/lyric-motion.js';
+
+const W = 480, H = 270;
+const glCanvas = document.createElement('canvas');
+glCanvas.width = W; glCanvas.height = H;
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, alpha: true, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false); renderer.setClearColor(0x000000, 0);
+const overlay = createLyricOverlay(renderer);
+const out = document.getElementById('c'), g = out.getContext('2d');
+
+// a quiet picture to put the text on: a dusk gradient with a few soft lights (always the same)
+const back = document.createElement('canvas');
+back.width = W; back.height = H;
+{
+  const b = back.getContext('2d'), grad = b.createLinearGradient(0, 0, W, H);
+  grad.addColorStop(0, '#173a46'); grad.addColorStop(.55, '#2b3b63'); grad.addColorStop(1, '#4b2f55');
+  b.fillStyle = grad; b.fillRect(0, 0, W, H);
+  for (const [x, y, r, c] of [[.18, .3, .32, '#7fd0e8'], [.78, .22, .26, '#f0b8ff'], [.62, .85, .4, '#ffcf8a'], [.1, .9, .22, '#a7ffcf']]) {
+    const radial = b.createRadialGradient(x * W, y * H, 0, x * W, y * H, r * W);
+    radial.addColorStop(0, c + '55'); radial.addColorStop(1, c + '00');
+    b.fillStyle = radial; b.fillRect(0, 0, W, H);
+  }
+}
+
+let doc = null, total = 0;
+window.previewText = {
+  // text: the line (*word* is emphasised). preset: the key in TEXT_MOTIONS. The line is shown from `start` to `end` seconds.
+  async load({ text, preset, start, end, size, duration }) {
+    doc = importTimedLyrics([{ s: start, e: end, t: text }]);
+    doc.enabled = true;
+    doc.events.find(e => e.kind === 'line').motion = cleanMotion({ preset, size, direction: 'left' });
+    total = duration;
+    await overlay.prepare(doc);
+  },
+  shot(time, quality = .92) {
+    renderer.clear();
+    overlay.render(doc, time, { duration: total, bpm: 120, width: W, height: H });
+    g.drawImage(back, 0, 0);
+    g.drawImage(glCanvas, 0, 0);
+    return out.toDataURL('image/jpeg', quality);
+  },
+};
+window.previewReady = true;
+</script>
+</html>

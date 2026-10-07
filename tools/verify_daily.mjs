@@ -1,0 +1,227 @@
+// The check that stands between a day's new samples and Git. It prints PASS / FAIL for each step and exits 1 if anything failed.
+//   node tools/verify_daily.mjs                       everything, for all samples (a few minutes)
+//   node tools/verify_daily.mjs --expect-new=2026-10-08
+//        the daily run: the samples added on that day (Japan time) must be exactly one method, one graphic and one text motion;
+//        the GPU check and the preview check then look at the samples added on that day or later (the older ones were checked on their day)
+// Steps: unit tests - the samples' own rules on the GPU (the editor's three checks, warnings count as failures) - previews (files, size, video format, decodes)
+//        - generated pages are up to date - every page opens without errors - the samples page works - the editor lists the samples
+//        - changed modules got a new ?v= - the daily log mentions every new sample.
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, readFileSync, readdirSync, writeFileSync, statSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { launchBrowser } from './lib/browser.mjs';
+import { startStaticServer } from './lib/static-server.mjs';
+import { MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
+
+const REPO = fileURLToPath(new URL('../', import.meta.url));
+const FIRST_BATCH = '2026-10-04';                                   // the samples that were there before the daily routine (same as in build_guide_samples.mjs)
+const args = process.argv.slice(2);
+const expectNew = (args.find(a => a.startsWith('--expect-new=')) || '').slice(13);
+if (expectNew && !/^\d{4}-\d{2}-\d{2}$/.test(expectNew)) { console.error('--expect-new needs a day like 2026-10-08'); process.exit(2); }
+const today = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);           // Japan time
+
+const failures = [];
+async function step(name, fn) {
+  const started = Date.now();
+  try {
+    const note = await fn();
+    console.log(`PASS ${name}${note ? ` — ${note}` : ''} (${((Date.now() - started) / 1000).toFixed(1)}s)`);
+  } catch (error) {
+    failures.push(name);
+    console.log(`FAIL ${name}\n     ${String(error.message).split('\n').join('\n     ')}`);
+  }
+}
+const need = (condition, message) => { if (!condition) throw new Error(message); };
+
+const items = catalog();
+const recent = expectNew ? items.filter(i => i.added >= expectNew) : items;          // what the slow steps look at
+
+// ---- 1. unit tests
+await step('unit tests', () => {
+  const dir = join(REPO, 'tools/test');
+  const files = readdirSync(dir).filter(f => f.endsWith('.test.mjs')).map(f => join('tools/test', f));
+  const run = spawnSync('node', ['--test', ...files], { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 26 });
+  const count = key => Number((new RegExp(`^# ${key} (\\d+)`, 'm').exec(run.stdout) || [])[1] ?? NaN);
+  const failed = [...run.stdout.matchAll(/^not ok \d+ - (.+)$/gm)].map(m => m[1]);
+  need(run.status === 0 && count('fail') === 0, `${count('fail')} failed: ${failed.slice(0, 8).join(' | ')}\n${run.stdout.split('\n').filter(l => /^#\s+(Error|AssertionError)|expected|actual|message:/.test(l)).slice(0, 12).join('\n')}`);
+  return `${count('pass')} passed, ${count('skipped')} skipped`;
+});
+
+// ---- 2. the quota of the day
+if (expectNew) {
+  await step(`exactly one new method, graphic and text motion on ${expectNew}`, () => {
+    const added = items.filter(i => i.added === expectNew);
+    const counts = Object.fromEntries(['method', 'graphic', 'text'].map(g => [g, added.filter(i => i.group === g).length]));
+    need(counts.method === 1 && counts.graphic === 1 && counts.text === 1, `added on ${expectNew}: method ${counts.method}, graphic ${counts.graphic}, text ${counts.text} (each must be 1)`);
+    need(!items.some(i => i.added > expectNew), `something is dated after ${expectNew}: ${items.filter(i => i.added > expectNew).map(i => i.id).join(', ')}`);
+    return added.map(i => i.id).join(', ');
+  });
+}
+
+// ---- 3. previews (files)
+await step(`previews: files, size, format, decoding (${recent.length} samples)`, () => {
+  const problems = [];
+  for (const item of recent) {
+    const files = previewFiles(item.id);
+    for (const [kind, file] of Object.entries(files)) {
+      const size = sizeOf(file);
+      if (!size) { problems.push(`${item.id}: no ${kind} (run node tools/make_sample_previews.mjs)`); continue; }
+      if (size > MAX_BYTES[kind]) problems.push(`${item.id}: ${kind} is ${(size / 1024).toFixed(0)} KB (limit ${MAX_BYTES[kind] / 1024} KB)`);
+    }
+    if (!sizeOf(files.mp4) || !sizeOf(files.jpg)) continue;
+    const probe = (file, entries) => JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', `stream=${entries}:format=duration`, '-of', 'json', file], { encoding: 'utf8' }));
+    const v = probe(files.mp4, 'codec_name,pix_fmt,width,height'), j = probe(files.jpg, 'codec_name,width,height');
+    if (v.streams[0]?.codec_name !== 'h264' || v.streams[0]?.pix_fmt !== 'yuv420p') problems.push(`${item.id}: the mp4 is not H.264 / yuv420p`);
+    if (v.streams[0]?.width !== 480 || v.streams[0]?.height !== 270) problems.push(`${item.id}: the mp4 is not 480x270`);
+    const seconds = Number(v.format?.duration);
+    if (!(seconds >= 2 && seconds <= 6)) problems.push(`${item.id}: the mp4 is ${seconds} s long (2 to 6 s)`);
+    if (j.streams[0]?.codec_name !== 'mjpeg' || j.streams[0]?.width !== 480 || j.streams[0]?.height !== 270) problems.push(`${item.id}: the jpg is not a 480x270 JPEG`);
+    const decode = spawnSync('ffmpeg', ['-v', 'error', '-i', files.mp4, '-f', 'null', '-'], { encoding: 'utf8' });
+    if (decode.status !== 0 || decode.stderr.trim()) problems.push(`${item.id}: the mp4 does not decode cleanly: ${decode.stderr.trim().split('\n')[0]}`);
+  }
+  const known = new Set(items.flatMap(i => [`${i.id}.jpg`, `${i.id}.mp4`]));
+  for (const file of existsSync(PREVIEW_DIR) ? readdirSync(PREVIEW_DIR) : []) if (!known.has(file)) problems.push(`${file}: belongs to no sample (delete it)`);
+  need(!problems.length, problems.join('\n'));
+  return `${recent.length * 2} files`;
+});
+
+// ---- 4. generated pages are what the samples say
+await step('generated pages are up to date', () => {
+  const run = spawnSync('node', ['tools/build_guide_samples.mjs', '--check'], { cwd: REPO, encoding: 'utf8' });
+  need(run.status === 0, run.stdout.trim() || run.stderr.trim());
+  const methodsPage = join(REPO, 'app/guide/methods.html'), before = readFileSync(methodsPage, 'utf8');
+  execFileSync('python3', ['tools/build_guide_methods.py'], { cwd: REPO });
+  const after = readFileSync(methodsPage, 'utf8');
+  if (after !== before) { writeFileSync(methodsPage, before); throw new Error('app/guide/methods.html is not what tools/build_guide_methods.py makes (run it)'); }
+});
+
+// ---- 5. the daily log
+await step('the daily log mentions every sample added after the first batch', () => {
+  const log = readFileSync(join(REPO, 'docs/daily-samples-log.md'), 'utf8');
+  const missing = items.filter(i => i.added > FIRST_BATCH && !log.includes(`\`${i.id}\``)).map(i => i.id);
+  need(!missing.length, `not in docs/daily-samples-log.md: ${missing.join(', ')}`);
+});
+
+// ---- 6. changed modules got a new ?v=
+await step('every changed app module has a raised ?v= on its imports', () => {
+  const git = (...a) => spawnSync('git', a, { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 26 });
+  if (git('rev-parse', '--verify', '-q', 'origin/main').status !== 0) return 'skipped (no origin/main to compare with)';
+  const changed = git('diff', '--name-only', 'origin/main', '--', 'app').stdout.split('\n').filter(f => /^app\/[^/]+\.js$/.test(f));
+  const pages = [...readdirSync(join(REPO, 'app')).filter(f => /\.(js|html)$/.test(f)).map(f => join(REPO, 'app', f))];
+  const text = pages.map(f => readFileSync(f, 'utf8')).join('\n');
+  const problems = [];
+  for (const file of changed) {
+    const base = file.slice(4), pattern = new RegExp(`${base.replace(/\./g, '\\.')}\\?v=(\\d+)`, 'g');
+    const now = [...text.matchAll(pattern)].map(m => Number(m[1]));
+    const old = git('grep', '-h', '-o', '-E', `${base.replace(/\./g, '\\.')}\\?v=[0-9]+`, 'origin/main', '--', 'app').stdout.split('\n').filter(Boolean).map(s => Number(s.split('=')[1]));
+    if (!old.length || !now.length) continue;                                           // nobody imports it with a ?v= (or it is new): nothing to raise
+    if (Math.max(...now) <= Math.max(...old)) problems.push(`${file} changed but its imports still say ?v=${Math.max(...now)} (node tools/bump_module_version.mjs ${file})`);
+    if (new Set(now).size > 1) problems.push(`${file} is imported with different ?v= numbers (${[...new Set(now)].join(', ')}): two copies would load`);
+  }
+  need(!problems.length, problems.join('\n'));
+  return `${changed.length} changed modules`;
+});
+
+// ---- 7-9. in the browser
+const server = await startStaticServer();
+let browser = null;
+try {
+  browser = await launchBrowser();
+  const newPage = async (viewport = { width: 1280, height: 900 }) => {
+    const page = await browser.newPage({ viewport });
+    page.problems = [];
+    page.on('pageerror', e => page.problems.push(`error: ${String(e).slice(0, 200)}`));
+    page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) page.problems.push(`console: ${m.text().slice(0, 200)}`); });
+    return page;
+  };
+  // what is missing in a clean clone on purpose: the old method gallery's videos, the GLB thumbnails, the browser's own favicon request
+  const expectedMissing = path => path === '/favicon.ico' || path.startsWith('/guide/methods/') || /^\/guide\/(glb|thumbs?)\//.test(path);
+
+  await step('every page opens without errors and without missing files', async () => {
+    const problems = [];
+    for (const path of ['/index.html', '/sequence.html', '/guide/', '/guide/methods.html', '/guide/samples.html', '/guide/glb.html']) {
+      server.requests.length = 0;
+      const page = await newPage();
+      await page.goto(server.url + path, { waitUntil: 'load' });
+      await page.waitForTimeout(path.includes('html') && /^\/(index|sequence)/.test(path) ? 2500 : 600);
+      const missing = [...new Set(server.requests.filter(r => r.status >= 400 && !expectedMissing(r.path.split('?')[0])).map(r => r.path))];
+      for (const p of [...page.problems, ...missing.map(m => `missing file: ${m}`)]) problems.push(`${path}: ${p}`);
+      await page.close();
+    }
+    need(!problems.length, problems.join('\n'));
+    return '6 pages';
+  });
+
+  await step(`method / graphic samples pass the editor's checks on the GPU (${recent.filter(i => i.source).length})`, async () => {
+    const page = await newPage();
+    await page.goto(`${server.url}/__tools/preview/method.html`);
+    await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
+    const problems = [];
+    for (const item of recent.filter(i => i.source)) {
+      const result = await page.evaluate(source => window.previewMethod.verify(source), item.source);
+      if (!result.ok) problems.push(`${item.id}: ${result.stage} — ${result.problems.join(' / ')}`);
+      else if (result.warnings.length) problems.push(`${item.id}: warning — ${result.warnings.join(' / ')} (a sample must show a real change)`);
+    }
+    for (const p of page.problems) problems.push(`page: ${p}`);
+    await page.close();
+    need(!problems.length, problems.join('\n'));
+  });
+
+  await step('samples page: cards, previews, hover, filter, phone width', async () => {
+    const page = await newPage();
+    await page.goto(`${server.url}/guide/samples.html`, { waitUntil: 'load' });
+    const info = await page.evaluate(() => ({
+      cards: document.querySelectorAll('.method').length,
+      withPreview: [...document.querySelectorAll('.method .shot[data-clip] img')].length,
+      groups: Object.fromEntries([...document.querySelectorAll('.method')].reduce((m, c) => m.set(c.dataset.cat, (m.get(c.dataset.cat) || 0) + 1), new Map())),
+    }));
+    need(info.cards === items.length && info.withPreview === items.length, `${info.cards} cards, ${info.withPreview} with a preview, ${items.length} samples`);
+    const shot = page.locator('.shot[data-clip]').first();
+    const box = await shot.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.waitForTimeout(300);
+    need(await page.evaluate(() => !!document.querySelector('.shot.playing video[src]')), 'hovering a card did not start its video');
+    await page.mouse.move(2, 2);
+    await page.waitForTimeout(150);
+    need(await page.evaluate(() => !document.querySelector('.shot.playing') && !document.querySelector('.shot video')), 'leaving the card did not stop its video');
+    for (const [group] of Object.entries(info.groups)) {
+      await page.click(`.chip[data-filter="${group}"]`);
+      need(await page.evaluate(g => [...document.querySelectorAll('.method')].filter(m => !m.hidden).every(m => m.dataset.cat === g), group), `the filter for ${group} shows other cards`);
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    need(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), 'the page scrolls sideways at 390 px');
+    for (const p of page.problems) throw new Error(p);
+    await page.close();
+    return `${info.cards} cards`;
+  });
+
+  await step('the editor lists every sample under its group', async () => {
+    const page = await newPage();
+    await page.goto(`${server.url}/sequence.html`, { waitUntil: 'load' });
+    await page.waitForFunction(() => window.unfoldMethods?.editor, null, { timeout: 30000 });
+    const listed = await page.evaluate(async () => {
+      await window.unfoldMethods.editor.open();
+      const out = [...document.querySelectorAll('#method-samples optgroup')].map(g => ({ label: g.label, options: [...g.querySelectorAll('option')].map(o => o.value) }));
+      window.unfoldMethods.editor.close();
+      return out;
+    });
+    const { SAMPLE_GROUPS } = await import('../app/method-samples.js');
+    const problems = [];
+    for (const [category, label] of SAMPLE_GROUPS) {
+      const group = listed.find(g => g.label === label);
+      const want = items.filter(i => i.group === category).map(i => i.key);
+      if (!group) problems.push(`no group "${label}" in the editor`);
+      else if (JSON.stringify(group.options) !== JSON.stringify(want)) problems.push(`group "${label}" lists ${group.options.join(',')} but the samples are ${want.join(',')}`);
+    }
+    for (const p of page.problems) problems.push(p);
+    await page.close();
+    need(!problems.length, problems.join('\n'));
+  });
+} finally {
+  await browser?.close();
+  await server.close();
+}
+
+console.log(failures.length ? `\n${failures.length} step(s) FAILED: ${failures.join('; ')}` : '\nAll steps passed.');
+process.exit(failures.length ? 1 : 0);

@@ -82,14 +82,27 @@ pre { background:#101415; border:1px solid var(--line); border-radius:10px; padd
 .method { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
 .method .shot { position:relative; aspect-ratio:16/9; background:#111718; cursor:pointer; }
 .method .shot img, .method .shot video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
-.method .shot::after { content:"▶ 動かす"; position:absolute; right:8px; bottom:8px; font-size:11px; padding:2px 8px; border-radius:999px; background:#000a; color:#fff; }
+.method .shot::after { content:"▶ タップで動かす"; position:absolute; right:8px; top:8px; font-size:11px; padding:2px 8px; border-radius:999px; background:#000a; color:#fff; }
 .method .shot.playing::after { content:"■ 止める"; }
+@media (hover: hover) and (pointer: fine) {
+  .method .shot::after { content:"▶ 載せると動く"; }
+  .method .shot.playing::after { opacity:0; }
+}
+.method .shot.none { display:grid; place-items:center; cursor:default; color:var(--muted); font-size:12px; }
+.method .shot.none::after { content:none; }
 .method .body { padding:12px 14px 14px; }
 .method h3 { font-size:15px; display:flex; align-items:center; gap:8px; margin-bottom:4px; }
 .method h3 i { font-style:normal; color:var(--lime); font-family:serif; font-size:19px; }
 .method h3 small { margin-left:auto; font-size:10px; letter-spacing:1px; color:var(--muted); font-weight:400; }
 .method p { margin:0; font-size:13px; color:#c4ccc6; line-height:1.7; }
 .tag { display:inline-block; margin-top:8px; font-size:10px; padding:1px 8px; border-radius:999px; border:1px solid #3a4547; color:var(--muted); }
+.method p.how { margin-top:6px; font-size:12px; color:var(--muted); }
+.method .when { margin-left:8px; font-size:10px; color:var(--muted); }
+.method .new { margin-left:6px; font-size:10px; font-weight:700; letter-spacing:.5px; padding:0 8px; border-radius:999px; background:var(--lime); color:#1d2515; }
+.method details { margin:10px 0 0; padding:0 12px; background:#171c1d; }
+.method details summary { padding:7px 0; font-size:12px; font-weight:600; color:var(--blue); }
+.method details pre { max-height:240px; margin:0 0 8px; padding:10px 12px; font-size:11.5px; }
+.method details .btn { margin-bottom:10px; }
 
 /* GLB shelf */
 .ggrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(168px, 1fr)); gap:12px; }

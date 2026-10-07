@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><title>preview: method</title>
+<!-- A page for tools/make_sample_previews.mjs and tools/verify_daily.mjs: one custom method drawn by the editor's own preview, nothing else. -->
+<body style="margin:0;background:#111718"><canvas id="c" width="480" height="270"></canvas>
+<script type="module">
+import { createPreview, makeTestImage } from '/method-preview.js';
+import { vertexShader, fragmentShader } from '/motion.js';
+import { compileUserMethod } from '/custom-method.js';
+import { createTrial } from '/method-trial.js';
+import { verifyMethod } from '/method-verify.js';
+
+const canvas = document.getElementById('c');
+const preview = createPreview(canvas, { vertexShader, fragmentShader });
+preview.resize(480, 270);
+preview.setImage(makeTestImage());
+const compile = source => compileUserMethod(preview.renderer, { vertexShader, fragmentShader, source });
+const trial = createTrial({ vertexShader, fragmentShader });
+
+window.previewMethod = {
+  // the editor's three checks (text check, GPU compile, trial render): { ok, stage, problems } or { ok: true, warnings }
+  verify: source => verifyMethod(source, { compile, trial: s => trial.run(s) }),
+  async load(source) {
+    const errors = await compile(source);
+    if (errors.length) return { ok: false, errors: errors.map(e => e.message) };
+    preview.setSource(source);
+    return { ok: true };
+  },
+  // one picture at a method amount (0 = the original picture, up to 0.8) and a fixed time (so a moving method is the same every run)
+  shot(amount, time, quality = .92) {
+    preview.setTime(time);
+    preview.setAmount(amount);
+    return canvas.toDataURL('image/jpeg', quality);
+  },
+};
+window.previewReady = true;
+</script>
+</html>

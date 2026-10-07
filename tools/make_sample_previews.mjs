@@ -1,0 +1,85 @@
+// Makes the preview picture (.jpg) and the short video (.mp4) of every sample on the samples page, into app/guide/samples/.
+// The method samples are drawn by the editor's own preview and the text motions by the app's own lyric overlay, so what the page shows is what the app does.
+//   node tools/make_sample_previews.mjs                 only the samples that have no preview yet
+//   node tools/make_sample_previews.mjs --force         all of them again
+//   node tools/make_sample_previews.mjs --only=petals   only the ones whose id or key matches (comma separated; ids look like method-petals)
+//   --crf=N   the video quality (higher = smaller file, default 33)
+// Needs: Chromium (through Playwright) and ffmpeg with libx264.
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { launchBrowser } from './lib/browser.mjs';
+import { startStaticServer } from './lib/static-server.mjs';
+import { MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
+
+const FPS = 24;
+const METHOD = { frames: 58, maxAmount: .8, posterAmount: .45, posterTime: 1 };            // 0 -> 0.8 -> 0 in 2.4 s: it breaks and comes back
+const TEXT = { text: 'きみと、*はじまる*', start: .3, end: 3.3, duration: 3.6, size: 150, poster: .5 };   // the poster is taken just after the line starts (0.2 s in), where the presets still look different
+
+const args = process.argv.slice(2);
+const force = args.includes('--force');
+const only = (args.find(a => a.startsWith('--only=')) || '').slice(7).split(',').filter(Boolean);
+const crf = Number((args.find(a => a.startsWith('--crf=')) || '').slice(6)) || 33;
+const wanted = catalog().filter(item => (only.length ? only.some(o => item.id === o || item.key === o) : force || !sizeOf(previewFiles(item.id).jpg) || !sizeOf(previewFiles(item.id).mp4)));
+if (!wanted.length) { console.log('every sample already has its preview (use --force to make them again)'); process.exit(0); }
+
+const decode = url => Buffer.from(url.slice(url.indexOf(',') + 1), 'base64');
+const smooth = k => k * k * (3 - 2 * k);
+
+mkdirSync(PREVIEW_DIR, { recursive: true });
+const work = mkdtempSync(join(tmpdir(), 'unfold-preview-'));
+const server = await startStaticServer();
+const browser = await launchBrowser();
+let failed = 0;
+try {
+  for (const item of wanted) {
+    const page = await browser.newPage({ viewport: { width: 480, height: 270 }, deviceScaleFactor: 1 });
+    const problems = [];
+    page.on('pageerror', e => problems.push(String(e).slice(0, 200)));
+    try {
+      const isText = item.group === 'text';
+      await page.goto(`${server.url}/__tools/preview/${isText ? 'text' : 'method'}.html`);
+      await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
+      let shots, poster;
+      if (isText) {
+        await page.evaluate(opts => window.previewText.load(opts), { text: TEXT.text, preset: item.key, start: TEXT.start, end: TEXT.end, size: TEXT.size, duration: TEXT.duration });
+        const frames = Math.round(TEXT.duration * FPS);
+        shots = await page.evaluate(({ frames, fps }) => Array.from({ length: frames }, (_, i) => window.previewText.shot(i / fps)), { frames, fps: FPS });
+        poster = await page.evaluate(t => window.previewText.shot(t, .88), TEXT.poster);
+      } else {
+        const loaded = await page.evaluate(source => window.previewMethod.load(source), item.source);
+        if (!loaded.ok) throw new Error(`does not compile: ${loaded.errors.join(' / ')}`);
+        shots = await page.evaluate(({ n, fps, max }) => Array.from({ length: n }, (_, i) => {
+          const k = 1 - Math.abs(2 * i / (n - 1) - 1);
+          return window.previewMethod.shot(max * k * k * (3 - 2 * k), i / fps);
+        }), { n: METHOD.frames, fps: FPS, max: METHOD.maxAmount });
+        poster = await page.evaluate(({ a, t }) => window.previewMethod.shot(a, t, .88), { a: METHOD.posterAmount, t: METHOD.posterTime });
+      }
+      // a sample that shows nothing new is not worth a preview: the first frame and the middle one must differ
+      if (shots[0] === shots[shots.length >> 1] || poster === shots[0]) throw new Error('the picture does not change');
+
+      const dir = mkdtempSync(join(work, `${item.id}-`));
+      shots.forEach((url, i) => writeFileSync(join(dir, `f${String(i).padStart(3, '0')}.jpg`), decode(url)));
+      const files = previewFiles(item.id);
+      writeFileSync(join(dir, 'poster.jpg'), decode(poster));
+      execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(FPS), '-i', join(dir, 'f%03d.jpg'), '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf),
+        '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', join(dir, 'out.mp4')]);
+      renameSync(join(dir, 'poster.jpg'), files.jpg);
+      renameSync(join(dir, 'out.mp4'), files.mp4);
+      const jpg = sizeOf(files.jpg), mp4 = sizeOf(files.mp4);
+      const over = [jpg > MAX_BYTES.jpg && `jpg ${jpg} > ${MAX_BYTES.jpg}`, mp4 > MAX_BYTES.mp4 && `mp4 ${mp4} > ${MAX_BYTES.mp4}`].filter(Boolean);
+      if (over.length) throw new Error(`too big (${over.join(', ')})`);
+      console.log(`ok   ${item.id}: ${shots.length} frames, jpg ${(jpg / 1024).toFixed(0)} KB, mp4 ${(mp4 / 1024).toFixed(0)} KB`);
+      if (problems.length) console.log(`     (page said: ${problems.join(' | ')})`);
+    } catch (error) {
+      failed++;
+      console.error(`FAIL ${item.id}: ${error.message}${problems.length ? ` (page: ${problems.join(' | ')})` : ''}`);
+    } finally { await page.close(); }
+  }
+} finally {
+  await browser.close();
+  await server.close();
+  rmSync(work, { recursive: true, force: true });
+}
+process.exit(failed ? 1 : 0);
