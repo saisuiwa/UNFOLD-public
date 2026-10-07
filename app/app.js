@@ -15,7 +15,7 @@ import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from '
 import {effectsAt,SceneBlur} from './effects.js?v=28';
 import {BUILTIN_KEYS,listCustom,onRegistryChange,registerCustom,resolveKey,setCustomStatus,unregisterCustom} from './method-registry.js';
 import {createPersistence,openStore} from './method-library.js';
-import {createMethodEditor} from './method-editor.js?v=4';
+import {createMethodEditor} from './method-editor.js?v=5';
 import {createSafety} from './method-safety.js';
 import {createTrial} from './method-trial.js';
 import {createEnabler} from './method-verify.js';

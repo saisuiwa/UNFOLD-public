@@ -9,8 +9,14 @@ vec3 userMethod(vec2 p, float amount) {
   return vec3(q, 0.);
 }`;
 
+// How the samples are grouped (the preset select in the editor, the samples page). Every sample has one of these as its `category`.
+export const SAMPLE_GROUPS = [['method', '崩れ方'], ['graphic', 'グラフィックモーション']];
+
+// key: lower-case letters, digits and "-". name: shown in the select (up to 12 characters). symbol: one character for the tile.
+// desc: one line for the samples page. added: the day it was added (YYYY-MM-DD, Japan time); the samples page shows the newest first.
+// source: the userMethod code; its first line is a comment that says what it does.
 export const SAMPLES = [
-  { key: 'petals', name: '花びらが舞う', symbol: '花', source: `// 粒が花びらになり、風に揺れながら手前へ舞う
+  { key: 'petals', name: '花びらが舞う', symbol: '花', category: 'method', desc: '粒が花びらになって、風に揺れながら手前へ舞い上がります。', added: '2026-10-04', source: `// 粒が花びらになり、風に揺れながら手前へ舞う
 vec3 userMethod(vec2 p, float amount) {
   vec2 c = partC(), l = p - c;
   float delay = (c.x / uSize.x + .5) * .22 + ph(1.) * .16;
@@ -23,7 +29,7 @@ vec3 userMethod(vec2 p, float amount) {
   gKind = 8.; gLocal = 1.;
   return vec3(q, (ph(8.) - .5) * 1.4 * e + sin(spin) * .2 * e);
 }` },
-  { key: 'depth-pop', name: '立体ポップ', symbol: '立', source: `// タイルが手前に飛び出す。傾きと拡縮で正投影でも奥行きが見える
+  { key: 'depth-pop', name: '立体ポップ', symbol: '立', category: 'graphic', desc: 'タイルが傾きながら手前に飛び出して、奥行きが生まれます。', added: '2026-10-04', source: `// タイルが手前に飛び出す。傾きと拡縮で正投影でも奥行きが見える
 vec3 userMethod(vec2 p, float amount) {
   vec2 c = (cell - .5) * uSize;
   float n = hash(cell);
@@ -34,20 +40,20 @@ vec3 userMethod(vec2 p, float amount) {
   q += vec2((n - .5) * .18, (hash(cell + 7.) - .5) * .25) * e;
   return vec3(q, l.y * sin(tilt) + (.25 + n * n * 1.7) * e);
 }` },
-  { key: 'vortex', name: '渦に吸い込む', symbol: '渦', source: `// 中心に近いほど強く回して、中心へ縮める
+  { key: 'vortex', name: '渦に吸い込む', symbol: '渦', category: 'method', desc: '中心に近いほど強く回りながら、渦に吸い込まれます。', added: '2026-10-04', source: `// 中心に近いほど強く回して、中心へ縮める
 vec3 userMethod(vec2 p, float amount) {
   float r = length(p);
   vec2 q = rot(amount * 3.4 / (r + .35)) * p * (1. - amount * .6 * exp(-r * .5));
   return vec3(q, -amount * .9 * exp(-r * r * .7));
 }` },
-  { key: 'wave', name: '波打つ', symbol: '波', source: `// 縦と横にゆらゆら揺らす
+  { key: 'wave', name: '波打つ', symbol: '波', category: 'method', desc: '縦にも横にも、ゆらゆらと波打ちます。', added: '2026-10-04', source: `// 縦と横にゆらゆら揺らす
 vec3 userMethod(vec2 p, float amount) {
   vec2 q = p;
   q.x += sin(p.y * 6. + uSeed) * amount * .6;
   q.y += sin(p.x * 5. + uSeed) * amount * .48;
   return vec3(q, 0.);
 }` },
-  { key: 'scatter', name: 'ばらばらに飛ぶ', symbol: 'ば', source: `// タイルごとにランダムに回って散らばる（cell はタイルの位置）
+  { key: 'scatter', name: 'ばらばらに飛ぶ', symbol: 'ば', category: 'method', desc: 'タイルごとに回りながら、ばらばらに散らばります。', added: '2026-10-04', source: `// タイルごとにランダムに回って散らばる（cell はタイルの位置）
 vec3 userMethod(vec2 p, float amount) {
   float n = hash(cell);
   vec2 center = (cell - .5) * uSize;
@@ -55,7 +61,7 @@ vec3 userMethod(vec2 p, float amount) {
   q += vec2(n - .5, hash(cell + 5.) - .5) * 2.0 * amount;
   return vec3(q, 0.);
 }` },
-  { key: 'sparkle', name: 'きらめく粒', symbol: '粒', source: `// 画像が小さな粒に分かれて、ちかちか光る（partC() は粒の中心）
+  { key: 'sparkle', name: 'きらめく粒', symbol: '粒', category: 'method', desc: '画像が小さな粒に分かれて、ちかちか光ります。', added: '2026-10-04', source: `// 画像が小さな粒に分かれて、ちかちか光る（partC() は粒の中心）
 vec3 userMethod(vec2 p, float amount) {
   vec2 c = partC();
   vec2 l = p - c;

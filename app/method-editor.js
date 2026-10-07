@@ -4,7 +4,7 @@ import { LIMITS, checkSource } from './method-guard.js';
 import { compileUserMethod } from './custom-method.js';
 import { getCustom, newCustomId, registerCustom } from './method-registry.js';
 import { describeGlError } from './method-messages.js';
-import { NEW_METHOD_SOURCE, SAMPLES, aiTemplate } from './method-samples.js?v=2';
+import { NEW_METHOD_SOURCE, SAMPLES, SAMPLE_GROUPS, aiTemplate } from './method-samples.js?v=3';
 import { createPreview, makeTestImage } from './method-preview.js?v=4';
 import { TRIAL, describeTrialPass } from './method-trial.js';
 import { DRAFT_KEY } from './method-safety.js';
@@ -37,7 +37,8 @@ export function createMethodEditor({ vertexShader, fragmentShader, getPreviewIma
     name.title = '方法の一覧に出る名前（20文字まで）';
     const symbol = el('input', { id: 'method-symbol', type: 'text', maxLength: 2, placeholder: '例：★' });
     symbol.title = 'タイルの上に出る1文字（絵文字でもOK）';
-    const samples = el('select', { id: 'method-samples' }, el('option', { value: '', textContent: '崩れ方プリセット…' }), ...SAMPLES.map(s => el('option', { value: s.key, textContent: s.name })));
+    const samples = el('select', { id: 'method-samples' }, el('option', { value: '', textContent: 'プリセット…' }),
+      ...SAMPLE_GROUPS.map(([category, label]) => el('optgroup', { label }, ...SAMPLES.filter(s => s.category === category).map(s => el('option', { value: s.key, textContent: s.name })))));
     const ai = el('button', { type: 'button', id: 'method-ai', textContent: 'AIに頼むひな形をコピー' });
     const copy = el('button', { type: 'button', id: 'method-copy', textContent: 'userMethodをコピー' });
     const clear = el('button', { type: 'button', id: 'method-clear', textContent: 'コードを消す', title: 'コードを全部消して、まっさらにします' });
