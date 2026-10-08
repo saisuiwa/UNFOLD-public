@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル17個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル19個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -25,15 +25,38 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>17個</b>、最後に増えたのは 10/8）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>19個</b>、最後に増えたのは 10/8）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>17</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>6</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>2</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>1</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>19</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>7</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>2</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>2</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-diagonal-sweep.mp4" role="button" tabindex="0" aria-label="斜めに掃き飛ばすの動きを再生">
+        <img src="./samples/method-diagonal-sweep.jpg" alt="斜めに掃き飛ばすの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">斜</i>斜めに掃き飛ばす<span class="new">NEW</span><small>DIAGONAL-SWEEP</small></h3>
+        <p>左上の粒から順に、くるくる回りながら左上の奥へ吹き飛ばされます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 左上の粒から順に、回りながら左上へ吹き飛ばされる
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float diag = ((c.x / uSize.x + .5) + (.5 - c.y / uSize.y)) * .5;   // 0 = 左上、1 = 右下
+  float delay = diag * .35 + ph(1.) * .08;                           // 左上ほど早く動き出す
+  float e = smoothstep(delay, delay + .3, amount);
+  l = rot((ph(2.) - .5) * 9. * e) * l * (1. - .25 * e);              // 粒ごとにくるくる回る
+  vec2 q = c + l + vec2(1., -.7) * e * e * (.9 + ph(3.) * 1.2) * uSize.x * .5;
+  gKind = 2.;                                                        // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .25 * e;
+  gLocal = 1.;
+  return vec3(q, (ph(4.) - .5) * .4 * e);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/8 追加</span>
+      </div>
+    </article>
     <article class="method" data-cat="image">
       <div class="shot" data-clip="./samples/image-shatter-reborn.mp4" role="button" tabindex="0" aria-label="爆砕と再誕の動きを再生">
         <img src="./samples/image-shatter-reborn.jpg" alt="爆砕と再誕の途中の絵" loading="lazy" width="480" height="270">
@@ -85,6 +108,30 @@ return {timeline,physicsTime:returnTime,update(frame){
  const shake=Math.exp(-t*7)*(t&gt;0?1:0)*.05*H;api.root.position.set(Math.sin(t*61)*shake,Math.cos(t*53)*shake,0);
 }};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
         <span class="tag">画像・立体・物理（JavaScript）</span><span class="when">10/8 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-drop-settle.mp4" role="button" tabindex="0" aria-label="落ちて静かに止まるの動きを再生">
+        <img src="./samples/codetext-drop-settle.jpg" alt="落ちて静かに止まるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>落ちて静かに止まる<span class="new">NEW</span><small>DROP-SETTLE</small></h3>
+        <p>文字が上から落ちてきて、少し沈んでから静かに止まります。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 上から落ちて、わずかに沈み込んでから止まる。退場は上へ戻りながら消える
+const {createText,text,width,height,duration}=api;
+const label=createText(text,{maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const clamp=x=&gt;Math.max(0,Math.min(1,x));
+const enter=Math.min(.7,duration*.25),exit=Math.min(.4,duration*.15);
+const drop=height*.35;
+return {update(t){
+ const a=clamp(t/enter),b=clamp((duration-t)/exit);
+ const fall=(1-a)*(1-a);                              // 落ちる間は速くなる
+ const sink=Math.sin(Math.PI*clamp((a-.7)/.3))*height*.015;   // 着地の直前にわずかに沈む
+ label.position.set(0,fall*drop-sink+(1-b)*drop*.4,0);
+ const fade=clamp(t/(enter*.4))*b;
+ label.fillOpacity=fade;label.outlineOpacity=fade;
+}};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/8 追加</span>
       </div>
     </article>
     <article class="method" data-cat="method">

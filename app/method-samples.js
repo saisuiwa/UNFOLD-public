@@ -95,6 +95,19 @@ vec3 userMethod(vec2 p, float amount) {
   float e = smoothstep(delay, delay + .7, amount);
   return vec3(p.x + side * e * uSize.x, p.y, 0.);
 }` },
+  { key: 'diagonal-sweep', name: '斜めに掃き飛ばす', symbol: '斜', category: 'method', desc: '左上の粒から順に、くるくる回りながら左上の奥へ吹き飛ばされます。', added: '2026-10-08', poster: .3, source: `// 左上の粒から順に、回りながら左上へ吹き飛ばされる
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float diag = ((c.x / uSize.x + .5) + (.5 - c.y / uSize.y)) * .5;   // 0 = 左上、1 = 右下
+  float delay = diag * .35 + ph(1.) * .08;                           // 左上ほど早く動き出す
+  float e = smoothstep(delay, delay + .3, amount);
+  l = rot((ph(2.) - .5) * 9. * e) * l * (1. - .25 * e);              // 粒ごとにくるくる回る
+  vec2 q = c + l + vec2(1., -.7) * e * e * (.9 + ph(3.) * 1.2) * uSize.x * .5;
+  gKind = 2.;                                                        // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .25 * e;
+  gLocal = 1.;
+  return vec3(q, (ph(4.) - .5) * .4 * e);
+}` },
 ];
 
 // Text to paste into an AI chat: it explains what to write, and the rules the editor checks, so what comes back is likely to pass.

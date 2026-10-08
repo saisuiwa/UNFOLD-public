@@ -20,5 +20,19 @@ return {update(t){
  red.position.set(-shift,shift*.15,0);cyan.position.set(shift,-shift*.15,0);
  red.fillOpacity=ghost;cyan.fillOpacity=ghost;red.outlineOpacity=0;cyan.outlineOpacity=0;
  label.fillOpacity=fade;label.outlineOpacity=fade;
+}};`},
+ {key:'drop-settle',name:'落ちて静かに止まる',desc:'文字が上から落ちてきて、少し沈んでから静かに止まります。',added:'2026-10-08',poster:.5,source:`// 上から落ちて、わずかに沈み込んでから止まる。退場は上へ戻りながら消える
+const {createText,text,width,height,duration}=api;
+const label=createText(text,{maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const clamp=x=>Math.max(0,Math.min(1,x));
+const enter=Math.min(.7,duration*.25),exit=Math.min(.4,duration*.15);
+const drop=height*.35;
+return {update(t){
+ const a=clamp(t/enter),b=clamp((duration-t)/exit);
+ const fall=(1-a)*(1-a);                              // 落ちる間は速くなる
+ const sink=Math.sin(Math.PI*clamp((a-.7)/.3))*height*.015;   // 着地の直前にわずかに沈む
+ label.position.set(0,fall*drop-sink+(1-b)*drop*.4,0);
+ const fade=clamp(t/(enter*.4))*b;
+ label.fillOpacity=fade;label.outlineOpacity=fade;
 }};`}
 ];
