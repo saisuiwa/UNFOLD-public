@@ -69,14 +69,15 @@ audio{width:100%;margin-top:10px}
 <section id="result" hidden>
 <h2>4　結果（時刻は直せます）</h2>
 <p class="hint">▶ を押すと、その行の少し前から再生します。ずれた行は、秒の数字を直してください。歌詞の文字は、そのまま書き直せます（漢字にしても、時刻は変わりません）。</p>
-<ol id="rows"></ol>
-<details class="hint" id="kanji"><summary>歌詞をまとめて漢字にする（AIに頼む）</summary>
+<details class="hint" id="kanji" open><summary>★ 歌詞をまとめて漢字にする（AIに頼む）</summary>
 <p class="hint">1. 「依頼文をコピー」を押して、ChatGPT や Claude などに貼ります。2. 返ってきた歌詞をコピー（コードブロックの右上のコピーボタンでOK）して、「コピーした歌詞を貼って反映」を押します。うまくいかないときは、下の欄に貼って「反映」を押してください。行の数が変わらないことが条件です。行を分けたいときは、先に各行の「ここで分ける」を使ってください。</p>
 <div class="row"><button id="copyRequest">依頼文をコピー</button><button id="pasteRewrite" class="primary">コピーした歌詞を貼って反映</button></div>
 <label for="rewrite">AIが返した歌詞</label>
 <textarea id="rewrite"></textarea>
 <div class="row"><button id="applyRewrite">反映</button></div>
 </details>
+<ol id="rows"></ol>
+
 <div class="row"><button id="lrc">LRCを保存</button><button id="json">JSONを保存</button></div>
 </section>
 </main>
