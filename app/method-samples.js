@@ -108,6 +108,16 @@ vec3 userMethod(vec2 p, float amount) {
   gLocal = 1.;
   return vec3(q, (ph(4.) - .5) * .4 * e);
 }` },
+  { key: 'curtain-open', name: 'カーテンが開く', symbol: '幕', category: 'method', desc: '縦の帯が真ん中から順に細くなりながら、左右へ開いていきます。', added: '2026-10-09', poster: .35, source: `// 絵を縦の10本の帯に分けて、真ん中の帯から順に細くしながら左右へ寄せる
+vec3 userMethod(vec2 p, float amount) {
+  float col = floor(cell.x * 10.);                          // タイルの位置で帯を決める
+  float sc = ((col + .5) / 10. - .5) * uSize.x;             // 帯の真ん中の x
+  float d = abs((col + .5) / 10. - .5) * 2.;                // 0 = 真ん中、1 = 端
+  float e = smoothstep((1. - d) * .3, (1. - d) * .3 + .4, amount);
+  float side = (col < 5.) ? -1. : 1.;
+  float x = sc + (p.x - sc) * (1. - .8 * e) + side * e * uSize.x * (.25 + .35 * d);
+  return vec3(x, p.y, e * .3);
+}` },
 ];
 
 // Text to paste into an AI chat: it explains what to write, and the rules the editor checks, so what comes back is likely to pass.

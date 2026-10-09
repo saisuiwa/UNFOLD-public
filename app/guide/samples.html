@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル19個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル22個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -25,15 +25,83 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>19個</b>、最後に増えたのは 10/8）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>22個</b>、最後に増えたのは 10/9）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>19</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>7</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>2</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>2</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>22</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>8</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>3</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>3</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-curtain-open.mp4" role="button" tabindex="0" aria-label="カーテンが開くの動きを再生">
+        <img src="./samples/method-curtain-open.jpg" alt="カーテンが開くの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">幕</i>カーテンが開く<span class="new">NEW</span><small>CURTAIN-OPEN</small></h3>
+        <p>縦の帯が真ん中から順に細くなりながら、左右へ開いていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 絵を縦の10本の帯に分けて、真ん中の帯から順に細くしながら左右へ寄せる
+vec3 userMethod(vec2 p, float amount) {
+  float col = floor(cell.x * 10.);                          // タイルの位置で帯を決める
+  float sc = ((col + .5) / 10. - .5) * uSize.x;             // 帯の真ん中の x
+  float d = abs((col + .5) / 10. - .5) * 2.;                // 0 = 真ん中、1 = 端
+  float e = smoothstep((1. - d) * .3, (1. - d) * .3 + .4, amount);
+  float side = (col &lt; 5.) ? -1. : 1.;
+  float x = sc + (p.x - sc) * (1. - .8 * e) + side * e * uSize.x * (.25 + .35 * d);
+  return vec3(x, p.y, e * .3);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/9 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="image">
+      <div class="shot" data-clip="./samples/image-ripple-tilt.mp4" role="button" tabindex="0" aria-label="波紋で傾くタイルの動きを再生">
+        <img src="./samples/image-ripple-tilt.jpg" alt="波紋で傾くタイルの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">波</i>波紋で傾くタイル<span class="new">NEW</span><small>RIPPLE-TILT</small></h3>
+        <p>中心から波紋が広がり、タイルが順に傾いて浮き上がります。</p>
+        <p class="how">メソッド工房の「画像・立体・物理」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 中心から波紋が広がり、タイルが順に傾いて手前へ浮く。強さ(amount)が戻ると元の位置へ帰る
+const {createImageTiles,size,smooth}=api;
+const tiles=createImageTiles();
+const half=size.width*.5;
+return {update(frame){
+ const t=Math.min(1,frame.amount/.8);
+ for(const piece of tiles){
+  const x=piece.home.x,y=piece.home.y,r=Math.hypot(x,y)/half;
+  const k=smooth(Math.max(0,Math.min(1,t*1.6-r*.7)));            // 中心のタイルほど早く動く
+  const a=Math.atan2(y,x);
+  piece.mesh.position.set(x*(1+.08*k),y*(1+.08*k),k*half*.35);
+  piece.mesh.rotation.set(-Math.sin(a)*k*1.1,Math.cos(a)*k*1.1,k*(Math.sin(a*3)*.5));
+  piece.mesh.scale.setScalar(1-.18*k);
+ }
+}};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">画像・立体・物理（JavaScript）</span><span class="when">10/9 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-squash-in.mp4" role="button" tabindex="0" aria-label="ぐにゃっと伸びて止まるの動きを再生">
+        <img src="./samples/codetext-squash-in.jpg" alt="ぐにゃっと伸びて止まるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>ぐにゃっと伸びて止まる<span class="new">NEW</span><small>SQUASH-IN</small></h3>
+        <p>横に平たく潰れた文字が、ぐにゃっと伸びて縦に弾み、止まります。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 平たく潰れた文字が、ばねのように伸び縮みしながら元の形に落ち着く。退場は縦に潰れて消える
+const {createText,text,width,duration}=api;
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const clamp=x=&gt;Math.max(0,Math.min(1,x));
+const enter=Math.min(.8,duration*.3),exit=Math.min(.4,duration*.15);
+return {update(t){
+ const u=clamp(t/enter),b=clamp((duration-t)/exit);
+ const g=1-Math.exp(-5*u)*Math.cos(12*u);             // 0 から1を少し行き過ぎて、1へ落ち着く
+ const sy=Math.max(.02,g)*b,sx=1+(1-g)*.5*(u&lt;1?1:0);  // 縦が伸びる間、横は縮む
+ label.scale.set(Math.max(.02,sx),sy,1);
+ const fade=clamp(t/(enter*.25))*b;
+ label.fillOpacity=fade;label.outlineOpacity=fade;
+}};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/9 追加</span>
+      </div>
+    </article>
     <article class="method" data-cat="method">
       <div class="shot" data-clip="./samples/method-diagonal-sweep.mp4" role="button" tabindex="0" aria-label="斜めに掃き飛ばすの動きを再生">
         <img src="./samples/method-diagonal-sweep.jpg" alt="斜めに掃き飛ばすの途中の絵" loading="lazy" width="480" height="270">

@@ -66,5 +66,21 @@ return {timeline,physicsTime:returnTime,update(frame){
   sparkGeometry.attributes.position.needsUpdate=true;sparks.material.opacity=fade*.9;}
  // 着地の揺れ
  const shake=Math.exp(-t*7)*(t>0?1:0)*.05*H;api.root.position.set(Math.sin(t*61)*shake,Math.cos(t*53)*shake,0);
+}};`}},
+ {key:'ripple-tilt',name:'波紋で傾くタイル',symbol:'波',desc:'中心から波紋が広がり、タイルが順に傾いて浮き上がります。',added:'2026-10-09',poster:1.8,
+  code:{version:1,runtime:IMAGE_RUNTIME,params:{columns:14,gravity:4,bounce:.5,seed:3,returnMode:'reverse',label:'UNFOLD',font:'gothic'},source:`// 中心から波紋が広がり、タイルが順に傾いて手前へ浮く。強さ(amount)が戻ると元の位置へ帰る
+const {createImageTiles,size,smooth}=api;
+const tiles=createImageTiles();
+const half=size.width*.5;
+return {update(frame){
+ const t=Math.min(1,frame.amount/.8);
+ for(const piece of tiles){
+  const x=piece.home.x,y=piece.home.y,r=Math.hypot(x,y)/half;
+  const k=smooth(Math.max(0,Math.min(1,t*1.6-r*.7)));            // 中心のタイルほど早く動く
+  const a=Math.atan2(y,x);
+  piece.mesh.position.set(x*(1+.08*k),y*(1+.08*k),k*half*.35);
+  piece.mesh.rotation.set(-Math.sin(a)*k*1.1,Math.cos(a)*k*1.1,k*(Math.sin(a*3)*.5));
+  piece.mesh.scale.setScalar(1-.18*k);
+ }
 }};`}}
 ];

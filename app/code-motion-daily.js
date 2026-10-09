@@ -34,5 +34,18 @@ return {update(t){
  label.position.set(0,fall*drop-sink+(1-b)*drop*.4,0);
  const fade=clamp(t/(enter*.4))*b;
  label.fillOpacity=fade;label.outlineOpacity=fade;
+}};`},
+ {key:'squash-in',name:'ぐにゃっと伸びて止まる',desc:'横に平たく潰れた文字が、ぐにゃっと伸びて縦に弾み、止まります。',added:'2026-10-09',poster:.18,source:`// 平たく潰れた文字が、ばねのように伸び縮みしながら元の形に落ち着く。退場は縦に潰れて消える
+const {createText,text,width,duration}=api;
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const clamp=x=>Math.max(0,Math.min(1,x));
+const enter=Math.min(.8,duration*.3),exit=Math.min(.4,duration*.15);
+return {update(t){
+ const u=clamp(t/enter),b=clamp((duration-t)/exit);
+ const g=1-Math.exp(-5*u)*Math.cos(12*u);             // 0 から1を少し行き過ぎて、1へ落ち着く
+ const sy=Math.max(.02,g)*b,sx=1+(1-g)*.5*(u<1?1:0);  // 縦が伸びる間、横は縮む
+ label.scale.set(Math.max(.02,sx),sy,1);
+ const fade=clamp(t/(enter*.25))*b;
+ label.fillOpacity=fade;label.outlineOpacity=fade;
 }};`}
 ];
