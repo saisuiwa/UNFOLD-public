@@ -59,6 +59,7 @@ const page = `<!doctype html>
     <a href="./samples.html" aria-current="page">サンプル集</a>
     <a href="./motions.html">モーション集</a>
     <a href="./glb.html">GLB置き場</a>
+  <a href="../lyric-sync/index.html">歌詞タイミング</a>
   <a href="../workshop.html">メソッド工房</a></nav>
   <span class="spacer"></span>
   <a class="btn small" href="../">1枚モード</a>

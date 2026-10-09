@@ -50,7 +50,8 @@ export function lineTimes(lines, answer) {
     const first = Math.min(timeline.length - 1, Math.round(before * scale));
     const last = Math.min(timeline.length - 1, Math.max(first, Math.round((before + counts[i]) * scale) - 1));
     before += counts[i];
-    return {t: l.t, k: l.k, s: Math.max(0, timeline[first].s), e: Math.max(timeline[first].s, timeline[last].e), exact: timeline.length === total};
+    return {t: l.t, k: l.k, s: Math.max(0, timeline[first].s), e: Math.max(timeline[first].s, timeline[last].e), exact: timeline.length === total,
+      chars: timeline.length === total ? timeline.slice(first, last + 1) : null};
   });
 }
 
@@ -82,4 +83,43 @@ export async function requestAlignment({file, text, apiKey, baseUrl = 'https://a
     throw new Error(`ElevenLabs から ${res.status} が返りました。${detail.slice(0, 200)}`);
   }
   return res.json();
+}
+
+// ---- editing after the times are known (kanji, cutting a line in two, joining) ------------------------------------
+
+// Cut a line at `caret` (a position in row.t). The second part starts at the time of its first character when the line still has
+// its per-character times (the text has not been reworded yet); otherwise at the same share of the line's length.
+export function splitRow(row, caret) {
+  const head = row.t.slice(0, caret).trimEnd(), tail = row.t.slice(caret).trimStart();
+  if (!head || !tail) return [row];
+  const before = spokenChars(head).length, total = spokenChars(row.t).length;
+  const usable = row.chars && row.chars.length === total && before > 0 && before < total;
+  const at = usable ? row.chars[before].s : row.s + (row.e - row.s) * (before / total);
+  const first = {...row, t: head, e: Math.min(row.e, usable ? row.chars[before - 1].e : at), chars: usable ? row.chars.slice(0, before) : null};
+  const second = {...row, t: tail, s: at, chars: usable ? row.chars.slice(before) : null};
+  return [first, second];
+}
+
+// Join a line with the one before it.
+export function mergeRows(previous, row) {
+  const chars = previous.chars && row.chars ? [...previous.chars, ...row.chars] : null;
+  return {...previous, t: `${previous.t} ${row.t}`, e: Math.max(previous.e, row.e), exact: previous.exact && row.exact, chars};
+}
+
+// Replace the display text of every line with text that came back from an AI (kana -> kanji). The line count must stay the same.
+export function applyRewritten(rows, text) {
+  const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(l => l && !SECTION.test(l));
+  if (lines.length !== rows.length) throw new Error(`行の数が違います（いまの歌詞は ${rows.length} 行、貼った歌詞は ${lines.length} 行）。見出しの行（[Verse] など）は数えません。`);
+  return rows.map((r, i) => ({...r, t: lines[i], chars: spokenChars(lines[i]).length === (r.chars?.length ?? -1) ? r.chars : null}));
+}
+
+// The request to paste into an AI chat to turn the kana lyrics into kanji without touching the line breaks.
+export function kanjiRequest(rows) {
+  return `次の歌詞の、ひらがな・カタカナを、自然な漢字かな交じりに直してください。
+- 1行ずつ、同じ順番・同じ行数で返してください（行を増やしたり減らしたり、まとめたりしないでください）。
+- 言葉の意味や、歌詞の順番は変えないでください。
+- 行の中の / や *強調* の印はそのまま残してください。
+- 出力は、直した歌詞だけをコードブロック1つに入れてください（説明は不要です）。
+
+${rows.map(r => r.t).join('\n')}`;
 }
