@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>歌詞タイミング合わせ</title>
+<style>
+:root{--bg:#f6f4ef;--fg:#1e1b16;--muted:#6b665c;--card:#fff;--line:#d9d4c8;--accent:#b4472b;--accent-fg:#fff;--on:#fff2c9}
+@media (prefers-color-scheme:dark){:root{--bg:#161412;--fg:#ece7dc;--muted:#a39d90;--card:#201d1a;--line:#38332d;--accent:#e0714f;--accent-fg:#1a0f0a;--on:#4a3a14}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,"Hiragino Sans",sans-serif}
+main{max-width:760px;margin:0 auto;padding:20px 16px 80px}
+h1{font-size:1.4rem;margin:.2em 0}
+p.lead,.hint{color:var(--muted);font-size:.9rem;margin:.3em 0 1em}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0}
+h2{font-size:1rem;margin:0 0 8px}
+label{display:block;font-size:.9rem;margin:8px 0 4px}
+input[type=text],input[type=password],input[type=number],textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);font:inherit}
+textarea{min-height:200px;resize:vertical}
+button{font:inherit;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+#status{white-space:pre-wrap;margin:10px 0 0;font-size:.9rem}
+#status.err{color:#c0392b}
+ol{list-style:none;margin:0;padding:0}
+li.line{display:grid;grid-template-columns:auto 5.5rem 1fr;gap:8px;align-items:center;padding:6px 6px;border-radius:8px}
+li.line.on{background:var(--on)}
+li.line input{padding:5px 6px}
+li.line .play{padding:4px 10px}
+li.line.guess .t::after{content:" ※推定";color:var(--muted);font-size:.75rem}
+audio{width:100%;margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+<h1>歌詞タイミング合わせ</h1>
+<p class="lead">曲と歌詞を入れると、ElevenLabs の強制アラインメントで、行ごとの開始時刻を出します。結果は UNFOLD の「歌詞を選択（LRC/JSON）」で読み込めます。</p>
+
+<section>
+<h2>1　ElevenLabs の APIキー</h2>
+<label for="key">APIキー（このブラウザの中だけに保存します。送り先は ElevenLabs だけです）</label>
+<input id="key" type="password" autocomplete="off" placeholder="sk_…">
+<div class="row"><label style="margin:0"><input id="remember" type="checkbox"> このブラウザに覚える</label></div>
+<details class="hint"><summary>送り先を変える（中継サーバーを使うとき）</summary>
+<input id="base" type="text" value="https://api.elevenlabs.io"></details>
+</section>
+
+<section>
+<h2>2　曲</h2>
+<input id="audio" type="file" accept="audio/*,video/mp4">
+<p class="hint">伴奏が大きい曲は、ボーカルだけのファイルを使うと合いやすくなります。UNFOLD に入れる曲は、いつものファイルのままで大丈夫です。</p>
+<audio id="player" controls hidden></audio>
+</section>
+
+<section>
+<h2>3　歌詞</h2>
+<textarea id="lyrics" placeholder="[Verse]&#10;一行目の歌詞&#10;二行目の歌詞&#10;[Chorus]&#10;…"></textarea>
+<p class="hint">[Verse] や [Chorus] の見出しの行は、時刻を付けず、区分としてだけ使います。/ と *強調* の印は、送るときだけ外します。</p>
+<div class="row"><button id="run" class="primary">時刻を合わせる</button></div>
+<p id="status" role="status"></p>
+</section>
+
+<section id="result" hidden>
+<h2>4　結果（時刻は直せます）</h2>
+<p class="hint">▶ を押すと、その行の少し前から再生します。ずれた行は、秒の数字を直してください。</p>
+<ol id="rows"></ol>
+<div class="row"><button id="lrc">LRCを保存</button><button id="json">JSONを保存</button></div>
+</section>
+</main>
+<script type="module">
+import {parseLyricLines, alignmentText, lineTimes, fixOrder, toLrc, toJson, requestAlignment} from './align.js';
+const $ = id => document.getElementById(id);
+const store = {get(k){try{return localStorage.getItem(k)||''}catch{return ''}}, set(k,v){try{localStorage.setItem(k,v)}catch{}}, del(k){try{localStorage.removeItem(k)}catch{}}};
+let rows = [], url = '';
+
+$('key').value = store.get('lyric-sync-key'); $('remember').checked = !!$('key').value;
+$('base').value = store.get('lyric-sync-base') || $('base').value;
+$('lyrics').value = store.get('lyric-sync-lyrics');
+$('lyrics').addEventListener('input', () => store.set('lyric-sync-lyrics', $('lyrics').value));
+$('audio').addEventListener('change', () => {
+  if (url) URL.revokeObjectURL(url);
+  const f = $('audio').files[0]; if (!f) return;
+  url = URL.createObjectURL(f); $('player').src = url; $('player').hidden = false;
+});
+const say = (msg, err = false) => { $('status').textContent = msg; $('status').className = err ? 'err' : ''; };
+
+function render() {
+  const ol = $('rows'); ol.replaceChildren();
+  rows.forEach((r, i) => {
+    const li = document.createElement('li'); li.className = 'line' + (r.exact ? '' : ' guess'); li.dataset.i = i;
+    const play = document.createElement('button'); play.className = 'play'; play.textContent = '▶'; play.setAttribute('aria-label', `${i + 1}行目から再生`);
+    play.onclick = () => { $('player').currentTime = Math.max(0, r.s - 1); $('player').play(); };
+    const num = document.createElement('input'); num.type = 'number'; num.step = '0.05'; num.min = '0'; num.value = r.s.toFixed(2);
+    num.onchange = () => { r.s = Math.max(0, Number(num.value) || 0); rows = fixOrder(rows); render(); };
+    const t = document.createElement('span'); t.className = 't'; t.textContent = r.t;
+    li.append(play, num, t); ol.append(li);
+  });
+  $('result').hidden = !rows.length;
+}
+$('player').addEventListener('timeupdate', () => {
+  const now = $('player').currentTime; let on = -1;
+  rows.forEach((r, i) => { if (now >= r.s) on = i; });
+  document.querySelectorAll('li.line').forEach(li => li.classList.toggle('on', Number(li.dataset.i) === on));
+});
+
+$('run').onclick = async () => {
+  const file = $('audio').files[0], apiKey = $('key').value.trim(), lines = parseLyricLines($('lyrics').value);
+  if (!apiKey) return say('APIキーを入れてください。', true);
+  if (!file) return say('曲のファイルを選んでください。', true);
+  if (!lines.length) return say('歌詞を入れてください。', true);
+  if ($('remember').checked) store.set('lyric-sync-key', apiKey); else store.del('lyric-sync-key');
+  store.set('lyric-sync-base', $('base').value.trim());
+  $('run').disabled = true; say('ElevenLabs に送っています…（曲の長さによって、数十秒かかることがあります）');
+  try {
+    const answer = await requestAlignment({file, text: alignmentText(lines), apiKey, baseUrl: $('base').value.trim() || undefined});
+    rows = fixOrder(lineTimes(lines, answer)); render();
+    say(`${rows.length}行の時刻が出ました。${rows.every(r => r.exact) ? '' : '\n文字数が少し合わなかった行は「※推定」と出ています。再生して確かめてください。'}`);
+  } catch (e) {
+    say(e.name === 'TypeError' ? 'ElevenLabs に届きませんでした（ネットワークか、ブラウザから直接呼べない設定の可能性があります）。\n' + e.message : e.message, true);
+  } finally { $('run').disabled = false; }
+};
+
+const save = (name, text, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); };
+const base = () => ($('audio').files[0]?.name || 'lyrics').replace(/\.[^.]+$/, '');
+$('lrc').onclick = () => save(base() + '.lrc', toLrc(rows), 'text/plain');
+$('json').onclick = () => save(base() + '-timing.json', toJson(rows), 'application/json');
+</script>
+</body>
+</html>
