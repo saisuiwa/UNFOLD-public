@@ -2,7 +2,7 @@ import {createCodeMotionRuntime} from './code-motion-runtime.js';
 import {approveCodeMotion} from './code-motion-format.js';
 import {getCodeMotionFont} from './lyric-fonts.js';
 import {cleanMotion} from './lyric-motion.js?v=26';
-import {lyricRuns} from './lyric-document.js?v=3';
+import {lyricRuns} from './lyric-document.js?v=4';
 import {createMotionLibrary,parseMotionFile,buildMotionFile} from './lyric-library.js';
 import {CODE_MOTION_PRESETS,codeMotionPrompt} from './code-motion-presets.js';
 const node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});

@@ -30,6 +30,15 @@ export function parseLyrics(sourceText,previous=null){
    if(stopI<n-tail)pairs.push([stopI,stopJ]);oi=stopI+1;nj=stopJ+1;
  }
  for(let k=0;k<tail;k++)pairs.push([n-tail+k,p-tail+k]);
+ // A line that was reworded (ひらがな→漢字) or cut in two keeps the time of the line it came from, so the other lines do not move.
+ // Only the start/end time is carried over (not motion, lock or colours), and only between lines that no exact match claimed.
+ const timed=[];{const sorted=[...pairs].sort((x,y)=>x[0]-y[0]);let po=-1,pn=-1;
+  for(const [i,j]of [...sorted,[n,p]]){const olds=[],news=[];
+   for(let a=po+1;a<i;a++)if(old[a].kind==='line'&&Number.isFinite(old[a].s))olds.push(a);
+   for(let b=pn+1;b<j;b++)if(events[b].kind==='line')news.push(b);
+   for(let k=0;k<Math.min(olds.length,news.length);k++)timed.push([olds[k],news[k]]);
+   po=i;pn=j}}
+ for(const [i,j]of timed){const e=events[j],o=old[i];e.s=o.s;e.e=o.e;e.timingSource=o.timingSource}
  for(const [i,j]of pairs){const e=events[j],o=old[i];Object.assign(e,{id:o.id,s:o.s,e:o.e,timingSource:o.timingSource,locked:o.locked,motion:o.motion?structuredClone(o.motion):null});if(o.colors)e.colors=structuredClone(o.colors);if(o.words)e.words=structuredClone(o.words);if(o.decision==='instruction'&&(e.kind==='line'||e.section==='unknown'))e.decision='instruction';if(o.kind==='line'&&e.kind==='section'&&o.decision==='lyric'){e.kind='line';e.decision='lyric';e.runs=lyricRuns(e.raw);e.text=e.runs.map(x=>x.text).join('');}if(o.section==='instrumental'&&o.decision==='lyric')e.decision='lyric';if(o.sectionOverride){e.sectionOverride=o.sectionOverride;e.section=o.sectionOverride;}}
  const d={...base(),...(previous?{enabled:previous.enabled,style:previous.style,seed:previous.seed,maxHold:previous.maxHold,durationMode:previous.durationMode}:{}),sourceText,events};d.issues=issues(events);return d;
 }

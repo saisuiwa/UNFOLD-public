@@ -1,5 +1,5 @@
 <!doctype html><meta charset="utf-8"><title>Motion library integration QA</title><pre id="results">検証中</pre><script type="module">
-import {BUILTIN_MOTIONS} from '/app/lyric-recipe.js';import {parseLyrics} from '/app/lyric-document.js?v=2';
+import {BUILTIN_MOTIONS} from '/app/lyric-recipe.js';import {parseLyrics} from '/app/lyric-document.js?v=4';
 const checks=[],test=(name,pass)=>checks.push({name,pass:!!pass}),sleep=ms=>new Promise(r=>setTimeout(r,ms));
 try{const iframe=document.createElement('iframe');iframe.style.cssText='width:1200px;height:780px';iframe.src='/app/sequence.html?empty&motion-library-test=1#lyric';document.body.append(iframe);await new Promise(r=>iframe.onload=r);for(let i=0;i<200&&!iframe.contentWindow.unfoldSeq;i++)await sleep(50);const api=iframe.contentWindow.unfoldSeq;if(!api)throw Error('sequence init missing');
  const d=parseLyrics('最初の*光*/明日へ\n次の歌詞');Object.assign(d.events[0],{s:0,e:5,timingSource:'manual'});Object.assign(d.events[1],{s:6,e:9,timingSource:'manual',locked:true,motion:{preset:'slide'}});api.setLyricDocument(d);

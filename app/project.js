@@ -1,4 +1,4 @@
-import {cleanLyricDocument} from './lyric-document.js?v=3';
+import {cleanLyricDocument} from './lyric-document.js?v=4';
 // Project persistence for the sequence editor: autosave into this browser (IndexedDB) and a single-file .unfold export.
 // Pictures and the song are stored once each as blobs ("assets"); the project itself is plain JSON that points at them.
 const DB = 'unfold-projects', PROJECTS = 'projects', ASSETS = 'assets', MAGIC = 'UNFOLD-PROJECT-1\n';

@@ -3,12 +3,12 @@ import {imageTarget} from './image-method-target.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import {applyLyricStyle,setWordColor} from './lyric-style.js';
-import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=9';
-import {createLyricControls} from './lyric-controls.js?v=9';
+import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=10';
+import {createLyricControls} from './lyric-controls.js?v=10';
 import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=26';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
 import {createLyricOverlay} from './lyric-overlay.js?v=8';
-import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=3';
+import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=4';
 import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPreviewTime} from './lyric-timing.js?v=3';
 import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=26';
@@ -48,7 +48,7 @@ import { cleanFx, concealAmount, mixFx, swapCurve } from './fx-mix.js';
 import { CAM_EASES, CAM_PRESETS, CAM_RANGES, camEnds, camLife, camValues, cleanCam, legacyKenBurns, lifeProgress, mixCam } from './camera-work.js?v=1';
 import { openMethodMenu } from './method-menu.js';
 import { methodButtons, syncMethodTiles } from './method-tiles.js';
-import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=9';
+import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=10';
 
 const $ = id => document.getElementById(id);
 // every method (the built-in ones and the ones users add) is listed in method-registry.js
