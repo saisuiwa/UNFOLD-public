@@ -2,7 +2,7 @@ import {openCodeMotionEditor} from './code-motion-editor.js';
 import {savedLyricFonts,lyricFontLabel} from './lyric-fonts.js';
 import {BUILTIN_MOTIONS,LAYOUTS,ENTRANCES,SUSTAINS,EXITS,normalizeRecipe} from './lyric-recipe.js';
 import {cleanMotion} from './lyric-motion.js?v=26';
-import {lyricRuns} from './lyric-document.js?v=3';
+import {lyricRuns} from './lyric-document.js?v=4';
 import {createMotionLibrary,buildMotionFile,parseMotionFile,motionAIPrompt} from './lyric-library.js';
 import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=4';
 const node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});

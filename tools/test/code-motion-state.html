@@ -1,5 +1,5 @@
 <!doctype html><meta charset="utf-8"><title>Code Motion State QA</title><style>body{background:#101819;color:#efffde;font:16px system-ui}iframe{width:100%;height:600px}video{width:640px}</style><pre id="results">検証中</pre><script type="module">
-import {parseLyrics} from '/app/lyric-document.js?v=3';import {CODE_MOTION_PRESETS} from '/app/code-motion-presets.js';import {approveCodeMotion} from '/app/code-motion-format.js';import {importLyricFont,getCodeMotionFont} from '/app/lyric-fonts.js';
+import {parseLyrics} from '/app/lyric-document.js?v=4';import {CODE_MOTION_PRESETS} from '/app/code-motion-presets.js';import {approveCodeMotion} from '/app/code-motion-format.js';import {importLyricFont,getCodeMotionFont} from '/app/lyric-fonts.js';
 const checks=[],check=(name,pass)=>{checks.push({name,pass:!!pass});document.querySelector('#results').textContent=JSON.stringify(checks,null,2)},wait=ms=>new Promise(r=>setTimeout(r,ms));
 try{
  const blob=await (await fetch('/app/vendor/motion-fonts/dot.ttf')).blob(),font=await importLyricFont(new File([blob],'Code-QA-Dot.ttf'));check('imported file font bytes survive IndexedDB bridge',(await getCodeMotionFont(font)).byteLength===blob.size);

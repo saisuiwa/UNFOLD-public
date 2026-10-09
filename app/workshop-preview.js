@@ -13,7 +13,7 @@ import {importModel} from './model-import.js?v=10';
 import {getCodeMotionFont} from './lyric-fonts.js';
 import {codeFrameInput} from './code-motion-layer.js';
 import {motionOf} from './workshop-library.js';
-import {lyricRuns} from './lyric-document.js?v=3';
+import {lyricRuns} from './lyric-document.js?v=4';
 const trial=createTrial({vertexShader,fragmentShader});
 export const testImage=()=>makeTestImage(960,540);
 async function targetFor(shape){if(shape==='none')return null;if(!shape.startsWith('glb-'))return previewTarget(shape);const model=await getModel(shape);if(!model)throw Error('保存したGLBが見つかりません。');const data=await importModel(model.buffer);return {positions:data.target,uv:data.uv,shape:0,preset:true,project:false};}
