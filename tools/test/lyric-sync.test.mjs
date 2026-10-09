@@ -96,3 +96,8 @@ test('the kanji request lists every line once', () => {
   const req = kanjiRequest([{t: 'あ'}, {t: 'い'}]);
   assert.ok(req.endsWith('あ\nい'));
 });
+
+test('the code block marks an AI wraps around its answer are ignored', () => {
+  const rows = lineTimes(parseLyricLines('いち\nに'), {characters: [...'いちに'].map((text, i) => ({text, start: i, end: i + 1}))});
+  assert.deepEqual(applyRewritten(rows, '```\n一\n二\n```').map(r => r.t), ['一', '二']);
+});

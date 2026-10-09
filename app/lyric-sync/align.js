@@ -108,7 +108,7 @@ export function mergeRows(previous, row) {
 
 // Replace the display text of every line with text that came back from an AI (kana -> kanji). The line count must stay the same.
 export function applyRewritten(rows, text) {
-  const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(l => l && !SECTION.test(l));
+  const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(l => l && !SECTION.test(l) && !/^```/.test(l));   // the code block marks an AI adds are dropped
   if (lines.length !== rows.length) throw new Error(`行の数が違います（いまの歌詞は ${rows.length} 行、貼った歌詞は ${lines.length} 行）。見出しの行（[Verse] など）は数えません。`);
   return rows.map((r, i) => ({...r, t: lines[i], chars: spokenChars(lines[i]).length === (r.chars?.length ?? -1) ? r.chars : null}));
 }

@@ -71,8 +71,8 @@ audio{width:100%;margin-top:10px}
 <p class="hint">▶ を押すと、その行の少し前から再生します。ずれた行は、秒の数字を直してください。歌詞の文字は、そのまま書き直せます（漢字にしても、時刻は変わりません）。</p>
 <ol id="rows"></ol>
 <details class="hint" id="kanji"><summary>歌詞をまとめて漢字にする（AIに頼む）</summary>
-<p class="hint">1. 下のボタンで依頼文をコピーして、ChatGPT や Claude などに貼ります。2. 返ってきた歌詞を、下の欄に貼って「反映」を押します。行の数が変わらないことが条件です。行を分けたいときは、先に各行の「ここで分ける」を使ってください。</p>
-<div class="row"><button id="copyRequest">依頼文をコピー</button></div>
+<p class="hint">1. 「依頼文をコピー」を押して、ChatGPT や Claude などに貼ります。2. 返ってきた歌詞をコピー（コードブロックの右上のコピーボタンでOK）して、「コピーした歌詞を貼って反映」を押します。うまくいかないときは、下の欄に貼って「反映」を押してください。行の数が変わらないことが条件です。行を分けたいときは、先に各行の「ここで分ける」を使ってください。</p>
+<div class="row"><button id="copyRequest">依頼文をコピー</button><button id="pasteRewrite" class="primary">コピーした歌詞を貼って反映</button></div>
 <label for="rewrite">AIが返した歌詞</label>
 <textarea id="rewrite"></textarea>
 <div class="row"><button id="applyRewrite">反映</button></div>
@@ -122,7 +122,13 @@ function render() {
     const num = document.createElement('input'); num.type = 'number'; num.step = '0.05'; num.min = '0'; num.value = r.s.toFixed(2);
     num.onchange = () => { r.s = Math.max(0, Number(num.value) || 0); rows = fixOrder(rows); render(); };
     const t = document.createElement('input'); t.type = 'text'; t.className = 't'; t.value = r.t; t.setAttribute('aria-label', `${i + 1}行目の歌詞`);
-    t.onchange = () => { r.t = t.value.trim() || r.t; r.chars = null; render(); };      // reworded: the per-character times no longer fit
+    t.onchange = () => { r.t = t.value.trim() || r.t; r.chars = null; };      // reworded: the per-character times no longer fit
+    t.onkeydown = e => {          // Tab / Enter go down one row, Shift+Tab / Shift+Enter go up (the last row lets Tab leave as usual)
+      if (e.isComposing || (e.key !== 'Tab' && e.key !== 'Enter')) return;
+      const boxes = [...document.querySelectorAll('li.line input.t')], to = boxes[boxes.indexOf(t) + (e.shiftKey ? -1 : 1)];
+      if (!to) return;
+      e.preventDefault(); to.focus(); to.select();
+    };
     const tools = document.createElement('div'); tools.className = 'tools';
     const cut = document.createElement('button'); cut.textContent = '✂ ここで分ける'; cut.title = '歌詞の文字の中をクリックして、分けたい所にカーソルを置いてから押します';
     cut.onclick = () => {
@@ -162,6 +168,10 @@ $('run').onclick = async () => {
 $('copyRequest').onclick = async () => {
   try { await navigator.clipboard.writeText(kanjiRequest(rows)); say('依頼文をコピーしました。AIのチャットに貼ってください。'); }
   catch { $('rewrite').value = kanjiRequest(rows); $('rewrite').select(); say('コピーできなかったので、下の欄に依頼文を出しました。選んでコピーしてください。（貼り直す前に、この欄は空にしてください）', true); }
+};
+$('pasteRewrite').onclick = async () => {
+  try { $('rewrite').value = await navigator.clipboard.readText(); } catch { return say('クリップボードを読めませんでした。下の欄に貼って「反映」を押してください。', true); }
+  $('applyRewrite').click();
 };
 $('applyRewrite').onclick = () => {
   try { rows = applyRewritten(rows, $('rewrite').value); render(); say('歌詞を入れ替えました。時刻は変わっていません。'); }
