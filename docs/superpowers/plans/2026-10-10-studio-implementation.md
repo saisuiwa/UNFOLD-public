@@ -8,7 +8,7 @@
 
 **Tech Stack:** 既存のブラウザES modules、HTML/CSS、Canvas/WebGL、Three.js 0.180.0、GSAP 3.13.0、Troika 0.52.4、Rapier 0.21.0、IndexedDB、Web Audio、WebCodecs、Node test、Playwright。追加提案はMediabunny 1.61.3とp5.js 2.3.3（後述の依存承認対象）。
 
-**Spec:** 承認済み [2026-10-10-studio-design.md](../specs/2026-10-10-studio-design.md)、改訂2、Git `e7bc887fe02d7d87eca3e306613b573ce37172bd`。ローカル参照が開けない場合は [Libraryの設計書](https://chatgpt.com/api/library/files/libfile_9cc97baf5d848191be17a9104b52af3d/download)（この計画の基準はversion 1、SHA256 `7c3e2034231d72c5c4114f3f20abd132b76f01a5c1e4e4ab63af5c83064c6c29`）を併読する。
+**Spec:** 承認済み [2026-10-10-studio-design.md](../specs/2026-10-10-studio-design.md)、改訂2、Git `e7bc887fe02d7d87eca3e306613b573ce37172bd`。この計画と一緒に添付された 2026-10-10-studio-design.md（改訂2）を併読する（この計画の基準はversion 1、SHA256 `7c3e2034231d72c5c4114f3f20abd132b76f01a5c1e4e4ab63af5c83064c6c29`）。
 
 ## Global Constraints
 
