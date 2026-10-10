@@ -5,3 +5,31 @@
 .draft-preview{display:block;width:100%;aspect-ratio:16/9;background:#0c1414;margin-top:12px}
 
 .selected-scene-heading{padding:12px;font-size:12px;color:var(--mint);border-top:1px solid var(--line);background:#142023}.timeline-block.scene[aria-current=time]{box-shadow:inset 0 -3px var(--amber)}.timeline-block.scene[aria-expanded=true]{border-color:var(--mint)}
+
+/* the other composition: beside the monitor, follows the playhead, closable */
+.comparison-panel{margin:10px auto 0;border:1px solid #719184;border-radius:6px;padding:6px 8px;background:#10181a;max-width:300px}
+.comparison-panel[hidden]{display:none}
+.comparison-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--mint);margin-bottom:6px}
+.comparison-close{font-size:11px;padding:3px 8px}
+.comparison-panel .comparison{max-width:100%;max-height:260px;margin:0 auto;border:0;display:block}
+
+/* sequence-style lanes: 画像 / 演出 / 音声 / 歌詞, one lane each; the layers of the selected scene sit below */
+.timeline-tracks{--lane-head:76px}
+.lane-label{width:var(--lane-head)}
+.time-ruler{padding-left:var(--lane-head)}
+.lane-title{display:flex;align-items:center;padding:0 8px;color:var(--muted);font-size:11px;border-right:1px solid var(--line);cursor:default}
+.timeline-lane.layer .lane-label{cursor:pointer}
+.timeline-block .tl-main{display:block;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
+.timeline-block .tl-sub{display:block;overflow:hidden;text-overflow:ellipsis;font-size:10px;line-height:1.3;color:#b9d6cf}
+.timeline-block.lyric .tl-motion{color:#d9f878}
+.timeline-block.fx{background:#35604a;border-color:#6fae86}
+.timeline-block.fx.bg{background:#2f4f66;border-color:#6aa3c9}
+.timeline-block.scene{padding-top:1px;padding-bottom:1px}
+.timeline-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 0 2px;min-height:34px}
+.tl-chip{font-size:11px;padding:3px 9px;border:1px solid var(--line);border-radius:999px;background:#18232a;color:var(--ink)}
+.tl-chip b{font-weight:600;color:var(--muted);margin-right:2px}
+.tl-chip.chip-motion{border-color:#8a7bb0;background:#2a2540}
+.tl-chip.chip-bg{border-color:#6aa3c9;background:#1d3140}
+.tl-chip.chip-fx{border-color:#6fae86;background:#1d3328}
+.tl-chip.chip-unfold{border-color:#4a8d88;background:#18302f}
+.tl-chip-hint{font-size:11px;color:var(--muted)}
