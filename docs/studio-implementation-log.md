@@ -99,3 +99,7 @@ Selected-scene UI: RED expected1 clip row but observed2; GREEN only the selected
 Explicit song input: RED full-song runner rejected UNFOLD_STUDIO_SONG_FIXTURE; new path-reader test also failed before its implementation. The runner now reads only the supplied regular file, probes its actual audio, retains original bytes/hash, derives frame-aligned project duration and preserves source end. Fast Chrome verification uses an original32.125s WAV (964frames,32133333us project,32125000us audio), and also checks the unchanged default180s synthetic route. Missing/non-file paths reject. The long acceptance uses only /tmp/UNFOLD-original-180.wav produced by the tracked generator, not a user song.
 
 Follow-up acceptance complete: whole Node404pass0fail3existing skips; seven relevant browser suites plus full-song explicit-path PASS. Original180s WAV path produced5400frames, audio end180s, marker0.104ms, saved short240frames and disposed resources0. Library screenshots updated in place toversion1; videos unchanged. The two previously noted plan differences are closed. No running process, no push/merge/publication.
+
+## 公開承認後の統合（2026-10-10）
+
+明示承認によりmainを5977480から0bc28e5へfast-forwardし、既存Cloudflareへ公開。407配信ファイル一致、本番の保存・横縦音付き出力と旧工房8連携成功。GitHub pushなし。公開バージョン・復旧方法・再読み込み後の編集権限の注意は [公開記録](publication-studio-2026-10-10.md) に記録。以前の「未統合・未公開」は各記録時点の状態。
