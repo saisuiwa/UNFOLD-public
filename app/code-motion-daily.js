@@ -2160,5 +2160,459 @@ function update(t){
 }
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
+return {update,dispose};`},
+ {key:'echo-stack',name:'下へ連なる残像',desc:'歌詞が下へ少しずつ小さく薄くなりながら、残像のように連なって現れます。',added:'2026-10-11',poster:.9,source:`// 歌詞を下へ向けて少しずつ小さく薄くしながら重ね、残像のように連なって現れる。登場は上の段から、退場は下の段から畳まれる
+const {scene,createText,text,width,height,fontSize,duration}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const life=Math.max(.05,duration),enter=Math.min(.55,life*.2),exit=Math.min(.5,life*.18);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrap=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.88,n=Math.ceil(longest/limit-.02);return {at:n>1?longest/n*1.12:limit,lines:rows.length*Math.max(1,n)};})();
+const wrapAt=wrap.at,lines=wrap.lines;
+const K=lines>1?3:5;                                 // 2行以上の歌詞は段数を減らして高さに収める
+const SHADE=['#ffffff','#e0dbee','#bdb4d2','#9a91b4','#7b7396'];
+const SY=[1,.86,.75,.66,.58],ALPHA=[1,.72,.52,.36,.24];
+const copies=[];
+for(let i=0;i<K;i++){
+  const m=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.15,anchorX:'center',anchorY:'top',outlineWidth:0,...(i?{color:SHADE[i],colorRanges:null}:{})});
+  m.fillOpacity=0;scene.add(m);copies.push(m);
+}
+let fit=1,h0=0,total=1,measured=false;
+function measure(){
+  const info=copies[0].textRenderInfo;if(!info)return;
+  const b=info.blockBounds,w=Math.max(1,b[2]-b[0]);h0=Math.max(1,b[3]-b[1]);
+  total=h0*(SY.slice(0,K-1).reduce((a,s)=>a+s*.8,0)+SY[K-1]);
+  fit=Math.min(1,height*.74/total,width*.92/w);measured=true;
+}
+function update(t){
+  if(!measured)measure();
+  const top=total*fit/2;
+  let y=top;
+  for(let i=0;i<K;i++){
+    const m=copies[i];
+    const e=spring(clamp((t-i*.09)/enter)),q=smooth(clamp((life-t-(K-1-i)*.05)/exit));
+    const yNow=top+(y-top)*Math.min(1,e)*q;         // 段は一番上の位置から下へ広がり、畳まれるときは上へ戻る
+    m.position.set(Math.sin(t*2.1+i*.8)*fontSize*.05*i*fit,yNow,-i*.1);
+    m.scale.set(fit*(1-.012*i),fit*SY[i],1);
+    m.fillOpacity=ALPHA[i]*smooth(e*3)*smooth(q*3);
+    y-=h0*SY[i]*.8*fit;
+  }
+}
+function dispose(){for(const m of copies){scene.remove(m);m.dispose();}}
+update(0);
+return {update,dispose};`},
+ {key:'layer-extrude',name:'重なって押し出される文字',desc:'文字の奥に青・橙・灰色の層が重なって、立体的に押し出されて見えます。',added:'2026-10-11',poster:1,source:`// 文字の奥へ向けて、青・橙・灰色の層を少しずつずらして重ね、押し出されたように見せる。層は登場で伸び、退場で縮む
+const {scene,createText,text,width,height,fontSize,duration}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const life=Math.max(.05,duration),enter=Math.min(.8,life*.28),exit=Math.min(.5,life*.18);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrap=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.84,n=Math.ceil(longest/limit-.02);return {at:n>1?longest/n*1.12:limit,lines:rows.length*Math.max(1,n)};})();
+const wrapAt=wrap.at,lines=wrap.lines;
+const COLORS=['#8a8f98','#f08a4b','#35b0f0','#8a8f98','#f08a4b','#35b0f0'];   // 手前から奥へ
+const K=lines>1?4:6;
+const make=extra=>createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.2,anchorX:'center',anchorY:'middle',outlineWidth:0,...extra});
+const back=[];
+for(let i=K;i>=1;i--){const m=make({color:COLORS[i-1],colorRanges:null});m.fillOpacity=0;scene.add(m);back.push({m,i});}
+const front=make({color:'#f8e6d8'});front.fillOpacity=0;scene.add(front);
+const DX=fontSize*.05,DY=fontSize*.045;
+let fit=1,measured=false;
+function measure(){
+  const info=front.textRenderInfo;if(!info)return;
+  const b=info.blockBounds,w=b[2]-b[0],h=b[3]-b[1];
+  fit=Math.min(1,height*.7/(h+K*DY),width*.88/(w+K*DX));measured=true;
+}
+function update(t){
+  if(!measured)measure();
+  const grow=spring(clamp(t/enter)),q=smooth(clamp((life-t)/exit)),tq=Math.floor(t*10);
+  const ox=-K*DX*fit/2,oy=K*DY*fit/2;               // 層の広がりも含めて中央にそろえる
+  for(const {m,i} of back){
+    const k=grow*q*Math.min(1,Math.max(0,(t-i*.04)/.3+.2));
+    const jx=(hash(i,tq)-.5)*fontSize*.012,jy=(hash(i,tq+9)-.5)*fontSize*.012;   // 10コマ/秒の手描きのゆれ
+    m.position.set(ox+(i*DX*k+jx)*fit,oy-(i*DY*k+jy)*fit,-i*.1);
+    m.scale.setScalar(fit);m.fillOpacity=smooth(k*2)*.95;
+  }
+  front.position.set(ox,oy,0);front.scale.setScalar(fit);
+  const f=smooth(t/(enter*.5))*q;front.fillOpacity=f;
+}
+function dispose(){for(const {m} of back){scene.remove(m);m.dispose();}scene.remove(front);front.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'letter-boxes',name:'色つきの箱に一文字ずつ',desc:'文字が白と色つきの箱に一文字ずつ収まって、ぽんぽんと並んで現れます。',added:'2026-10-11',shelf:'effect',poster:.8,source:`// 文字を1つずつ、白と強調色の箱に入れる。箱は少しずつ傾き、上下にずれて、ばねで弾みながら並ぶ。退場は箱がしぼんで消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0])+PAD;}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),hardN=Math.max(1,hard.filter(Boolean).length);let n=1,bestScale=0;for(let k=1;k<=8;k++){const sc=Math.min(1,W*.84/Math.min(total,total/k*1.12+gap),H*.66/(hardN*k*KH*1.12));if(sc>bestScale+.001){bestScale=sc;n=k;}}const cap=n>1?total/n*1.12+gap:limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=KH*1.12;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of vis){if(l.key){root.remove(l.key);l.key.geometry.dispose();l.keyMat.dispose();}}for(const m of extra){root.remove(m);m.geometry.dispose();}for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const PAD=em*.3,KH=em*1.36,extra=[];
+const WHITE=new THREE.Color('#ffffff'),HOT=new THREE.Color(api.accent);
+for(const l of vis){
+  l.mesh.colorRanges=null;l.mesh.color='#15171c';l.mesh.outlineWidth=0;               // 箱の上の文字は濃い色
+  l.keyMat=new THREE.MeshBasicMaterial({color:(l.i%2)?HOT:WHITE,transparent:true,depthTest:false,depthWrite:false});   // 白と強調色を交互に
+  l.key=new THREE.Mesh(new THREE.PlaneGeometry(1,1),l.keyMat);l.key.renderOrder=-1;l.key.visible=false;root.add(l.key);
+}
+function pose(l,t,u,v){
+  const tp=.1+l.o*intro*.6,e=spring(clamp((t-tp)/.34)),q=smooth(clamp((life-t-(1-l.o)*.08)/outro));
+  const tilt=(hash(l.i,3)-.5)*.08*(1-.5*(1-e)),rise=(hash(l.i,5)-.5)*em*.14;      // 箱ごとに少し傾き、少し上下にずれる
+  const s=Math.max(.01,e)*(.8+.2*q),a=smooth(clamp((t-tp)/.08))*smooth(q*2);
+  const kw=Math.max(KH*.72,l.w-PAD+PAD*.9);
+  l.key.visible=a>.002;l.key.position.set(l.x,l.y+rise,-1);l.key.rotation.z=tilt;
+  l.key.scale.set(kw*s,KH*s*(.35+.65*Math.min(1,e)),1);l.keyMat.opacity=a;
+  place(l,l.x,l.y+rise,tilt,s,s,a*smooth((t-tp-.06)/.1));
+}
+update(0);
+return {update,dispose};`},
+ {key:'ring-text',name:'円のまわりを回る文字',desc:'中央の円に歌詞が出て、そのまわりを同じ歌詞が輪になってぐるぐる回ります。',added:'2026-10-11',shelf:'effect',poster:1,source:`// 中央の円に歌詞を出し、そのまわりを同じ歌詞が輪になってぐるぐる回る。輪は外側へ向けて文字の上が向く
+const {THREE,scene,createText,text,width,height,fontSize,duration}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const life=Math.max(.05,duration),enter=Math.min(.8,life*.28),exit=Math.min(.5,life*.18);
+const R=height*.335,g0=height*.125,circ=2*Math.PI*R;
+// 輪に並べる文字：歌詞に「・」を挟んで、輪がちょうど埋まる回数だけ繰り返す（長い歌詞は1周で、字を小さくする）
+const chars=Array.from(String(text||'')).filter(c=>c.trim());
+const unit=chars.concat(['・']),slots=Math.max(8,Math.floor(circ/(g0*1.02)));
+let ring=[];
+if(unit.length<=slots){const r=Math.max(1,Math.floor(slots/unit.length));for(let k=0;k<r;k++)ring.push(...unit);}else ring=chars.slice();
+const n=ring.length,g=Math.min(g0,circ/(n*1.04));
+const group=new THREE.Group();scene.add(group);
+const flat=(geometry,color,opacity,z)=>{const m=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthTest:false,depthWrite:false}));m.position.z=z;m.renderOrder=-2;group.add(m);return m;};
+const rd=R-g*.95,outer=R+g*.85;
+const band=flat(new THREE.RingGeometry(rd,outer,96),'#0b0b10',.86,-3);
+const lineA=flat(new THREE.RingGeometry(outer+3,outer+4.2,96),'#ffffff',.55,-3);
+const lineB=flat(new THREE.RingGeometry(rd-4.2,rd-3,96),'#ffffff',.55,-3);
+const disc=flat(new THREE.CircleGeometry(rd-6,64),'#f7f5f0',1,-2);
+const letters=ring.map(c=>{const m=createText(c,{fontSize:g,anchorX:'center',anchorY:'middle',color:'#f4f4f6',colorRanges:null,outlineWidth:0});m.fillOpacity=0;group.add(m);return m;});
+// 中央の円の中の歌詞（円の幅に収まるよう折り返す）
+const fs=fontSize*.7,innerW=rd*1.7;
+const longest=Math.max(1,...String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fs));
+const rows=Math.ceil(longest/(rd*2.1)-.02),wrapIn=rows>1?longest/rows*1.12:rd*2.1;   // 円の直径ぶんまでは1行、それを超えたら行の長さをそろえて折り返す
+const label=createText(text,{fontSize:fs,overflowWrap:'break-word',maxWidth:wrapIn,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',color:'#1a1b20',colorRanges:null,outlineWidth:0});
+label.fillOpacity=0;label.position.z=1;group.add(label);
+const parts=[[band,.86],[lineA,.55],[lineB,.55],[disc,1]];
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,rd*1.6/Math.max(1,b[2]-b[0]),rd*1.3/Math.max(1,b[3]-b[1])));fitted=true;}
+  const e=spring(clamp(t/enter)),q=smooth(clamp((life-t)/exit)),s=Math.max(.01,e*(.6+.4*q));
+  group.scale.setScalar(s);group.rotation.z=(1-smooth(t/enter))*-.6;
+  const spin=t*.4,fade=smooth(t/(enter*.6))*smooth(q*2);
+  for(const [m,base] of parts)m.material.opacity=base*fade;
+  letters.forEach((m,i)=>{
+    const a=Math.PI/2-spin-Math.PI*2*i/n;               // 時計回りに並べる（歌詞の順に読める）
+    m.position.set(Math.cos(a)*R,Math.sin(a)*R,0);m.rotation.z=a-Math.PI/2;
+    m.fillOpacity=smooth((t-i*.015)/.2)*smooth(q*2);
+  });
+  label.fillOpacity=smooth((t-.15)/.25)*smooth(q*2);
+}
+function dispose(){for(const m of letters){group.remove(m);m.dispose();}label.dispose();for(const [m] of parts){m.geometry.dispose();m.material.dispose();}scene.remove(group);}
+update(0);
+return {update,dispose};`},
+ {key:'tape-cards',name:'テープ付きのカード',desc:'文字が一枚ずつカードに載って落ちてきて、中心線を引いてテープで留めます。',added:'2026-10-11',shelf:'effect',poster:1,source:`// 文字を1枚ずつカードに載せて落とし、中心の線（両端に矢印）を引いてから、角をテープで留める。退場はテープが外れてカードが沈む
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0])+PAD;}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),hardN=Math.max(1,hard.filter(Boolean).length);let n=1,bestScale=0;for(let k=1;k<=8;k++){const sc=Math.min(1,W*.84/Math.min(total,total/k*1.12+gap),H*.66/(hardN*k*KH*1.12));if(sc>bestScale+.001){bestScale=sc;n=k;}}const cap=n>1?total/n*1.12+gap:limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=KH*1.12;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of vis){if(l.key){root.remove(l.key);l.key.geometry.dispose();l.keyMat.dispose();}}for(const m of extra){root.remove(m);m.geometry.dispose();}for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const PAD=em*.45,KH=em*1.55,extra=[];
+const CARDVERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const CARDFRAG=\`precision highp float;
+uniform vec2 u_half;       // カードの半分の大きさ（px）
+uniform vec2 u_size;       // この板の大きさ（px）
+uniform float u_alpha;
+varying vec2 vUv;
+float sdRB(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
+void main(){
+  vec2 p=(vUv-.5)*u_size;
+  float d=sdRB(p,u_half,min(u_half.x,u_half.y)*.16);
+  float fill=1.-smoothstep(-1.,1.,d);
+  float edge=1.-smoothstep(0.,1.4,abs(d+2.));          // 縁の線
+  vec3 col=mix(vec3(.965,.95,.92),vec3(.09,.09,.11),edge);
+  gl_FragColor=vec4(col,fill*u_alpha);
+}\`;
+for(const l of vis){
+  l.mesh.colorRanges=null;l.mesh.color='#16171b';l.mesh.outlineWidth=0;
+  l.keyMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:CARDVERT,fragmentShader:CARDFRAG,
+    uniforms:{u_half:{value:new THREE.Vector2(1,1)},u_size:{value:new THREE.Vector2(1,1)},u_alpha:{value:0}}});
+  l.key=new THREE.Mesh(new THREE.PlaneGeometry(1,1),l.keyMat);l.key.renderOrder=-1;l.key.visible=false;root.add(l.key);
+}
+// 中心線（両端に矢印）と、角を留める2枚のテープ。並びが決まってから作る
+const inkMat=new THREE.MeshBasicMaterial({color:'#16171b',transparent:true,depthTest:false,depthWrite:false});
+const tapeMat=new THREE.MeshBasicMaterial({color:'#8c8c91',transparent:true,opacity:.86,depthTest:false,depthWrite:false});
+const arrowShape=new THREE.Shape();arrowShape.moveTo(0,0);arrowShape.lineTo(-1,.5);arrowShape.lineTo(-1,-.5);arrowShape.closePath();
+let rows=[],decorBuilt=false,rulers=[],arrows=[],tapes=[];
+function addExtra(mesh){mesh.renderOrder=-1;mesh.visible=false;root.add(mesh);extra.push(mesh);return mesh;}
+function onLaid(){
+  const byY=new Map();
+  for(const l of vis){const k=Math.round(l.y*10);const r=byY.get(k)||{y:l.y,min:Infinity,max:-Infinity};r.min=Math.min(r.min,l.x-Math.max(KH*.9,l.w)/2);r.max=Math.max(r.max,l.x+Math.max(KH*.9,l.w)/2);byY.set(k,r);}
+  rows=[...byY.values()].sort((a,b)=>b.y-a.y);
+  while(rulers.length<rows.length){                      // 行の数が変わっても足りるように、必要なぶんだけ作る
+    rulers.push(addExtra(new THREE.Mesh(new THREE.PlaneGeometry(1,Math.max(1.6,em*.045)),inkMat)));
+    const a=addExtra(new THREE.Mesh(new THREE.ShapeGeometry(arrowShape),inkMat)),b=addExtra(new THREE.Mesh(new THREE.ShapeGeometry(arrowShape),inkMat));
+    a.scale.setScalar(em*.28);b.scale.set(-em*.28,em*.28,1);arrows.push([a,b]);   // 左は右向き、右は左向き
+  }
+  if(!decorBuilt){decorBuilt=true;for(let k=0;k<2;k++)tapes.push(addExtra(new THREE.Mesh(new THREE.PlaneGeometry(em*1.5,em*.5),tapeMat)));}
+}
+function decor(t){
+  if(!decorBuilt||!rows.length)return;
+  const lp=smooth(clamp((t-intro*.5)/.4)),tp=spring(clamp((t-intro*.8)/.3)),q=smooth(clamp((life-t)/outro));
+  for(let i=rows.length;i<rulers.length;i++){rulers[i].visible=false;arrows[i][0].visible=arrows[i][1].visible=false;}
+  rows.forEach((r,i)=>{
+    const w=(r.max-r.min)+em*1.4,mid=(r.max+r.min)/2,k=lp*q;
+    rulers[i].visible=k>.01;rulers[i].position.set(mid,r.y,-.5);rulers[i].scale.set(Math.max(.001,w*k),1,1);
+    arrows[i][0].visible=arrows[i][1].visible=k>.05;
+    arrows[i][0].position.set(mid-w*k/2,r.y,-.5);arrows[i][1].position.set(mid+w*k/2,r.y,-.5);
+  });
+  const top=rows[0],bottom=rows[rows.length-1],s=Math.max(.01,tp)*q;
+  const spots=[[top.max+em*.15,top.y+KH*.5,-.6],[bottom.min-em*.15,bottom.y-KH*.5,-.6]];
+  tapes.forEach((m,i)=>{m.visible=s>.01;m.position.set(spots[i][0],spots[i][1],-.4);m.rotation.z=i?-.62:-.62;m.scale.set(s*(1+.3*(1-Math.min(1,tp))),s,1);});
+  inkMat.opacity=q;tapeMat.opacity=.86*q;
+}
+function pose(l,t,u,v){
+  if(l.i===0)decor(t);
+  const tp=.1+l.o*intro*.55,e=spring(clamp((t-tp)/.36)),q=smooth(clamp((life-t-(1-l.o)*.08)/outro));
+  const rot=(hash(l.i,7)-.5)*.12+(1-Math.min(1,e))*(hash(l.i,2)>.5?.35:-.35);
+  const drop=(1-Math.min(1,e))*em*1.1+(1-q)*em*.5,a=smooth(clamp((t-tp)/.07))*smooth(q*2);
+  const kw=Math.max(KH*.9,l.w-PAD+PAD*.9),s=Math.max(.01,.85+.15*e)*(.85+.15*q);
+  l.key.visible=a>.002;l.key.position.set(l.x,l.y+drop,-1);l.key.rotation.z=rot;l.key.scale.set(kw*s+4,KH*s+4,1);
+  const m=l.keyMat.uniforms;m.u_half.value.set(kw*s/2,KH*s/2);m.u_size.value.set(kw*s+4,KH*s+4);m.u_alpha.value=a;
+  place(l,l.x,l.y+drop,rot,s,s,a*smooth((t-tp-.04)/.08));
+}
+update(0);
+return {update,dispose};`},
+ {key:'bracket-glitch',name:'カッコ付きのグリッチ',desc:'歌詞が【 】で囲まれ、横に切れてずれながら、色違いの影とローマ字の読みを添えます。',added:'2026-10-11',shelf:'effect',poster:.3,source:`// 歌詞を【 】のカッコで囲み、横に切れてずれるグリッチと色違いの影を、登場と一定の間隔で走らせる。かなの上には読みのローマ字を添える
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const life=Math.max(.05,duration),enter=Math.min(.7,life*.25),exit=Math.min(.5,life*.18);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrap=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.8,n=Math.ceil(longest/limit-.02);return {at:n>1?longest/n*1.12:limit,lines:rows.length*Math.max(1,n)};})();
+const wrapAt=wrap.at,lines=wrap.lines;
+// かな→ローマ字（ヘボン式）。漢字・っ・ー・小さい文字は読みを付けない（拗音は直前の文字にまとめる）
+const KANA='あA いI うU えE おO かKA きKI くKU けKE こKO さSA しSHI すSU せSE そSO たTA ちCHI つTSU てTE とTO なNA にNI ぬNU ねNE のNO はHA ひHI ふFU へHE ほHO まMA みMI むMU めME もMO やYA ゆYU よYO らRA りRI るRU れRE ろRO わWA をWO んN がGA ぎGI ぐGU げGE ごGO ざZA じJI ずZU ぜZE ぞZO だDA ぢJI づZU でDE どDO ばBA びBI ぶBU べBE ぼBO ぱPA ぴPI ぷPU ぺPE ぽPO ゔVU';
+const ROM={};for(const p of KANA.split(' '))ROM[p[0]]=p.slice(1);
+const SMALL={'ゃ':'A','ゅ':'U','ょ':'O'};
+const toHira=c=>{const k=c.codePointAt(0);return k>=0x30A1&&k<=0x30F6?String.fromCodePoint(k-0x60):c};
+function romajiList(chars){
+  return chars.map((raw,i)=>{
+    const c=toHira(raw),next=chars[i+1]?toHira(chars[i+1]):'';
+    let r=ROM[c];if(!r)return '';
+    if(SMALL[next])r=(r==='SHI'?'SH':r==='CHI'?'CH':r==='JI'?'J':r.slice(0,-1)+'Y')+SMALL[next];
+    return r;
+  });
+}
+const BANDS=4,group=new THREE.Group();scene.add(group);
+const make=extra=>createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.3,anchorX:'center',anchorY:'middle',outlineWidth:0,...extra});
+const shadow=make({color:'#ff8a3d',colorRanges:null});shadow.fillOpacity=0;group.add(shadow);   // 色違いの影
+const bands=[];for(let k=0;k<BANDS;k++){const m=make({});m.fillOpacity=0;group.add(m);bands.push(m);}   // 横に切った帯
+const white=new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,depthTest:false,depthWrite:false});
+const orange=new THREE.MeshBasicMaterial({color:'#ff8a3d',transparent:true,depthTest:false,depthWrite:false});
+// 縦長のカッコ（外側へふくらむ）。left なら「(」の形
+function bracket(h,bulge,thick,left){
+  const s=new THREE.Shape(),n=20,d=left?-1:1,outer=u=>d*bulge*(1-u*u);
+  for(let i=0;i<=n;i++){const u=1-2*i/n;i?s.lineTo(outer(u),u*h/2):s.moveTo(outer(u),u*h/2);}
+  for(let i=n;i>=0;i--){const u=1-2*i/n;s.lineTo(outer(u)-d*thick,u*h/2);}
+  return new THREE.ShapeGeometry(s);
+}
+const parts=[];                 // {mesh, side}
+const ruby=[];
+let fit=1,built=false,bw=1,bh=1;
+function build(){
+  const info=bands[0].textRenderInfo;if(!info)return;
+  const b=info.blockBounds;bw=b[2]-b[0];bh=b[3]-b[1];
+  bands.forEach((m,k)=>{m.clipRect=[b[0]-4,b[3]-bh*(k+1)/BANDS-(k<BANDS-1?.4:4),b[2]+4,b[3]-bh*k/BANDS+(k?.4:4)];});
+  const h=bh+fontSize*.55,bulge=fontSize*.24,thick=fontSize*.24,gap=fontSize*.4;
+  for(const left of [true,false]){
+    const side=left?-1:1,g=bracket(h,bulge,thick,left);
+    const w=new THREE.Mesh(g,white),o=new THREE.Mesh(g,orange);
+    w.renderOrder=-1;o.renderOrder=-2;
+    const x=side*(bw/2+gap+bulge/2);
+    group.add(o,w);parts.push({w,o,x,side});
+  }
+  const chars=Array.from(String(text||'')),carets=info.caretPositions,reads=romajiList(chars);
+  if(carets&&carets.length===String(text||'').length*4&&chars.length===String(text||'').length){
+    let order=0;
+    chars.forEach((c,i)=>{
+      if(!reads[i])return;
+      const m=createText(reads[i],{fontSize:fontSize*.28,letterSpacing:.12,anchorX:'center',anchorY:'bottom',color:'#e9b7c1',colorRanges:null,outlineWidth:0});
+      m.fillOpacity=0;group.add(m);
+      ruby.push({m,x:(carets[i*4]+carets[i*4+1])/2,y:Math.max(carets[i*4+2],carets[i*4+3])+fontSize*.06,order:order++});
+    });
+  }
+  const total=bw+2*(gap+bulge+thick)+fontSize*.2,tall=h+fontSize*.5;
+  fit=Math.min(1,width*.9/total,height*.7/tall);group.scale.setScalar(fit);built=true;
+}
+function update(t){
+  if(!built)build();
+  const e=spring(clamp(t/enter)),q=smooth(clamp((life-t)/exit));
+  // グリッチの強さ：登場でいちばん強く、そのあと約1.3秒ごとに短く走る。終わりぎわにも走る
+  const beat=(t%1.3)<.13?1:0,entering=1-smooth(t/(enter*1.1)),leaving=1-smooth(clamp((life-t)/(exit*.8)));
+  const power=Math.max(entering,beat*.7,leaving*.8),tq=Math.floor(t*18),on=power>.02;
+  bands.forEach((m,k)=>{
+    const dx=on?(hash(k,tq)-.5)*fontSize*.5*power:0;
+    m.position.set(dx,0,0);m.fillOpacity=smooth(t/(enter*.5))*smooth(q*2);
+  });
+  const sh=on?power:0;
+  shadow.position.set(fontSize*.09*sh+(hash(tq,5)-.5)*fontSize*.05*power,-fontSize*.08*sh,-.5);
+  shadow.fillOpacity=sh*.95*smooth(q*2);
+  for(const p of parts){
+    const slide=(1-Math.min(1,e))*fontSize*1.2*p.side+(1-q)*-p.side*fontSize*.5;   // 外から寄ってきて、退場でも内へ閉じる
+    p.w.position.set(p.x+slide,0,0);p.o.position.set(p.x+slide+fontSize*.08*sh,-fontSize*.07*sh,0);
+    p.w.visible=e>.01;p.o.visible=sh>.05;
+  }
+  white.opacity=smooth(e*2)*smooth(q*2);orange.opacity=sh*.9*smooth(q*2);
+  const per=Math.min(.08,(enter*.9)/Math.max(1,ruby.length));
+  for(const r of ruby){
+    const k=spring(clamp((t-.2-r.order*per)/.3));
+    r.m.position.set(r.x,r.y+(1-Math.min(1,k))*-fontSize*.2,0);r.m.fillOpacity=smooth(k*2)*smooth(q*2);
+  }
+}
+function dispose(){
+  for(const m of [shadow,...bands]){group.remove(m);m.dispose();}
+  for(const r of ruby){group.remove(r.m);r.m.dispose();}
+  for(const p of parts){group.remove(p.w,p.o);p.w.geometry.dispose();}
+  white.dispose();orange.dispose();scene.remove(group);
+}
+update(0);
+return {update,dispose};`},
+ {key:'romaji-ruby',name:'ローマ字のルビ',desc:'ひらがなやカタカナの上に、読みのローマ字が小さく添えられて現れます。',added:'2026-10-11',shelf:'effect',poster:1,source:`// ひらがな・カタカナの上に、読みのローマ字を小さく添える。ローマ字は左から順に浮かんで現れる（漢字には付けない）
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const life=Math.max(.05,duration),enter=Math.min(.7,life*.25),exit=Math.min(.5,life*.18);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrap=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.86,n=Math.ceil(longest/limit-.02);return {at:n>1?longest/n*1.12:limit,lines:rows.length*Math.max(1,n)};})();
+const wrapAt=wrap.at,lines=wrap.lines;
+// かな→ローマ字（ヘボン式）。漢字・っ・ー・小さい文字は読みを付けない（拗音は直前の文字にまとめる）
+const KANA='あA いI うU えE おO かKA きKI くKU けKE こKO さSA しSHI すSU せSE そSO たTA ちCHI つTSU てTE とTO なNA にNI ぬNU ねNE のNO はHA ひHI ふFU へHE ほHO まMA みMI むMU めME もMO やYA ゆYU よYO らRA りRI るRU れRE ろRO わWA をWO んN がGA ぎGI ぐGU げGE ごGO ざZA じJI ずZU ぜZE ぞZO だDA ぢJI づZU でDE どDO ばBA びBI ぶBU べBE ぼBO ぱPA ぴPI ぷPU ぺPE ぽPO ゔVU';
+const ROM={};for(const p of KANA.split(' '))ROM[p[0]]=p.slice(1);
+const SMALL={'ゃ':'A','ゅ':'U','ょ':'O'};
+const toHira=c=>{const k=c.codePointAt(0);return k>=0x30A1&&k<=0x30F6?String.fromCodePoint(k-0x60):c};
+function romajiList(chars){
+  return chars.map((raw,i)=>{
+    const c=toHira(raw),next=chars[i+1]?toHira(chars[i+1]):'';
+    let r=ROM[c];if(!r)return '';
+    if(SMALL[next])r=(r==='SHI'?'SH':r==='CHI'?'CH':r==='JI'?'J':r.slice(0,-1)+'Y')+SMALL[next];
+    return r;
+  });
+}
+const group=new THREE.Group();scene.add(group);
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.5,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+label.fillOpacity=0;label.outlineOpacity=0;group.add(label);
+const ruby=[];                       // {m, x, y, order}
+let fit=1,built=false;
+function build(){
+  const info=label.textRenderInfo;if(!info)return;
+  const chars=Array.from(String(text||'')),carets=info.caretPositions,reads=romajiList(chars);
+  const b=info.blockBounds,w=b[2]-b[0],h=b[3]-b[1];
+  if(carets&&carets.length===String(text||'').length*4&&chars.length===String(text||'').length){   // 1文字ずつの位置が取れたときだけルビを付ける
+    let order=0;
+    chars.forEach((c,i)=>{
+      if(!reads[i])return;
+      const m=createText(reads[i],{fontSize:fontSize*.3,letterSpacing:.1,anchorX:'center',anchorY:'bottom',color:accent,colorRanges:null,outlineWidth:0});
+      m.fillOpacity=0;group.add(m);
+      ruby.push({m,x:(carets[i*4]+carets[i*4+1])/2,y:Math.max(carets[i*4+2],carets[i*4+3])+fontSize*.04,order:order++});
+    });
+  }
+  fit=Math.min(1,height*.72/(h+fontSize*.4),width*.9/w);group.scale.setScalar(fit);built=true;
+}
+function update(t){
+  if(!built)build();
+  const e=spring(clamp(t/enter)),q=smooth(clamp((life-t)/exit));
+  label.position.y=(1-Math.min(1,e))*-fontSize*.3;
+  const f=smooth(t/(enter*.5))*smooth(q*2);label.fillOpacity=f;label.outlineOpacity=f;
+  const per=Math.min(.09,(enter*.9)/Math.max(1,ruby.length));
+  for(const r of ruby){
+    const k=spring(clamp((t-.15-r.order*per)/.3));
+    r.m.position.set(r.x,r.y+(1-Math.min(1,k))*-fontSize*.25-(1-q)*fontSize*.1,0);
+    r.m.fillOpacity=smooth(k*2)*smooth(q*2);
+  }
+}
+function dispose(){for(const r of ruby){group.remove(r.m);r.m.dispose();}label.dispose();scene.remove(group);}
+update(0);
 return {update,dispose};`}
 ];
