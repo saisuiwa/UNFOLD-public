@@ -11,8 +11,9 @@ import {buildMethodFile,parseMethodFile} from './method-file.js';
 export const WORKSHOP_CHANNEL='unfold-workshop-library-v1';
 const store=openStore();
 export const motionOf=d=>cleanMotion({...d.motion,code:{version:1,source:d.source},font:d.font||'gothic',color:d.color,emphasisColor:d.accent});
-export async function savedWorkshopItems(){
- const methods=await store.list(),motions=createMotionLibrary().list();
+export async function savedWorkshopItems({existingOnly=false}={}){
+ const exists=!existingOnly||globalThis.indexedDB?.databases&&(await indexedDB.databases()).some(d=>d.name==='unfold-method-library');
+ const methods=exists?await store.list():[],motions=createMotionLibrary().list();
  return [...methods.map(m=>({key:'saved:'+m.id,savedId:m.id,name:m.name,kind:m.code?'image':'glsl',source:m.code?.source||m.vertex,params:m.code?.params,...m.workshop,status:m.status})),...motions.filter(m=>m.motion.code).map(m=>({key:'saved:'+m.id,savedId:m.id,name:m.name,kind:'text',motion:m.motion,source:m.motion.code.source,font:m.motion.font,color:m.motion.color,accent:m.motion.emphasisColor,...m.workshop}))];
 }
 function methodOf(d){const name=d.name.trim();if(!name||name.length>20)throw Error('名前は1〜20文字で入力してください。');return {id:d.savedId||(d.kind==='image'?newImageMethodId():newCustomId()),name,symbol:d.kind==='image'?'◈':'◆',...workshopField(settingsOf(d)),...(d.kind==='image'?{code:cleanImageCode({version:1,runtime:IMAGE_RUNTIME,source:d.source,params:d.params})}:{vertex:d.source}),status:'ok',reason:''};}

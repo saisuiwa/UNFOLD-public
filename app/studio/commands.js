@@ -19,19 +19,24 @@ function execute(p,c){
  switch(c.type){
  case 'batch':for(const command of c.commands)execute(p,command);break;
  case 'registerAssets':addAssets(p,c.assetMetas);break;
+ case 'setProjectName':p.name=String(c.name).slice(0,100);break;
+ case 'setShort':{const sh=clone(c.short),d=sh.endUs-sh.startUs;sh.fadeInUs=Math.min(d,sh.fadeInUs);sh.fadeOutUs=Math.min(d,sh.fadeOutUs);const i=p.shorts.findIndex(s=>s.id===sh.id);if(i<0)p.shorts.push(sh);else p.shorts[i]=sh;break;}
+ case 'deleteShort':p.shorts=p.shorts.filter(s=>s.id!==c.id);break;
  case 'setDuration':p.durationUs=c.durationUs;break;
  case 'setLock':if(!['music','lyrics'].includes(c.track)||typeof c.locked!=='boolean')fail('INVALID_LOCK');p.locks[c.track]=c.locked;break;
  case 'setLyricText':{const l=findById(p.lyrics,c.id);l.text=c.text;l.runs=clone(c.runs);break;}
  case 'setLyricAppearance':patch(findById(p.lyrics,c.id),c.patch,['motion','opacity']);break;
- case 'setLyricTiming':{if(p.locks.lyrics)fail('TRACK_LOCKED');const l=findById(p.lyrics,c.id);l.startUs=c.startUs;l.endUs=c.endUs;break;}
+ case 'setLyricTiming':{if(p.locks.lyrics)fail('TRACK_LOCKED');const l=findById(p.lyrics,c.id);l.startUs=c.startUs;l.endUs=c.endUs;if(c.timingSource)l.timingSource=c.timingSource;break;}
  case 'deleteLyric':{if(p.locks.lyrics)fail('TRACK_LOCKED');findById(p.lyrics,c.id);p.lyrics=p.lyrics.filter(l=>l.id!==c.id);for(const v of Object.values(p.views))delete v.layout[c.id];break;}
  case 'replaceLyrics':{if(p.locks.lyrics)fail('TRACK_LOCKED');for(const v of Object.values(p.views)){for(const l of p.lyrics)delete v.layout[l.id];for(const l of c.lyrics)v.layout[l.id]=newLayout();}p.lyrics=clone(c.lyrics);break;}
  case 'replaceUnfold':{const clip=findById(p.clips,c.id);if(clip.kind!=='unfold')fail('MISSING_UNFOLD');addAssets(p,c.assetMetas);const snapshot=clone(c.snapshot);snapshot.id=clip.unfoldId;p.unfolds[clip.unfoldId]=snapshot;break;}
  case 'insertUnfold':{addAssets(p,c.assetMetas);if(p.unfolds[c.snapshot.id])fail('DUPLICATE_ID');p.unfolds[c.snapshot.id]=clone(c.snapshot);p.clips.push({...clone(c.clip),unfoldId:c.snapshot.id,kind:'unfold'});for(const v of Object.values(p.views))v.layout[c.clip.id]=clone(c.layouts?.[v.id]||newLayout());break;}
+ case 'setSourceIn':{const x=findById(c.kind==='audio'?p.audio:p.clips,c.id);if(c.kind==='audio'&&x.role==='music'&&p.locks.music)fail('TRACK_LOCKED');x.sourceInUs=c.sourceInUs;break;}
  case 'setAudioGain':findById(p.audio,c.id).gain=c.gain;break;
  case 'insertScene':p.scenes.push(clone(c.scene));break;
  case 'insertClip':{addAssets(p,c.assetMetas);p.clips.push(clone(c.clip));for(const v of Object.values(p.views))v.layout[c.clip.id]=clone(c.layouts?.[v.id]||newLayout());break;}
- case 'setClipContent':patch(findById(p.clips,c.id),c.patch,['text','motion','settings','opacity','z','seed','name']);break;
+ case 'replaceClipAsset':{const clip=findById(p.clips,c.id);if(!['image','video'].includes(clip.kind))fail('INVALID_KIND');clip.assetId=c.assetId;for(const a of p.audio.filter(x=>x.linkClipId===clip.id)){a.assetId=c.assetId;a.trackId=c.trackId;if(!c.hasAudio)a.muted=true;}clip.settings={...clip.settings,sourceAudio:c.hasAudio?'use':'none'};break;}
+ case 'setClipContent':patch(findById(p.clips,c.id),c.patch,['text','runs','motion','settings','opacity','z','seed','name']);break;
  case 'moveScene':shiftScene(findById(p.scenes,c.id),c.startUs);break;
  case 'trimScene':{const s=findById(p.scenes,c.id);if(c.endUs-c.startUs<frameUs(1))fail('CLIP_TOO_SHORT');s.startUs=c.startUs;s.endUs=c.endUs;break;}
  case 'deleteScene':{findById(p.scenes,c.id);deleteVisual(p,p.clips.filter(x=>x.sceneId===c.id).map(x=>x.id));p.scenes=p.scenes.filter(x=>x.id!==c.id);break;}

@@ -2,7 +2,7 @@ import {resolveAudioSpan} from './audio-edits.js';
 import {StudioError} from './model.js';
 import {sampleAt} from './time.js';
 import {checkAbort} from './file.js';
-export function gainAt(envelope,projectUs){const points=envelope?.points||[];if(!points.length)return 1;const t=projectUs-envelope.originUs;if(t<=points[0].atUs)return points[0].gain;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];if(t<=b.atUs)return b.atUs===a.atUs?b.gain:a.gain+(b.gain-a.gain)*(t-a.atUs)/(b.atUs-a.atUs);}return points.at(-1).gain;}
+export function gainAt(envelope,projectUs){if(envelope?.durationUs)return boundaryGain({startUs:envelope.originUs,endUs:envelope.originUs+envelope.durationUs,fadeInUs:envelope.fadeInUs,fadeOutUs:envelope.fadeOutUs},projectUs);const points=envelope?.points||[];if(!points.length)return 1;const t=projectUs-envelope.originUs;if(t<=points[0].atUs)return points[0].gain;for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i];if(t<=b.atUs)return b.atUs===a.atUs?b.gain:a.gain+(b.gain-a.gain)*(t-a.atUs)/(b.atUs-a.atUs);}return points.at(-1).gain;}
 export function boundaryGain(short,projectUs){if(!short)return 1;if(projectUs<short.startUs||projectUs>=short.endUs)return 0;const length=short.endUs-short.startUs,fadeIn=Math.min(length,short.fadeInUs||0),fadeOut=Math.min(length,short.fadeOutUs||0);return (fadeIn?Math.min(1,(projectUs-short.startUs)/fadeIn):1)*(fadeOut?Math.min(1,(short.endUs-projectUs)/fadeOut):1);}
 export async function mixAudio(p,reader,{startSample,frames,short,signal}){
  if(!Number.isSafeInteger(startSample)||!Number.isSafeInteger(frames)||frames<0)throw new StudioError('INVALID_AUDIO_RANGE');checkAbort(signal);const channels=[new Float32Array(frames),new Float32Array(frames)];

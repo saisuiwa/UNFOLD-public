@@ -12,6 +12,7 @@ export async function openStudioStore({dbName='unfold-studio-projects'}={}){
  async putAsset(blob,meta){if(!(blob instanceof Blob)||!meta.projectId||!meta.id)throw new StudioError('INVALID_ASSET');const asset={...clone(meta),byteLength:blob.size,hash:await blobHash(blob)};
  return transaction(['assets'],'readwrite',async tx=>{const table=tx.objectStore('assets'),existing=await request(table.get(asset.id));if(existing){if(existing.meta.hash!==asset.hash||existing.meta.projectId!==asset.projectId)throw new StudioError('ASSET_CONFLICT');return existing.meta;}await request(table.put({meta:asset,blob},asset.id));return asset;});},
  async get(id){const record=await transaction(['assets'],'readonly',tx=>request(tx.objectStore('assets').get(id)));if(!record)throw new StudioError('MISSING_ASSET',[{code:'MISSING_ASSET',targetId:id}]);return record.blob;},
+ listProjects(){return transaction(['projects'],'readonly',tx=>request(tx.objectStore('projects').getAll()));},
  load(id){return transaction(['projects'],'readonly',async tx=>(await request(tx.objectStore('projects').get(id)))||null);},
  async save(project,{expectedRevision,fence}){assertProject(project);return transaction(['projects','assets','leases'],'readwrite',async tx=>{
   const table=tx.objectStore('projects'),prior=await request(table.get(project.id));if((prior?.revision||0)!==expectedRevision)throw new StudioError('REVISION_CONFLICT');const lease=await request(tx.objectStore('leases').get(project.id));if(!lease||lease.fence!==fence||lease.expiresAt<=Date.now())throw new StudioError('STALE_WRITER');
