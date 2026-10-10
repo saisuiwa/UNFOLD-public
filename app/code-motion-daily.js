@@ -585,5 +585,252 @@ function pose(l,t,u,v){
  place(l,l.x+Math.sin(ph*.7+1)*em*.12*A,l.y+Math.sin(ph)*em*.38*A,Math.sin(ph+.6)*.5*A,1+Math.sin(ph+1.4)*.4*A,1+Math.cos(ph)*.45*A,smooth(u*3)*smooth(v*3));
 }
 update(0);
+return {update,dispose};`},
+ {key:'shader-nebula',name:'うねる色の霧',desc:'色が溶けあうフルシェーダーの霧が、文字の後ろでうねりながら現れます。',added:'2026-10-10',poster:1.1,source:`// フルのフラグメントシェーダー（#define / uniform / main）で、色の溶けあう霧を文字の後ろにうねらせる
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 画面いっぱいの板に貼る頂点シェーダー（vUv は 0〜1 の画面位置）
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+// ここからが「フルシェーダー」。GLSLをそのまま書ける
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+#define ROT(a) mat2(cos(a),-sin(a),sin(a),cos(a))
+uniform float u_time;       // 行が始まってからの秒
+uniform float u_fade;       // 登場・退場で 0→1→0
+uniform vec2 u_resolution;
+uniform vec3 u_accent;      // 歌詞の強調色
+varying vec2 vUv;
+float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+float noise(vec2 p){
+  vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash21(i),hash21(i+vec2(1,0)),f.x),mix(hash21(i+vec2(0,1)),hash21(i+vec2(1,1)),f.x),f.y);
+}
+float fbm(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=a*noise(p);p=ROT(.5)*p*2.03+7.1;a*=.5;}return s;}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float t=u_time*.3;
+  vec2 q=vec2(fbm(p*2.2+t),fbm(p*2.2+vec2(5.2,1.3)-t));
+  vec2 r=vec2(fbm(p*2.2+3.*q+vec2(1.7,9.2)+.4*t),fbm(p*2.2+3.*q+vec2(8.3,2.8)-.3*t));
+  float f=fbm(p*2.2+3.*r);
+  float hue=f*3.2+q.x*.8+t*.2;                        // 濃さに応じて色相を大きく振る
+  vec3 col=.62+.38*cos(TAU*(hue+vec3(0.,.33,.67)));
+  col=mix(col,u_accent,smoothstep(.5,.9,length(q))*.6);
+  float cloud=smoothstep(.26,.52,f);
+  float oval=1.-smoothstep(.55,1.,length(p/vec2(.62,.34)));
+  gl_FragColor=vec4(col,cloud*oval*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);      // 文字より後ろ
+const label=createText(text,{maxWidth:width*.78,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.62/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-dots',name:'波打つドットの海',desc:'ドットの大きさが波のように変わる網点が、文字の後ろに帯になって流れます。',added:'2026-10-10',poster:1.1,source:`// ドットの大きさが波のように変わる網点を、横長の帯にして文字の後ろに流す（フルシェーダー）
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+#define CELLS 30.0          // 縦に並べる網点の数
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec2 g=p*CELLS,id=floor(g),f=fract(g)-.5;
+  // 3つの波を足して、マスごとの大きさにする
+  float wave=sin(id.x*.33+u_time*2.2)+sin(id.y*.5-u_time*1.7)+sin((id.x+id.y)*.21+u_time*1.1);
+  float radius=.14+.3*(.5+.5*wave/3.);
+  float disc=1.-smoothstep(radius-.07,radius,length(f));
+  vec3 col=.55+.45*cos(TAU*(vec3(0.,.33,.67)+id.x*.011+id.y*.02+u_time*.08));
+  col=mix(col,u_accent,.22);
+  float band=1.-smoothstep(.2,.3,abs(p.y));
+  float side=1.-smoothstep(.55,.75,abs(p.x));
+  gl_FragColor=vec4(col,disc*band*side*u_fade*.9);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.78,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-rings',name:'脈打つリング',desc:'赤・緑・青がずれた同心円のリングが、ゆがみながら脈打ちます。',added:'2026-10-10',poster:1.1,source:`// 赤・緑・青を少しずつずらした同心円のリングが、ゆがみながら脈打つ（フルシェーダー）
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define FREQ 30.0           // リングの細かさ
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float r=length(p),a=atan(p.y,p.x);
+  // 角度ごとに半径をゆがめる（輪郭が波打つ）
+  float warp=.022*sin(a*5.+u_time*1.6)+.014*sin(a*9.-u_time*2.3);
+  float pulse=.5+.5*sin(u_time*2.4);
+  vec3 ring=vec3(0.);
+  for(int i=0;i<3;i++){                       // R,G,B をずらして重ねる
+    float shift=float(i)*.9;
+    float ph=(r+warp)*FREQ-u_time*3.+shift;
+    ring[i]=smoothstep(.5,.95,.5+.5*sin(ph));
+  }
+  float body=1.-smoothstep(.26+.04*pulse,.4,r);   // 外へ向かって消える
+  float alpha=max(ring.r,max(ring.g,ring.b))*body*u_fade;
+  vec3 col=mix(ring,u_accent,.15)+.1;
+  gl_FragColor=vec4(col,alpha);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-truchet',name:'動くトルシェタイル',desc:'弧のタイルがマスごとに向きを変えて、迷路のような模様が動きます。',added:'2026-10-10',poster:1.2,source:`// 弧のタイルがマスごとに向きを入れ替え、迷路のような模様が動く（フルシェーダー、時間だけで決まる）
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+#define CELLS 8.0           // 縦に並べるマスの数
+#define PERIOD 1.9          // 1マスが向きを入れ替える間隔（秒）
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+// 四角い箱までの符号付き距離（角丸）
+float roundBox(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
+// 弧のタイルまでの距離。flip が true なら左右を反転
+float arcs(vec2 f,bool flip){
+  if(flip)f.x=1.-f.x;
+  return min(abs(length(f)-.5),abs(length(f-vec2(1.))-.5));
+}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec2 g=p*CELLS,id=floor(g),f=fract(g);
+  float h=hash21(id);
+  float ph=u_time/PERIOD+h*7.;
+  float step0=floor(ph),k=smoothstep(0.,.3,fract(ph));      // 0.3周期かけて切り替わる
+  bool a=hash21(id+step0)>.5,b=hash21(id+step0+1.)>.5;
+  // いまの向きから次の向きへ、距離を混ぜて動かす
+  float d=mix(arcs(f,a),arcs(f,b),k);
+  float line=1.-smoothstep(.045,.085,d);
+  vec3 col=.55+.45*cos(TAU*(vec3(0.,.33,.67)+h*.5+u_time*.05));
+  col=mix(col,u_accent,.25);
+  float panel=1.-smoothstep(-.05,0.,roundBox(p,vec2(.66,.31),.07));
+  gl_FragColor=vec4(col,line*panel*u_fade*.92);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'5%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-toy',name:'Shadertoyの枠',desc:'Shadertoyのコードをそのまま貼れる枠で、光の粒が輪を描いて回ります。',added:'2026-10-10',poster:1.1,source:`// Shadertoy形式（mainImage / iTime / iResolution）のコードをそのまま貼れる枠。黒い所は透けて、光だけが文字の後ろに残る
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// ↓ Shadertoy のコードはこの中身を差し替える（iChannel の画像は使えません）
+const SHADERTOY=\`
+#define N 28
+#define TAU 6.28318530718
+void mainImage(out vec4 fragColor,in vec2 fragCoord){
+  vec2 uv=(fragCoord-.5*iResolution.xy)/iResolution.y;
+  vec3 col=vec3(0.);
+  for(int i=0;i<N;i++){
+    float fi=float(i);
+    float a=fi/float(N)*TAU+iTime*.5;
+    float wob=1.+.18*sin(a*3.+iTime*1.4);             // 輪を波打たせる
+    vec2 c=vec2(cos(a),sin(a))*vec2(.55,.26)*wob;
+    float d=length(uv-c);
+    vec3 tint=.5+.5*cos(TAU*(fi/float(N)+vec3(0.,.33,.67)));
+    col+=tint*(.0011/(d*d+.0005));               // 小さな光の粒
+  }
+  fragColor=vec4(1.-exp(-col*.55),1.);
+}\`;
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+uniform float iTime;
+uniform vec3 iResolution;
+uniform float u_fade;
+varying vec2 vUv;
+\${SHADERTOY}
+void main(){
+  vec4 c=vec4(0.,0.,0.,1.);
+  mainImage(c,vUv*iResolution.xy);
+  float a=clamp(max(c.r,max(c.g,c.b)),0.,1.);       // 明るさをそのまま不透明度にする
+  vec2 p=(vUv-.5)*vec2(iResolution.x/iResolution.y,1.);
+  float oval=1.-smoothstep(.55,1.,length(p/vec2(.68,.36)));
+  gl_FragColor=vec4(c.rgb/max(a,.0001),a*oval*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{iTime:{value:0},iResolution:{value:new THREE.Vector3(width,height,1)},u_fade:{value:0}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'5%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.iTime.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
 return {update,dispose};`}
 ];

@@ -6,6 +6,11 @@
 
 | 日付 | 種類 | id | 名前 | 工夫したところ・気づき |
 |---|---|---|---|---|
+| 2026-10-10 | codetext | `codetext-shader-nebula` | うねる色の霧 | フルのフラグメントシェーダー（`#define` / `uniform` / `main()` / `gl_FragColor`）を、画面いっぱいの板（`PlaneGeometry` + `ShaderMaterial`）に貼って文字の後ろへ。ドメインワープした `fbm` の濃い所だけを不透明にして、全面を塗らずに楕円の中へ収めた（ゲートの「画面の半分以下」）。 |
+| 2026-10-10 | codetext | `codetext-shader-dots` | 波打つドットの海 | マスごとの `id` から3つの `sin` 波を足して網点の半径にした。帯と左右の端を `smoothstep` で消して、画面の端に触れない。`u_time` は `update(t)` の `t` そのもの。 |
+| 2026-10-10 | codetext | `codetext-shader-rings` | 脈打つリング | 角度ごとに半径をゆがめた同心円を、R/G/B で位相をずらして重ねた（`for` は3回の定数ループ）。不透明度は3色の最大値。 |
+| 2026-10-10 | codetext | `codetext-shader-truchet` | 動くトルシェタイル | マスごとに `hash(id+周期番号)` で弧の向きを決め、切り替えの0.3周期だけ距離を混ぜて動かす。乱数は GLSL の `hash` だけで、時間から直接決まる。 |
+| 2026-10-10 | codetext | `codetext-shader-toy` | Shadertoyの枠 | Shadertoy 形式（`mainImage` / `iTime` / `iResolution`）の中身だけ差し替えれば貼れる枠。黒い所は透けるよう、明るさを不透明度にして色を割り戻した。`iChannel` の画像は使えない。 |
 | 2026-10-10 | codetext | `codetext-gucha-gather` | 散らかって集まる | 画面じゅうに散らばった文字が、ばねで元の位置へ集まる。文字ごとに飛び先を変えた（乱数は作成時の `random()` だけ）。静止画は集まる途中。ぐちゃぐちゃ系の第1弾（作者の依頼）。 |
 | 2026-10-10 | codetext | `codetext-gucha-melt` | とろけてたれる | 縦に潰れて横へ太った文字が、ぷるんと立つ。退場は縦へ伸びながら下へ垂れる（`scale.y` と下への移動）。静止画は潰れた形が分かる時刻。 |
 | 2026-10-10 | codetext | `codetext-gucha-boil` | 手描きのぶるぶる | 時刻を10コマ/秒に量子化（`Math.floor(t*10)`）して、文字ごとの擬似乱数（`sin` のハッシュ）で位置・角度・伸縮を揺らす。`Math.random` は使っていない。 |
