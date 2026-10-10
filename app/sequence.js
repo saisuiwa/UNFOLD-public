@@ -1,3 +1,4 @@
+import {drawSequenceVisual} from './sequence-renderer.js';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves} from './sequence-core.js';
 import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';
@@ -295,108 +296,9 @@ function setMaterialTextures(a, b) {
   u.uImage.value = slideTexture(a); u.uImageB.value = slideTexture(b || a);
 }
 export function renderAt(sec) {
-  const videoSec=sec;imageInputs=[];
-  if (!seq.slides.length) { imageLayers.forEach(l=>l.reset());renderer.setClearColor(seq.bg, 1); renderer.clear(); drawLyrics(videoSec); if(!seq.recording)updateTransport(videoSec,{i:-1,tr:-1,u:0});return; }
-  sec=Math.min(sec,backgroundSeconds());
-  const L = locate(sec);
-  const u = mesh.material.uniforms;
-  let c = { distort: 0, form: 0, conceal: 0, swap: 0, spin: 0 };
-  let tr = null;
-  if (L.tr >= 0) { tr = seq.transitions[L.tr]; c = curves(L.u); }
-  const imageCode=imageTransition(tr);if(tr?.shape === 'none')c.form=0;
-  // no solid + "pass through": one gesture — A breaks away, B flies in from the other side (no pause in the middle)
-  const flow = imageCode?'return':tr?.shape === 'none' ? (tr.flow ?? 'through') : '';
-  const through = flow === 'through', reveal = flow === 'reveal';
-  if (reveal) {   // only the current picture breaks away; the next one waits untouched underneath
-    c.distort = smooth(0, .9, L.u);
-    c.conceal = 0; c.swap = 0;
-  }
-  if (through) {
-    const u2 = L.u;
-    c.distort = smooth(0, .5, u2) * (1 - smooth(.5, 1, u2));
-    c.conceal = smooth(.03, .2, u2) * (1 - smooth(.8, .97, u2));
-    c.swap = u2 < .5 ? 0 : 1;
-  }
-  if (tr && tr.shape !== 'none') c.swap = swapCurve(tr, L.u, c.swap);   // a ◆ can keep the solid the first picture (lateSwap)
-  const key = tr ? shapeKey(tr, L.tr) : 'sphere';
-  let geo = geoCache.get(key);
-  if (!geo) {   // still being built: show the sphere grid meanwhile
-    geo = geoCache.get('sphere');
-    if (tr && !pending.has(key)) { pending.add(key); safeEnsure(tr, L.tr).finally(() => { pending.delete(key); if (!seq.playing) renderAt(seq.t); }); }
-  }
-  if (mesh.geometry !== geo) mesh.geometry = geo;
-  setMaterialTextures(seq.slides[L.i], tr ? seq.slides[L.i + 1] : null);
-  const isText = isFlatShape(tr);
-  const isPreset = tr && (presetNames.includes(tr.shape) || savedModels.has(tr.shape) || isText);
-  u.uTime.value = sec;
-  u.uThrough.value = through && L.u >= .5 ? 1 : 0;
-  u.uFade.value = through ? smooth(0, .045, Math.abs(L.u - .5)) : reveal ? 1 - smooth(.72, .98, L.u) : 1;
-  if (reveal) u.uDraw.value = 1 - smooth(.05, .85, L.u);
-  backdrop.visible = reveal;
-  if (reveal) backdrop.material.map = slideTexture(seq.slides[L.i + 1]);
-  u.uDraw.value = !tr ? 1 : L.u < .5 ? 1 - smooth(.06, .44, L.u) : smooth(.56, .94, L.u);
-  u.uDistort.value = c.distort; u.uForm.value = c.form; u.uStrength.value = seq.strength; u.uDepth.value = seq.depth;
-  // custom methods have their own shader: swap it in (uniforms are shared, so `u` stays valid)
-  const firstJS=isImageMethodKey(tr?.method),secondJS=isImageMethodKey(tr?.method2);
-  const pick = imageCode?variants.pick(firstJS?(secondJS?'':tr?.method2):tr?.method):variants.pick(tr ? tr.method : '', tr?.method2 || '');
-  if(imageCode&&firstJS&&(!tr.method2||secondJS))u.uDistort.value=0;
-  if (mesh.material !== pick.material) mesh.material = pick.material;
-  safety.beforeDraw(pick.used);
-  u.uSeed.value = 28 + (L.tr >= 0 ? L.tr * 37 : 0); u.uMethod.value = pick.uMethod;
-  u.uMethod2.value = pick.uMethod2; u.uMethodMix.value = imageCode?0:tr?.method2 ? smooth(.30, .62, L.u) : 0;
-  u.uShape.value = tr && BUILTIN_IDS[tr.shape] !== undefined ? BUILTIN_IDS[tr.shape] : 0;
-  u.uPreset.value = isPreset ? 1 : 0; u.uProject.value = isText ? 1 : 0; u.uConceal.value = imageCode?0:concealAmount(tr, c.conceal); u.uSwap.value = c.swap;
-  // full turn ends at identity; flat words only wobble, and without a solid there is nothing to turn
-  const turn = tr?.shape === 'none' ? 0 : isText ? 0.18 * Math.sin(c.spin * Math.PI * 2) : c.spin * Math.PI * 2;
-  const shot=cleanShot(tr?.shot);
-  const cm = seq.cam,orientation=imageCode&&tr.shape==='none'?c.distort:c.form;
-  mesh.rotation.set((-.16 + (tr?.viewX || 0) - cm.orbit * .45) * c.form,
-    (isPreset && !isText ? .2 : .35) * c.form + turn + (tr?.viewY || 0) * c.form + (tr ? cm.orbit * 2.2 * (L.u - .5) * c.form : 0), 0);
-  const spin=tr&&(tr.shape!=='none'||imageCode)?rotationAt(shot.rotation,L.u,'sequence'):null;
-  if(spin){mesh.rotation.set((tr.viewX||0)*orientation,(tr.viewY||0)*orientation,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
-  // camera: push-in with the shape, a pulse on every beat while it is 3D
-  const bp = (sec + seq.offset - seq.phase) / beatSec(), frac = bp - Math.floor(bp);
-  const beatKick = Math.exp(-frac * 7) * seq.pulse * (c.distort > 0.02 ? 1 : 0);
-  // flat images fill the frame edge to edge (or sit at 1× when "画面いっぱい" is off);
-  // while torn up / 3D the camera goes to the zoom the two "引き" sliders ask for: 0% = frame-filling, 100% = 1×
-  const fullZoom = Math.max((camera.right - camera.left) / planeW, (camera.top - camera.bottom) / planeH);
-  const flatZoom = seq.fill ? fullZoom : 1;
-  const pull = seq.pullback * (1 - c.form) + seq.formPullback * c.form;   // hands over to the 3D setting as the solid forms
-  const loose = reveal ? 0 : Math.max(c.distort, c.form);   // a reveal keeps the frame still so the next picture sits exactly in place
-  camera.zoom = flatZoom + (1 + (fullZoom - 1) * (1 - pull) - flatZoom) * loose + seq.push * c.form + 0.06 * beatKick;
-  // camera work: slow Ken Burns drift per picture (or a picture's own camera), handheld wobble, a lazy tilt
-  const shotBaseZoom=camera.zoom;
-  const own = ownCamera(L, sec, tr);
-  if (own) {   // a picture has its own camera: it moves the frame as a whole, so it eases off while a solid is on screen (a big zoom would cut the solid off)
-    camera.zoom *= 1 + (own.zoom - 1) * (1 - c.form);
-    camera.position.x = own.x * planeW + cm.handheld * .05 * (Math.sin(sec * 1.7) + .5 * Math.sin(sec * 2.9 + 1));
-    camera.position.y = own.y * planeH + cm.handheld * .04 * (Math.sin(sec * 1.3 + .7) + .5 * Math.sin(sec * 3.1));
-    camera.rotation.z = own.roll * (1 - c.form) * Math.PI / 180 + cm.handheld * .012 * Math.sin(sec * 1.1) + cm.tilt * .1 * Math.sin(sec * .45);
-  } else {
-    const kb = kenBurns(L, sec);
-    camera.zoom *= kb.zoom;
-    camera.position.x = kb.x + cm.handheld * .05 * (Math.sin(sec * 1.7) + .5 * Math.sin(sec * 2.9 + 1));
-    camera.position.y = cm.handheld * .04 * (Math.sin(sec * 1.3 + .7) + .5 * Math.sin(sec * 3.1));
-    camera.rotation.z = cm.handheld * .012 * Math.sin(sec * 1.1) + cm.tilt * .1 * Math.sin(sec * .45);
-  }
-  if(tr){const move=blendCameraMove({x:camera.position.x,y:camera.position.y,zoom:camera.zoom,roll:camera.rotation.z},shot.camera,L.u,{width:planeW,height:planeH,zoom:shotBaseZoom});
-    camera.zoom=move.zoom;camera.position.x=move.x;camera.position.y=move.y;camera.rotation.z=move.roll;}
-  camera.updateProjectionMatrix();
-  const view = perspective(reveal);
-  renderer.setClearColor(seq.bg, 1);
-  // effects: the global look, each picture's own look (flowing from one to the next across a ◆), then this ◆'s own settings while it is breaking up / solid
-  const env = tr ? Math.max(c.distort, c.form) : 0;
-  const fx = mixFx(FX_KEYS, { global: seq.fx, from: seq.slides[L.i].fx, to: tr ? (seq.slides[L.i + 1]?.fx ?? {}) : null, trFx: tr?.fx, u: L.u, env, late: tr?.lateSwap === true && tr.shape !== 'none' });
-  applyRenderLook(u, seq.renderLook);
-  u.uGlass.value = imageCode?0:fx.glass;
-  sceneBlur.render(scene, view, imageCode?0:fx.blur, imageCode?0:fx.glitch, imageCode?0:fx.chroma, sec, imageCode?{}:{ ...fx, neonColor: seq.fx.neonColor });
-  if(imageCode){
-   const duration=tr.beats*beatSec(),f=imageFrame(L.u*duration,duration,seq.strength,{form:c.form}),mix=tr.method2?smooth(.30,.62,L.u):0,fade=smoothImage(L.u/.025)*smoothImage((1-L.u)/.025),keys=[tr.method,tr.method2];
-   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
-  }else imageLayers.forEach(l=>l.reset());
-  drawLyrics(videoSec);
-  safety.afterDraw();
-  if (!seq.recording) updateTransport(videoSec, L);
+ imageInputs=[];
+ const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt},sec);
+ drawLyrics(sec);if(!seq.recording)updateTransport(sec,L||{i:-1,tr:-1,u:0});
 }
 const FX_KEYS = ['blur', 'bloom', 'neon', 'glass', 'chroma', 'glitch', 'scan', 'grain', 'vignette', 'bokeh'];
 // a ◆ from a file (or an old autosave) with its own effects cleaned: known settings only, real numbers between 0 and 1
