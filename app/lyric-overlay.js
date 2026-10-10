@@ -1,7 +1,7 @@
 import {createCodeMotionLayer} from './code-motion-layer.js';
 import {isCodeMotionApproved} from './code-motion-format.js';
 import {getCodeMotionFont} from './lyric-fonts.js';
-import {createLyricPainter} from './lyric-painter.js?v=4';
+import {createLyricPainter} from './lyric-painter.js?v=5';
 import * as THREE from './vendor/three.module.min.js';
 import {lyricFontCSS,prepareLyricFont} from './lyric-fonts.js';
 import {activeLyric} from './lyric-timing.js?v=2';
