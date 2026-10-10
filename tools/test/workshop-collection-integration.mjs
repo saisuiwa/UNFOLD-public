@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import {writeFile,mkdir} from 'node:fs/promises';
-const {chromium}=await import(new URL('../../.worktrees/method-workshop/tools/image-code-build/.test-deps/node_modules/playwright-core/index.mjs',import.meta.url));
+const {chromium}=await import(process.env.UNFOLD_PLAYWRIGHT_PATH||'/Volumes/ORICO/UNFOLD/.worktrees/method-workshop/tools/image-code-build/.test-deps/node_modules/playwright-core/index.mjs');
 const base=(process.env.UNFOLD_BASE_URL||'http://127.0.0.1:8780/').replace(/\/?$/,'/');
-const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+const browser=await chromium.launch({executablePath:process.env.UNFOLD_CHROMIUM||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
 const out=(process.env.UNFOLD_TEST_OUT||new URL('../out/workshop-collection/integration/',import.meta.url).pathname).replace(/\/?$/,'/');await mkdir(out,{recursive:true});
 const errors=[],checks=[];
 try{

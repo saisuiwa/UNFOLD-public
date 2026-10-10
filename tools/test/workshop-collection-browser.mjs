@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
-const {chromium}=await import(new URL('../../.worktrees/method-workshop/tools/image-code-build/.test-deps/node_modules/playwright-core/index.mjs',import.meta.url));
+const {chromium}=await import(process.env.UNFOLD_PLAYWRIGHT_PATH||'/Volumes/ORICO/UNFOLD/.worktrees/method-workshop/tools/image-code-build/.test-deps/node_modules/playwright-core/index.mjs');
 const base=process.env.UNFOLD_BASE_URL||'http://127.0.0.1:8780/';
 const out=fileURLToPath(new URL('../out/workshop-collection/',import.meta.url));await mkdir(out,{recursive:true});
-const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+const browser=await chromium.launch({executablePath:process.env.UNFOLD_CHROMIUM||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
 try{
  const context=await browser.newContext({viewport:{width:1440,height:1050}}),p=await context.newPage();const errors=[];p.on('pageerror',e=>errors.push(e.message));p.on('crash',()=>errors.push('crash'));
  await p.route('**/favicon.ico',r=>r.fulfill({status:204,body:''}));
