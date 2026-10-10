@@ -1,3 +1,4 @@
+import {workshopField} from './workshop-settings.js';
 // Custom methods inside a .unfold file: which ones go in, how a file from someone else is checked, and how its ids are matched with what is here.
 // A file is not trusted: only the fields we use are kept, sizes are limited, and the hash is worked out from the code (never read from the file).
 import {cleanImageCode,isImageMethodKey,newImageMethodId,imageMethodIdentity} from './image-method-format.js';
@@ -19,7 +20,7 @@ export function collectMethods(transitions, getCustom) {
   const out = [];
   for (const id of usedMethodIds(transitions)) {
     const c = getCustom(id);
-    if (c) out.push({ id: c.id, name: c.name, symbol: c.symbol, ...(c.code?{engine:'image-js',code:cleanImageCode(c.code)}:{vertex:c.vertex}), look: null, params: [] });
+    if (c) out.push({ id: c.id, name: c.name, symbol: c.symbol, ...workshopField(c.workshop), ...(c.code?{engine:'image-js',code:cleanImageCode(c.code)}:{vertex:c.vertex}), look: null, params: [] });
   }
   return out;
 }
@@ -45,7 +46,7 @@ export function validateEmbedded(raw, version = PROJECT_METHODS.newestVersion) {
     if (typeof m.id !== 'string' || !isCustomKey(m.id) || m.id.length > PROJECT_METHODS.maxId) { problems.push(`${label}は、idが正しくありません。`); return; }
     if (seen.has(m.id)) { problems.push(`${label}は、同じidが2回あるので取り込みませんでした。`); return; }
     if(isImageMethodKey(m.id)||m.code||m.engine==='image-js'){
-      try {if(!isImageMethodKey(m.id)||m.engine!=='image-js'||version<4)throw Error('画像メソッドの形式が不正です。');const code=cleanImageCode(m.code);seen.add(m.id);methods.push({id:m.id,name:String(m.name||'画像コード').slice(0,20),symbol:String(m.symbol||'◈').slice(0,2),engine:'image-js',code});}catch(e){problems.push(label+'：'+e.message)}return;
+      try {if(!isImageMethodKey(m.id)||m.engine!=='image-js'||version<4)throw Error('画像メソッドの形式が不正です。');const code=cleanImageCode(m.code);seen.add(m.id);methods.push({id:m.id,name:String(m.name||'画像コード').slice(0,20),symbol:String(m.symbol||'◈').slice(0,2),engine:'image-js',code,...workshopField(m.workshop)});}catch(e){problems.push(label+'：'+e.message)}return;
     }
     if (typeof m.vertex !== 'string' || !m.vertex.trim()) { problems.push(`${label}は、コードがありません。`); return; }
     if (m.vertex.length > PROJECT_METHODS.maxChars) { problems.push(`${label}は、コードが長すぎます（${PROJECT_METHODS.maxChars}文字まで）。`); return; }
@@ -53,7 +54,7 @@ export function validateEmbedded(raw, version = PROJECT_METHODS.newestVersion) {
     const name = typeof m.name === 'string' ? m.name.trim() : '';
     const clipped = [...name].slice(0, PROJECT_METHODS.maxName).join('') || '取り込んだメソッド';
     const symbol = [...(typeof m.symbol === 'string' ? m.symbol : '')][0] || [...clipped][0];
-    methods.push({ id: m.id, name: clipped, symbol, vertex: m.vertex });
+    try{methods.push({ id: m.id, name: clipped, symbol, vertex: m.vertex, ...workshopField(m.workshop) });}catch(e){problems.push(label+'：'+e.message)}
   });
   return { methods, problems };
 }
@@ -61,11 +62,12 @@ export function validateEmbedded(raw, version = PROJECT_METHODS.newestVersion) {
 // Which local method is each embedded one? By the code (hash), not by the id: the same code is reused, new code gets a new id of its own.
 // local: [{ id, vertex }]. hash: async code -> string. newId: () => a new custom id. Returns { map: fileId -> localId, reused: [localId], created: [entry with its new id] }.
 export async function planImport({ embedded, local, hash, newId }) {
+  const identity=m=>m.workshop?JSON.stringify([imageMethodIdentity(m),workshopField(m.workshop)]):imageMethodIdentity(m);
   const byHash = new Map();
-  for (const l of local) { const h = await hash(imageMethodIdentity(l)); if (!byHash.has(h)) byHash.set(h, l.id); }
+  for (const l of local) { const h = await hash(identity(l)); if (!byHash.has(h)) byHash.set(h, l.id); }
   const map = new Map(), reused = [], created = [], createdIds = new Set();
   for (const m of embedded) {
-    const h = await hash(imageMethodIdentity(m)), same = byHash.get(h);
+    const h = await hash(identity(m)), same = byHash.get(h);
     if (same) {
       map.set(m.id, same);
       if (!createdIds.has(same) && !reused.includes(same)) reused.push(same);
@@ -88,5 +90,5 @@ export function remapTransitions(transitions, map) {
 
 // the methods planImport made new ids for come in unchecked: not compiled or drawn until the user enables them
 export function registerQuarantined(created) {
-  for (const m of created) registerCustom({ id: m.id, name: m.name, symbol: m.symbol, vertex: m.vertex, code:m.code, status: 'quarantined', reason: IMPORTED_REASON });
+  for (const m of created) registerCustom({ id: m.id, name: m.name, symbol: m.symbol, vertex: m.vertex, code:m.code, ...workshopField(m.workshop), status: 'quarantined', reason: IMPORTED_REASON });
 }

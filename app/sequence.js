@@ -1773,7 +1773,7 @@ try {
       await lyricAction({type:'lyric-style',id:target.lyricId,patch:item.motion});
     }else{
       const tr=target.tr;if(!seq.transitions.includes(tr))throw Error('変形が変更されました。もう一度適用してください。');
-      const method=activate();edit(()=>{tr.method=method.id;normalizeImageTransition(tr)});showTab('edit');
+      const method=activate();edit(()=>{tr.method=method.id;if(method.code&&item.workshop?.shape==='none')tr.shape='none';normalizeImageTransition(tr)});showTab('edit');
     }
   }});
   window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile };

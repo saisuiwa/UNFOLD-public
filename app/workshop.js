@@ -5,9 +5,10 @@ import {LYRIC_PALETTES} from './lyric-style.js';
 import {listModels} from './model-library.js?v=4';
 import {readDrafts,writeDrafts,sampleEdited,colorFormats,loadWorkshopImage,assetStore} from './workshop-data.js';
 import {createWorkshopPreview,testImage} from './workshop-preview.js';
-import {savedWorkshopItems,addWorkshopItem,announceWorkshopItem,workshopFile,importedDrafts} from './workshop-library.js';
+import {savedWorkshopItems,addWorkshopItem,announceWorkshopItem,workshopFile,importedDrafts,WORKSHOP_EXAMPLES} from './workshop-library.js';
 const $=id=>document.getElementById(id),node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});
-const samples=[...SAMPLES.map(s=>({key:'sample:glsl:'+s.key,kind:'glsl',name:s.name,source:s.source})),...IMAGE_METHOD_PRESETS.map((s,i)=>({key:'sample:image:'+i,kind:'image',name:s.name,source:s.code.source,params:s.code.params,shape:s.previewShape||'sphere',thumb:s.thumbnail})),...CODE_MOTION_PRESETS.map((s,i)=>({key:'sample:text:'+i,kind:'text',name:s.name,source:s.source}))];
+const samples=[...SAMPLES.map(s=>({key:'sample:glsl:'+s.key,kind:'glsl',name:s.name,source:s.source})),...IMAGE_METHOD_PRESETS.map((s,i)=>({key:'sample:image:'+i,kind:'image',name:s.name,source:s.code.source,params:s.code.params,shape:s.previewShape||'sphere',thumb:s.thumbnail})),...CODE_MOTION_PRESETS.map((s,i)=>({key:'sample:text:'+i,kind:'text',name:s.name,source:s.source})),...WORKSHOP_EXAMPLES];
+const contentKey=d=>JSON.stringify([d.kind,d.name,d.source,d.params,d.motion,d.shape,d.strength,d.words,d.font,d.color,d.accent]);
 let saving=false;
 let state={active:'',drafts:{}},draft,saved=[],kind='glsl',storageOK=true,current=null,serial=0,playing=false,busy=false,time=0,checked='',last=0,libraryError='',assetRevision=0;
 const preview=createWorkshopPreview($('preview-host')),assets=assetStore(),images={a:null,b:null,reference:null},urls={},assetVersions={};
@@ -19,16 +20,16 @@ function syncReset(){const edited=!!(draft&&sampleEdited(draft,original(draft.ke
 function stash(){if(!draft)return;state.active=draft.key;state.drafts[draft.key]=structuredClone(draft);syncReset();if(!storageOK)return;try{writeDrafts(localStorage,state);$('draft-status').textContent='下書き保存済み'}catch(e){$('draft-status').textContent='保存できません';notice(e.message,'error')}}
 function stop(message){serial++;playing=false;current=null;checked='';preview.dispose();$('preview-play').textContent='再生／一時停止';if(message)notice(message);}
 function edit(){stop('変更しました。プレビューで確認してください。');draft.dirty=true;delete draft.thumb;draft.updated=Date.now();$('handoff').hidden=true;stash();}
-const signature=()=>JSON.stringify([draft.kind,draft.source,draft.params,draft.words,draft.font,draft.color,draft.accent,draft.shape,assetRevision]);
-function defaults(d){return {shape:'sphere',words:'かたちをほどいて/自由に。',font:'gothic',color:'#78ddff',accent:'#d9f878',...structuredClone(d),params:{...IMAGE_METHOD_PRESETS[0].code.params,...d.params}}}
+const signature=()=>JSON.stringify([draft.kind,draft.source,draft.params,draft.words,draft.font,draft.color,draft.accent,draft.shape,draft.strength,draft.motion,assetRevision]);
+function defaults(d){return {strength:.8,shape:'sphere',words:'かたちをほどいて/自由に。',font:'gothic',color:'#78ddff',accent:'#d9f878',...structuredClone(d),params:{...IMAGE_METHOD_PRESETS[0].code.params,...d.params}}}
 function select(item){stash();stop();draft=defaults(state.drafts[item.key]||item);state.active=draft.key;kind=draft.kind;fill();stash();cards();notice('「プレビュー」で確認できます。コードはまだ実行していません。');}
 function fill(){
  $('name').value=draft.name;$('name').maxLength=kind==='text'?40:20;$('code').value=draft.source;$('code').maxLength=kind==='glsl'?8000:32000;$('words').value=draft.words;$('font').value=draft.font;
- $('shape').value=draft.shape;$('color').value=draft.color;$('hex').value=draft.color;$('accent').value=draft.accent;
+ $('strength').value=draft.strength;$('shape').value=draft.shape;$('color').value=draft.color;$('hex').value=draft.color;$('accent').value=draft.accent;
  for(const k of ['columns','gravity','bounce','seed'])$(k).value=draft.params[k];$('return-mode').value=draft.params.returnMode;
  $('shape-field').hidden=kind!=='image';$('physics-settings').hidden=kind!=='image';$('text-settings').hidden=kind!=='text';$('handoff').hidden=true;
  $('engine-label').textContent={glsl:'GLSL',image:'JS + PHYSICS',text:'TEXT MOTION'}[kind];document.querySelectorAll('[data-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.kind===kind)));
- $('api-help').textContent={glsl:'vec3 userMethod(vec2 p,float amount) を1つ。amount 0で原画、最大0.8。hash / rot / cell / partC / ph。8000文字以内、forは各64回・合計256回。書き方、GPUコンパイル、負荷を確認します。',image:'api.THREE / Text / gsap / RAPIER。createImageTiles / createImagePlane / createText / physics.bind / floor / at。return {timeline,update(frame),physicsTime(frame)}。座標はワールド単位。表面の演出は「立体化なし」で確認し、作品側でも立体化なしを選んでください。外部import・通信は使えません。',text:'api.THREE / Text / gsap / createText / text / runs / color / accent / width / height / duration。return {timeline,update(t)}。画面中心が原点、単位px。GSAPはpaused:true。外部import・通信は使えません。'}[kind];
+ $('api-help').textContent={glsl:'vec3 userMethod(vec2 p,float amount) を1つ。amount 0で原画、最大0.8。hash / rot / cell / partC / ph。8000文字以内、forは各64回・合計256回。書き方、GPUコンパイル、負荷を確認します。',image:'api.THREE / Text / gsap / RAPIER。createImageTiles / createImagePlane / createText / physics.bind / floor / at。return {timeline,update(frame),physicsTime(frame)}。座標はワールド単位。表面の演出は「立体化なし」で確認し、工房から作品へ適用すると「立体化なし」も引き継ぎます。外部import・通信は使えません。',text:'api.THREE / Text / gsap / createText / text / runs / color / accent / width / height / duration。return {timeline,update(t)}。画面中心が原点、単位px。GSAPはpaused:true。外部import・通信は使えません。'}[kind];
  $('palette-help').textContent=kind==='text'?'文字色・強調色は次のプレビューに反映します。独自に固定した色はコードで変更してください。':'コードに使う色をコピーします。GLSLの位置メソッドや画像全体の色は自動変更しません。';$('color-code').textContent=colorFormats(draft.color).hex;
 }
 function diagram(index){const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.setAttribute('viewBox','0 0 256 144');svg.setAttribute('aria-hidden','true');const add=(tag,attrs)=>{const n=document.createElementNS(svg.namespaceURI,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);svg.append(n);return n};add('rect',{width:256,height:144,fill:'#0b191a'});add('path',{d:'M20 113H236 M20 72H236 M20 31H236',stroke:'#253d37','stroke-width':.5});for(let y=0;y<4;y++)for(let x=0;x<7;x++){const n=y*7+x,angle=(index%3===0?Math.sin(n)*15:index%3===1?(x-3)*9:Math.cos(n*3)*28),dx=Math.sin(n*(index+1))*(index%3+1)*4,dy=Math.cos(n+index)*9;add('rect',{x:41+x*24+dx,y:28+y*23+dy,width:17,height:17,rx:2,fill:['#d9f878','#78ddff','#9c9de7'][Math.floor(n/7)%3],opacity:.65+(n%3)*.12,transform:`rotate(${angle} ${50+x*24+dx} ${36+y*23+dy})`})}return svg;}
@@ -44,7 +45,7 @@ async function render(){if(!current||busy)return;busy=true;const own=serial,r=cu
 async function run(){stop();const own=serial,sig=signature();notice('コードと描画を確認しています…','loading');try{
  const r=await preview.prepare(structuredClone(draft),images);if(own!==serial)return;current=r;time=1.5;await r.render(time,Number($('strength').value));if(own!==serial)return;checked=sig;thumbnail();playing=true;notice('確認できました。再生・追加・共有ができます。','ready');
  }catch(e){if(own===serial){stop();notice(e.message,'error')}}}
-$('preview-run').onclick=run;$('preview-stop').onclick=()=>stop('実行を終了しました。プレビューで再開できます。');$('preview-play').onclick=()=>{if(!current){notice('先にプレビューを押してください。');return}playing=!playing};$('time').oninput=()=>{playing=false;time=Number($('time').value);render()};$('strength').oninput=()=>render();
+$('preview-run').onclick=run;$('preview-stop').onclick=()=>stop('実行を終了しました。プレビューで再開できます。');$('preview-play').onclick=()=>{if(!current){notice('先にプレビューを押してください。');return}playing=!playing};$('time').oninput=()=>{playing=false;time=Number($('time').value);render()};$('strength').oninput=()=>{const wasChecked=checked===signature();draft.strength=Number($('strength').value);draft.dirty=true;delete draft.thumb;if(wasChecked)checked=signature();stash();render()};
 $('name').oninput=()=>{draft.name=$('name').value;stash()};$('code').oninput=()=>{draft.source=$('code').value;edit()};$('code').onkeydown=e=>{if(e.key==='Tab'){e.preventDefault();const a=e.target;a.setRangeText('  ',a.selectionStart,a.selectionEnd,'end');a.dispatchEvent(new Event('input'))}};
 for(const [id,k]of [['words','words'],['font','font'],['shape','shape']])$(id).oninput=()=>{draft[k]=$(id).value;edit()};
 for(const k of ['columns','gravity','bounce','seed'])$(k).oninput=()=>{draft.params[k]=Number($(k).value);edit()};$('return-mode').onchange=()=>{draft.params.returnMode=$('return-mode').value;edit()};
@@ -78,17 +79,42 @@ $('add-unfold').onclick=async()=>{
   const submitted=structuredClone(draft),revision=JSON.stringify(submitted),receipt=await addWorkshopItem(submitted);
   const completed={...submitted,savedId:receipt.id,dirty:false,key:'saved:'+receipt.id};
   const unchanged=draft.key===submitted.key&&JSON.stringify(draft)===revision;
+  const destination=state.drafts[completed.key],keepDestination=destination&&completed.key!==submitted.key&&contentKey(destination)!==contentKey(submitted);
+  // A duplicate save must not replace independent edits on an existing saved card.
+  if(keepDestination)completed.key=submitted.key;
   // A slow save owns only its submitted revision; switching or editing never transfers its identity.
   if(receipt.previousId&&JSON.stringify(state.drafts[submitted.key])===revision)delete state.drafts[submitted.key];
   if(unchanged)draft=completed;
   if(completed.key!==submitted.key||JSON.stringify(state.drafts[submitted.key])===revision)state.drafts[completed.key]=completed;
   stash();saved=await savedWorkshopItems();cards();announceWorkshopItem(receipt);
   if(draft===completed){$('handoff').hidden=false;$('open-single').hidden=receipt.kind==='text';$('open-single').href='./?workshopMethod='+encodeURIComponent(receipt.id);$('open-sequence').href='./sequence.html?'+(receipt.kind==='text'?'workshopMotion=':'workshopMethod=')+encodeURIComponent(receipt.id);}
-  notice('「'+submitted.name+'」をUNFOLDに追加しました。'+(receipt.previousId?'変更前のブロックも残しています。':'本体で選んだブロックに使えます。'),current?'ready':'idle');
+  notice('「'+submitted.name+'」をUNFOLDに追加しました。'+(keepDestination?'保存済みカードの編集中の内容も残しています。':receipt.previousId?'変更前のブロックも残しています。':'本体で選んだブロックに使えます。'),current?'ready':'idle');
  }catch(e){notice(e.message,'error')}finally{saving=false;$('add-unfold').disabled=false}
 };
 $('export-file').onclick=()=>{try{requireChecked();const value=workshopFile(draft),url=URL.createObjectURL(new Blob([value.text],{type:'application/json'})),a=node('a');a.href=url;a.download=(draft.name.replace(/[\\/:*?"<>|]/g,'')||'method')+value.extension;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}catch(e){notice(e.message,'error')}};
-$('import-file').onclick=()=>$('file-import').click();$('file-import').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;try{if(f.size>2e6)throw Error('共有ファイルは2MB以内にしてください。');const items=importedDrafts(await f.text()).map(d=>defaults({...d,key:'draft:'+crypto.randomUUID(),dirty:true}));stash();for(const d of items)state.drafts[d.key]=d;select(items[0]);notice('下書きに取り込みました。内容を確認してプレビューしてください。')}catch(e){notice(e.message,'error')}};
+let pendingImport=null,importSerial=0;
+function acceptImports(items){
+ const incoming=items.map(d=>defaults({...d,key:'draft:'+crypto.randomUUID(),dirty:true}));
+ // Match only unchanged content and settings: never overwrite an edited draft or a saved item.
+ const identity=contentKey;
+ stash();const added=incoming.map(d=>{const same=Object.values(state.drafts).find(old=>old.key.startsWith('draft:')&&identity(defaults(old))===identity(d));if(same)return same;state.drafts[d.key]=d;return d});
+ select(added[0]);notice('名前・種類・設定を読み込みました。内容を確認してプレビューしてください。');
+}
+$('js-import-dialog').addEventListener('close',()=>{
+ const pending=pendingImport;pendingImport=null;if(!pending||$('js-import-dialog').returnValue!=='import')return;
+ try{acceptImports(importedDrafts(pending.text,{fileName:pending.name,kind:$('js-import-kind').value}))}catch(e){notice(e.message,'error')}
+});
+$('import-file').onclick=()=>$('file-import').click();$('file-import').onchange=async e=>{
+ const f=e.target.files[0];e.target.value='';if(!f)return;const mine=++importSerial;
+ try{
+  if(f.size>2e6)throw Error('読み込むファイルは2MB以内にしてください。');
+  const text=await f.text();if(mine!==importSerial)return;
+  try{acceptImports(importedDrafts(text,{fileName:f.name}))}catch(error){
+   if(error.code!=='JS_KIND_REQUIRED')throw error;
+   pendingImport={text,name:f.name};$('js-import-name').textContent=f.name;$('js-import-kind').value='';$('js-import-dialog').returnValue='';$('js-import-dialog').showModal();
+  }
+ }catch(error){notice(error.message,'error')}
+};
 function tick(now){const dt=Math.min(.1,(now-last)/1000);last=now;if(playing&&current&&!busy&&!document.hidden){time=(time+dt)%6;render()}requestAnimationFrame(tick)}
 addEventListener('visibilitychange',()=>{if(document.hidden)stop('非表示になったため実行を停止しました。')});addEventListener('pagehide',()=>{stash();stop();Object.values(urls).forEach(u=>URL.revokeObjectURL(u))});
 async function boot(){try{state=readDrafts(localStorage)}catch(e){storageOK=false;libraryError=e.message}try{saved=await savedWorkshopItems()}catch(e){libraryError+=' '+e.message}try{for(const m of await listModels())$('shape').append(new Option('GLB：'+m.name,m.id))}catch(e){libraryError+=' GLB一覧を読み込めません。'}

@@ -1,3 +1,4 @@
+import {workshopField} from './workshop-settings.js';
 // Saving custom methods in this browser (IndexedDB), the way model-library.js keeps GLB files.
 // createPersistence() keeps a store in step with the registry: whatever is registered, changed or removed there is written here, so the editor,
 // the console and the automatic "disabled" status all end up saved without each of them having to remember to.
@@ -17,7 +18,7 @@ export async function sourceHash(text) {
   return `fnv-${(h >>> 0).toString(16)}`;
 }
 
-const signature = c => JSON.stringify([c.name, c.symbol, c.vertex, c.code, c.status, c.reason]);
+const signature = c => JSON.stringify([c.name, c.symbol, c.vertex, c.code, c.workshop, c.status, c.reason]);
 
 export function createPersistence({ store, onError = () => {} }) {
   const persisted = new Map();    // id -> signature of what the store holds (or is about to hold)
@@ -33,7 +34,7 @@ export function createPersistence({ store, onError = () => {} }) {
       if (before === sig) continue;
       persisted.set(c.id, sig);
       if (!created.has(c.id)) created.set(c.id, Date.now());
-      const record = { id: c.id, name: c.name, symbol: c.symbol, vertex: c.vertex, ...(c.code?{code:c.code}:{}), look: null, params: [], status: c.status, reason: c.reason, createdAt: created.get(c.id), updatedAt: Date.now() };
+      const record = { id: c.id, name: c.name, symbol: c.symbol, vertex: c.vertex, ...(c.code?{code:c.code}:{}), ...workshopField(c.workshop), look: null, params: [], status: c.status, reason: c.reason, createdAt: created.get(c.id), updatedAt: Date.now() };
       enqueue(async () => { await store.put({ ...record, hash: await sourceHash(c.code?JSON.stringify(c.code):c.vertex) }); }, () => { if (before === undefined) persisted.delete(c.id); else persisted.set(c.id, before); });
     }
     for (const [id, before] of [...persisted]) {
@@ -48,7 +49,7 @@ export function createPersistence({ store, onError = () => {} }) {
     async load() {
       const records = await store.list();
       for (const r of records) {
-        registerCustom({ id: r.id, name: r.name, symbol: r.symbol, vertex: r.vertex, code:r.code, status: r.status, reason: r.reason });
+        registerCustom({ id: r.id, name: r.name, symbol: r.symbol, vertex: r.vertex, code:r.code, ...workshopField(r.workshop), status: r.status, reason: r.reason });
         persisted.set(r.id, signature(getCustom(r.id)));
         created.set(r.id, r.createdAt);
       }

@@ -1,3 +1,4 @@
+import {workshopField} from './workshop-settings.js';
 import {cleanCodeMotion} from './code-motion-format.js';
 import {isLyricFontKey} from './lyric-fonts.js';
 import {cleanMotion} from './lyric-motion.js?v=26';
@@ -12,14 +13,14 @@ export function cleanMotionRecord(value){
  for(const [k,min,max]of [['size',32,160],['speed',.5,2]])if(m[k]!=null&&(!Number.isFinite(m[k])||m[k]<min||m[k]>max))throw Error(`${k} が範囲外です。`);
  for(const k of ['color','emphasisColor'])if(m[k]!=null&&!/^#[\da-f]{6}$/i.test(m[k]))throw Error('色は #rrggbb で指定してください。');
  if(m.font!=null&&!isLyricFontKey(m.font))throw Error('未対応の書体です。');
- return {name:value.name.trim(),description:String(value.description||'').slice(0,300),motion:cleanMotion({...m,recipe})};
+ return {...workshopField(value.workshop),name:value.name.trim(),description:String(value.description||'').slice(0,300),motion:cleanMotion({...m,recipe})};
 }
 export function buildMotionFile(record){return JSON.stringify({format:'unfold-motion',version:record.motion?.code?2:1,...cleanMotionRecord(record)},null,2)+'\n'}
 export function parseMotionFile(text){
  if(typeof text!=='string'||new TextEncoder().encode(text).length>maxChars)throw Error('モーションファイルは128KB以内にしてください。');
  let v;try{v=JSON.parse(text)}catch{throw Error('JSONとして読み込めません。')}
  if(v?.format!=='unfold-motion'||![1,2].includes(v.version))throw Error('未対応のモーションファイルです。');
- if(Object.keys(v).some(k=>!['format','version','name','description','motion'].includes(k)))throw Error('モーションファイルに未対応の項目があります。');
+ if(Object.keys(v).some(k=>!['format','version','name','description','motion','workshop'].includes(k)))throw Error('モーションファイルに未対応の項目があります。');
  if((v.version===1&&v.motion?.code)||(v.version===2&&!v.motion?.code))throw Error('モーション形式と内容が一致しません。');
  return cleanMotionRecord(v);
 }
@@ -35,7 +36,7 @@ export function createMotionLibrary(storage){
   const result={...item,id};items[index]=result;
   try{getStore().setItem(MOTION_LIBRARY_KEY,JSON.stringify(items))}catch{throw Error('保存できませんでした。空き容量を確認するか、ファイルに保存してください。')}
   return structuredClone(result);
- },save(value){const item=cleanMotionRecord(value),items=list(),key=JSON.stringify(item.motion),same=items.find(x=>JSON.stringify(x.motion)===key);
+ },save(value){const item=cleanMotionRecord(value),items=list(),identity=x=>JSON.stringify(x.workshop?[x.motion,x.workshop,x.name]:x.motion),key=identity(item),same=items.find(x=>identity(x)===key);
   if(same)return structuredClone(same);
   if(items.length>=100)throw Error('モーションは100個までです。');
   let id='lm-'+hash(key);while(items.some(x=>x.id===id))id+='x';const result={...item,id};

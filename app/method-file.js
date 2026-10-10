@@ -1,3 +1,4 @@
+import {workshopField} from './workshop-settings.js';
 // The custom-method file (.unfoldmethod): a small readable text (JSON) file with one or more methods, for handing a method to someone else.
 // A method in it is written like a method inside a .unfold project (id, name, symbol, vertex), so the same checks read both; what the file
 // says about status or hash is never used — the code decides.
@@ -6,7 +7,7 @@ import { validateEmbedded } from './method-project.js';
 export const METHOD_FILE = { format: 'unfold-method', version: 1, extension: '.unfoldmethod', maxChars: 600000, maxName: 30 };
 
 export function buildMethodFile(records) {
-  const methods = records.map(c => ({id:c.id,name:c.name,symbol:c.symbol,...(c.code?{engine:'image-js',code:c.code}:{vertex:c.vertex}),look:null,params:[]}));
+  const methods = records.map(c => ({id:c.id,name:c.name,symbol:c.symbol,...workshopField(c.workshop),...(c.code?{engine:'image-js',code:c.code}:{vertex:c.vertex}),look:null,params:[]}));
   return `${JSON.stringify({ format: METHOD_FILE.format, version: records.some(c=>c.code)?2:METHOD_FILE.version, methods }, null, 2)}\n`;
 }
 

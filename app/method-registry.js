@@ -1,3 +1,4 @@
+import {workshopField} from './workshop-settings.js';
 // Every 崩れ方 (method) in one place: the 29 built-in ones — their position in this list is the number the shader uses —
 // and the custom ones users add. Saving custom methods is method-library.js's job; this module only keeps what is loaded now.
 export const BUILTIN_METHODS = [
@@ -29,10 +30,10 @@ export function onRegistryChange(fn) { listeners.add(fn); return () => listeners
 
 // vertex: the user's GLSL (it defines userMethod). rev goes up whenever the code is registered again, so cached shaders can tell they are stale.
 // status: 'ok' | 'quarantined' | 'disabled' | 'crashed' — only 'ok' ones are used.
-export function registerCustom({ id, name, symbol = '◆', vertex, code, status = 'ok', reason = '' }) {
+export function registerCustom({ id, name, symbol = '◆', vertex, code, workshop, status = 'ok', reason = '' }) {
   if (!isCustomKey(id)) throw new Error(`自作メソッドのidは "${CUSTOM_PREFIX}" で始めてね: ${id}`);
   const previous = customs.get(id);
-  customs.set(id, { id, name: name || id, symbol: [...String(symbol || '◆')][0], vertex: String(vertex ?? ''), ...(isImageMethodKey(id)?{code:cleanImageCode(code)}:{}), status, reason, rev: (previous?.rev ?? 0) + 1 });
+  customs.set(id, { id, name: name || id, symbol: [...String(symbol || '◆')][0], vertex: String(vertex ?? ''), ...(isImageMethodKey(id)?{code:cleanImageCode(code)}:{}), ...workshopField(workshop??previous?.workshop), status, reason, rev: (previous?.rev ?? 0) + 1 });
   emit();
 }
 export function unregisterCustom(id) { if (customs.delete(id)) emit(); }

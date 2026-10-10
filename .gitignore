@@ -54,3 +54,6 @@
 
 # Rendered previews made solely from the synthetic surface-effect test image.
 !/app/assets/surface-previews/*.jpg
+
+# Actual local renders of the eleven workshop collection examples.
+!/app/assets/workshop-previews/*.jpg
