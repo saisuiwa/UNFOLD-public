@@ -10,8 +10,10 @@
 
 export const DAILY_CODE_MOTIONS=[
  {key:'rgb-settle',name:'色ずれが重なる',desc:'赤とシアンにずれた像が、本体に重なって落ち着きます。',added:'2026-10-07',poster:.35,source:`// 赤とシアンの像が左右にずれた状態から、本体に重なって落ち着く。退場でもう一度ずれて消える
-const {createText,text,width,duration}=api;
-const opts={maxWidth:width*.82,textAlign:'center',lineHeight:1.25,outlineWidth:'2%'};
+const {createText,text,width,fontSize,duration}=api;
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
+const opts={overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,outlineWidth:'2%'};
 const red=createText(text,{...opts,color:'#ff5d73',colorRanges:null,outlineColor:'#ff5d73'});
 const cyan=createText(text,{...opts,color:'#4fd8ff',colorRanges:null,outlineColor:'#4fd8ff'});
 const label=createText(text,{...opts,outlineColor:'#101819'});
@@ -25,8 +27,10 @@ return {update(t){
  label.fillOpacity=fade;label.outlineOpacity=fade;
 }};`},
  {key:'drop-settle',name:'落ちて静かに止まる',desc:'文字が上から落ちてきて、少し沈んでから静かに止まります。',added:'2026-10-08',poster:.5,source:`// 上から落ちて、わずかに沈み込んでから止まる。退場は上へ戻りながら消える
-const {createText,text,width,height,duration}=api;
-const label=createText(text,{maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const {createText,text,width,height,fontSize,duration}=api;
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
 const clamp=x=>Math.max(0,Math.min(1,x));
 const enter=Math.min(.7,duration*.25),exit=Math.min(.4,duration*.15);
 const drop=height*.35;
@@ -39,8 +43,10 @@ return {update(t){
  label.fillOpacity=fade;label.outlineOpacity=fade;
 }};`},
  {key:'squash-in',name:'ぐにゃっと伸びて止まる',desc:'横に平たく潰れた文字が、ぐにゃっと伸びて縦に弾み、止まります。',added:'2026-10-09',poster:.18,source:`// 平たく潰れた文字が、ばねのように伸び縮みしながら元の形に落ち着く。退場は縦に潰れて消える
-const {createText,text,width,duration}=api;
-const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const {createText,text,width,fontSize,duration}=api;
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
 const clamp=x=>Math.max(0,Math.min(1,x));
 const enter=Math.min(.8,duration*.3),exit=Math.min(.4,duration*.15);
 return {update(t){
@@ -52,8 +58,10 @@ return {update(t){
  label.fillOpacity=fade;label.outlineOpacity=fade;
 }};`},
  {key:'flip-up',name:'めくれて立ち上がる',desc:'横たわった文字が、手前へめくれるように起き上がって止まります。',added:'2026-10-10',poster:.12,source:`// 寝ていた文字が手前へ起き上がる（x軸まわりの回転）。わずかに行き過ぎてから止まり、退場は倒れながら消える
-const {createText,text,width,duration}=api;
-const label=createText(text,{maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const {createText,text,width,fontSize,duration}=api;
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
 const clamp=x=>Math.max(0,Math.min(1,x));
 const enter=Math.min(.75,duration*.28),exit=Math.min(.4,duration*.15);
 return {update(t){
@@ -613,6 +621,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 // 画面いっぱいの板に貼る頂点シェーダー（vUv は 0〜1 の画面位置）
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
@@ -649,10 +659,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);      // 文字より後ろ
-const label=createText(text,{maxWidth:width*.78,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.62/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.62/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -664,6 +674,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -692,10 +704,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.78,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -707,6 +719,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -738,10 +752,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -753,6 +767,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -792,10 +808,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'5%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'5%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -807,6 +823,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 // ↓ Shadertoy のコードはこの中身を差し替える（iChannel の画像は使えません）
 const SHADERTOY=\`
 #define N 28
@@ -845,10 +863,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{iTime:{value:0},iResolution:{value:new THREE.Vector3(width,height,1)},u_fade:{value:0}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'5%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'5%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.iTime.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1404,6 +1422,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1434,10 +1454,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1449,6 +1469,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1487,10 +1509,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1502,6 +1524,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1540,10 +1564,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.62,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1555,6 +1579,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1585,10 +1611,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.5,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.4/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.4/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1600,6 +1626,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1631,10 +1659,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1646,6 +1674,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1682,10 +1712,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.62,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1697,6 +1727,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1731,10 +1763,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.62,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1746,6 +1778,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1776,10 +1810,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1791,6 +1825,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1826,10 +1862,10 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.5,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.4/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.4/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
@@ -1841,6 +1877,8 @@ return {update,dispose};`},
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
 const VERT=\`varying vec2 vUv;
 void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
 const FRAG=\`precision highp float;
@@ -1880,10 +1918,241 @@ const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthW
   uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
 const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
 quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
-const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
 let fitted=false;
 function update(t){
-  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'keycap-type',name:'キーを打って現れる',desc:'文字が一つずつキーキャップに乗って、カチッと押されて現れます。',added:'2026-10-11',shelf:'effect',poster:.85,source:`// 文字を1つずつキーキャップに乗せ、先頭から順に押し込んでから文字を出す。強調した言葉のキーはアクセント色。退場は全部のキーが同時に押されて沈む
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0])+PAD;}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),hardN=Math.max(1,hard.filter(Boolean).length);let n=1,bestScale=0;for(let k=1;k<=8;k++){const sc=Math.min(1,W*.84/Math.min(total,total/k*1.12+gap),H*.66/(hardN*k*KH*1.12));if(sc>bestScale+.001){bestScale=sc;n=k;}}const cap=n>1?total/n*1.12+gap:limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=KH*1.12;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of vis){if(l.key){root.remove(l.key);l.key.geometry.dispose();l.keyMat.dispose();}}for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const PAD=em*.5,KH=em*1.45;
+const KEYVERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const KEYFRAG=\`precision highp float;
+uniform vec3 u_color;       // keycap colour
+uniform vec3 u_glowColor;   // light leaking from under the key
+uniform float u_press;      // 0 = up, 1 = pressed down
+uniform float u_alpha;
+uniform float u_glow;
+uniform vec2 u_half;        // half size of the key body in px
+uniform vec2 u_size;        // size of this quad in px (body + room for shadow and glow)
+varying vec2 vUv;
+float sdRB(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
+vec4 over(vec4 dst,vec3 c,float a){return vec4(c*a+dst.rgb*(1.-a),a+dst.a*(1.-a));}
+void main(){
+  vec2 p=(vUv-.5)*u_size;
+  float h=u_half.y,r=h*.3;
+  float lift=h*.2*(1.-u_press);
+  vec4 acc=vec4(0.);
+  vec2 room=u_size*.5-abs(p);
+  float win=smoothstep(0.,h*.7,min(room.x,room.y));                   // shadow and glow reach 0 before the edge of the quad
+  float ss=sdRB(p-vec2(0.,-h*.12),u_half,r);
+  acc=over(acc,vec3(0.),.5*win*(1.-smoothstep(-h*.1,h*.5,ss)));       // soft shadow
+  float sb=sdRB(p,u_half,r);
+  acc=over(acc,u_glowColor,u_glow*win*exp(-max(sb,0.)/(h*.45))*.6);   // underglow
+  acc=over(acc,u_color*.45,1.-smoothstep(-1.,1.,sb));                 // side wall
+  vec2 tp=p-vec2(0.,lift);
+  vec2 th=u_half-vec2(h*.16);
+  float st=sdRB(tp,th,r*.8);
+  float ty=smoothstep(-th.y,th.y,tp.y);
+  vec3 top=u_color*(.85+.35*ty);                                      // lighter toward the top edge
+  top=mix(top,vec3(1.),.18*(1.-smoothstep(0.,h*.09,-st)));            // bright rim
+  top*=1.-.18*u_press;
+  acc=over(acc,top,1.-smoothstep(-1.,1.,st));
+  gl_FragColor=vec4(acc.rgb/max(acc.a,1e-4),acc.a*u_alpha);
+}\`;
+const base=new THREE.Color('#2a2f3a'),hot=new THREE.Color(api.accent);
+function emphasized(start){let at=0;for(const r of api.runs||[]){const n=String(r.text||'').length;if(start<at+n)return !!r.emphasis;at+=n;}return false;}
+for(const l of vis){
+  const color=emphasized(l.start)?base.clone().multiplyScalar(.5).add(hot.clone().multiplyScalar(.55)):base.clone();
+  l.keyMat=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:KEYVERT,fragmentShader:KEYFRAG,
+    uniforms:{u_color:{value:color},u_glowColor:{value:hot.clone()},u_press:{value:0},u_alpha:{value:0},u_glow:{value:0},u_half:{value:new THREE.Vector2(1,1)},u_size:{value:new THREE.Vector2(1,1)}}});
+  l.key=new THREE.Mesh(new THREE.PlaneGeometry(1,1),l.keyMat);l.key.renderOrder=-1;l.key.visible=false;root.add(l.key);
+}
+function pose(l,t,u,v){
+  const tp=.18+l.o*intro*.6,e=spring(clamp((t-(tp-.2))/.2)),x=clamp((t-tp)/.2);
+  const dip=t>=tp?(x<.35?smooth(x/.35):1-smooth((x-.35)/.65)):0;
+  const q=smooth(clamp((life-t)/outro)),exitDip=smooth(clamp((t-(life-outro))/(outro*.4)));
+  const press=Math.max(dip,exitDip),a=smooth(clamp((t-(tp-.2))/.1))*smooth(q*2),s=Math.max(.01,(.55+.45*e)*(.75+.25*q));
+  const kw=Math.max(KH*.9,l.w-PAD+PAD*.8),kh=KH,pad=kh*.6*s,y=l.y+(1-e)*em*.5-(1-q)*em*.4;
+  l.key.visible=a>.002;l.key.position.set(l.x,y,-1);l.key.scale.set(kw*s+2*pad,kh*s+2*pad,1);
+  const m=l.keyMat.uniforms;m.u_half.value.set(kw*s/2,kh*s/2);m.u_size.value.set(kw*s+2*pad,kh*s+2*pad);
+  m.u_press.value=press;m.u_alpha.value=a;m.u_glow.value=.5*Math.max(0,Math.sin(Math.PI*clamp((t-tp)/.5)))*(t>=tp?1:0);
+  const lift=kh*s*.5*.2*(1-press);
+  place(l,l.x,y+lift,0,(1-.05*press)*s,(1-.05*press)*s,smooth((t-tp)/.08)*smooth(q*2));
+}
+update(0);
+return {update,dispose};`},
+ {key:'keycap-bar',name:'大きなキーを押し込む',desc:'文字を乗せた大きなキーが、カチッと沈んで光を漏らします。',added:'2026-10-11',shelf:'effect',poster:.8,source:`// 歌詞全体を1つの大きなキー（スペースキーのようなもの）に乗せ、沈み込んでから戻る。キーの下からアクセント色の光が漏れて脈打つ
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const life=Math.max(.05,duration),enter=Math.min(.9,life*.3),exit=Math.min(.55,life*.2),press0=Math.min(.55,life*.18);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.7,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
+const KEYVERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const KEYFRAG=\`precision highp float;
+uniform vec3 u_color;       // keycap colour
+uniform vec3 u_glowColor;   // light leaking from under the key
+uniform float u_press;      // 0 = up, 1 = pressed down
+uniform float u_alpha;
+uniform float u_glow;
+uniform vec2 u_half;        // half size of the key body in px
+uniform vec2 u_size;        // size of this quad in px (body + room for shadow and glow)
+varying vec2 vUv;
+float sdRB(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
+vec4 over(vec4 dst,vec3 c,float a){return vec4(c*a+dst.rgb*(1.-a),a+dst.a*(1.-a));}
+void main(){
+  vec2 p=(vUv-.5)*u_size;
+  float h=u_half.y,r=h*.3;
+  float lift=h*.2*(1.-u_press);
+  vec4 acc=vec4(0.);
+  vec2 room=u_size*.5-abs(p);
+  float win=smoothstep(0.,h*.7,min(room.x,room.y));                   // shadow and glow reach 0 before the edge of the quad
+  float ss=sdRB(p-vec2(0.,-h*.12),u_half,r);
+  acc=over(acc,vec3(0.),.5*win*(1.-smoothstep(-h*.1,h*.5,ss)));       // soft shadow
+  float sb=sdRB(p,u_half,r);
+  acc=over(acc,u_glowColor,u_glow*win*exp(-max(sb,0.)/(h*.45))*.6);   // underglow
+  acc=over(acc,u_color*.45,1.-smoothstep(-1.,1.,sb));                 // side wall
+  vec2 tp=p-vec2(0.,lift);
+  vec2 th=u_half-vec2(h*.16);
+  float st=sdRB(tp,th,r*.8);
+  float ty=smoothstep(-th.y,th.y,tp.y);
+  vec3 top=u_color*(.85+.35*ty);                                      // lighter toward the top edge
+  top=mix(top,vec3(1.),.18*(1.-smoothstep(0.,h*.09,-st)));            // bright rim
+  top*=1.-.18*u_press;
+  acc=over(acc,top,1.-smoothstep(-1.,1.,st));
+  gl_FragColor=vec4(acc.rgb/max(acc.a,1e-4),acc.a*u_alpha);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:KEYVERT,fragmentShader:KEYFRAG,
+  uniforms:{u_color:{value:new THREE.Color('#2a2f3a')},u_glowColor:{value:new THREE.Color(accent)},u_press:{value:0},u_alpha:{value:0},u_glow:{value:0},u_half:{value:new THREE.Vector2(1,1)},u_size:{value:new THREE.Vector2(1,1)}}});
+const key=new THREE.Mesh(new THREE.PlaneGeometry(1,1),material);key.renderOrder=-1;key.position.z=-1;scene.add(key);
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+let kw=width*.6,kh=height*.28,scale=1,fitted=false;
+function measure(){
+  const info=label.textRenderInfo;if(!info)return;
+  const b=info.blockBounds,w=Math.max(1,b[2]-b[0]),h=Math.max(1,b[3]-b[1]);
+  scale=Math.min(1,(width*.86-fontSize*1.3)/w,(height*.6-fontSize)/h);
+  kw=w*scale+fontSize*1.3;kh=h*scale+fontSize;label.scale.setScalar(scale);fitted=true;
+}
+function update(t){
+  if(!fitted)measure();
+  const e=spring(clamp(t/enter)),q=smooth(clamp((life-t)/exit));
+  const x=clamp((t-press0)/.22),dip=x<.35?smooth(x/.35):1-smooth((x-.35)/.65);
+  const exitDip=smooth(clamp((t-(life-exit))/(exit*.4))),press=Math.max(dip,exitDip);
+  const a=smooth(t/(enter*.5))*smooth(q*2),s=Math.max(.01,(.7+.3*e)*(.8+.2*q)),pad=kh*.75*s;
+  const y=(1-e)*height*.18-(1-q)*height*.1;
+  key.position.set(0,y,-1);key.scale.set(kw*s+2*pad,kh*s+2*pad,1);
+  const m=material.uniforms;m.u_half.value.set(kw*s/2,kh*s/2);m.u_size.value.set(kw*s+2*pad,kh*s+2*pad);
+  m.u_press.value=press;m.u_alpha.value=a;m.u_glow.value=a*(.55+.35*Math.sin(t*3.2)+.5*press);
+  label.position.set(0,y+kh*s*.5*.2*(1-press),0);
+  label.scale.setScalar(scale*s*(1-.04*press));
+  const f=smooth((t-press0*.4)/.15)*smooth(q*2);label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){key.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'keyboard-rgb',name:'虹色に光るキーボード',desc:'虹色に光るキーボードの上で、キーがぱちぱち打たれて光ります。',added:'2026-10-11',shelf:'effect',poster:1.1,source:`// 光るキーボードの上で、キーがぱちぱち打たれて虹色に光る。キーは一つずつ別の拍で押し込まれる（時間とマスの番号だけで決まる）
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+// 長い歌詞は、行の長さがそろうように折り返す幅を決める（日本語は空白がなく、幅を指定しないと画面の外へ出るため）
+const wrapAt=(()=>{const rows=String(text||'').split('\\n').map(s=>Array.from(s).reduce((a,c)=>a+(/\\s/.test(c)?.32:c.codePointAt(0)<256?.6:1),0)*fontSize),longest=Math.max(1,...rows),limit=width*.9,n=Math.ceil(longest/limit-.02);return n>1?longest/n*1.12:limit;})();
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+float sdRB(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec2 plate=vec2(.66,.27);
+  vec2 q=p/plate*.5+.5;                                   // 0..1 across the keyboard
+  float row=floor(q.y*4.);
+  float shift=mod(row*.37,1.);                            // each row is shifted, like a real keyboard
+  vec2 g=vec2(q.x*11.+shift,q.y*4.);
+  vec2 id=floor(g),f=fract(g)-.5;
+  float h=hash21(id+row*7.3);
+  float cyc=u_time*1.5+h*10.,ev=floor(cyc),within=fract(cyc);
+  float struck=step(.8,hash21(id+ev*1.37));               // about one key in five is struck each beat
+  float press=struck*(within<.2?smoothstep(0.,.1,within):1.-smoothstep(.2,.65,within));
+  vec3 rgb=pal(q.x*.9+q.y*.25-u_time*.25);
+  float sd=sdRB(f-vec2(0.,-.04*press),vec2(.40),.12);
+  float keyMask=1.-smoothstep(-.025,.025,sd);
+  vec3 top=mix(vec3(.09,.10,.13),rgb*.9,.12+.85*press);
+  float rim=1.-smoothstep(0.,.09,-sd);
+  top+=rgb*rim*(.55+.6*press);
+  float plateMask=1.-smoothstep(-.012,.012,sdRB(p,plate,.045));
+  vec3 under=mix(vec3(.03,.04,.06),rgb*.35,1.-keyMask);   // light leaks between the keys
+  vec3 col=mix(under,top,keyMask);
+  gl_FragColor=vec4(mix(col,u_accent,.04),plateMask*(.55+.4*keyMask)*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{overflowWrap:'break-word',maxWidth:wrapAt,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'5%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.4/Math.max(1,b[3]-b[1]),width*.84/Math.max(1,b[2]-b[0])));fitted=true;}
   const a=smooth(t/enter),b=smooth((duration-t)/exit);
   material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
   const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
