@@ -1,0 +1,8 @@
+Mediabunny 1.61.3 — https://mediabunny.dev/
+Copyright (c) Vanilagy and contributors. Mozilla Public License 2.0.
+The complete license is in studio-media-LICENSE.txt.
+Upstream source: https://github.com/Vanilagy/mediabunny
+Exact distribution: https://registry.npmjs.org/mediabunny/-/mediabunny-1.61.3.tgz
+This separate ES module bundle is generated without changes to upstream behavior.
+The readable distributed modules and build version are available in the pinned package;
+rebuild using tools/studio-build/package-lock.json and tools/studio-build/build.mjs.

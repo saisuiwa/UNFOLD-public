@@ -57,3 +57,7 @@
 
 # Actual local renders of the eleven workshop collection examples.
 !/app/assets/workshop-previews/*.jpg
+
+# Isolated STUDIO dependencies (no node_modules or cache).
+!/tools/studio-build/package.json
+!/tools/studio-build/package-lock.json

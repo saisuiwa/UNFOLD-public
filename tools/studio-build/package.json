@@ -1,0 +1,1 @@
+{"name":"unfold-studio-build","private":true,"type":"module","dependencies":{"mediabunny":"1.61.3","esbuild":"0.25.10"}}
