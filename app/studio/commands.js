@@ -13,7 +13,7 @@ function addAssets(p,items=[]){for(const a of items){if(p.assets[a.id]&&JSON.str
 /** Immutable commands are the only editor mutation boundary. */
 export function applyCommand(project,command){
  if(command.type==='batch'){let current=clone(project);for(const item of command.commands)current=applyCommand(current,item).project;return {project:current,changed:JSON.stringify(current)!==JSON.stringify(project)};}
- const p=clone(project);execute(p,command);reconcileLinkedAudio(project,p);p.scenes.sort((a,b)=>a.startUs-b.startUs);assertProject(p);return {project:p,changed:JSON.stringify(project)!==JSON.stringify(p)};
+ const p=clone(project);execute(p,command);reconcileLinkedAudio(project,p,command);p.scenes.sort((a,b)=>a.startUs-b.startUs);assertProject(p);return {project:p,changed:JSON.stringify(project)!==JSON.stringify(p)};
 }
 function execute(p,c){
  switch(c.type){

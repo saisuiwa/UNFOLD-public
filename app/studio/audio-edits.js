@@ -7,9 +7,10 @@ export function resolveAudioSpan(p,audioId){
  return {startUs,endUs,sourceInUs:c.sourceInUs+startUs-clipStart,envelope:clone(a.envelope)};
 }
 function contentOrigin(p,clipId){const c=p.clips.find(c=>c.id===clipId),s=p.scenes.find(s=>s.id===c?.sceneId);return c&&s?s.originUs+c.startUs-c.sourceInUs:null;}
-export function reconcileLinkedAudio(before,after){
+function trimEnvelope(a,startUs,endUs){if(!a.envelope.durationUs)return;const durationUs=endUs-startUs;if(durationUs<=0)return;a.envelope={...a.envelope,originUs:startUs,durationUs,fadeInUs:Math.min(a.envelope.fadeInUs||0,durationUs),fadeOutUs:Math.min(a.envelope.fadeOutUs||0,durationUs)};}
+export function reconcileLinkedAudio(before,after,command){
  for(const a of after.audio){if(!a.linkClipId)continue;const prior=before.audio.find(x=>x.id===a.id);if(prior?.linkClipId){const oldOrigin=contentOrigin(before,prior.linkClipId),nextOrigin=contentOrigin(after,a.linkClipId);if(oldOrigin!==null&&nextOrigin!==null)a.envelope.originUs+=nextOrigin-oldOrigin;}
- const span=resolveAudioSpan(after,a.id); // Serialized bounds describe the clip; scene masking remains derived.
+ const span=resolveAudioSpan(after,a.id);if(command?.type==='trimClip'&&command.id===a.linkClipId||command?.type==='trimScene'&&after.clips.find(c=>c.id===a.linkClipId)?.sceneId===command.id)trimEnvelope(a,span.startUs,span.endUs); // Serialized bounds describe the clip; scene masking remains derived.
  const c=find(after.clips,a.linkClipId),s=find(after.scenes,c.sceneId);a.startUs=Math.max(0,s.originUs+c.startUs);a.endUs=Math.max(a.startUs+1,s.originUs+c.endUs);a.sourceInUs=c.sourceInUs;
  }
  return after;
@@ -24,7 +25,7 @@ export function editAudio(p,c){
  if(['moveAudio','trimAudio','splitAudio'].includes(c.type)&&a.linkClipId)error('LINKED_AUDIO_EDIT');
  switch(c.type){
  case 'moveAudio':{const delta=c.startUs-a.startUs;a.startUs+=delta;a.endUs+=delta;a.envelope.originUs+=delta;break;}
- case 'trimAudio':a.sourceInUs+=c.startUs-a.startUs;a.startUs=c.startUs;a.endUs=c.endUs;break;
+ case 'trimAudio':a.sourceInUs+=c.startUs-a.startUs;a.startUs=c.startUs;a.endUs=c.endUs;trimEnvelope(a,c.startUs,c.endUs);break;
  case 'splitAudio':{if(c.atUs<=a.startUs||c.atUs>=a.endUs)error('EMPTY_RANGE');const right={...clone(a),id:c.newId,startUs:c.atUs,sourceInUs:a.sourceInUs+c.atUs-a.startUs};a.endUs=c.atUs;p.audio.push(right);break;}
  case 'deleteAudio':if(a.linkClipId)a.muted=true;else p.audio=p.audio.filter(x=>x.id!==c.id);break;
  case 'muteAudio':a.muted=c.muted;break;
