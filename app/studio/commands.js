@@ -24,6 +24,8 @@ function execute(p,c){
  case 'setLyricTiming':{if(p.locks.lyrics)fail('TRACK_LOCKED');const l=findById(p.lyrics,c.id);l.startUs=c.startUs;l.endUs=c.endUs;break;}
  case 'deleteLyric':{if(p.locks.lyrics)fail('TRACK_LOCKED');findById(p.lyrics,c.id);p.lyrics=p.lyrics.filter(l=>l.id!==c.id);for(const v of Object.values(p.views))delete v.layout[c.id];break;}
  case 'replaceLyrics':{if(p.locks.lyrics)fail('TRACK_LOCKED');for(const v of Object.values(p.views)){for(const l of p.lyrics)delete v.layout[l.id];for(const l of c.lyrics)v.layout[l.id]=newLayout();}p.lyrics=clone(c.lyrics);break;}
+ case 'replaceUnfold':{const clip=findById(p.clips,c.id);if(clip.kind!=='unfold')fail('MISSING_UNFOLD');addAssets(p,c.assetMetas);const snapshot=clone(c.snapshot);snapshot.id=clip.unfoldId;p.unfolds[clip.unfoldId]=snapshot;break;}
+ case 'insertUnfold':{addAssets(p,c.assetMetas);if(p.unfolds[c.snapshot.id])fail('DUPLICATE_ID');p.unfolds[c.snapshot.id]=clone(c.snapshot);p.clips.push({...clone(c.clip),unfoldId:c.snapshot.id,kind:'unfold'});for(const v of Object.values(p.views))v.layout[c.clip.id]=clone(c.layouts?.[v.id]||newLayout());break;}
  case 'setAudioGain':findById(p.audio,c.id).gain=c.gain;break;
  case 'insertScene':p.scenes.push(clone(c.scene));break;
  case 'insertClip':{addAssets(p,c.assetMetas);p.clips.push(clone(c.clip));for(const v of Object.values(p.views))v.layout[c.clip.id]=clone(c.layouts?.[v.id]||newLayout());break;}
