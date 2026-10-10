@@ -1,8 +1,8 @@
 import {compileLyricScene,evaluateLyricNode} from './lyric-scene.js?v=4';
 import {lyricFontCSS,prepareLyricFont} from './lyric-fonts.js';
-const fontFor=lyricFontCSS;
 export async function prepareMotionFont(motion,text){await prepareLyricFont(motion?.font,text)}
-export function createLyricPainter(){
+export function createLyricPainter({fontCSS=lyricFontCSS,compileScene=compileLyricScene}={}){
+ const fontFor=fontCSS;
  let scene=null,sceneKey='';const bitmaps=new Map();
  function bitmap(ctx,n,m,color,outline=false){const font=fontFor(m.font,n.size),key=JSON.stringify([n.text,font,color,outline]);if(bitmaps.has(key))return bitmaps.get(key);
   const canvas=document.createElement('canvas'),x=canvas.getContext('2d'),pad=Math.ceil(n.size*.25+5);x.font=font;const w=x.measureText(n.text).width;
@@ -13,7 +13,7 @@ export function createLyricPainter(){
  const image=(ctx,img,dx=0,dy=0)=>ctx.drawImage(img,-img.width/2+dx,-img.height/2+dy);
  return {clear(){scene=null;sceneKey='';bitmaps.clear()},draw(ctx,event,time,{width=ctx.canvas.width,height=ctx.canvas.height,bpm=120}={}){
   const key=JSON.stringify([event.runs,event.text,event.motion,event.start,event.end,width,height]);
-  if(key!==sceneKey){scene=compileLyricScene(event,{width,height,measure:(text,size,font)=>{ctx.font=fontFor(font,size);return ctx.measureText(text).width}});sceneKey=key;bitmaps.clear()}
+  if(key!==sceneKey){scene=compileScene(event,{width,height,measure:(text,size,font)=>{ctx.font=fontFor(font,size);return ctx.measureText(text).width}});sceneKey=key;bitmaps.clear()}
   if(time<scene.start||time>=scene.end||!scene.nodes.length)return;
   const {motion:m,recipe:r,bounds}=scene,d=Math.max(.001,scene.end-scene.start),age=time-scene.start,fade=Math.min(1,Math.max(0,age/Math.min(.35,d*.15)),Math.max(0,(scene.end-time)/Math.min(.4,d*.15)));
   ctx.save();ctx.beginPath();ctx.rect(width*.045,height*.04,width*.91,height*.92);ctx.clip();ctx.globalAlpha*=fade;
