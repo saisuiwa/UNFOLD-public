@@ -75,7 +75,8 @@ try {
       shots.forEach((url, i) => writeFileSync(join(dir, `f${String(i).padStart(3, '0')}.jpg`), decode(url)));
       const files = previewFiles(item.id);
       writeFileSync(join(dir, 'poster.jpg'), decode(poster));
-      execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', join(dir, 'f%03d.jpg'), '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf),
+      execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', join(dir, 'f%03d.jpg'), '-vf', 'scale=in_range=pc:out_range=tv',   // JPEG frames are full range; newer ffmpeg keeps that range and ffprobe then reports yuvj420p, which the gate rejects
+        '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf),
         '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', join(dir, 'out.mp4')]);
       renameSync(join(dir, 'poster.jpg'), files.jpg);
       renameSync(join(dir, 'out.mp4'), files.mp4);
