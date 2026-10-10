@@ -118,7 +118,9 @@ $('import-file').onclick=()=>$('file-import').click();$('file-import').onchange=
 };
 function tick(now){const dt=Math.min(.1,(now-last)/1000);last=now;if(playing&&current&&!busy&&!document.hidden){time=(time+dt)%6;render()}requestAnimationFrame(tick)}
 addEventListener('visibilitychange',()=>{if(document.hidden)stop('非表示になったため実行を停止しました。')});addEventListener('pagehide',()=>{stash();stop();Object.values(urls).forEach(u=>URL.revokeObjectURL(u))});
-async function boot(){try{state=readDrafts(localStorage)}catch(e){storageOK=false;libraryError=e.message}try{saved=await savedWorkshopItems()}catch(e){libraryError+=' '+e.message}try{for(const m of await listModels())$('shape').append(new Option('GLB：'+m.name,m.id))}catch(e){libraryError+=' GLB一覧を読み込めません。'}
+// A sample's draft stored by an older workshop has no `shelf` (the effect shelf did not exist yet), so the saved copy would pull an effect back onto the 文字モーション tab. The sample says which shelf it is on.
+function syncSampleShelves(){for(const x of Object.values(state.drafts)){const base=x&&original(x.key);if(!base)continue;if(base.shelf)x.shelf=base.shelf;else delete x.shelf}}
+async function boot(){try{state=readDrafts(localStorage);syncSampleShelves()}catch(e){storageOK=false;libraryError=e.message}try{saved=await savedWorkshopItems()}catch(e){libraryError+=' '+e.message}try{for(const m of await listModels())$('shape').append(new Option('GLB：'+m.name,m.id))}catch(e){libraryError+=' GLB一覧を読み込めません。'}
  for(const key of ['a','b','reference'])try{await showAsset(key,await assets.get(key),false)}catch(e){libraryError+=' 保存した画像を読み込めません。'}
  select(state.drafts[state.active]||samples[0]);document.querySelector('main').inert=false;if(libraryError)notice(libraryError,'error');requestAnimationFrame(tick);
 }
