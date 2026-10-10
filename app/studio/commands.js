@@ -15,6 +15,14 @@ export function applyCommand(project,command){
 }
 function execute(p,c){
  switch(c.type){
+ case 'batch':for(const command of c.commands)execute(p,command);break;
+ case 'setLock':if(!['music','lyrics'].includes(c.track)||typeof c.locked!=='boolean')fail('INVALID_LOCK');p.locks[c.track]=c.locked;break;
+ case 'setLyricText':{const l=findById(p.lyrics,c.id);l.text=c.text;l.runs=clone(c.runs);break;}
+ case 'setLyricAppearance':patch(findById(p.lyrics,c.id),c.patch,['motion','opacity']);break;
+ case 'setLyricTiming':{if(p.locks.lyrics)fail('TRACK_LOCKED');const l=findById(p.lyrics,c.id);l.startUs=c.startUs;l.endUs=c.endUs;break;}
+ case 'deleteLyric':{if(p.locks.lyrics)fail('TRACK_LOCKED');findById(p.lyrics,c.id);p.lyrics=p.lyrics.filter(l=>l.id!==c.id);for(const v of Object.values(p.views))delete v.layout[c.id];break;}
+ case 'replaceLyrics':{if(p.locks.lyrics)fail('TRACK_LOCKED');for(const v of Object.values(p.views)){for(const l of p.lyrics)delete v.layout[l.id];for(const l of c.lyrics)v.layout[l.id]=newLayout();}p.lyrics=clone(c.lyrics);break;}
+ case 'setAudioGain':findById(p.audio,c.id).gain=c.gain;break;
  case 'insertScene':p.scenes.push(clone(c.scene));break;
  case 'insertClip':{addAssets(p,c.assetMetas);p.clips.push(clone(c.clip));for(const v of Object.values(p.views))v.layout[c.clip.id]=clone(c.layouts?.[v.id]||newLayout());break;}
  case 'setClipContent':patch(findById(p.clips,c.id),c.patch,['text','motion','settings','opacity','z','seed','name']);break;
