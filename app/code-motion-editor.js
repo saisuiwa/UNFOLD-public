@@ -17,7 +17,7 @@ export function openCodeMotionEditor({motion={},text='小さな*光*を/明日�
  function field(label,input,parent=form){const l=node('label',label);l.className='ms-field';l.append(input);parent.append(l);return input}
  function button(label,action,parent=form){const b=node('button',label);b.type='button';b.onclick=async()=>{try{await action()}catch(e){status.textContent=e.message}};parent.append(b);return b}
  const name=field('モーションの名前',node('input'));name.value='マイコードモーション';name.maxLength=40;
- const example=field('ひな形',node('select'));for(const [i,p] of CODE_MOTION_PRESETS.entries())example.append(new Option(p.name,String(i)));
+ const example=field('ひな形',node('select'));const motionGroup=Object.assign(document.createElement('optgroup'),{label:'文字モーション'}),effectGroup=Object.assign(document.createElement('optgroup'),{label:'エフェクト（文字の後ろや周りの装飾）'});for(const [i,p] of CODE_MOTION_PRESETS.entries())(p.shelf==='effect'?effectGroup:motionGroup).append(new Option(p.name,String(i)));example.append(motionGroup,effectGroup);
  const source=field('JavaScript（Three.js + Troika Text + GSAP）',node('textarea'));source.className='ms-json';source.style.minHeight='390px';source.spellcheck=false;source.maxLength=32000;source.setAttribute('aria-label','モーションのコード');source.value=motion.code?.source||CODE_MOTION_PRESETS[0].source;
  const explanation=node('p','コードをプレビューしてから追加します。作った動きは、このブラウザとプロジェクトに保存でき、ファイルで共有できます。');explanation.className='ms-small';form.append(explanation);
  const docs=node('a','書き方・APIガイド');docs.href=new URL('./guide/code-motions.html',import.meta.url).href;docs.target='_blank';docs.rel='noopener';form.append(docs);

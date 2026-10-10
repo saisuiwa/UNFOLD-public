@@ -2,7 +2,7 @@
 //   method, graphic   GLSL custom methods (app/method-samples.js)                          the editor's presets and the workshop's "GLSL" samples
 //   image             JavaScript image methods (app/image-method-daily.js)                  the workshop's "image / solid / physics" samples
 //   codetext          text code motions (app/code-motion-daily.js)                          the workshop's "text motion" samples
-//   effect            decorations that go behind or around the text (the entries of the same file marked shelf: 'effect')   they are still listed with the text motions in the workshop
+//   effect            decorations that go behind or around the text (the entries of the same file marked shelf: 'effect')   the workshop's "エフェクト" tab
 //   text              the preset text motions (TEXT_MOTIONS in app/lyric-motion.js)         the "動き" select of a lyric line
 // The daily routine adds one each of method, image and codetext. graphic and text are the earlier kinds: they stay, but nothing new goes in.
 import { existsSync, statSync } from 'node:fs';

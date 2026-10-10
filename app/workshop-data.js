@@ -1,4 +1,6 @@
 export const DRAFTS_KEY='unfold-workshop-drafts-v1';
+// The workshop's tabs: GLSL / image / text motion / effect. An effect is a text code motion shown on its own shelf (same runtime, same editor): it is marked `shelf:'effect'`.
+export const viewOf=x=>x?.kind==='text'&&x.shelf==='effect'?'effect':x?.kind;
 export function colorFormats(value){
  if(typeof value!=='string'||!/^#[\da-f]{6}$/i.test(value))throw Error('色は #rrggbb の6桁で入力してください。');
  const hex=value.toLowerCase(),rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255);

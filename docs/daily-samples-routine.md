@@ -7,7 +7,7 @@
 | メソッド | 画像の崩れ方（GLSL） | `app/method-samples.js` の `SAMPLES`（`category: 'method'`） | `method-<key>` |
 | グラフィックモーション | 画像・立体・物理（JavaScript） | `app/image-method-daily.js` の `DAILY_IMAGE_METHODS` | `image-<key>` |
 | テキストモーション | 文字モーション（コード） | `app/code-motion-daily.js` の `DAILY_CODE_MOTIONS` | `codetext-<key>` |
-| エフェクト（文字の後ろや周りの装飾） | サンプル集の「エフェクト」の棚（工房では今のところ文字モーションと一緒に並ぶ） | 同じ `DAILY_CODE_MOTIONS` の項目に `shelf:'effect'` を付ける | `effect-<key>` |
+| エフェクト（文字の後ろや周りの装飾） | メソッド工房の「エフェクト」タブ・サンプル集の「エフェクト」の棚 | 同じ `DAILY_CODE_MOTIONS` の項目に `shelf:'effect'` を付ける | `effect-<key>` |
 
 この割り当ては 2026-10-07 に作者に確認して決めました（Macで作られたメソッド工房・モーション集に合わせる）。以前の GLSL の `category: 'graphic'` と、かんたん設定の文字の動き（`TEXT_MOTIONS`）は**そのまま残しますが、新しくは足しません**。
 

@@ -4,8 +4,9 @@
 //   desc: one line for the samples page (10-60 characters, ends with "。"). added: the day it was added (YYYY-MM-DD, Japan time).
 //   poster (optional): how many seconds after the line starts the still picture is taken (0.2 if left out).
 //   shelf (optional): 'effect' for a decoration that goes behind or around the text (a shader, a frame) rather than a way of moving the text itself.
-//     It stays in this list (the workshop lists every entry as a text-motion sample), but the samples page shows it on its own "エフェクト" shelf
-//     (preview id effect-<key>) and its preview keeps a neutral lyric instead of the motion's name.
+//     It stays in this list (the preset list the workshop reads), but the workshop shows it on its own "エフェクト" tab, the code motion editor
+//     under its own group of the template list, and the samples page on its own "エフェクト" shelf (preview id effect-<key>); its preview keeps
+//     a neutral lyric instead of the motion's name.
 //   source: the body of a function that takes `api` (see app/guide/code-motions.html); text is in px, y points up, and everything is computed from the time t.
 
 export const DAILY_CODE_MOTIONS=[

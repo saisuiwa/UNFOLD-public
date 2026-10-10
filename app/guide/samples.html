@@ -42,7 +42,7 @@
       <div class="body">
         <h3><i aria-hidden="true">✦</i>キーを打って現れる<span class="new">NEW</span><small>KEYCAP-TYPE</small></h3>
         <p>文字が一つずつキーキャップに乗って、カチッと押されて現れます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 文字を1つずつキーキャップに乗せ、先頭から順に押し込んでから文字を出す。強調した言葉のキーはアクセント色。退場は全部のキーが同時に押されて沈む
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 文字を1つずつキーキャップに乗せ、先頭から順に押し込んでから文字を出す。強調した言葉のキーはアクセント色。退場は全部のキーが同時に押されて沈む
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
 const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
@@ -155,7 +155,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>大きなキーを押し込む<span class="new">NEW</span><small>KEYCAP-BAR</small></h3>
         <p>文字を乗せた大きなキーが、カチッと沈んで光を漏らします。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 歌詞全体を1つの大きなキー（スペースキーのようなもの）に乗せ、沈み込んでから戻る。キーの下からアクセント色の光が漏れて脈打つ
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 歌詞全体を1つの大きなキー（スペースキーのようなもの）に乗せ、沈み込んでから戻る。キーの下からアクセント色の光が漏れて脈打つ
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
 const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
@@ -236,7 +236,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>虹色に光るキーボード<span class="new">NEW</span><small>KEYBOARD-RGB</small></h3>
         <p>虹色に光るキーボードの上で、キーがぱちぱち打たれて光ります。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 光るキーボードの上で、キーがぱちぱち打たれて虹色に光る。キーは一つずつ別の拍で押し込まれる（時間とマスの番号だけで決まる）
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 光るキーボードの上で、キーがぱちぱち打たれて虹色に光る。キーは一つずつ別の拍で押し込まれる（時間とマスの番号だけで決まる）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1664,7 +1664,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>うねる色の霧<span class="new">NEW</span><small>SHADER-NEBULA</small></h3>
         <p>色が溶けあうフルシェーダーの霧が、文字の後ろでうねりながら現れます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// フルのフラグメントシェーダー（#define / uniform / main）で、色の溶けあう霧を文字の後ろにうねらせる
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// フルのフラグメントシェーダー（#define / uniform / main）で、色の溶けあう霧を文字の後ろにうねらせる
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1727,7 +1727,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>波打つドットの海<span class="new">NEW</span><small>SHADER-DOTS</small></h3>
         <p>ドットの大きさが波のように変わる網点が、文字の後ろに帯になって流れます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// ドットの大きさが波のように変わる網点を、横長の帯にして文字の後ろに流す（フルシェーダー）
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// ドットの大きさが波のように変わる網点を、横長の帯にして文字の後ろに流す（フルシェーダー）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1782,7 +1782,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>脈打つリング<span class="new">NEW</span><small>SHADER-RINGS</small></h3>
         <p>赤・緑・青がずれた同心円のリングが、ゆがみながら脈打ちます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 赤・緑・青を少しずつずらした同心円のリングが、ゆがみながら脈打つ（フルシェーダー）
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 赤・緑・青を少しずつずらした同心円のリングが、ゆがみながら脈打つ（フルシェーダー）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1840,7 +1840,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>動くトルシェタイル<span class="new">NEW</span><small>SHADER-TRUCHET</small></h3>
         <p>弧のタイルがマスごとに向きを変えて、迷路のような模様が動きます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 弧のタイルがマスごとに向きを入れ替え、迷路のような模様が動く（フルシェーダー、時間だけで決まる）
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 弧のタイルがマスごとに向きを入れ替え、迷路のような模様が動く（フルシェーダー、時間だけで決まる）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1906,7 +1906,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>Shadertoyの枠<span class="new">NEW</span><small>SHADER-TOY</small></h3>
         <p>Shadertoyのコードをそのまま貼れる枠で、光の粒が輪を描いて回ります。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// Shadertoy形式（mainImage / iTime / iResolution）のコードをそのまま貼れる枠。黒い所は透けて、光だけが文字の後ろに残る
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// Shadertoy形式（mainImage / iTime / iResolution）のコードをそのまま貼れる枠。黒い所は透けて、光だけが文字の後ろに残る
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1971,7 +1971,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>うねるリボン<span class="new">NEW</span><small>SHADER-RIBBONS</small></h3>
         <p>色の違う細いリボンが重なりながら、波のようにうねって流れます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 細い帯を6本、位相の違う sin 波で重ねて流す（for は6回の定数ループ）。後から描いた帯が上に来る
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 細い帯を6本、位相の違う sin 波で重ねて流す（for は6回の定数ループ）。後から描いた帯が上に来る
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -2028,7 +2028,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>ひび割れの細胞<span class="new">NEW</span><small>SHADER-VORONOI</small></h3>
         <p>細胞のような区切りがゆっくり動いて、境目が光の線になって走ります。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// ボロノイ図（最近傍と2番目の距離の差）の境目だけを光らせる。点は sin でゆっくり漂う（3×3の定数ループ）
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// ボロノイ図（最近傍と2番目の距離の差）の境目だけを光らせる。点は sin でゆっくり漂う（3×3の定数ループ）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -2093,7 +2093,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>リサジュー糸<span class="new">NEW</span><small>SHADER-LISSAJOUS</small></h3>
         <p>1本の光る糸が、リサジュー曲線を描きながらゆっくり形を変えます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 曲線を48本の線分にして、各画素から最短距離を求めて光らせる（for は48回の定数ループ）。曲線上の位置で色を変える
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 曲線を48本の線分にして、各画素から最短距離を求めて光らせる（for は48回の定数ループ）。曲線上の位置で色を変える
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -2158,7 +2158,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>万華鏡の花<span class="new">NEW</span><small>SHADER-KALEIDO</small></h3>
         <p>丸い万華鏡の中で、対称な模様がゆっくり回りながら色を変えます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 角度を6分割して折り返し（abs と mod）、折り返した座標に波の模様を重ねる。円の外は透明
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 角度を6分割して折り返し（abs と mod）、折り返した座標に波の模様を重ねる。円の外は透明
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -2215,7 +2215,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>ぷるぷるメタボール<span class="new">NEW</span><small>SHADER-METABALLS</small></h3>
         <p>ゼリーのような玉がくっついたり離れたりしながら、ぷるぷる漂います。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 7つの玉の場（r²/d²）を足して、しきい値で輪郭を出す。しきい値の少し手前を縁取りの光にする（for は7回）
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 7つの玉の場（r²/d²）を足して、しきい値で輪郭を出す。しきい値の少し手前を縁取りの光にする（for は7回）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -2273,7 +2273,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>波打つ線の山<span class="new">NEW</span><small>SHADER-LINES</small></h3>
         <p>何本もの細い線が重なって、山脈のように波打ち続けます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 14本の線を上から順に重ね、線の下を暗く塗って奥の線を隠す。線の高さは周波数の違う sin を足して作る（for は14回）
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 14本の線を上から順に重ね、線の下を暗く塗って奥の線を隠す。線の高さは周波数の違う sin を足して作る（for は14回）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -2336,7 +2336,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>中心から広がるマス目<span class="new">NEW</span><small>SHADER-CASCADE</small></h3>
         <p>マス目が中心から外へ順に、ふくらんで回りながら丸くなっていきます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// マスごとの時刻を「中心からの距離」だけずらし、①ふくらむ ②四分の一回転して角が丸くなる、の2段階を smoothstep でつなぐ。色はマスごとのハッシュ
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// マスごとの時刻を「中心からの距離」だけずらし、①ふくらむ ②四分の一回転して角が丸くなる、の2段階を smoothstep でつなぐ。色はマスごとのハッシュ
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -2397,7 +2397,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>オーロラのカーテン<span class="new">NEW</span><small>SHADER-AURORA</small></h3>
         <p>緑から紫へ色を変えるカーテンが、縦のすじをなびかせて揺れます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 一次元の値ノイズでカーテンの下端と高さを決め、縦すじ（高周波の sin）を掛ける。下ほど明るく、上へ向かって透けて消える
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 一次元の値ノイズでカーテンの下端と高さを決め、縦すじ（高周波の sin）を掛ける。下ほど明るく、上へ向かって透けて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -2454,7 +2454,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>開く花びら<span class="new">NEW</span><small>SHADER-PETALS</small></h3>
         <p>重なった花びらが逆向きに回りながら、息をするように開いたり閉じたりします。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 極座標で半径を |cos(n/2·角度)| に比例させて花びらの輪郭を作る。花びらの数は5・7・9枚、回る向きは交互（for は3回）
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 極座標で半径を |cos(n/2·角度)| に比例させて花びらの輪郭を作る。花びらの数は5・7・9枚、回る向きは交互（for は3回）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -2516,7 +2516,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
       <div class="body">
         <h3><i aria-hidden="true">✦</i>きらめく星屑<span class="new">NEW</span><small>SHADER-STARS</small></h3>
         <p>小さな星がそれぞれのタイミングで瞬いて、十字の光を放ちます。</p>
-        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// マスごとのハッシュで星の有無・位置・瞬きの位相を決め、周囲3×3マスぶんを足す。核（1/d²）と十字の筋を重ねる
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// マスごとのハッシュで星の有無・位置・瞬きの位相を決め、周囲3×3マスぶんを足す。核（1/d²）と十字の筋を重ねる
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);

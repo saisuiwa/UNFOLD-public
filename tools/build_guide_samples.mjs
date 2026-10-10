@@ -25,7 +25,7 @@ const card = item => {
       </div>`
     : '<div class="shot none">プレビュー準備中</div>';
   const code = item.source ? `<details><summary>コードを見る</summary><pre><code>${esc(item.source)}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>` : '';
-  const way = { image: 'メソッド工房の「画像・立体・物理」のサンプルから選びます。', codetext: 'メソッド工房の「文字モーション」のサンプルから選びます。', effect: 'メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。', text: `歌詞の行の「動き」で「${esc(item.name)}」を選びます。` }[item.group];
+  const way = { image: 'メソッド工房の「画像・立体・物理」のサンプルから選びます。', codetext: 'メソッド工房の「文字モーション」のサンプルから選びます。', effect: 'メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。', text: `歌詞の行の「動き」で「${esc(item.name)}」を選びます。` }[item.group];
   const how = (way ? `<p class="how">${way}</p>` : '') + code;
   return `    <article class="method" data-cat="${item.group}">
       ${media}
