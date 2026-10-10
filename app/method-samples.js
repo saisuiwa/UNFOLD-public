@@ -118,6 +118,19 @@ vec3 userMethod(vec2 p, float amount) {
   float x = sc + (p.x - sc) * (1. - .8 * e) + side * e * uSize.x * (.25 + .35 * d);
   return vec3(x, p.y, e * .3);
 }` },
+  { key: 'radial-sweep', name: '針のように掃く', symbol: '針', category: 'method', desc: '時計の針が回るように、粒が時計回りに順にはじき飛ばされていきます。', added: '2026-10-10', poster: .3, source: `// 時計の針が一周するあいだに、針に触れた粒から外へはじき飛ばされる
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float turn = atan(c.x, c.y) / 6.2832 + .5;               // 0〜1 = 真上から時計回りに一周
+  float delay = turn * .4 + ph(1.) * .06;
+  float e = smoothstep(delay, delay + .25, amount);
+  vec2 away = normalize(c + vec2(.0001)) * e * e * (.6 + ph(2.) * .8) * uSize.y;   // 中心から外へ
+  l = rot((ph(3.) - .5) * 8. * e) * l * (1. - .3 * e);
+  gKind = 2.;                                              // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .3 * e;
+  gLocal = 1.;
+  return vec3(c + l + away, (ph(4.) - .5) * .3 * e);
+}` },
 ];
 
 // Text to paste into an AI chat: it explains what to write, and the rules the editor checks, so what comes back is likely to pass.

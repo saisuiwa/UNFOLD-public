@@ -82,5 +82,20 @@ return {update(frame){
   piece.mesh.rotation.set(-Math.sin(a)*k*1.1,Math.cos(a)*k*1.1,k*(Math.sin(a*3)*.5));
   piece.mesh.scale.setScalar(1-.18*k);
  }
+}};`}},
+ {key:'domino-fall',name:'ドミノのように倒れる',symbol:'倒',desc:'左の列から順に、タイルがドミノのように傾いて倒れていきます。',added:'2026-10-10',poster:1.0,
+  code:{version:1,runtime:IMAGE_RUNTIME,params:{columns:14,gravity:4,bounce:.5,seed:5,returnMode:'reverse',label:'UNFOLD',font:'gothic'},source:`// 左の列から順に、タイルがドミノのように奥へ倒れる。強さ(amount)が戻ると元の位置へ帰る
+const {createImageTiles,size,smooth}=api;
+const tiles=createImageTiles();
+const half=size.width*.5;
+return {update(frame){
+ const t=Math.min(1,frame.amount/.8);
+ for(const piece of tiles){
+  const x=piece.home.x,y=piece.home.y,col=(x+half)/(2*half);        // 0 = 左端、1 = 右端
+  const k=smooth(Math.max(0,Math.min(1,t*1.4-col*1.1)));             // 左の列ほど早く倒れる
+  piece.mesh.position.set(x+k*piece.width*.2,y-k*half*.06,-k*half*.15);
+  piece.mesh.rotation.set(k*.35*Math.sin(y/half*3),k*1.3,0);
+  piece.mesh.scale.setScalar(1-.12*k);
+ }
 }};`}}
 ];
