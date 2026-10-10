@@ -10,7 +10,7 @@
 .comparison-panel{margin:10px auto 0;border:1px solid #719184;border-radius:6px;padding:6px 8px;background:#10181a;max-width:300px}
 .comparison-panel[hidden]{display:none}
 .comparison-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:var(--mint);margin-bottom:6px}
-.comparison-close{font-size:11px;padding:3px 8px}
+.comparison-close{font-size:11px;padding:3px 8px;min-height:24px;white-space:nowrap}
 .comparison-panel .comparison{max-width:100%;max-height:260px;margin:0 auto;border:0;display:block}
 
 /* sequence-style lanes: 画像 / 演出 / 音声 / 歌詞, one lane each; the layers of the selected scene sit below */
@@ -54,7 +54,7 @@
  .studio-header{min-height:0;padding:6px 14px;gap:12px}
  .brand{font-size:16px}.brand span{font-size:11px;padding-left:8px}
  .header-caption,.shelf h2,.shelf>.panel-label,.preview-heading .panel-label,.inspector>.panel-label,.timeline-heading .panel-label,.timeline-heading h2{display:none}
- .project-bar{padding:0}.view-switch{padding:2px}
+ .project-bar{padding:0;display:flex;align-items:center;gap:8px}.project-bar button{min-height:28px;padding:3px 9px;font-size:12px}.view-switch{padding:2px}
  .header-actions{margin-left:auto}.status{margin-left:0}
  .header-actions button,.view-switch button{min-height:28px;padding:3px 9px;font-size:12px}
  .studio-grid{grid-template-columns:224px minmax(0,1fr) 262px;gap:8px;padding:8px 14px 0;align-items:stretch;min-height:0}
@@ -71,7 +71,7 @@
  .scrubber{height:16px}
  .notice{min-height:0;padding:2px 0;font-size:11px}
  .preview>button[data-testid=comparison-toggle]{align-self:flex-start;min-height:26px;font-size:11px;padding:2px 8px;margin-top:2px}
- .comparison-panel{position:absolute;right:16px;top:40px;z-index:5;margin:0;max-width:200px}
+ .comparison-panel{position:absolute;right:16px;top:40px;z-index:5;margin:0;max-width:220px}
  .comparison-panel .comparison{max-height:220px}
  .inspector{display:flex;flex-direction:column;overflow:hidden}
  .inspector-slot{flex:1 1 auto;min-height:0;overflow:auto}
