@@ -1,3 +1,4 @@
+import {editAudio,reconcileLinkedAudio} from './audio-edits.js';
 import {clone,assertProject,StudioError,newLayout} from './model.js';
 import {frameUs} from './time.js';
 const fail=code=>{throw new StudioError(code);};
@@ -11,7 +12,8 @@ function splitAllowed(start,end,at){if(at-start<frameUs(1)||end-at<frameUs(1))fa
 function addAssets(p,items=[]){for(const a of items){if(p.assets[a.id]&&JSON.stringify(p.assets[a.id])!==JSON.stringify(a))fail('ASSET_CONFLICT');p.assets[a.id]=clone(a);}}
 /** Immutable commands are the only editor mutation boundary. */
 export function applyCommand(project,command){
- const p=clone(project);execute(p,command);p.scenes.sort((a,b)=>a.startUs-b.startUs);assertProject(p);return {project:p,changed:JSON.stringify(project)!==JSON.stringify(p)};
+ if(command.type==='batch'){let current=clone(project);for(const item of command.commands)current=applyCommand(current,item).project;return {project:current,changed:JSON.stringify(current)!==JSON.stringify(project)};}
+ const p=clone(project);execute(p,command);reconcileLinkedAudio(project,p);p.scenes.sort((a,b)=>a.startUs-b.startUs);assertProject(p);return {project:p,changed:JSON.stringify(project)!==JSON.stringify(p)};
 }
 function execute(p,c){
  switch(c.type){
@@ -36,6 +38,6 @@ function execute(p,c){
  case 'splitClip':{const clip=findById(p.clips,c.id);splitAllowed(clip.startUs,clip.endUs,c.atUs);const right={...clone(clip),id:c.newId,startUs:c.atUs,sourceInUs:clip.sourceInUs+c.atUs-clip.startUs};snapshotCopy(p,right,c.newUnfoldId);clip.endUs=c.atUs;p.clips.push(right);layouts(p,c.id,c.newId);for(const a of [...p.audio.filter(a=>a.linkClipId===c.id)])p.audio.push({...clone(a),id:`${c.newId}:audio`,linkClipId:c.newId});break;}
  case 'deleteClip':findById(p.clips,c.id);deleteVisual(p,[c.id]);break;
  case 'setLayout':{const v=p.views[c.viewId];if(!v||!v.layout[c.id])fail('MISSING_LAYOUT');patch(v.layout[c.id],c.patch,['x','y','scale','rotation','anchor','fit','focus','backdrop','textWidth','fontScale','breaks','camera']);break;}
- default:fail('UNKNOWN_COMMAND');
+ default:if(!editAudio(p,c))fail('UNKNOWN_COMMAND');
  }
 }
