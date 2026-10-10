@@ -3,6 +3,9 @@
 //   key: lower-case letters, digits and "-" (the id of its preview is codetext-<key>). name: up to 20 characters.
 //   desc: one line for the samples page (10-60 characters, ends with "。"). added: the day it was added (YYYY-MM-DD, Japan time).
 //   poster (optional): how many seconds after the line starts the still picture is taken (0.2 if left out).
+//   shelf (optional): 'effect' for a decoration that goes behind or around the text (a shader, a frame) rather than a way of moving the text itself.
+//     It stays in this list (the workshop lists every entry as a text-motion sample), but the samples page shows it on its own "エフェクト" shelf
+//     (preview id effect-<key>) and its preview keeps a neutral lyric instead of the motion's name.
 //   source: the body of a function that takes `api` (see app/guide/code-motions.html); text is in px, y points up, and everything is computed from the time t.
 
 export const DAILY_CODE_MOTIONS=[
@@ -86,10 +89,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -139,10 +144,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -190,10 +197,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -215,7 +224,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-shuffle',name:'入れ替わって整列',desc:'文字が互いに入れ替わりながら弧を描いて動き、正しい並びに揃います。',added:'2026-10-10',poster:.5,source:`// 文字が互いの位置から弧を描いて元の位置へ。退場ではまた別の文字の位置へ入れ替わって消える
+ {key:'gucha-shuffle',name:'入れ替わって整列',desc:'文字が互いに入れ替わりながら弧を描いて動き、正しい並びに揃います。',added:'2026-10-10',poster:.85,source:`// 文字が互いの位置から弧を描いて元の位置へ。退場ではまた別の文字の位置へ入れ替わって消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -240,10 +249,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -293,10 +304,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -319,7 +332,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-spiral',name:'ぐるぐる巻き込む',desc:'文字が渦を巻きながら外から中へ入ってきて、元の位置に収まります。',added:'2026-10-10',poster:.45,source:`// 渦を巻いて外側から元の位置へ入る。退場は逆向きに巻き上げられて消える
+ {key:'gucha-spiral',name:'ぐるぐる巻き込む',desc:'文字が渦を巻きながら外から中へ入ってきて、元の位置に収まります。',added:'2026-10-10',poster:.9,source:`// 渦を巻いて外側から元の位置へ入る。退場は逆向きに巻き上げられて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -344,10 +357,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -363,8 +378,8 @@ function update(time){
 }
 function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
 function pose(l,t,u,v){
- const k=1-smooth(u),q=1-smooth(v),m=k+q,a=l.r2*6.283+m*6.283*1.5*(l.r4>.5?1:-1),R=m*W*.4/fit*(.4+.6*l.r1);
- place(l,l.x+Math.cos(a)*R,l.y+Math.sin(a)*R*.7,a*.6,1-.45*Math.min(1,m),1-.45*Math.min(1,m),smooth(u*2.2)*smooth(v*2.2));
+ const k=1-smooth(u),q=1-smooth(v),m=k+q,spin=m*6.283*1.5*(l.r4>.5?1:-1),a=l.r2*6.283+spin,R=m*W*.4/fit*(.4+.6*l.r1);
+ place(l,l.x+Math.cos(a)*R,l.y+Math.sin(a)*R*.7,spin*.6,1-.45*Math.min(1,m),1-.45*Math.min(1,m),smooth(u*2.2)*smooth(v*2.2));
 }
 update(0);
 return {update,dispose};`},
@@ -393,10 +408,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -417,7 +434,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-tiles',name:'割れて組み上がる',desc:'文字が細かいかけらに割れていて、ひとつずつ飛んできて組み上がります。',added:'2026-10-10',poster:.6,source:`// 文字を2×3のかけらに割り、かけらごとに時間差で飛んできて組み上がる。退場は割れて落ちる
+ {key:'gucha-tiles',name:'割れて組み上がる',desc:'文字が細かいかけらに割れていて、ひとつずつ飛んできて組み上がります。',added:'2026-10-10',poster:.85,source:`// 文字を2×3のかけらに割り、かけらごとに時間差で飛んできて組み上がる。退場は割れて落ちる
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -442,10 +459,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -483,7 +502,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-burst',name:'弾けて降り注ぐ',desc:'文字が真ん中から弾け飛び、弧を描いて降りて、元の位置で小さく弾みます。',added:'2026-10-10',poster:.6,source:`// 中心から放物線で飛んで元の位置に着地し、小さく弾んで止まる。退場は重力で下へ落ちて消える
+ {key:'gucha-burst',name:'弾けて降り注ぐ',desc:'文字が真ん中から弾け飛び、弧を描いて降りて、元の位置で小さく弾みます。',added:'2026-10-10',poster:1.0,source:`// 中心から放物線で飛んで元の位置に着地し、小さく弾んで止まる。退場は重力で下へ落ちて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -508,10 +527,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -537,7 +558,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-wobble',name:'ぐにゃぐにゃ波打つ',desc:'文字がぐにゃぐにゃと波打つように揺れながら現れて、ぴたりと止まります。',added:'2026-10-10',poster:.3,source:`// 左から右へ波が走り、文字が縦横に伸び縮みして傾く。波の大きさは登場で最大になり、だんだん静まる
+ {key:'gucha-wobble',name:'ぐにゃぐにゃ波打つ',desc:'文字がぐにゃぐにゃと波打つように揺れながら現れて、ぴたりと止まります。',added:'2026-10-10',poster:.55,source:`// 左から右へ波が走り、文字が縦横に伸び縮みして傾く。波の大きさは登場で最大になり、だんだん静まる
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -562,10 +583,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -586,7 +609,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'shader-nebula',name:'うねる色の霧',desc:'色が溶けあうフルシェーダーの霧が、文字の後ろでうねりながら現れます。',added:'2026-10-10',poster:1.1,source:`// フルのフラグメントシェーダー（#define / uniform / main）で、色の溶けあう霧を文字の後ろにうねらせる
+ {key:'shader-nebula',name:'うねる色の霧',desc:'色が溶けあうフルシェーダーの霧が、文字の後ろでうねりながら現れます。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// フルのフラグメントシェーダー（#define / uniform / main）で、色の溶けあう霧を文字の後ろにうねらせる
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -637,7 +660,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-dots',name:'波打つドットの海',desc:'ドットの大きさが波のように変わる網点が、文字の後ろに帯になって流れます。',added:'2026-10-10',poster:1.1,source:`// ドットの大きさが波のように変わる網点を、横長の帯にして文字の後ろに流す（フルシェーダー）
+ {key:'shader-dots',name:'波打つドットの海',desc:'ドットの大きさが波のように変わる網点が、文字の後ろに帯になって流れます。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// ドットの大きさが波のように変わる網点を、横長の帯にして文字の後ろに流す（フルシェーダー）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -680,7 +703,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-rings',name:'脈打つリング',desc:'赤・緑・青がずれた同心円のリングが、ゆがみながら脈打ちます。',added:'2026-10-10',poster:1.1,source:`// 赤・緑・青を少しずつずらした同心円のリングが、ゆがみながら脈打つ（フルシェーダー）
+ {key:'shader-rings',name:'脈打つリング',desc:'赤・緑・青がずれた同心円のリングが、ゆがみながら脈打ちます。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// 赤・緑・青を少しずつずらした同心円のリングが、ゆがみながら脈打つ（フルシェーダー）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -726,7 +749,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-truchet',name:'動くトルシェタイル',desc:'弧のタイルがマスごとに向きを変えて、迷路のような模様が動きます。',added:'2026-10-10',poster:1.2,source:`// 弧のタイルがマスごとに向きを入れ替え、迷路のような模様が動く（フルシェーダー、時間だけで決まる）
+ {key:'shader-truchet',name:'動くトルシェタイル',desc:'弧のタイルがマスごとに向きを変えて、迷路のような模様が動きます。',added:'2026-10-10',shelf:'effect',poster:1.2,source:`// 弧のタイルがマスごとに向きを入れ替え、迷路のような模様が動く（フルシェーダー、時間だけで決まる）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -780,7 +803,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-toy',name:'Shadertoyの枠',desc:'Shadertoyのコードをそのまま貼れる枠で、光の粒が輪を描いて回ります。',added:'2026-10-10',poster:1.1,source:`// Shadertoy形式（mainImage / iTime / iResolution）のコードをそのまま貼れる枠。黒い所は透けて、光だけが文字の後ろに残る
+ {key:'shader-toy',name:'Shadertoyの枠',desc:'Shadertoyのコードをそのまま貼れる枠で、光の粒が輪を描いて回ります。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// Shadertoy形式（mainImage / iTime / iResolution）のコードをそのまま貼れる枠。黒い所は透けて、光だけが文字の後ろに残る
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -833,7 +856,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'gucha-ripple',name:'中心から波紋で弾む',desc:'中心から外へ波紋のように、文字がぽんぽんと時間差で弾んで現れます。',added:'2026-10-10',poster:.7,source:`// 中心に近い文字から順に、ばねで弾みながら四分の一回転して現れる。退場は中心から外へ順に縮んで消える
+ {key:'gucha-ripple',name:'中心から波紋で弾む',desc:'中心から外へ波紋のように、文字がぽんぽんと時間差で弾んで現れます。',added:'2026-10-10',poster:1.0,source:`// 中心に近い文字から順に、ばねで弾みながら四分の一回転して現れる。退場は中心から外へ順に縮んで消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -858,10 +881,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -911,10 +936,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -964,10 +991,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -993,7 +1022,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-magnet',name:'磁石のように引き合う',desc:'外側に離れていた文字が磁石のように引き寄せられて、かちっと収まります。',added:'2026-10-10',poster:.8,source:`// 文字が中心と反対側の遠くから、だんだん加速して元の位置へ吸い付き、小さく震えて止まる。退場は弾かれて飛び去る
+ {key:'gucha-magnet',name:'磁石のように引き合う',desc:'外側に離れていた文字が磁石のように引き寄せられて、かちっと収まります。',added:'2026-10-10',poster:.9,source:`// 文字が中心と反対側の遠くから、だんだん加速して元の位置へ吸い付き、小さく震えて止まる。退場は弾かれて飛び去る
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -1018,10 +1047,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -1045,7 +1076,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-lanes',name:'レーンを滑って揃う',desc:'文字が左右交互のレーンを滑ってきて、ぴたりと一列に揃います。',added:'2026-10-10',poster:.6,source:`// 文字を3段のレーンに分け、左右交互の方向から急加速・急減速で滑り込む。退場は別の向きへ滑り出る
+ {key:'gucha-lanes',name:'レーンを滑って揃う',desc:'文字が左右交互のレーンを滑ってきて、ぴたりと一列に揃います。',added:'2026-10-10',poster:.85,source:`// 文字を3段のレーンに分け、左右交互の方向から急加速・急減速で滑り込む。退場は別の向きへ滑り出る
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -1070,10 +1101,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -1095,7 +1128,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-flip',name:'カードみたいにめくれる',desc:'文字がカードのようにくるりとめくれて、表向きにぴたっと止まります。',added:'2026-10-10',poster:.3,source:`// 文字をカードに見立てて縦軸で半回転させる。裏返しの間は鏡文字になり、行き過ぎてから止まる。退場はもう一度めくれて消える
+ {key:'gucha-flip',name:'カードみたいにめくれる',desc:'文字がカードのようにくるりとめくれて、表向きにぴたっと止まります。',added:'2026-10-10',poster:.45,source:`// 文字をカードに見立てて縦軸で半回転させる。裏返しの間は鏡文字になり、行き過ぎてから止まる。退場はもう一度めくれて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -1120,10 +1153,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -1170,10 +1205,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -1196,7 +1233,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-rubber',name:'伸びてパチンと戻る',desc:'横に引き伸ばされた文字が、ゴムのようにパチンと戻って弾みます。',added:'2026-10-10',poster:.3,source:`// 左へ引っ張られて横に伸びた文字が、ばねで元の形に戻る（縮みすぎてから止まる）。退場は縦に引き伸ばされて消える
+ {key:'gucha-rubber',name:'伸びてパチンと戻る',desc:'横に引き伸ばされた文字が、ゴムのようにパチンと戻って弾みます。',added:'2026-10-10',poster:.35,source:`// 左へ引っ張られて横に伸びた文字が、ばねで元の形に戻る（縮みすぎてから止まる）。退場は縦に引き伸ばされて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -1221,10 +1258,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -1246,7 +1285,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-strips',name:'横にずれて重なり合う',desc:'横に切れた文字の帯が左右にずれていて、すうっと重なって読める形に戻ります。',added:'2026-10-10',poster:.35,source:`// 文字を3本の横帯に切り、帯ごとに左右へ大きくずらしてから揃える。退場はまた帯がずれて消える
+ {key:'gucha-strips',name:'横にずれて重なり合う',desc:'横に切れた文字の帯が左右にずれていて、すうっと重なって読める形に戻ります。',added:'2026-10-10',poster:.85,source:`// 文字を3本の横帯に切り、帯ごとに左右へ大きくずらしてから揃える。退場はまた帯がずれて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -1271,10 +1310,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -1306,7 +1347,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'gucha-steps',name:'直角に歩いて収まる',desc:'文字がマス目の上を横へ、続けて縦へと直角に歩いて、元の位置へ収まります。',added:'2026-10-10',poster:.6,source:`// 文字を整数マスぶん離れた位置に置き、まず横、続いて縦へ急加速・急減速で動かす。退場は縦、続いて横へ歩いて消える
+ {key:'gucha-steps',name:'直角に歩いて収まる',desc:'文字がマス目の上を横へ、続けて縦へと直角に歩いて、元の位置へ収まります。',added:'2026-10-10',poster:.7,source:`// 文字を整数マスぶん離れた位置に置き、まず横、続いて縦へ急加速・急減速で動かす。退場は縦、続いて横へ歩いて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
@@ -1331,10 +1372,12 @@ let fit=1,laid=false,dead=false;
 function layout(){
  const gap=em*.06,limit=W*.86,rows=[];
  const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
- for(const row of hard){if(!row)continue;let cur=[],x=0;
+ for(const row of hard){if(!row)continue;
   for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
-   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
-   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=>sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n>1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&&x+gap+l.w>cap){rows.push(cur);cur=[];x=0;}
    x+=(cur.length?gap:0)+l.w;cur.push(l);}
   rows.push(cur);}
  const step=em*1.25;let maxW=1;
@@ -1357,7 +1400,7 @@ function pose(l,t,u,v){
 }
 update(0);
 return {update,dispose};`},
- {key:'shader-ribbons',name:'うねるリボン',desc:'色の違う細いリボンが重なりながら、波のようにうねって流れます。',added:'2026-10-10',poster:1.1,source:`// 細い帯を6本、位相の違う sin 波で重ねて流す（for は6回の定数ループ）。後から描いた帯が上に来る
+ {key:'shader-ribbons',name:'うねるリボン',desc:'色の違う細いリボンが重なりながら、波のようにうねって流れます。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// 細い帯を6本、位相の違う sin 波で重ねて流す（for は6回の定数ループ）。後から描いた帯が上に来る
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1402,7 +1445,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-voronoi',name:'ひび割れの細胞',desc:'細胞のような区切りがゆっくり動いて、境目が光の線になって走ります。',added:'2026-10-10',poster:1.1,source:`// ボロノイ図（最近傍と2番目の距離の差）の境目だけを光らせる。点は sin でゆっくり漂う（3×3の定数ループ）
+ {key:'shader-voronoi',name:'ひび割れの細胞',desc:'細胞のような区切りがゆっくり動いて、境目が光の線になって走ります。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// ボロノイ図（最近傍と2番目の距離の差）の境目だけを光らせる。点は sin でゆっくり漂う（3×3の定数ループ）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1455,7 +1498,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-lissajous',name:'リサジュー糸',desc:'1本の光る糸が、リサジュー曲線を描きながらゆっくり形を変えます。',added:'2026-10-10',poster:1.1,source:`// 曲線を48本の線分にして、各画素から最短距離を求めて光らせる（for は48回の定数ループ）。曲線上の位置で色を変える
+ {key:'shader-lissajous',name:'リサジュー糸',desc:'1本の光る糸が、リサジュー曲線を描きながらゆっくり形を変えます。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// 曲線を48本の線分にして、各画素から最短距離を求めて光らせる（for は48回の定数ループ）。曲線上の位置で色を変える
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1508,7 +1551,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-kaleido',name:'万華鏡の花',desc:'丸い万華鏡の中で、対称な模様がゆっくり回りながら色を変えます。',added:'2026-10-10',poster:1.1,source:`// 角度を6分割して折り返し（abs と mod）、折り返した座標に波の模様を重ねる。円の外は透明
+ {key:'shader-kaleido',name:'万華鏡の花',desc:'丸い万華鏡の中で、対称な模様がゆっくり回りながら色を変えます。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// 角度を6分割して折り返し（abs と mod）、折り返した座標に波の模様を重ねる。円の外は透明
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1553,7 +1596,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-metaballs',name:'ぷるぷるメタボール',desc:'ゼリーのような玉がくっついたり離れたりしながら、ぷるぷる漂います。',added:'2026-10-10',poster:1.1,source:`// 7つの玉の場（r²/d²）を足して、しきい値で輪郭を出す。しきい値の少し手前を縁取りの光にする（for は7回）
+ {key:'shader-metaballs',name:'ぷるぷるメタボール',desc:'ゼリーのような玉がくっついたり離れたりしながら、ぷるぷる漂います。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// 7つの玉の場（r²/d²）を足して、しきい値で輪郭を出す。しきい値の少し手前を縁取りの光にする（for は7回）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1599,7 +1642,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-lines',name:'波打つ線の山',desc:'何本もの細い線が重なって、山脈のように波打ち続けます。',added:'2026-10-10',poster:1.1,source:`// 14本の線を上から順に重ね、線の下を暗く塗って奥の線を隠す。線の高さは周波数の違う sin を足して作る（for は14回）
+ {key:'shader-lines',name:'波打つ線の山',desc:'何本もの細い線が重なって、山脈のように波打ち続けます。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// 14本の線を上から順に重ね、線の下を暗く塗って奥の線を隠す。線の高さは周波数の違う sin を足して作る（for は14回）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1650,7 +1693,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-cascade',name:'中心から広がるマス目',desc:'マス目が中心から外へ順に、ふくらんで回りながら丸くなっていきます。',added:'2026-10-10',poster:1.2,source:`// マスごとの時刻を「中心からの距離」だけずらし、①ふくらむ ②四分の一回転して角が丸くなる、の2段階を smoothstep でつなぐ。色はマスごとのハッシュ
+ {key:'shader-cascade',name:'中心から広がるマス目',desc:'マス目が中心から外へ順に、ふくらんで回りながら丸くなっていきます。',added:'2026-10-10',shelf:'effect',poster:1.2,source:`// マスごとの時刻を「中心からの距離」だけずらし、①ふくらむ ②四分の一回転して角が丸くなる、の2段階を smoothstep でつなぐ。色はマスごとのハッシュ
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1699,7 +1742,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-aurora',name:'オーロラのカーテン',desc:'緑から紫へ色を変えるカーテンが、縦のすじをなびかせて揺れます。',added:'2026-10-10',poster:1.1,source:`// 一次元の値ノイズでカーテンの下端と高さを決め、縦すじ（高周波の sin）を掛ける。下ほど明るく、上へ向かって透けて消える
+ {key:'shader-aurora',name:'オーロラのカーテン',desc:'緑から紫へ色を変えるカーテンが、縦のすじをなびかせて揺れます。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// 一次元の値ノイズでカーテンの下端と高さを決め、縦すじ（高周波の sin）を掛ける。下ほど明るく、上へ向かって透けて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1744,7 +1787,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-petals',name:'開く花びら',desc:'重なった花びらが逆向きに回りながら、息をするように開いたり閉じたりします。',added:'2026-10-10',poster:1.1,source:`// 極座標で半径を |cos(n/2·角度)| に比例させて花びらの輪郭を作る。花びらの数は5・7・9枚、回る向きは交互（for は3回）
+ {key:'shader-petals',name:'開く花びら',desc:'重なった花びらが逆向きに回りながら、息をするように開いたり閉じたりします。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// 極座標で半径を |cos(n/2·角度)| に比例させて花びらの輪郭を作る。花びらの数は5・7・9枚、回る向きは交互（for は3回）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
@@ -1794,7 +1837,7 @@ function update(t){
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
 return {update,dispose};`},
- {key:'shader-stars',name:'きらめく星屑',desc:'小さな星がそれぞれのタイミングで瞬いて、十字の光を放ちます。',added:'2026-10-10',poster:1.1,source:`// マスごとのハッシュで星の有無・位置・瞬きの位相を決め、周囲3×3マスぶんを足す。核（1/d²）と十字の筋を重ねる
+ {key:'shader-stars',name:'きらめく星屑',desc:'小さな星がそれぞれのタイミングで瞬いて、十字の光を放ちます。',added:'2026-10-10',shelf:'effect',poster:1.1,source:`// マスごとのハッシュで星の有無・位置・瞬きの位相を決め、周囲3×3マスぶんを足す。核（1/d²）と十字の筋を重ねる
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
 const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
 const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);

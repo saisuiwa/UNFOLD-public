@@ -5,7 +5,8 @@
 //   node tools/make_sample_previews.mjs --only=petals   only the ones whose id or key matches (comma separated; ids look like method-petals)
 //   --crf=N   the video quality (higher = smaller file, default 33)
 // Needs: Chromium (through Playwright) and ffmpeg with libx264.
-// What draws each kind: method / graphic -> the editor's preview; image -> the image method runtime (physics, surface effects); codetext -> the code motion runtime; text -> the lyric overlay.
+// What draws each kind: method / graphic -> the editor's preview; image -> the image method runtime (physics, surface effects); codetext / effect -> the code motion runtime; text -> the lyric overlay.
+//   The words in the preview of a text motion are the sample's own name ("とろけてたれる" melts), so the motion is understood at a glance; an effect keeps a neutral lyric because it decorates any text.
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -40,13 +41,14 @@ try {
     const problems = [];
     page.on('pageerror', e => problems.push(String(e).slice(0, 200)));
     try {
-      const isText = item.group === 'text', page_ = { text: 'text', codetext: 'code-text', image: 'image' }[item.group] || 'method';
+      const isText = item.group === 'text', page_ = { text: 'text', codetext: 'code-text', effect: 'code-text', image: 'image' }[item.group] || 'method';
       await page.goto(`${server.url}/__tools/preview/${page_}.html`);
       await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
       let shots, poster, fps = FPS;
-      if (item.group === 'codetext') {
+      if (item.group === 'codetext' || item.group === 'effect') {
         const times = Array.from({ length: Math.round(TEXT.duration * FPS) }, (_, i) => i / FPS), at = TEXT.start + (item.poster ?? TEXT.poster);
-        const run = (opts) => page.evaluate(({ source, opts }) => window.previewCodeText.run(source, opts), { source: item.source, opts: { start: TEXT.start, end: TEXT.end, keep: true, ...opts } });
+        const words = item.group === 'codetext' ? item.name : TEXT.text;
+        const run = (opts) => page.evaluate(({ source, opts }) => window.previewCodeText.run(source, opts), { source: item.source, opts: { text: words, start: TEXT.start, end: TEXT.end, keep: true, ...opts } });
         shots = (await run({ times })).map(f => f.url);
         poster = (await run({ times: [at], quality: .88 }))[0].url;
       } else if (item.group === 'image') {
@@ -55,7 +57,7 @@ try {
         shots = (await run({ times })).map(f => f.url);
         poster = (await run({ times: [item.poster ?? IMAGE.poster], quality: .88 }))[0].url;
       } else if (isText) {
-        await page.evaluate(opts => window.previewText.load(opts), { text: TEXT.text, preset: item.key, start: TEXT.start, end: TEXT.end, size: TEXT.size, duration: TEXT.duration });
+        await page.evaluate(opts => window.previewText.load(opts), { text: item.name, preset: item.key, start: TEXT.start, end: TEXT.end, size: TEXT.size, duration: TEXT.duration });
         const frames = Math.round(TEXT.duration * FPS);
         shots = await page.evaluate(({ frames, fps }) => Array.from({ length: frames }, (_, i) => window.previewText.shot(i / fps)), { frames, fps: FPS });
         poster = await page.evaluate(t => window.previewText.shot(t, .88), TEXT.start + (item.poster ?? TEXT.poster));

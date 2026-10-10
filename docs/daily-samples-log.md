@@ -16,21 +16,21 @@
 | 2026-10-10 | codetext | `codetext-gucha-rubber` | 伸びてパチンと戻る | 横に伸ばした文字を、体積が保たれるよう `scale.y = 1/√scale.x` として、ばねで戻す。縮みすぎてから落ち着く。 |
 | 2026-10-10 | codetext | `codetext-gucha-strips` | 横にずれて重なり合う | 文字を3本の横帯（`clipRect`）に切り、帯ごとに左右へずらしてから揃える。帯の数は文字メッシュ150個の上限に合わせて減らす。 |
 | 2026-10-10 | codetext | `codetext-gucha-steps` | 直角に歩いて収まる | 整数マスぶん離れた位置から、横→縦の順に `easeInOutQuint` で動かして直角に収める。退場は縦→横。マス目の上を直角に動く、という方向もオカズ氏の作品を参考にした（コードは別物）。 |
-| 2026-10-10 | codetext | `codetext-shader-ribbons` | うねるリボン | 6本の帯を位相の違う `sin` で重ねる（`for` は6回の定数ループ）。後に描いた帯が上に来る。 |
-| 2026-10-10 | codetext | `codetext-shader-voronoi` | ひび割れの細胞 | 3×3の定数ループでボロノイ図を作り、最近傍と2番目の距離の差が小さい所（境目）だけを光らせた。点は `sin` でゆっくり漂う。 |
-| 2026-10-10 | codetext | `codetext-shader-lissajous` | リサジュー糸 | 曲線を48本の線分にして最短距離を求める（`for` は48回）。曲線上の位置で色を変えた。 |
-| 2026-10-10 | codetext | `codetext-shader-kaleido` | 万華鏡の花 | 角度を6分割して `abs(mod())` で折り返し、折り返した座標に波の模様を重ねた。円の外は透明。 |
-| 2026-10-10 | codetext | `codetext-shader-metaballs` | ぷるぷるメタボール | 7つの玉の場（`r²/d²`）を足して、しきい値で輪郭を出した。しきい値の少し手前を縁取りにした。 |
-| 2026-10-10 | codetext | `codetext-shader-lines` | 波打つ線の山 | 14本の線を上から順に重ね、線の下を暗く塗って奥の線を隠す。線の高さは周波数の違う `sin` の和。パネルの外は透明。 |
-| 2026-10-10 | codetext | `codetext-shader-cascade` | 中心から広がるマス目 | マスごとの時刻を中心からの距離でずらし、ふくらむ→回って丸くなる、の2段階を `smoothstep` でつないだ。マスが中心から広がる、というオカズ氏の作品の方向を参考にした（コードは別物）。 |
-| 2026-10-10 | codetext | `codetext-shader-aurora` | オーロラのカーテン | 一次元の値ノイズでカーテンの下端と高さを決め、縦すじを掛けた。下ほど明るく、上へ向かって透けて消える。 |
-| 2026-10-10 | codetext | `codetext-shader-petals` | 開く花びら | 極座標で半径を `|cos(n/2·角度)|` に比例させた花びら（5・7・9枚）を、逆向きに回して重ねた。 |
-| 2026-10-10 | codetext | `codetext-shader-stars` | きらめく星屑 | マスごとのハッシュで星の有無・位置・瞬きの位相を決め、周囲3×3マスぶんを足した。核と十字の筋を重ねる。 |
-| 2026-10-10 | codetext | `codetext-shader-nebula` | うねる色の霧 | フルのフラグメントシェーダー（`#define` / `uniform` / `main()` / `gl_FragColor`）を、画面いっぱいの板（`PlaneGeometry` + `ShaderMaterial`）に貼って文字の後ろへ。ドメインワープした `fbm` の濃い所だけを不透明にして、全面を塗らずに楕円の中へ収めた（ゲートの「画面の半分以下」）。 |
-| 2026-10-10 | codetext | `codetext-shader-dots` | 波打つドットの海 | マスごとの `id` から3つの `sin` 波を足して網点の半径にした。帯と左右の端を `smoothstep` で消して、画面の端に触れない。`u_time` は `update(t)` の `t` そのもの。 |
-| 2026-10-10 | codetext | `codetext-shader-rings` | 脈打つリング | 角度ごとに半径をゆがめた同心円を、R/G/B で位相をずらして重ねた（`for` は3回の定数ループ）。不透明度は3色の最大値。 |
-| 2026-10-10 | codetext | `codetext-shader-truchet` | 動くトルシェタイル | マスごとに `hash(id+周期番号)` で弧の向きを決め、切り替えの0.3周期だけ距離を混ぜて動かす。乱数は GLSL の `hash` だけで、時間から直接決まる。 |
-| 2026-10-10 | codetext | `codetext-shader-toy` | Shadertoyの枠 | Shadertoy 形式（`mainImage` / `iTime` / `iResolution`）の中身だけ差し替えれば貼れる枠。黒い所は透けるよう、明るさを不透明度にして色を割り戻した。`iChannel` の画像は使えない。 |
+| 2026-10-10 | codetext | `effect-shader-ribbons` | うねるリボン | 6本の帯を位相の違う `sin` で重ねる（`for` は6回の定数ループ）。後に描いた帯が上に来る。 |
+| 2026-10-10 | codetext | `effect-shader-voronoi` | ひび割れの細胞 | 3×3の定数ループでボロノイ図を作り、最近傍と2番目の距離の差が小さい所（境目）だけを光らせた。点は `sin` でゆっくり漂う。 |
+| 2026-10-10 | codetext | `effect-shader-lissajous` | リサジュー糸 | 曲線を48本の線分にして最短距離を求める（`for` は48回）。曲線上の位置で色を変えた。 |
+| 2026-10-10 | codetext | `effect-shader-kaleido` | 万華鏡の花 | 角度を6分割して `abs(mod())` で折り返し、折り返した座標に波の模様を重ねた。円の外は透明。 |
+| 2026-10-10 | codetext | `effect-shader-metaballs` | ぷるぷるメタボール | 7つの玉の場（`r²/d²`）を足して、しきい値で輪郭を出した。しきい値の少し手前を縁取りにした。 |
+| 2026-10-10 | codetext | `effect-shader-lines` | 波打つ線の山 | 14本の線を上から順に重ね、線の下を暗く塗って奥の線を隠す。線の高さは周波数の違う `sin` の和。パネルの外は透明。 |
+| 2026-10-10 | codetext | `effect-shader-cascade` | 中心から広がるマス目 | マスごとの時刻を中心からの距離でずらし、ふくらむ→回って丸くなる、の2段階を `smoothstep` でつないだ。マスが中心から広がる、というオカズ氏の作品の方向を参考にした（コードは別物）。 |
+| 2026-10-10 | codetext | `effect-shader-aurora` | オーロラのカーテン | 一次元の値ノイズでカーテンの下端と高さを決め、縦すじを掛けた。下ほど明るく、上へ向かって透けて消える。 |
+| 2026-10-10 | codetext | `effect-shader-petals` | 開く花びら | 極座標で半径を `|cos(n/2·角度)|` に比例させた花びら（5・7・9枚）を、逆向きに回して重ねた。 |
+| 2026-10-10 | codetext | `effect-shader-stars` | きらめく星屑 | マスごとのハッシュで星の有無・位置・瞬きの位相を決め、周囲3×3マスぶんを足した。核と十字の筋を重ねる。 |
+| 2026-10-10 | codetext | `effect-shader-nebula` | うねる色の霧 | フルのフラグメントシェーダー（`#define` / `uniform` / `main()` / `gl_FragColor`）を、画面いっぱいの板（`PlaneGeometry` + `ShaderMaterial`）に貼って文字の後ろへ。ドメインワープした `fbm` の濃い所だけを不透明にして、全面を塗らずに楕円の中へ収めた（ゲートの「画面の半分以下」）。 |
+| 2026-10-10 | codetext | `effect-shader-dots` | 波打つドットの海 | マスごとの `id` から3つの `sin` 波を足して網点の半径にした。帯と左右の端を `smoothstep` で消して、画面の端に触れない。`u_time` は `update(t)` の `t` そのもの。 |
+| 2026-10-10 | codetext | `effect-shader-rings` | 脈打つリング | 角度ごとに半径をゆがめた同心円を、R/G/B で位相をずらして重ねた（`for` は3回の定数ループ）。不透明度は3色の最大値。 |
+| 2026-10-10 | codetext | `effect-shader-truchet` | 動くトルシェタイル | マスごとに `hash(id+周期番号)` で弧の向きを決め、切り替えの0.3周期だけ距離を混ぜて動かす。乱数は GLSL の `hash` だけで、時間から直接決まる。 |
+| 2026-10-10 | codetext | `effect-shader-toy` | Shadertoyの枠 | Shadertoy 形式（`mainImage` / `iTime` / `iResolution`）の中身だけ差し替えれば貼れる枠。黒い所は透けるよう、明るさを不透明度にして色を割り戻した。`iChannel` の画像は使えない。 |
 | 2026-10-10 | codetext | `codetext-gucha-gather` | 散らかって集まる | 画面じゅうに散らばった文字が、ばねで元の位置へ集まる。文字ごとに飛び先を変えた（乱数は作成時の `random()` だけ）。静止画は集まる途中。ぐちゃぐちゃ系の第1弾（作者の依頼）。 |
 | 2026-10-10 | codetext | `codetext-gucha-melt` | とろけてたれる | 縦に潰れて横へ太った文字が、ぷるんと立つ。退場は縦へ伸びながら下へ垂れる（`scale.y` と下への移動）。静止画は潰れた形が分かる時刻。 |
 | 2026-10-10 | codetext | `codetext-gucha-boil` | 手描きのぶるぶる | 時刻を10コマ/秒に量子化（`Math.floor(t*10)`）して、文字ごとの擬似乱数（`sin` のハッシュ）で位置・角度・伸縮を揺らす。`Math.random` は使っていない。 |

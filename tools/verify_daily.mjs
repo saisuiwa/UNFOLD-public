@@ -195,7 +195,7 @@ try {
     need(!problems.length, problems.join('\n'));
   });
 
-  const codetexts = recent.filter(i => i.group === 'codetext');
+  const codetexts = recent.filter(i => i.group === 'codetext' || i.group === 'effect');      // an effect is still a code motion: same runtime, same limits
   await step(`text code motions run, stay in the frame and fade out (${codetexts.length})`, async () => {
     const page = await newPage();
     await page.goto(`${server.url}/__tools/preview/code-text.html`);
@@ -219,7 +219,7 @@ try {
     need(!problems.length, problems.join('\n'));
   });
 
-  const kindOf = { method: 'glsl', graphic: 'glsl', image: 'image', codetext: 'text' }, inWorkshop = recent.filter(i => kindOf[i.group]);   // the preset text motions are not in the workshop
+  const kindOf = { method: 'glsl', graphic: 'glsl', image: 'image', codetext: 'text', effect: 'text' }, inWorkshop = recent.filter(i => kindOf[i.group]);   // the preset text motions are not in the workshop
   await step(`the method workshop lists the new samples and runs each one itself (${inWorkshop.length})`, async () => {
     const page = await newPage({ width: 1440, height: 1000 });
     await page.goto(`${server.url}/workshop.html`, { waitUntil: 'load' });

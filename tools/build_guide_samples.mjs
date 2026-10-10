@@ -8,7 +8,7 @@ import { GROUPS, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs
 
 const OUT = fileURLToPath(new URL('../app/guide/samples.html', import.meta.url));
 const esc = text => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const SYMBOLS = { text: '文', codetext: '文' };
+const SYMBOLS = { text: '文', codetext: '文', effect: '✦' };
 
 const items = catalog().map((item, order) => ({ ...item, order })).sort((a, b) => b.added.localeCompare(a.added) || a.order - b.order);   // newest day first; within a day the groups keep their order
 const latest = items.reduce((day, item) => (item.added > day ? item.added : day), '0000-00-00');
@@ -25,7 +25,7 @@ const card = item => {
       </div>`
     : '<div class="shot none">プレビュー準備中</div>';
   const code = item.source ? `<details><summary>コードを見る</summary><pre><code>${esc(item.source)}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>` : '';
-  const way = { image: 'メソッド工房の「画像・立体・物理」のサンプルから選びます。', codetext: 'メソッド工房の「文字モーション」のサンプルから選びます。', text: `歌詞の行の「動き」で「${esc(item.name)}」を選びます。` }[item.group];
+  const way = { image: 'メソッド工房の「画像・立体・物理」のサンプルから選びます。', codetext: 'メソッド工房の「文字モーション」のサンプルから選びます。', effect: 'メソッド工房の「文字モーション」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。', text: `歌詞の行の「動き」で「${esc(item.name)}」を選びます。` }[item.group];
   const how = (way ? `<p class="how">${way}</p>` : '') + code;
   return `    <article class="method" data-cat="${item.group}">
       ${media}

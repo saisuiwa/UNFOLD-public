@@ -51,6 +51,17 @@ test('daily text code motions: fields, format, and nothing that breaks replay', 
   }
 });
 
+test('effects: decorations are marked shelf:"effect", listed in their own group, and the text motions stay without it', () => {
+  const effects = DAILY_CODE_MOTIONS.filter(m => m.shelf === 'effect');
+  assert.ok(effects.length >= 15, 'the fifteen shader decorations are on the effect shelf');
+  for (const m of DAILY_CODE_MOTIONS) assert.ok(m.shelf === undefined || m.shelf === 'effect', `${m.key}: shelf is left out or "effect"`);
+  const list = catalog();
+  assert.deepEqual(list.filter(i => i.group === 'effect').map(i => i.key).sort(), effects.map(m => m.key).sort());
+  assert.ok(list.filter(i => i.group === 'codetext').every(i => !effects.some(m => m.key === i.key)), 'an effect is not also listed as a text motion');
+  for (const item of list.filter(i => i.group === 'effect')) assert.equal(item.id, `effect-${item.key}`);
+  assert.equal(list.length, DAILY_CODE_MOTIONS.length + list.filter(i => i.group !== 'codetext' && i.group !== 'effect').length, 'every daily code motion is listed exactly once');
+});
+
 test('the daily groups are the three the routine adds one each of; ids are unique across the catalog', () => {
   assert.deepEqual(DAILY_GROUPS, ['method', 'image', 'codetext']);
   const ids = catalog().map(i => i.id);
