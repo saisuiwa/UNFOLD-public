@@ -132,7 +132,7 @@ T2←T1、T3←T2、T4←T3、T5←T1/T3、T6←T5、T7←T5/T6。T8←T1/T5、T
 
 ## 3. 段階A — 時間・編集・保存
 
-### T1: 時間と検証可能な作品モデル
+### Task 1: 時間と検証可能な作品モデル
 
 **Files:** Create `app/studio/model.js`, `app/studio/time.js`; Test `tools/test/studio/model-time.test.mjs`, `tools/test/studio/fixtures.mjs`。
 
@@ -153,7 +153,7 @@ assert.equal(validateProject({...mixedProject(),scenes:overlappingScenes()})[0].
 - [ ] **緑を確認。** 同じコマンド→全件PASS。
 - [ ] **ローカルコミット。** `git add app/studio/model.js app/studio/time.js tools/test/studio/model-time.test.mjs tools/test/studio/fixtures.mjs`、`git commit -m "feat(studio): define project and absolute time contracts"`。
 
-### T2: シーン・クリップの純粋編集
+### Task 2: シーン・クリップの純粋編集
 
 **Files:** Create `app/studio/commands.js`; Test `tools/test/studio/commands.test.mjs`。
 
@@ -173,7 +173,7 @@ assert.equal(afterSplit.clips.find(x=>x.id==='right').effectOriginUs, beforeSpli
 - [ ] **緑確認。** `node --test tools/test/studio/model-time.test.mjs tools/test/studio/commands.test.mjs` → PASS。
 - [ ] **コミット。** `git add app/studio/commands.js tools/test/studio/commands.test.mjs`、`git commit -m "feat(studio): add non-ripple visual editing commands"`。
 
-### T3: 位置ロックとUndo／Redo
+### Task 3: 位置ロックとUndo／Redo
 
 **Files:** Create `app/studio/history.js`; Modify `app/studio/commands.js`; Test `tools/test/studio/history-locks.test.mjs`。
 
@@ -193,7 +193,7 @@ fixtureでdeleteVisual/deleteLockedLyric/beforeBatchを明示。Undo→Redoの�
 - [ ] **緑確認。** `node --test tools/test/studio/*.test.mjs` → PASS（この時点まで）。
 - [ ] **コミット。** `git add app/studio/history.js app/studio/commands.js tools/test/studio/history-locks.test.mjs`、`git commit -m "feat(studio): protect track timing and add atomic undo"`。
 
-### T4: 映像元音声のリンク編集と独立音声
+### Task 4: 映像元音声のリンク編集と独立音声
 
 **Files:** Create `app/studio/audio-edits.js`; Modify `app/studio/commands.js`; Test `tools/test/studio/audio-edits.test.mjs`, `tools/test/studio/history-locks.test.mjs`。
 
@@ -214,7 +214,7 @@ assert.equal(deletedLinked.clips.some(c=>c.id==='cVideo'),true);
 - [ ] **緑確認。** `node --test tools/test/studio/*.test.mjs` → PASS。
 - [ ] **コミット。** `git add app/studio/audio-edits.js app/studio/commands.js tools/test/studio/audio-edits.test.mjs tools/test/studio/history-locks.test.mjs`、`git commit -m "feat(studio): preserve linked source audio through edits"`。
 
-### T5: 専用DBと素材所有・容量失敗時の保護
+### Task 5: 専用DBと素材所有・容量失敗時の保護
 
 **Files:** Create `app/studio/assets.js`, `app/studio/store.js`, `tools/test/studio/browser-helper.mjs`, `tools/test/studio/host.html`; Test `tools/test/studio/store-browser.mjs`。
 
@@ -234,7 +234,7 @@ page内fixture関数はこのtestに置く。DOMException QuotaExceededErrorをb
 - [ ] **緑確認。** 同じコマンド→PASS、旧sentinel一致と再読込成功をログへ記録。
 - [ ] **コミット。** `git add app/studio/assets.js app/studio/store.js tools/test/studio/browser-helper.mjs tools/test/studio/host.html tools/test/studio/store-browser.mjs`、`git commit -m "feat(studio): isolate durable project and asset storage"`。
 
-### T6: 複数タブの編集権と遅延保存
+### Task 6: 複数タブの編集権と遅延保存
 
 **Files:** Create `app/studio/lease.js`; Modify `app/studio/store.js`; Test `tools/test/studio/lease-browser.mjs`。
 
@@ -254,7 +254,7 @@ assert.equal(await attemptStaleRevisionSave(),'REVISION_CONFLICT');
 - [ ] **緑確認。** `node tools/test/studio/lease-browser.mjs` と `node tools/test/studio/store-browser.mjs` → PASS。
 - [ ] **コミット。** `git add app/studio/lease.js app/studio/store.js tools/test/studio/lease-browser.mjs`、`git commit -m "feat(studio): fence concurrent editors and stale saves"`。
 
-### T7: 専用ファイルと旧作品の読み取り変換
+### Task 7: 専用ファイルと旧作品の読み取り変換
 
 **Files:** Create `app/studio/file.js`, `app/studio/legacy-import.js`; Test `tools/test/studio/file.test.mjs`, `tools/test/studio/file-browser.mjs`。
 
@@ -276,7 +276,7 @@ Nodeではmetadata／範囲／hash／重複ID検証、ブラウザでは旧v1〜
 
 ## 4. 段階B — 素材・音声・描画の部品
 
-### T8: 入力動画・元音声の指定時刻読取
+### Task 8: 入力動画・元音声の指定時刻読取
 
 **Files:** Create `app/studio/media.js`, `tools/studio-build/package.json`, `tools/studio-build/package-lock.json`, `tools/studio-build/build.mjs`, `app/vendor/studio-media.js`, `app/vendor/studio-media-LICENSE.txt`; Test `tools/test/studio/media-browser.mjs`, `tools/test/studio/media-fixtures.mjs`。
 
@@ -297,7 +297,7 @@ assert.ok(readerStats.videoFrames<=12);
 - [ ] **緑確認。** 同コマンド→全必須ケースPASS。dependencyの配布API差は版を黙って変更せず計画差分としてレビュー。
 - [ ] **コミット。** `git add app/studio/media.js tools/studio-build/package.json tools/studio-build/package-lock.json tools/studio-build/build.mjs app/vendor/studio-media.js app/vendor/studio-media-LICENSE.txt tools/test/studio/media-browser.mjs tools/test/studio/media-fixtures.mjs`、`git commit -m "feat(studio): decode media with original track timestamps"`。
 
-### T9: 3種類の音声を同じサンプル時計で合成
+### Task 9: 3種類の音声を同じサンプル時計で合成
 
 **Files:** Create `app/studio/audio-mix.js`; Test `tools/test/studio/audio-mix.test.mjs`, `tools/test/studio/audio-browser.mjs`。
 
@@ -317,7 +317,7 @@ expected値はfixture定数の算術和、差は分割前後／ミュート素�
 - [ ] **緑確認。** 上記2コマンドとT4単体→PASS、合成前の同期はsample単位一致。
 - [ ] **コミット。** `git add app/studio/audio-mix.js tools/test/studio/audio-mix.test.mjs tools/test/studio/audio-browser.mjs`、`git commit -m "feat(studio): mix song source audio and effects sample accurately"`。
 
-### T10: 横縦の独立配置と文字の再改行
+### Task 10: 横縦の独立配置と文字の再改行
 
 **Files:** Create `app/studio/layout.js`, `app/studio/text-layout.js`; Test `tools/test/studio/layout-text.test.mjs`。
 
@@ -338,7 +338,7 @@ assert.ok(tooLong.glyphs.every(g=>g.fontSize>=1080*.03));
 - [ ] **緑確認。** 同コマンドとT2→PASS。
 - [ ] **コミット。** `git add app/studio/layout.js app/studio/text-layout.js tools/test/studio/layout-text.test.mjs`、`git commit -m "feat(studio): keep portrait layout and lyric wrapping independent"`。
 
-### T11: 画像・自由文字・歌詞レイヤー
+### Task 11: 画像・自由文字・歌詞レイヤー
 
 **Files:** Create `app/studio/image-layer.js`, `app/studio/text-layer.js`; Modify `app/lyric-painter.js` の任意依存注入のみ; Test `tools/test/studio/text-image-browser.mjs`。
 
@@ -359,7 +359,7 @@ assert.equal(missingFontResult.code,'MISSING_ASSET');
 - [ ] **緑確認。** 同コマンド→PASS、既存 `node --test tools/test/*.test.mjs` →PASS。
 - [ ] **コミット。** `git add app/studio/image-layer.js app/studio/text-layer.js app/lyric-painter.js tools/test/studio/text-image-browser.mjs`、`git commit -m "feat(studio): render image and timed text layers"`。
 
-### T12: 旧シーケンスの純粋計算を抽出
+### Task 12: 旧シーケンスの純粋計算を抽出
 
 **Files:** Create `app/sequence-core.js`; Modify `app/sequence.js` の `backgroundSeconds`／区間探索／変形係数計算部分のみ; Test `tools/test/studio/sequence-core.test.mjs`。
 
@@ -378,7 +378,7 @@ goldenは旧式の出力をレビュー時に固定、抽出後の関数で生�
 - [ ] **緑確認。** 同コマンド＋ `node --test tools/test/*.test.mjs` →PASS。
 - [ ] **コミット。** `git add app/sequence-core.js app/sequence.js tools/test/studio/sequence-core.test.mjs`、`git commit -m "refactor: isolate pure sequence frame evaluation"`。
 
-### T13: UNFOLDを独立した描画インスタンスへ接続
+### Task 13: UNFOLDを独立した描画インスタンスへ接続
 
 **Files:** Create `app/sequence-renderer.js`, `app/studio/unfold-layer.js`; Modify `app/sequence.js` のrenderAt描画呼出し境界、`app/image-method-layer.js` のcustom method解決依存注入; Test `tools/test/studio/unfold-render-browser.mjs`。
 
@@ -398,7 +398,7 @@ CPU ImageData転送、同じseed物理の固定刻み巻戻し、フォント・
 - [ ] **緑確認。** 同コマンド＋旧Node全件→PASS。
 - [ ] **コミット。** `git add app/sequence-renderer.js app/studio/unfold-layer.js app/sequence.js app/image-method-layer.js tools/test/studio/unfold-render-browser.mjs`、`git commit -m "feat(studio): render isolated editable UNFOLD placements"`。
 
-### T14: 配置コピーの再編集と適用／取消
+### Task 14: 配置コピーの再編集と適用／取消
 
 **Files:** Create `app/studio/unfold-edit.js`; Modify `app/studio/commands.js`; Test `tools/test/studio/unfold-edit.test.mjs`, `tools/test/studio/unfold-edit-browser.mjs`。
 
@@ -418,7 +418,7 @@ cancelでProject完全不変、Bの共通内容はBの横縦で更新しAは不�
 - [ ] **緑確認。** 上記2件＋T13→PASS。
 - [ ] **コミット。** `git add app/studio/unfold-edit.js app/studio/commands.js tools/test/studio/unfold-edit.test.mjs tools/test/studio/unfold-edit-browser.mjs`、`git commit -m "feat(studio): edit placement snapshots with one-step apply"`。
 
-### T15: 承認済みp5演出1種の時刻指定描画
+### Task 15: 承認済みp5演出1種の時刻指定描画
 
 **Files:** Create `app/studio/p5-runtime.js`, `app/studio/p5-frame.html`, `app/studio/p5-presets.js`, `app/vendor/studio-p5.js`, `app/vendor/studio-p5-LICENSE.txt`; Modify `tools/studio-build/package.json`, `tools/studio-build/package-lock.json`, `tools/studio-build/build.mjs`; Test `tools/test/studio/p5-browser.mjs`。
 
@@ -441,7 +441,7 @@ assert.equal(await activeFramesAfterDispose(),0);
 
 ## 5. 段階C — UIに先行する混合MVの合格
 
-### T16: 共通の合成器とプレビュー時計
+### Task 16: 共通の合成器とプレビュー時計
 
 **Files:** Create `app/studio/compositor.js`, `app/studio/transport.js`; Test `tools/test/studio/compositor-browser.mjs`, `tools/test/studio/transport-browser.mjs`。
 
@@ -462,7 +462,7 @@ Layer stubで完了順逆転を固定、実Layerで歌詞越境・重なりz/opa
 - [ ] **緑確認。** 上記2コマンド→PASS、T11/T13/T15の再現性検査もPASS。
 - [ ] **コミット。** `git add app/studio/compositor.js app/studio/transport.js tools/test/studio/compositor-browser.mjs tools/test/studio/transport-browser.mjs`、`git commit -m "feat(studio): compose preview layers on one audio clock"`。
 
-### T17: 横縦・連続区間の音付き逐次出力
+### Task 17: 横縦・連続区間の音付き逐次出力
 
 **Files:** Create `app/studio/export.js`; Test `tools/test/studio/export-browser.mjs`。
 
@@ -483,7 +483,7 @@ assert.equal(cancelledSink.closed,false); assert.equal(cancelledSink.aborted,tru
 - [ ] **緑確認。** 同コマンド→PASS。codec非対応での中止はその異常系のPASSであり、必須MP4実出力が未確認なら機能全体はBLOCKED。
 - [ ] **コミット。** `git add app/studio/export.js tools/test/studio/export-browser.mjs`、`git commit -m "feat(studio): export timestamp-preserving audiovisual ranges"`。
 
-### T18: 30秒混合作品でエンジンの受入確認
+### Task 18: 30秒混合作品でエンジンの受入確認
 
 **Files:** Create `tools/test/studio/mixed-fixture.mjs`; Test `tools/test/studio/mixed-browser.mjs`; Create `docs/studio-validation.md`（実測欄のみ、未測定を成功記載しない）。
 
@@ -505,7 +505,7 @@ shortは6–24秒に加え9–11／13–15／18–20秒を出力。始点での�
 
 ## 6. 段階D — 操作画面と工房
 
-### T19: 独立STUDIO画面と状態・保存操作
+### Task 19: 独立STUDIO画面と状態・保存操作
 
 **Files:** Create `app/studio.html`, `app/studio.css`, `app/studio/controller.js`, `app/studio/view.js`; Modify `app/sequence.html` の05入口表示／STUDIOリンクのみ; Test `tools/test/studio/ui-browser.mjs`。
 
@@ -525,7 +525,7 @@ assert.equal(await currentProjectIdAfterBadImport(),currentBefore);
 - [ ] **緑確認。** 同コマンド→PASS、入口だけ変更した旧sequenceの手動基本操作も確認。
 - [ ] **コミット。** `git add app/studio.html app/studio.css app/studio/controller.js app/studio/view.js app/sequence.html tools/test/studio/ui-browser.mjs`、`git commit -m "feat(studio): add independent editor screen and save states"`。
 
-### T20: タイムライン・歌詞同期・配置再編集の実操作
+### Task 20: タイムライン・歌詞同期・配置再編集の実操作
 
 **Files:** Create `app/studio/timeline.js`, `app/studio/inspector.js`; Modify `app/studio/controller.js`, `app/studio/view.js`, `app/studio/commands.js`, `app/studio.css`; Test `tools/test/studio/edit-ui-browser.mjs`。
 
@@ -546,7 +546,7 @@ assert.equal(await exportDisabledForOutOfRangeShort(),true);
 - [ ] **緑確認。** 同コマンド＋T19＋T18→PASS。
 - [ ] **コミット。** `git add app/studio/timeline.js app/studio/inspector.js app/studio/controller.js app/studio/view.js app/studio/commands.js app/studio.css tools/test/studio/edit-ui-browser.mjs`、`git commit -m "feat(studio): connect timeline edits and layout inspectors"`。
 
-### T21: 工房図鑑から設定コピーを配置
+### Task 21: 工房図鑑から設定コピーを配置
 
 **Files:** Create `app/studio/workshop.js`; Modify `app/studio/view.js`, `app/studio/controller.js`, `app/studio.css`; Test `tools/test/studio/workshop-browser.mjs`。
 
@@ -568,7 +568,7 @@ assert.deepEqual(await workshopStorageAfterPlacement(),workshopStorageBefore);
 
 ## 7. 段階E — 1曲実測・回帰・引き渡し
 
-### T22: 1曲通し・資源回収・旧機能の回帰
+### Task 22: 1曲通し・資源回収・旧機能の回帰
 
 **Files:** Create `tools/test/studio/full-song-browser.mjs`, `tools/test/studio/legacy-browser.mjs`, `tools/test/studio/run-browser.mjs`; Modify `docs/studio-validation.md`, `tools/test/workshop-collection-browser.mjs`, `tools/test/workshop-collection-surfaces.mjs`, `tools/test/workshop-collection-text.mjs`, `tools/test/workshop-collection-integration.mjs`（最後の4本は起動環境の指定だけ）。
 
