@@ -33,3 +33,54 @@
 .tl-chip.chip-fx{border-color:#6fae86;background:#1d3328}
 .tl-chip.chip-unfold{border-color:#4a8d88;background:#18302f}
 .tl-chip-hint{font-size:11px;color:var(--muted)}
+
+/* the left list: one line per scene, the open scene lists its layers */
+.library-scene{width:100%;text-align:left;font-size:12px;min-height:30px;padding:4px 8px;background:#1d292c}
+.library-scene.open{border-color:var(--mint);color:var(--mint)}
+.library-list .asset-card{margin-left:10px;min-height:28px;padding:4px 8px}
+.footer-project{display:flex;align-items:baseline;gap:8px}
+.footer-project h1{font-size:12px;margin:0;font-weight:600;letter-spacing:.03em;color:var(--ink);font-family:inherit}
+.export-note{margin:4px 0;font-size:11px;color:var(--muted);line-height:1.5}
+
+/* the short export is folded away until it is wanted (open by itself when the project already has one) */
+.short-details{border-top:1px solid var(--line);margin-top:6px;padding-top:4px}
+.short-details>summary{cursor:pointer;font-size:12px;color:var(--mint);padding:5px 0}
+.short-details .short-editor{border-top:0;margin-top:2px;padding-top:0}
+
+/* one screen: the window is the page and each panel scrolls inside itself (narrow windows keep the old stacked page) */
+@media(min-width:1000px) and (min-height:620px){
+ html,body{height:100%;overflow:hidden}
+ #studio,.studio-root{height:100vh;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto}
+ .studio-header{min-height:0;padding:6px 14px;gap:12px}
+ .brand{font-size:16px}.brand span{font-size:11px;padding-left:8px}
+ .header-caption,.shelf h2,.shelf>.panel-label,.preview-heading .panel-label,.inspector>.panel-label,.timeline-heading .panel-label,.timeline-heading h2{display:none}
+ .project-bar{padding:0}.view-switch{padding:2px}
+ .header-actions{margin-left:auto}.status{margin-left:0}
+ .header-actions button,.view-switch button{min-height:28px;padding:3px 9px;font-size:12px}
+ .studio-grid{grid-template-columns:224px minmax(0,1fr) 262px;gap:8px;padding:8px 14px 0;align-items:stretch;min-height:0}
+ .shelf,.inspector{max-height:none;min-height:0;overflow:auto;padding:10px}
+ .import-controls{grid-template-columns:1fr 1fr;gap:5px}
+ .import-controls button{min-height:30px;padding:4px 6px;font-size:11.5px;line-height:1.3}
+ .import-controls select,.import-controls hr,.import-controls .lyrics-input{grid-column:1/-1}
+ .import-controls>button:first-of-type{grid-column:1/-1}
+ .library-list{margin-top:10px;gap:4px}
+ .preview{min-height:0;display:flex;flex-direction:column;padding:8px;position:relative;overflow:hidden}
+ .preview-heading{padding:0 2px 6px}
+ .canvas-stage{flex:1 1 auto;height:auto;min-height:0}
+ .transport{padding:6px 0 0}.transport output{font-size:16px}
+ .scrubber{height:16px}
+ .notice{min-height:0;padding:2px 0;font-size:11px}
+ .preview>button[data-testid=comparison-toggle]{align-self:flex-start;min-height:26px;font-size:11px;padding:2px 8px;margin-top:2px}
+ .comparison-panel{position:absolute;right:16px;top:40px;z-index:5;margin:0;max-width:200px}
+ .comparison-panel .comparison{max-height:220px}
+ .inspector{display:flex;flex-direction:column;overflow:hidden}
+ .inspector-slot{flex:1 1 auto;min-height:0;overflow:auto}
+ .export-controls{flex:none;max-height:46%;overflow:auto;margin-top:8px;padding-top:8px}
+ .export-controls .panel-label{color:var(--mint)}
+ .timeline-panel{margin:8px 14px 0;padding:6px 10px;min-height:0;max-height:42vh;overflow:auto}
+ .timeline-heading{gap:10px}.timeline-heading .lock-controls{margin-left:0}.timeline-heading .clip-total{margin-left:auto}
+ .lock-controls button,.timeline-tools button{min-height:28px;padding:3px 9px;font-size:12px}
+ .timeline-tools{padding:4px 0}
+ .timeline-scroll{max-height:30vh}
+ footer{padding:3px 14px}
+}
