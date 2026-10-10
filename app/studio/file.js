@@ -1,0 +1,17 @@
+import {assertProject,clone,StudioError} from './model.js';
+import {blobHash,collectAssetRefs} from './assets.js';
+const MAGIC='UNFOLD-STUDIO-1\n',MAX_MANIFEST=16*1024*1024,CHUNK=4*1024*1024;
+export function checkAbort(signal){if(signal?.aborted)throw new StudioError('ABORTED');}
+export async function writeStudioFile(project,assets,sink,{signal}={}){
+ try{checkAbort(signal);assertProject(project);const p=clone(project),refs=collectAssetRefs(p);p.assets=Object.fromEntries(Object.entries(p.assets).filter(([id])=>refs.has(id)));const used=new Set(p.clips.map(c=>c.unfoldId).filter(Boolean));p.unfolds=Object.fromEntries(Object.entries(p.unfolds).filter(([id])=>used.has(id)));
+ const entries=[],blobs=[];let offset=0;for(const id of refs){checkAbort(signal);const blob=await assets.get(id);if(!blob)throw new StudioError('MISSING_ASSET');const meta=p.assets[id];if(blob.size!==meta.byteLength||await blobHash(blob)!==meta.hash)throw new StudioError('ASSET_HASH_MISMATCH');entries.push({id,offset,length:blob.size,hash:meta.hash,type:meta.type});blobs.push(blob);offset+=blob.size;}
+ const bytes=new TextEncoder().encode(JSON.stringify({format:'unfold-studio',version:1,project:p,assets:entries}));if(bytes.length>MAX_MANIFEST)throw new StudioError('INVALID_MANIFEST');const length=new Uint8Array(8);new DataView(length.buffer).setBigUint64(0,BigInt(bytes.length),true);
+ for(const part of [new TextEncoder().encode(MAGIC),length,bytes]){checkAbort(signal);await sink.write(part);}for(const blob of blobs)for(let start=0;start<blob.size;start+=CHUNK){checkAbort(signal);await sink.write(new Uint8Array(await blob.slice(start,start+CHUNK).arrayBuffer()));}checkAbort(signal);await sink.close();
+ }catch(e){await sink.abort(e).catch(()=>{});throw e;}
+}
+export async function readStudioFile(blob,{signal}={}){
+ checkAbort(signal);if(blob.size<MAGIC.length+8||await blob.slice(0,MAGIC.length).text()!==MAGIC)throw new StudioError('INVALID_MANIFEST');const big=new DataView(await blob.slice(MAGIC.length,MAGIC.length+8).arrayBuffer()).getBigUint64(0,true);if(big<2n||big>BigInt(MAX_MANIFEST)||big>BigInt(blob.size-MAGIC.length-8))throw new StudioError('INVALID_MANIFEST');const base=MAGIC.length+8+Number(big);let m;try{m=JSON.parse(await blob.slice(MAGIC.length+8,base).text());}catch{throw new StudioError('INVALID_MANIFEST');}
+ if(m.format!=='unfold-studio'||m.version!==1)throw new StudioError('UNSUPPORTED_VERSION');assertProject(m.project);if(!Array.isArray(m.assets))throw new StudioError('INVALID_MANIFEST');const blobs=new Map(),seen=new Set();let previousEnd=0;
+ for(const e of [...m.assets].sort((a,b)=>a.offset-b.offset)){checkAbort(signal);if(!e||typeof e.id!=='string'||seen.has(e.id)||!Number.isSafeInteger(e.offset)||!Number.isSafeInteger(e.length)||e.offset<previousEnd||e.length<0)throw new StudioError('INVALID_ASSET_RANGE');if(e.offset+e.length>blob.size-base)throw new StudioError('MISSING_ASSET');seen.add(e.id);previousEnd=e.offset+e.length;const meta=m.project.assets[e.id];if(!meta||meta.byteLength!==e.length||meta.hash!==e.hash)throw new StudioError('INVALID_ASSET_RANGE');const b=blob.slice(base+e.offset,base+e.offset+e.length,meta.type);if(await blobHash(b)!==e.hash)throw new StudioError('ASSET_HASH_MISMATCH');blobs.set(e.id,b);}
+ for(const id of collectAssetRefs(m.project))if(!blobs.has(id))throw new StudioError('MISSING_ASSET',[{code:'MISSING_ASSET',targetId:id}]);checkAbort(signal);return {project:m.project,blobs};
+}
