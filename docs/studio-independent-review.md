@@ -74,3 +74,37 @@ Reviewed 2026-10-10. Baseline: `5977480..40490df09fdb9a16c9c15a4f5740213e69beeee
 - Existing UI tests primarily cover one layout edit, text focus deletion, short creation and invalid-file rejection; they do not exercise outgoing dirty valid imports, video duplication, unlocked lyric drags, or restored-short input hydration. The duration fixture adds music before visual editing, masking finding 2. Resource tests chiefly exercise completed lifecycles, masking finding 5.
 - Explicitly declared unsupported standalone text/silhouette geometry, fixed horizontal UNFOLD composition in tall output, arbitrary p5 code and non-Mac-Chrome compatibility were not treated as new defects. Human listening and licensed-song material remain outside the evidence available here.
 - This is a baseline review, not a certification of concurrent fixes. Findings require regression tests and relevant final-suite checks before the parent declares the work complete. No push, merge or publication occurred.
+
+## Follow-up review — `d1d903dacdb26fd346b5f05d4458cbfb43508efd`
+
+Reviewed the seven fixes and added regression tests. The original reproductions are addressed: dirty state survives a failed save; writer-project imports preserve outgoing edits; first-song length no longer depends on empty scenes; duplicated video audio is copied in one batch; lyric moves use the existing timing command; late bitmaps are closed; duration envelopes track explicit trims; and restored shorts hydrate their input values without resetting draft fades on playhead updates. Independently reran the audio mix/edit Node tests: **13 passed, 0 failed**.
+
+Independently reran `controller-review-browser.mjs`, `short-state-browser.mjs`, and `cancel-renderer-browser.mjs` in isolated Chrome contexts: **all three passed**. These tests confirm the stated seven original fixes; they do not cover lease loss before switching.
+
+**Follow-up verdict at this commit: changes still required for one remaining P1 variant of finding 1.**
+
+### 1a. P1 — Losing the writer lease bypasses dirty-project preservation
+
+- Location: `app/studio/controller.js:44`, `:45`, `:61`, new `if(dirty && currentLease.mode === 'writer')` preservation checks.
+- Reproduction: save project A with name `saved`; rename it to `unsaved`; before autosave, let a second tab acquire its lease using `takeover:true`; wait until A becomes read-only; open a valid new STUDIO file.
+- Fresh isolated Chrome result: before import `{readOnly:true,name:'unsaved'}`; afterward `{outgoingSavedName:'saved',changedProject:true,undo:false}`. The new condition bypasses preservation entirely when a previously writable dirty project becomes read-only. The same conditional is used by new-project and saved-project switching.
+- Required fix: explicitly retain a dirty read-only project and give an actionable recovery error, or preserve its edits as a safe independent copy, before any history-resetting switch. A pristine reader should remain free to switch. Do not overwrite the new lease owner's project.
+- Regression: take over a dirty writer before autosave; attempt all three switches; verify the dirty in-memory project and Undo remain until recovery. This case differs from an ordinary save failure while retaining the writer lease.
+
+## Final follow-up verdict — `eba725f1442768d44f12554ac5db8c20c9747979`
+
+**Approved for the reviewed implementation and fixes: no remaining Critical or Important finding identified in this review.** This supersedes the earlier baseline and follow-up verdicts above.
+
+The remaining lease-loss variant is fixed by the shared `preserveOutgoing` guard. All three switching operations now reject a dirty read-only project before resetting its history or activating a replacement; they retain the project and explain recovery. Dirty writer projects still must save successfully before switching. Pristine read-only projects may switch, and the guard does not overwrite another writer's data.
+
+Independently ran `node tools/test/studio/dirty-lease-browser.mjs` in isolated Chrome at this commit: **PASS**, including rejection and preservation for `newProject`, `openSaved`, and `openFile`, followed by successful takeover, save, and switching. Reviewed the accompanying integration-test change: saving before the invalid-file equality snapshot removes unrelated autosave revision changes without weakening the invalid-file preservation assertion.
+
+Across these follow-ups, independent focused verification comprises **13 passing Node audio tests and four passing browser regression suites**. The implementation agent's full 24-browser-suite run is still in progress at the time of this verdict; completion of that final suite remains a release/handoff verification requirement, not an unresolved code-review finding. Existing platform/media limitations and the absence of human listening/licensed-song verification remain as documented. No product files were edited by the reviewer, and no push, merge or publication was performed.
+
+## Small-diff follow-up — `a8b5c89e6acb0440c8852159dacafd2b32428f78`
+
+Reviewed the canvas-relative safe-guide change in `app/studio/view.js` and `app/studio.css`. The observer measures the displayed canvas, the overlay remains centered by the preview stage's existing flex alignment, and disposal disconnects the observer before removing the view. This is an editor-only guide; the compositor/export pixels are unaffected. **The approved review verdict is unchanged; no new Critical or Important finding.**
+
+Independently reran `tools/test/studio/guides-browser.mjs`: **PASS**. Landscape guide width was `564.469px` versus expected `564.48px`; portrait was `178.594px` versus expected `178.605px`. Both heights were `302.391px` versus expected `302.4px`. Thus the observed discrepancies were below `0.02px` in this Chrome test. Independent focused browser verification now totals five passing suites.
+
+Also read the new `legacy-sequence-browser.mjs` regression test. It exercises legacy image setup, lyric timing, music, Undo/Redo, project-file roundtrip, real two-second H.264/AAC output decoding, and legacy autosave clearing while retaining STUDIO data. Its reported PASS comes from the implementation agent; it was not independently rerun here. The comprehensive browser runner and final integration rerun are still pending at the time of this note.
