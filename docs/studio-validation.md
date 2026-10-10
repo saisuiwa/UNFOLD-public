@@ -2,7 +2,7 @@
 
 Implementation branch: `codex/studio-completion`; base `5977480`; dedicated worktree `~/Documents/Codex/2026-10-10/task-2/unfold-studio`. Main, the previous worktree and user browser data are preserved. No push, merge or publication.
 
-Implementation and validation are complete through all22 tasks. The final independent review approves product commit `a8b5c89` with no unresolved Critical/Important findings. The required runner completed24/24 suites with exit0; two final supplemental suites (canvas guides and legacy sequence) also pass, and the integrated UI was rerun after the last product change. The runner enumerated its24 tests before those two additions; the next invocation includes all26. Final Node result:403pass,0fail,3preexisting skips. Library attachment delivery was completed through the formal direct-create fallback; see studio-followup.md.
+Implementation and validation are complete through all22 tasks. The final independent review approves product commit `a8b5c89` with no unresolved Critical/Important findings. The required runner completed24/24 suites with exit0; two final supplemental suites (canvas guides and legacy sequence) also pass, and the integrated UI was rerun after the last product change. The runner enumerated its24 tests before those two additions; the next invocation includes all26. Latest Node result after the plan-detail completion:404pass,0fail,3preexisting skips. Library attachment delivery was completed through the formal direct-create fallback; see studio-followup.md.
 
 ## Environment and method
 
@@ -18,7 +18,7 @@ Dependencies are Mediabunny1.61.3 (MPL2.0), p5.js2.3.3 (LGPL2.1) and esbuild0.25
 
 | Check | Observed result |
 | --- | --- |
-| Latest Node suite |403passed,0failed,3preexisting skips;406total |
+| Latest Node suite |404passed,0failed,3preexisting skips;407total |
 |30s wide |1920×1080,30fps,H.264/AAC;900 decoded frames |
 |30s tall |1080×1920,30fps,H.264/AAC;900 decoded frames |
 | Continuous tall cuts |6–24s,9–11s,13–15s,18–20s; exact decoded frame counts and audio ends; original project unchanged |
@@ -58,10 +58,22 @@ Final UI PNGs and real audio/video demos are staged in `tools/out/studio/deliver
 
 ## Final reproducible checks
 
-- `node --test tools/test/*.test.mjs tools/test/studio/*.test.mjs`:403pass,0fail,3existing skips (the same historic layout/key/shape comparison skips).
+- `node --test tools/test/*.test.mjs tools/test/studio/*.test.mjs`:404pass,0fail,3existing skips (the same historic layout/key/shape comparison skips).
 - `node tools/test/studio/run-browser.mjs`:24/24 mandatory suites at enumeration time, all exit0.
 - `node tools/test/studio/guides-browser.mjs` and `node tools/test/studio/legacy-sequence-browser.mjs`:both PASS on final product code.
 - Final `integration-ui-browser.mjs` rerun:PASS including real AudioContext playback and view switches.
 - `git diff --check`:clean. Main remains5977480 and clean; no push/merge/publication.
 
 All browser tests are complete; no test process needs resuming. All four generated files are now in Library; the parent can attach their returned file IDs without accessing the Mac paths.
+
+## Selected-scene and explicit-path completion
+
+The remaining two plan details are now implemented. Timeline expands only one selected scene. All scene/global lyric/audio rows retain the shared scale; scene/clip selection pins the editor target while a separate highlight follows playback. Without a selection, it follows the current scene. The actual controller/DOM test verifies one scene, global lyrics remaining visible, no project mutation from selection, and identical scene/clip positions after zoom.
+
+`UNFOLD_STUDIO_SONG_FIXTURE` now accepts an explicitly supplied local regular file and never searches user folders. Real audio probing determines duration; source bytes/hash are preserved, the project rounds up to a30fps boundary, and the main track ends at its original source end. Invalid input fails instead of substituting the synthetic source. See `studio-song-fixture.md` for exact commands, the30s minimum for this mixed validation fixture, output paths and the calibration gain used only by the fixture.
+
+Final relevant checks: whole Node suite404pass/0fail/3preexisting skips; scene-focus, ui, edit-ui, integration-ui, short-state, controller-review and song-fixture browser suites PASS; full-song-browser with the explicitly named original synthetic180s WAV PASS. The32.125s fractional test yields964frames/project32133333us/source32125000us and checks the default generated route too. Existing30s video artifacts were not regenerated or resent.
+
+The explicit-path full-song report records5400 decoded frames,8,640,000 samples, audio end180s, marker delta0.104ms, saved portrait chorus240frames/384000samples, disposed layers/frames/iframes0. Export/decode/save-short stage399.3604s, output79,936,119bytes. Sampled JS heap at5/10/20cycles:361,603,134 /140,797,595 /75,471,519bytes; these include fixture transfer/allocation and are not a GPU/process peak claim. Input is `/tmp/UNFOLD-original-180.wav` generated by the tracked script, SHA256 `b6fb4d1203539e22bbf5d636eaa1362daba1535c455cdf90e4ea6cf0c6f87fc2`. Actual user songs and human listening remain unverified.
+
+Evidence: `tools/out/studio/followup-*-run.log` and `full-song-path-report.json`. No test remains running. Screenshots were replaced under the same Library identities at version1; videos stay at version0. No new independent reviewer was commissioned for this bounded follow-up, as requested; the earlier review remains scoped to its recorded baseline and fixes.

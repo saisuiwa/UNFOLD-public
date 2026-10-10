@@ -1,6 +1,6 @@
 # Final status — all22 implementation tasks complete
 
-Current worktree: `~/Documents/Codex/2026-10-10/task-2/unfold-studio`; branch `codex/studio-completion`; final product revision `a8b5c89`. The chronological ledger below retains the previous worktree and pause history. Final delivery attachment subsequently succeeded through the formal direct-create fallback; see studio-followup.md.
+Current worktree: `~/Documents/Codex/2026-10-10/task-2/unfold-studio`; branch `codex/studio-completion`; independently reviewed baseline product revision `a8b5c89` (subsequent plan-detail completion below). The chronological ledger below retains the previous worktree and pause history. Final delivery attachment subsequently succeeded through the formal direct-create fallback; see studio-followup.md.
 
 # SDD ledger — plan: docs/superpowers/plans/2026-10-10-studio-implementation.md
 
@@ -91,3 +91,11 @@ Task22: complete — required runner24/24 exit0 plus2 final supplemental browser
 No running test remains. Main remains5977480 and clean. Only parent-side formal Library attachment remains; see tools/out/studio/delivery/attachment-handoff.json.
 
 Follow-up: clarified that unsupported text/silhouette means UNFOLD target geometry, not ordinary lyric/text layers. Four generated artifacts now have confirmed Library IDs via formal direct-create batch fallback. Minor plan differences (all scenes expanded; external real-song test fixture importer absent) are documented in studio-followup.md, distinct from reviewer findings. No product change in this follow-up.
+
+## Completion of the two follow-up plan details
+
+Selected-scene UI: RED expected1 clip row but observed2; GREEN only the selected scene expands while all scene/global lyric/audio rows retain the same time scale. Separate playback highlight, scene/clip selection, global lyric selection, zoom alignment and unchanged project state are tested with the real controller. An additional RED showed unselected seek retaining sceneA instead of current sceneB; GREEN follows the playhead only while there is no explicit selection.
+
+Explicit song input: RED full-song runner rejected UNFOLD_STUDIO_SONG_FIXTURE; new path-reader test also failed before its implementation. The runner now reads only the supplied regular file, probes its actual audio, retains original bytes/hash, derives frame-aligned project duration and preserves source end. Fast Chrome verification uses an original32.125s WAV (964frames,32133333us project,32125000us audio), and also checks the unchanged default180s synthetic route. Missing/non-file paths reject. The long acceptance uses only /tmp/UNFOLD-original-180.wav produced by the tracked generator, not a user song.
+
+Follow-up acceptance complete: whole Node404pass0fail3existing skips; seven relevant browser suites plus full-song explicit-path PASS. Original180s WAV path produced5400frames, audio end180s, marker0.104ms, saved short240frames and disposed resources0. Library screenshots updated in place toversion1; videos unchanged. The two previously noted plan differences are closed. No running process, no push/merge/publication.
