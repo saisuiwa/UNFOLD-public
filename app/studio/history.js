@@ -1,6 +1,7 @@
 import {clone,assertProject} from './model.js';
 import {applyCommand} from './commands.js';
-export function projectAssetRefs(p){const refs=new Set();for(const x of [...p.clips,...p.lyrics,...p.audio]){if(x.assetId)refs.add(x.assetId);if(x.motion?.fontAssetId)refs.add(x.motion.fontAssetId);if(x.unfoldId)for(const id of p.unfolds[x.unfoldId]?.dependencies||[])refs.add(id);}return refs;}
+import {collectAssetRefs as projectAssetRefs} from './assets.js';
+export {projectAssetRefs};
 function label(c){if(c.type==='setLayout')return c.viewId==='tall'?'縦の配置変更':'横の配置変更';if(c.type.startsWith('split'))return '共通の分割';if(c.type==='setLock')return '位置固定の変更';return '共通の編集';}
 export function createHistory(initial){
  let states=[clone(assertProject(initial))],labels=[],index=0,revision=initial.revision;
