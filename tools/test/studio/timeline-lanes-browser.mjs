@@ -29,6 +29,9 @@ await withStudioPage(async page=>{
  await page.evaluate(()=>c.select({kind:'lyric',id:'L2'}));text=await chips();assert.match(text,/文字の動き\s*ふわっと/);assert.doesNotMatch(text,/四角トンネル/);assert.match(text,/書体・色\s*明朝/);
  await page.evaluate(()=>c.select({kind:'scene',id:'A'}));assert.match(await chips(),/背景\s*四角トンネルの背景/);
  await page.evaluate(()=>c.select(null));assert.match(await chips(),/選ぶと/);
+ // clicking the ruler moves the playhead (the monitor follows)
+ const box=await page.locator('.time-ruler').boundingBox(),head=await page.evaluate(()=>parseFloat(getComputedStyle(document.querySelector('.timeline-tracks')).getPropertyValue('--lane-head')));
+ await page.mouse.click(box.x+head+(box.width-head)*.5,box.y+box.height/2);await page.waitForFunction(()=>{const t=document.querySelector('[data-testid=studio-time]').textContent;const [m,s]=t.split(':');return Math.abs(Number(m)*60+Number(s)-15)<0.5;});
  // one lane height each: the four lanes plus two layer rows fit in a short band
  const height=await page.evaluate(()=>document.querySelector('.timeline-tracks').getBoundingClientRect().height);assert.ok(height<330,'the lanes stay compact: '+height);
  await page.evaluate(()=>c.dispose());console.log('PASS sequence-style lanes: one lane each, text motion named on every lyric, chips for the selection',{height:Math.round(height)});

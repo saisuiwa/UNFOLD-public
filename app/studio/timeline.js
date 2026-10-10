@@ -4,6 +4,11 @@ import {lyricMotionName,sceneSummary,chipsFor,isEffectClip,isBackgroundClip,clip
 const SUB=26;
 export function mountTimeline(root,controller){let version='',zoom=1,state,drag=false,focusedSceneId=null,projectId=null;root.tabIndex=0;root.setAttribute('aria-label','タイムライン');
  const run=fn=>action(controller,fn)(),b=(t,f)=>button(controller,t,f);const toolbar=el('div',{class:'timeline-tools'},b('シーンを追加',()=>controller.addScene()),b('再生位置で分割',()=>controller.editSelected('split')),b('配置を複製',()=>controller.editSelected('duplicate')),b('選択を削除',()=>controller.editSelected('delete')),field('拡大',1,v=>{zoom=Math.max(1,Math.min(8,v));version='';render(state);},{min:1,max:8,step:.5}));const waveCache=new Map();const scroller=el('div',{class:'timeline-scroll'}),tracks=el('div',{class:'timeline-tracks'}),chips=el('div',{class:'timeline-chips','data-testid':'timeline-chips','aria-live':'polite'});scroller.append(tracks);root.append(toolbar,scroller,chips);
+ // click or drag on the ruler or an empty stretch of a lane to move the playhead (the preview follows)
+ let seeking=false,seekBusy=false;const seekTo=e=>{const rect=tracks.getBoundingClientRect(),head=parseFloat(getComputedStyle(tracks).getPropertyValue('--lane-head'))||76,frac=Math.min(1,Math.max(0,(e.clientX-rect.left-head)/Math.max(1,rect.width-head)));if(seekBusy||!state)return;seekBusy=true;controller.seek(Math.round(frac*state.project.durationUs)).catch(()=>{}).finally(()=>{seekBusy=false;});};
+ tracks.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('.timeline-block,.lane-label,button,.selected-scene-heading'))return;if(!e.target.closest('.time-ruler,.lane-rail'))return;seeking=true;tracks.setPointerCapture?.(e.pointerId);seekTo(e);});
+ tracks.addEventListener('pointermove',e=>{if(seeking)seekTo(e);});
+ const stopSeek=()=>{seeking=false;};tracks.addEventListener('pointerup',stopSeek);tracks.addEventListener('pointercancel',stopSeek);
  root.addEventListener('keydown',e=>{if(!['Delete','Backspace'].includes(e.key)||e.target.closest('input,textarea,select,[contenteditable]'))return;e.preventDefault();run(()=>controller.editSelected('delete'));});
  // one block on a rail: select, move and trim (the same gestures for every lane)
  function block(kind,item,start,end,label,{rail,locked=false,testid,content,top=4,height=30,cls=kind,title}={}){
