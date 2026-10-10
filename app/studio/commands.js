@@ -18,6 +18,8 @@ export function applyCommand(project,command){
 function execute(p,c){
  switch(c.type){
  case 'batch':for(const command of c.commands)execute(p,command);break;
+ case 'registerAssets':addAssets(p,c.assetMetas);break;
+ case 'setDuration':p.durationUs=c.durationUs;break;
  case 'setLock':if(!['music','lyrics'].includes(c.track)||typeof c.locked!=='boolean')fail('INVALID_LOCK');p.locks[c.track]=c.locked;break;
  case 'setLyricText':{const l=findById(p.lyrics,c.id);l.text=c.text;l.runs=clone(c.runs);break;}
  case 'setLyricAppearance':patch(findById(p.lyrics,c.id),c.patch,['motion','opacity']);break;
