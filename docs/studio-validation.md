@@ -2,7 +2,7 @@
 
 Implementation branch: `codex/studio-completion`; base `5977480`; dedicated worktree `~/Documents/Codex/2026-10-10/task-2/unfold-studio`. Main, the previous worktree and user browser data are preserved. No push, merge or publication.
 
-Implementation and validation are complete through all22 tasks. The final independent review approves product commit `a8b5c89` with no unresolved Critical/Important findings. The required runner completed24/24 suites with exit0; two final supplemental suites (canvas guides and legacy sequence) also pass, and the integrated UI was rerun after the last product change. The runner enumerated its24 tests before those two additions; the next invocation includes all26. Final Node result:403pass,0fail,3preexisting skips. Library attachment delivery remains blocked as described below.
+Implementation and validation are complete through all22 tasks. The final independent review approves product commit `a8b5c89` with no unresolved Critical/Important findings. The required runner completed24/24 suites with exit0; two final supplemental suites (canvas guides and legacy sequence) also pass, and the integrated UI was rerun after the last product change. The runner enumerated its24 tests before those two additions; the next invocation includes all26. Final Node result:403pass,0fail,3preexisting skips. Library attachment delivery was completed through the formal direct-create fallback; see studio-followup.md.
 
 ## Environment and method
 
@@ -54,7 +54,7 @@ Export uses bounded sequential fragmented MP4 writes through the file picker in 
 
 ## Delivery status
 
-Final UI PNGs and real audio/video demos are staged in `tools/out/studio/delivery/` with SHA-256 checksums and `attachment-handoff.json`. The formal Library batch was attempted using the current helper. The environment could not expose the required prepared-upload capability; preparation/file creation never occurred, and no Library IDs were returned. These files need attachment from the parent task on the same Mac. No direct-upload bypass or public share was used.
+Final UI PNGs and real audio/video demos are staged in `tools/out/studio/delivery/` with SHA-256 checksums and `attachment-handoff.json`. The prepared helper initially failed before preparation because it could not discover prepare_uploads. On the authorized follow-up, the current catalog exposed direct create with files batches. The formal fallback succeeded for all four files, and returned identities/xattrs were persisted locally. See studio-followup.md and delivery/library-results.json for exact IDs. No public share was created.
 
 ## Final reproducible checks
 
@@ -64,4 +64,4 @@ Final UI PNGs and real audio/video demos are staged in `tools/out/studio/deliver
 - Final `integration-ui-browser.mjs` rerun:PASS including real AudioContext playback and view switches.
 - `git diff --check`:clean. Main remains5977480 and clean; no push/merge/publication.
 
-All browser tests are complete; no test process needs resuming. The remaining handoff is formal Library attachment of the four generated files in `tools/out/studio/delivery/`.
+All browser tests are complete; no test process needs resuming. All four generated files are now in Library; the parent can attach their returned file IDs without accessing the Mac paths.

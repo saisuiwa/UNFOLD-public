@@ -1,6 +1,6 @@
 # Final status — all22 implementation tasks complete
 
-Current worktree: `~/Documents/Codex/2026-10-10/task-2/unfold-studio`; branch `codex/studio-completion`; final product revision `a8b5c89`. The chronological ledger below retains the previous worktree and pause history. Final delivery attachment is blocked by Library availability; code, tests and review are complete.
+Current worktree: `~/Documents/Codex/2026-10-10/task-2/unfold-studio`; branch `codex/studio-completion`; final product revision `a8b5c89`. The chronological ledger below retains the previous worktree and pause history. Final delivery attachment subsequently succeeded through the formal direct-create fallback; see studio-followup.md.
 
 # SDD ledger — plan: docs/superpowers/plans/2026-10-10-studio-implementation.md
 
@@ -89,3 +89,5 @@ Task21: final acceptance complete — independent workshop snapshots, no old-sto
 Task22: complete — required runner24/24 exit0 plus2 final supplemental browser suites; Node403pass0fail3existing skips. Final180s5400frames,8,640,000audio samples, audio end180s, marker delta0.104ms, final disposed layers/frames/iframes0. Export/decode+saved chorus454.741s; whole full-song suite491.541s. Reviewer approves a8b5c89 with no unresolved Critical/Important finding.
 
 No running test remains. Main remains5977480 and clean. Only parent-side formal Library attachment remains; see tools/out/studio/delivery/attachment-handoff.json.
+
+Follow-up: clarified that unsupported text/silhouette means UNFOLD target geometry, not ordinary lyric/text layers. Four generated artifacts now have confirmed Library IDs via formal direct-create batch fallback. Minor plan differences (all scenes expanded; external real-song test fixture importer absent) are documented in studio-followup.md, distinct from reviewer findings. No product change in this follow-up.
