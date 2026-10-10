@@ -832,5 +832,1020 @@ function update(t){
 }
 function dispose(){quad.geometry.dispose();material.dispose();}
 update(0);
+return {update,dispose};`},
+ {key:'gucha-ripple',name:'中心から波紋で弾む',desc:'中心から外へ波紋のように、文字がぽんぽんと時間差で弾んで現れます。',added:'2026-10-10',poster:.7,source:`// 中心に近い文字から順に、ばねで弾みながら四分の一回転して現れる。退場は中心から外へ順に縮んで消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+let dmax=1;
+function onLaid(){dmax=Math.max(1,...vis.map(l=>Math.hypot(l.x,l.y*1.6)));}
+function pose(l,t,u,v){
+ const d=Math.hypot(l.x,l.y*1.6)/dmax,lag=Math.min(life*.3,.9),span=intro*.62;
+ const e=clamp((t-d*lag)/span),q=clamp((life-t-(1-d)*Math.min(life*.18,.5))/outro);
+ const k=spring(e),turn=(1-smooth(e))*(l.r1>.5?1:-1)*Math.PI*.5,s=Math.max(.01,k)*(.3+.7*smooth(q));
+ place(l,l.x,l.y+(1-k)*em*.25,turn+(1-smooth(q))*(l.r2-.5)*1.2,s,s,smooth(e*4)*smooth(q*3));
+}
+update(0);
+return {update,dispose};`},
+ {key:'gucha-squash',name:'落ちてつぶれて立つ',desc:'上から落ちた文字がぺしゃりとつぶれて、弾みながら立ち上がります。',added:'2026-10-10',poster:.55,source:`// 文字が上から加速して落ち、着地でつぶれて何度か弾んで止まる。退場は伸びながら上へ吸い上げられて消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+function pose(l,t,u,v){
+ const tau=Math.max(0,t-stag*l.o),tl=intro*.5,bt=Math.max(0,tau-tl),q=1-smooth(v),h=H*.7/fit*(.7+.3*l.r1);
+ let y,sx=1,sy=1;
+ if(tau<tl){const k=tau/tl;y=l.y+h*(1-k*k);sy=1+.28*k*k;sx=1-.1*k*k;}
+ else{const sq=Math.exp(-7.5*bt)*Math.cos(bt*34);y=l.y+Math.abs(Math.sin(bt*Math.PI*2.6))*em*.45*Math.exp(-4.2*bt);sy=1-.5*sq;sx=1+.34*sq;y+=(sy-1)*em*.5;}
+ y+=q*q*H*.8/fit;sy*=1+q*1.2;sx*=1-.4*q;
+ place(l,l.x,y,0,sx,sy,smooth(tau/(tl*.4))*smooth(v*4));
+}
+update(0);
+return {update,dispose};`},
+ {key:'gucha-ghost',name:'分身が重なって一つに',desc:'ぶれた分身が回りながら本体に重なって、くっきりと一つの文字になります。',added:'2026-10-10',poster:.4,source:`// 色違いの分身を文字のまわりで回し、半径を縮めて本体へ重ねる。退場では分身が再び広がって消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const extra=Math.max(0,Math.min(3,Math.floor(150/Math.max(1,vis.length))-1));
+for(const l of vis){l.ghosts=[];for(let k=0;k<extra;k++){const m=createText(l.value,{textStart:l.start,fontSize:em,anchorX:'center',anchorY:'middle',color:api.accent,colorRanges:null});m.fillOpacity=0;m.outlineOpacity=0;root.add(m);l.meshes.push(m);l.ghosts.push(m);}}
+function put(m,x,y,rot,sx,sy,a,o){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=o;m.visible=a>.002;}
+function pose(l,t,u,v){
+ const m=(1-smooth(u))+(1-smooth(v)),mm=Math.min(1,m),R=em*1.15*mm,a=smooth(u*3)*smooth(v*3);
+ put(l.mesh,l.x+Math.sin(t*9+l.r1*6)*em*.035*mm,l.y+Math.cos(t*8+l.r2*6)*em*.035*mm,Math.sin(t*5+l.r3*6)*.06*mm,1,1,a,a);
+ l.ghosts.forEach((g,k)=>{const ang=k/Math.max(1,l.ghosts.length)*6.283+t*(2.4+l.r3)+l.r4*6.283;
+  put(g,l.x+Math.cos(ang)*R,l.y+Math.sin(ang)*R*.7,Math.sin(ang)*.25*mm,1+.1*mm,1+.1*mm,.45*smooth(mm*2)*a,0);});
+}
+update(0);
+return {update,dispose};`},
+ {key:'gucha-magnet',name:'磁石のように引き合う',desc:'外側に離れていた文字が磁石のように引き寄せられて、かちっと収まります。',added:'2026-10-10',poster:.8,source:`// 文字が中心と反対側の遠くから、だんだん加速して元の位置へ吸い付き、小さく震えて止まる。退場は弾かれて飛び去る
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+function pose(l,t,u,v){
+ const dx=l.x,dy=l.y*1.3,len=Math.hypot(dx,dy),ux=len>1?dx/len:Math.cos(l.r1*6.283),uy=len>1?dy/len:Math.sin(l.r1*6.283);
+ const far=W*.42/fit*(.5+.5*l.r2),e=Math.pow(u,2.2),q=1-smooth(v),qq=q*q*q;
+ const bt=Math.max(0,t-(stag*l.o+intro)),shake=u>=1?Math.sin(bt*70+l.r3*6)*Math.exp(-14*bt)*em*.09:0;
+ const k=(1-e)*far+qq*far;
+ place(l,l.x+ux*k+shake,l.y+uy*k*.8-shake*.5,(l.r4-.5)*2.2*(1-e)+(l.r1-.5)*2*qq,1,1,smooth(u*5)*smooth(v*3));
+}
+update(0);
+return {update,dispose};`},
+ {key:'gucha-lanes',name:'レーンを滑って揃う',desc:'文字が左右交互のレーンを滑ってきて、ぴたりと一列に揃います。',added:'2026-10-10',poster:.6,source:`// 文字を3段のレーンに分け、左右交互の方向から急加速・急減速で滑り込む。退場は別の向きへ滑り出る
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const q5=x=>{x=clamp(x);return x<.5?16*x*x*x*x*x:1-Math.pow(-2*x+2,5)/2};
+function pose(l,t,u,v){
+ const e=q5(u),q=q5(1-v),side=l.i%2?1:-1,lane=(l.i%3)-1,far=W*.55/fit;
+ place(l,l.x+side*far*(1-e)-side*far*q,l.y+lane*em*1.25*(1-e)-lane*em*1.25*q,0,1,1,smooth(u*4)*smooth(v*4));
+}
+update(0);
+return {update,dispose};`},
+ {key:'gucha-flip',name:'カードみたいにめくれる',desc:'文字がカードのようにくるりとめくれて、表向きにぴたっと止まります。',added:'2026-10-10',poster:.3,source:`// 文字をカードに見立てて縦軸で半回転させる。裏返しの間は鏡文字になり、行き過ぎてから止まる。退場はもう一度めくれて消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+function pose(l,t,u,v){
+ const bk=x=>{x=clamp(x);const c=1.5;return 1+(c+1)*Math.pow(x-1,3)+c*Math.pow(x-1,2)};
+ const e=bk(u),q=1-smooth(v),dir=l.i%2?1:-1,ang=(1-e)*Math.PI+q*Math.PI*dir,c=Math.cos(ang);
+ place(l,l.x,l.y+Math.sin(Math.abs(ang))*em*.35*dir,0,Math.abs(c)<.03?.03*(c<0?-1:1):c,1+.12*Math.sin(Math.abs(ang)),smooth(u*5)*smooth(v*5));
+}
+update(0);
+return {update,dispose};`},
+ {key:'gucha-bubble',name:'泡のように浮かび上がる',desc:'文字が泡のようにゆらゆら浮かび上がり、最後はぷくっとふくらんで消えます。',added:'2026-10-10',poster:.5,source:`// 下から横に揺れながら浮かんで元の位置へ。伸び縮みしながら小さく膨らむ。退場は上へ浮かびふくらんで消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+function pose(l,t,u,v){
+ const e=1-Math.pow(1-clamp(u),3),q=1-smooth(v),rise=(1-e)*H*.6/fit*(.6+.4*l.r1);
+ const sway=Math.sin(t*3+l.r2*6.283)*em*.45*(1-e)+Math.sin(t*5+l.r3*6)*em*.05,w=Math.sin(t*9+l.r4*6.283)*.1*(1-e*.7);
+ const sc=(.25+.75*e)*(1+.4*q*q);
+ place(l,l.x+sway,l.y-rise+q*q*H*.35/fit,sway/em*.15,sc*(1+w),sc*(1-w),smooth(u*3)*(1-smooth(q*1.1)));
+}
+update(0);
+return {update,dispose};`},
+ {key:'gucha-rubber',name:'伸びてパチンと戻る',desc:'横に引き伸ばされた文字が、ゴムのようにパチンと戻って弾みます。',added:'2026-10-10',poster:.3,source:`// 左へ引っ張られて横に伸びた文字が、ばねで元の形に戻る（縮みすぎてから止まる）。退場は縦に引き伸ばされて消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+function pose(l,t,u,v){
+ const e=spring(u),q=1-smooth(v),s=(1-e)*2.4,sx0=Math.max(.2,1+s),qs=q*2.6;
+ const sx=sx0/Math.sqrt(1+qs),sy=1/Math.sqrt(sx0)*(1+qs);
+ place(l,l.x-s*em*.9,l.y+qs*em*.4,0,sx,sy,smooth(u*4)*smooth(v*4));
+}
+update(0);
+return {update,dispose};`},
+ {key:'gucha-strips',name:'横にずれて重なり合う',desc:'横に切れた文字の帯が左右にずれていて、すうっと重なって読める形に戻ります。',added:'2026-10-10',poster:.35,source:`// 文字を3本の横帯に切り、帯ごとに左右へ大きくずらしてから揃える。退場はまた帯がずれて消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const budget=Math.floor(150/Math.max(1,vis.length)),rowsN=budget>=3?3:budget>=2?2:1,per=rowsN;
+for(const l of vis){l.tiles=[l.mesh];
+ for(let k=1;k<per;k++){const m=createText(l.value,{textStart:l.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});m.fillOpacity=0;m.outlineOpacity=0;root.add(m);l.meshes.push(m);l.tiles.push(m);}
+ l.tr=l.tiles.map((_,k)=>({a:hash(l.i,k*3+1),b:hash(l.i,k*3+2)}));}
+function onLaid(){
+ for(const l of vis){const b=l.info&&l.info.blockBounds;if(!b||b.length!==4||!b.every(Number.isFinite))continue;
+  const h=b[3]-b[1];
+  l.tiles.forEach((m,k)=>{if(per===1){m.clipRect=null;return;}m.clipRect=[b[0]-1,b[3]-h*(k+1)/rowsN-1,b[2]+1,b[3]-h*k/rowsN+1];});}
+}
+function pose(l,t,u,v){
+ l.tiles.forEach((m,k)=>{const r=l.tr[k],dir=k%2?1:-1;
+  const e=spring(clamp((t-stag*l.o-k*.06)/(intro*.85))),q=1-smooth(clamp((life-t-stag*(1-l.o)-k*.04)/outro));
+  m.position.set(l.x+dir*(W*.4/fit*(.4+.6*r.a)*(1-e)+em*2.4*q*(.4+.6*r.b)),l.y,0);m.rotation.z=0;m.scale.set(1,1,1);
+  const a=smooth(e*4)*(1-smooth(q*1.2));m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;});
+}
+update(0);
+return {update,dispose};`},
+ {key:'gucha-steps',name:'直角に歩いて収まる',desc:'文字がマス目の上を横へ、続けて縦へと直角に歩いて、元の位置へ収まります。',added:'2026-10-10',poster:.6,source:`// 文字を整数マスぶん離れた位置に置き、まず横、続いて縦へ急加速・急減速で動かす。退場は縦、続いて横へ歩いて消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=>{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+const lines=[[]];let off=0;
+for(const ch of Array.from(String(text||''))){if(ch==='\\r')continue;if(ch==='\\n'){lines.push([]);off+=1;continue;}lines[lines.length-1].push({ch,start:off});off+=ch.length;}
+const count=lines.reduce((s,l)=>s+l.length,0),group=Math.max(1,Math.ceil(count/64));
+const L=[];
+lines.forEach((line,r)=>{for(let k=0;k<line.length;k+=group){const part=line.slice(k,k+group),value=part.map(p=>p.ch).join('');
+ const w=em*Math.max(.3,part.reduce((s,p)=>s+(/\\s/.test(p.ch)?.32:p.ch.codePointAt(0)<256?.6:1),0));
+ if(!value.trim()){L.push({row:r,w,meshes:[],blank:true});continue;}
+ const mesh=createText(value,{textStart:part[0].start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+ mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+ L.push({row:r,w,mesh,meshes:[mesh],value,start:part[0].start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});}});
+const vis=L.filter(l=>l.mesh);vis.forEach((l,j)=>{l.i=j;l.o=vis.length>1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.06,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;let cur=[],x=0;
+  for(const l of row){const b=l.mesh&&l.mesh.textRenderInfo&&l.mesh.textRenderInfo.blockBounds;
+   if(b&&b.length===4&&b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);
+   if(cur.length&&x+gap+l.w>limit){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=>{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a>.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&&l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const q5=x=>{x=clamp(x);return x<.5?16*x*x*x*x*x:1-Math.pow(-2*x+2,5)/2};
+function pose(l,t,u,v){
+ const ox=Math.round((l.r1-.5)*8)*em,oy=Math.round((l.r2-.5)*5)*em*1.1,ex=Math.round((l.r3-.5)*8)*em,ey=Math.round((l.r4-.5)*5)*em*1.1;
+ const a=q5(clamp(u*2)),b=q5(clamp(u*2-1)),r=1-v,c=q5(clamp(r*2)),d=q5(clamp(r*2-1));
+ place(l,l.x+ox*(1-a)+ex*d,l.y+oy*(1-b)+ey*c,(1-a)*(l.r1>.5?1:-1)*Math.PI*.5+d*(l.r3>.5?1:-1)*Math.PI*.5,1,1,smooth(u*4)*smooth(v*4));
+}
+update(0);
+return {update,dispose};`},
+ {key:'shader-ribbons',name:'うねるリボン',desc:'色の違う細いリボンが重なりながら、波のようにうねって流れます。',added:'2026-10-10',poster:1.1,source:`// 細い帯を6本、位相の違う sin 波で重ねて流す（for は6回の定数ループ）。後から描いた帯が上に来る
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec3 col=vec3(0.);
+  float cover=0.;
+  for(int i=0;i<6;i++){
+    float fi=float(i);
+    float y=.11*sin(p.x*(3.+fi*.7)+u_time*(1.1+fi*.23)+fi*1.7)+.05*sin(p.x*(7.+fi)-u_time*1.7+fi)+(fi-2.5)*.065;
+    float w=.026+.01*sin(fi+u_time);
+    float a=1.-smoothstep(w*.4,w,abs(p.y-y));
+    col=mix(col,pal(fi*.17+u_time*.05),a);      // 後の帯が上
+    cover=max(cover,a);
+  }
+  float box=(1.-smoothstep(.5,.74,abs(p.x)))*(1.-smoothstep(.25,.33,abs(p.y)));
+  gl_FragColor=vec4(col,cover*box*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-voronoi',name:'ひび割れの細胞',desc:'細胞のような区切りがゆっくり動いて、境目が光の線になって走ります。',added:'2026-10-10',poster:1.1,source:`// ボロノイ図（最近傍と2番目の距離の差）の境目だけを光らせる。点は sin でゆっくり漂う（3×3の定数ループ）
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+vec2 h22(vec2 p){p=vec2(dot(p,vec2(127.1,311.7)),dot(p,vec2(269.5,183.3)));return fract(sin(p)*43758.5453);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec2 g=p*5.5,id=floor(g),f=fract(g);
+  float d1=9.,d2=9.;
+  vec2 near=vec2(0.);
+  for(int j=-1;j<=1;j++){
+    for(int i=-1;i<=1;i++){
+      vec2 o=vec2(float(i),float(j));
+      vec2 r=.5+.42*sin(u_time*.8+TAU*h22(id+o));
+      vec2 q=o+r-f;
+      float d=dot(q,q);
+      if(d<d1){d2=d1;d1=d;near=id+o;}else if(d<d2){d2=d;}
+    }
+  }
+  float edge=sqrt(d2)-sqrt(d1);
+  float line=1.-smoothstep(.0,.1,edge);
+  float h=h22(near).x;
+  vec3 col=pal(h+u_time*.05);
+  float fill=.25*(1.-smoothstep(.0,.55,sqrt(d1)));
+  float oval=1.-smoothstep(.55,1.,length(p/vec2(.66,.33)));
+  gl_FragColor=vec4(mix(col,u_accent,.2),(line+fill)*oval*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-lissajous',name:'リサジュー糸',desc:'1本の光る糸が、リサジュー曲線を描きながらゆっくり形を変えます。',added:'2026-10-10',poster:1.1,source:`// 曲線を48本の線分にして、各画素から最短距離を求めて光らせる（for は48回の定数ループ）。曲線上の位置で色を変える
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+#define SEG 48
+vec2 curve(float s){
+  float a=s*TAU;
+  return vec2(.56*sin(3.*a+u_time*.7+1.2),.26*sin(2.*a+u_time*.5));
+}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float dmin=1.,ph=0.;
+  vec2 prev=curve(0.);
+  for(int i=1;i<=SEG;i++){
+    float s=float(i)/float(SEG);
+    vec2 cur=curve(s);
+    vec2 pa=p-prev,ba=cur-prev;
+    float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.);
+    float d=length(pa-ba*h);
+    if(d<dmin){dmin=d;ph=(float(i-1)+h)/float(SEG);}
+    prev=cur;
+  }
+  float line=1.-smoothstep(.007,.02,dmin);
+  float glow=.5*.012/(dmin+.012);
+  vec3 col=mix(pal(ph+u_time*.08),u_accent,.15);
+  gl_FragColor=vec4(col,clamp(line+glow*.6,0.,1.)*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.62,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-kaleido',name:'万華鏡の花',desc:'丸い万華鏡の中で、対称な模様がゆっくり回りながら色を変えます。',added:'2026-10-10',poster:1.1,source:`// 角度を6分割して折り返し（abs と mod）、折り返した座標に波の模様を重ねる。円の外は透明
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float r=length(p);
+  float a=atan(p.y,p.x)+u_time*.15;
+  float seg=TAU/6.;
+  a=abs(mod(a,seg)-seg*.5);
+  vec2 q=r*vec2(cos(a),sin(a));
+  q+=.03*vec2(sin(q.y*18.+u_time),cos(q.x*14.-u_time*1.2));
+  float f=.5+.5*sin(q.x*26.+sin(q.y*19.+u_time*1.3)*1.5-u_time*1.8);
+  float g=.5+.5*cos(q.y*31.+q.x*7.-u_time);
+  float pat=smoothstep(.2,.55,f*g*1.5+.12);
+  vec3 col=pal(r*1.6+f*.5+u_time*.06);
+  float disc=1.-smoothstep(.28,.35,r);
+  gl_FragColor=vec4(mix(col,u_accent,.15),pat*disc*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.5,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.4/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-metaballs',name:'ぷるぷるメタボール',desc:'ゼリーのような玉がくっついたり離れたりしながら、ぷるぷる漂います。',added:'2026-10-10',poster:1.1,source:`// 7つの玉の場（r²/d²）を足して、しきい値で輪郭を出す。しきい値の少し手前を縁取りの光にする（for は7回）
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float field=0.;
+  for(int i=0;i<7;i++){
+    float fi=float(i);
+    vec2 c=vec2(.42*sin(u_time*(.6+.13*fi)+fi*2.1),.2*cos(u_time*(.5+.11*fi)+fi*1.3));
+    float r=.075+.02*sin(fi*3.+u_time);
+    float d=length(p-c);
+    field+=r*r/(d*d+1e-4);
+  }
+  float body=smoothstep(.95,1.1,field);
+  float rim=smoothstep(.75,.95,field)*(1.-smoothstep(1.0,1.3,field));
+  vec3 col=mix(pal(.55+u_time*.04),u_accent,smoothstep(1.,3.,field));
+  col+=rim*.35;
+  gl_FragColor=vec4(col,max(body*.82,rim*.7)*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-lines',name:'波打つ線の山',desc:'何本もの細い線が重なって、山脈のように波打ち続けます。',added:'2026-10-10',poster:1.1,source:`// 14本の線を上から順に重ね、線の下を暗く塗って奥の線を隠す。線の高さは周波数の違う sin を足して作る（for は14回）
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+#define LINES 14
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec3 col=vec3(0.);
+  float cover=0.;
+  float env=1.-smoothstep(.0,.5,abs(p.x));
+  for(int i=0;i<LINES;i++){
+    float fi=float(i);
+    float y0=.26-fi*(.5/float(LINES-1));
+    float h=sin(p.x*9.+fi*1.7+u_time*1.3)*.5+sin(p.x*17.-fi*.9-u_time*.9)*.3+sin(p.x*31.+fi*2.3+u_time*1.7)*.2;
+    float y=y0+h*.09*env;
+    float under=step(p.y,y);                  // 線より下を暗くして、奥の線を隠す
+    col=mix(col,vec3(.03,.05,.09),under*.9);
+    cover=mix(cover,.78,under);
+    float line=1.-smoothstep(.003,.009,abs(p.y-y));
+    col=mix(col,mix(pal(fi*.05+u_time*.04),vec3(1.),.35),line);
+    cover=mix(cover,1.,line);
+  }
+  float box=(1.-smoothstep(.46,.52,abs(p.x)))*(1.-smoothstep(.0,.05,p.y-.34))*smoothstep(-.33,-.28,p.y);
+  gl_FragColor=vec4(col,cover*box*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.62,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-cascade',name:'中心から広がるマス目',desc:'マス目が中心から外へ順に、ふくらんで回りながら丸くなっていきます。',added:'2026-10-10',poster:1.2,source:`// マスごとの時刻を「中心からの距離」だけずらし、①ふくらむ ②四分の一回転して角が丸くなる、の2段階を smoothstep でつなぐ。色はマスごとのハッシュ
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+#define CELLS 12.0
+float hash21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+float roundBox(vec2 p,vec2 b,float r){vec2 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,q.y),0.)-r;}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec2 g=p*CELLS,id=floor(g),f=fract(g)-.5;
+  vec2 cc=(id+.5)/CELLS;
+  float k=clamp(u_time*1.2-length(cc)*2.4,0.,2.);       // 0..1 ふくらむ / 1..2 回って丸くなる
+  float grow=smoothstep(0.,1.,k),turn=smoothstep(1.,2.,k);
+  float size=.46*grow;
+  float ang=turn*1.5707963;
+  float c=cos(ang),s=sin(ang);
+  vec2 q=mat2(c,-s,s,c)*f;
+  float sd=roundBox(q,vec2(size),size*turn);
+  float shape=1.-smoothstep(-.03,.03,sd);
+  vec3 col=pal(hash21(id)*.6+u_time*.04);
+  float panel=1.-smoothstep(.0,.05,roundBox(p,vec2(.64,.3),.05));
+  gl_FragColor=vec4(mix(col,u_accent,.2),shape*panel*u_fade*.78);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.62,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-aurora',name:'オーロラのカーテン',desc:'緑から紫へ色を変えるカーテンが、縦のすじをなびかせて揺れます。',added:'2026-10-10',poster:1.1,source:`// 一次元の値ノイズでカーテンの下端と高さを決め、縦すじ（高周波の sin）を掛ける。下ほど明るく、上へ向かって透けて消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash11(float x){return fract(sin(x*127.1)*43758.5453);}
+float vnoise(float x){float i=floor(x),f=fract(x);f=f*f*(3.-2.*f);return mix(hash11(i),hash11(i+1.),f);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float x=p.x;
+  float base=-.14+.12*vnoise(x*2.2+u_time*.35)+.04*sin(x*3.+u_time*.6);
+  float h=.34+.16*vnoise(x*3.1-u_time*.25);
+  float streak=.5+.5*sin(x*55.+vnoise(x*6.+u_time)*6.);
+  float y=p.y-base;
+  float body=smoothstep(0.,.03,y)*pow(1.-smoothstep(0.,h,y),.7);
+  float inten=clamp(body*(.5+.9*streak)*1.35,0.,1.);
+  vec3 col=mix(vec3(.2,1.,.55),vec3(.8,.3,.95),smoothstep(0.,h,y));
+  float side=1.-smoothstep(.5,.78,abs(x));
+  gl_FragColor=vec4(mix(col,u_accent,.12),inten*side*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-petals',name:'開く花びら',desc:'重なった花びらが逆向きに回りながら、息をするように開いたり閉じたりします。',added:'2026-10-10',poster:1.1,source:`// 極座標で半径を |cos(n/2·角度)| に比例させて花びらの輪郭を作る。花びらの数は5・7・9枚、回る向きは交互（for は3回）
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float r=length(p),a=atan(p.y,p.x);
+  vec3 col=vec3(0.);
+  float cover=0.;
+  for(int i=0;i<3;i++){
+    float fi=float(i);
+    float n=5.+fi*2.;
+    float rot=u_time*(.25+.1*fi)*(mod(fi,2.)<.5?1.:-1.);
+    float R=(.31-.07*fi)*(.85+.15*sin(u_time*1.6+fi));
+    float shape=R*(.4+.6*abs(cos(n*.5*(a+rot))));
+    float edge=r-shape;
+    float line=1.-smoothstep(.0,.014,abs(edge));
+    float fill=(1.-smoothstep(-.012,.0,edge))*.34;
+    float al=max(line,fill);
+    col=mix(col,pal(fi*.3+u_time*.06),al);
+    cover=max(cover,al);
+  }
+  gl_FragColor=vec4(mix(col,u_accent,.12),cover*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.5,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.4/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
+return {update,dispose};`},
+ {key:'shader-stars',name:'きらめく星屑',desc:'小さな星がそれぞれのタイミングで瞬いて、十字の光を放ちます。',added:'2026-10-10',poster:1.1,source:`// マスごとのハッシュで星の有無・位置・瞬きの位相を決め、周囲3×3マスぶんを足す。核（1/d²）と十字の筋を重ねる
+const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.32),exit=Math.min(.55,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash12(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec2 g=p*6.,id=floor(g),f=fract(g);
+  float glow=0.;
+  vec3 col=vec3(0.);
+  for(int j=-1;j<=1;j++){
+    for(int i=-1;i<=1;i++){
+      vec2 o=vec2(float(i),float(j));
+      float h=hash12(id+o);
+      if(h<.45)continue;
+      vec2 q=o+.5+.34*vec2(sin(h*40.+u_time*.5),cos(h*37.+u_time*.4))-f;
+      float tw=.5+.5*sin(u_time*3.+h*60.);
+      float d=length(q);
+      float core=.02/(d*d+.003)*(.35+.65*tw);
+      float cross=(1.-smoothstep(.0,.035,min(abs(q.x),abs(q.y))))*(1.-smoothstep(.0,.55,d))*tw;
+      float s=core*.45+cross*1.1;
+      col+=pal(h*3.+u_time*.04)*s;
+      glow+=s;
+    }
+  }
+  float oval=1.-smoothstep(.6,1.,length(p/vec2(.7,.34)));
+  gl_FragColor=vec4(col/max(glow,.001),clamp(glow,0.,1.)*oval*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-1;scene.add(quad);
+const label=createText(text,{maxWidth:width*.7,textAlign:'center',lineHeight:1.25,anchorX:'center',anchorY:'middle',outlineWidth:'4%',outlineColor:'#0b0f14'});
+let fitted=false;
+function update(t){
+  if(!fitted&&label.textRenderInfo){const b=label.textRenderInfo.blockBounds;label.scale.setScalar(Math.min(1,height*.5/Math.max(1,b[3]-b[1])));fitted=true;}
+  const a=smooth(t/enter),b=smooth((duration-t)/exit);
+  material.uniforms.u_time.value=t;material.uniforms.u_fade.value=a*b;
+  const f=smooth(t/(enter*.7))*b;label.fillOpacity=f;label.outlineOpacity=f;
+}
+function dispose(){quad.geometry.dispose();material.dispose();}
+update(0);
 return {update,dispose};`}
 ];
