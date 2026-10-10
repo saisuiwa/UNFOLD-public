@@ -14,7 +14,7 @@ export async function openStudioStore({dbName='unfold-studio-projects'}={}){
  async get(id){const record=await transaction(['assets'],'readonly',tx=>request(tx.objectStore('assets').get(id)));if(!record)throw new StudioError('MISSING_ASSET',[{code:'MISSING_ASSET',targetId:id}]);return record.blob;},
  load(id){return transaction(['projects'],'readonly',async tx=>(await request(tx.objectStore('projects').get(id)))||null);},
  async save(project,{expectedRevision,fence}){assertProject(project);return transaction(['projects','assets','leases'],'readwrite',async tx=>{
-  const table=tx.objectStore('projects'),prior=await request(table.get(project.id));if((prior?.revision||0)!==expectedRevision)throw new StudioError('REVISION_CONFLICT');const lease=await request(tx.objectStore('leases').get(project.id));if(lease?(lease.fence!==fence||lease.expiresAt<=Date.now()):fence!==0)throw new StudioError('STALE_WRITER');
+  const table=tx.objectStore('projects'),prior=await request(table.get(project.id));if((prior?.revision||0)!==expectedRevision)throw new StudioError('REVISION_CONFLICT');const lease=await request(tx.objectStore('leases').get(project.id));if(!lease||lease.fence!==fence||lease.expiresAt<=Date.now())throw new StudioError('STALE_WRITER');
   for(const id of collectAssetRefs(project)){const record=await request(tx.objectStore('assets').get(id));if(!record||record.meta.projectId!==project.id||record.meta.hash!==project.assets[id]?.hash)throw new StudioError('MISSING_ASSET',[{code:'MISSING_ASSET',targetId:id}]);}
   const saved={...clone(project),revision:expectedRevision+1};await request(table.put(saved,project.id));return saved;
  });},
