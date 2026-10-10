@@ -28,6 +28,8 @@ export function validateProject(p){
  for(const viewId of ['wide','tall']){const v=p.views?.[viewId];if(!v||!finite(v.width)||!finite(v.height)||v.width<=0||v.height<=0||!v.layout){add('INVALID_VIEW',viewId);continue;}
   for(const id of layoutIds)if(!v.layout[id])add('MISSING_LAYOUT',id);
   for(const [id,l] of Object.entries(v.layout)){if(!layoutIds.has(id))add('ORPHAN_LAYOUT',id);if(!l||['x','y','scale','rotation','textWidth','fontScale'].some(k=>!finite(l[k]))||l.scale<=0||l.textWidth<=0||l.textWidth>1||l.fontScale<.03||!['contain','cover','manual'].includes(l.fit)||!['solid','blur'].includes(l.backdrop))add('INVALID_LAYOUT',id);if(l?.anchor!=='canvas'&&(!clipIds.has(l?.anchor?.clipId)||l?.anchor?.clipId===id))add('INVALID_ANCHOR',id);}
+  // An anchor loop (A→B→A) would make every render throw ANCHOR_CYCLE; reject it where it is created or arrives.
+  for(const start of Object.keys(v.layout)){const seen=new Set();let id=start;while(id&&!seen.has(id)){seen.add(id);const a=v.layout[id]?.anchor;id=a&&a!=='canvas'?a.clipId:null;}if(id===start)add('ANCHOR_CYCLE',start);}
  }
  for(const [id,a] of Object.entries(p.assets))if(id!==a.id||a.projectId!==p.id||!time(a.byteLength)||typeof a.hash!=='string')add('INVALID_ASSET',id);
  for(const [id,u] of Object.entries(p.unfolds)){if(u.id!==id||u.version!==1||!Array.isArray(u.dependencies))add('INVALID_UNFOLD',id);else for(const dep of u.dependencies)asset(dep,id);}
