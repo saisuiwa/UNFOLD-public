@@ -1,4 +1,4 @@
-import {SAMPLES,aiTemplate} from './method-samples.js?v=7';
+import {SAMPLES,aiTemplate} from './method-samples.js?v=8';
 import {IMAGE_METHOD_PRESETS} from './image-method-presets.js';
 import {CODE_MOTION_PRESETS,codeMotionPrompt} from './code-motion-presets.js';
 import {LYRIC_PALETTES} from './lyric-style.js';

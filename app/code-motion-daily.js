@@ -47,5 +47,18 @@ return {update(t){
  label.scale.set(Math.max(.02,sx),sy,1);
  const fade=clamp(t/(enter*.25))*b;
  label.fillOpacity=fade;label.outlineOpacity=fade;
+}};`},
+ {key:'flip-up',name:'めくれて立ち上がる',desc:'横たわった文字が、手前へめくれるように起き上がって止まります。',added:'2026-10-10',poster:.12,source:`// 寝ていた文字が手前へ起き上がる（x軸まわりの回転）。わずかに行き過ぎてから止まり、退場は倒れながら消える
+const {createText,text,width,duration}=api;
+const label=createText(text,{maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const clamp=x=>Math.max(0,Math.min(1,x));
+const enter=Math.min(.75,duration*.28),exit=Math.min(.4,duration*.15);
+return {update(t){
+ const u=clamp(t/enter),b=clamp((duration-t)/exit);
+ const g=1-Math.exp(-5*u)*Math.cos(9*u);              // 0 から1を少し行き過ぎて、1へ落ち着く
+ label.rotation.x=(1-g)*1.45+(1-b)*1.2;
+ label.position.set(0,-(1-g)*40*(width/480),0);
+ const fade=clamp(t/(enter*.35))*b;
+ label.fillOpacity=fade;label.outlineOpacity=fade;
 }};`}
 ];

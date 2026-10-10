@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル22個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル25個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -26,15 +26,85 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>22個</b>、最後に増えたのは 10/9）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>25個</b>、最後に増えたのは 10/10）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>22</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>8</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>3</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>3</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>25</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>9</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>4</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>4</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-radial-sweep.mp4" role="button" tabindex="0" aria-label="針のように掃くの動きを再生">
+        <img src="./samples/method-radial-sweep.jpg" alt="針のように掃くの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">針</i>針のように掃く<span class="new">NEW</span><small>RADIAL-SWEEP</small></h3>
+        <p>時計の針が回るように、粒が時計回りに順にはじき飛ばされていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 時計の針が一周するあいだに、針に触れた粒から外へはじき飛ばされる
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float turn = atan(c.x, c.y) / 6.2832 + .5;               // 0〜1 = 真上から時計回りに一周
+  float delay = turn * .4 + ph(1.) * .06;
+  float e = smoothstep(delay, delay + .25, amount);
+  vec2 away = normalize(c + vec2(.0001)) * e * e * (.6 + ph(2.) * .8) * uSize.y;   // 中心から外へ
+  l = rot((ph(3.) - .5) * 8. * e) * l * (1. - .3 * e);
+  gKind = 2.;                                              // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .3 * e;
+  gLocal = 1.;
+  return vec3(c + l + away, (ph(4.) - .5) * .3 * e);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/10 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="image">
+      <div class="shot" data-clip="./samples/image-domino-fall.mp4" role="button" tabindex="0" aria-label="ドミノのように倒れるの動きを再生">
+        <img src="./samples/image-domino-fall.jpg" alt="ドミノのように倒れるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">倒</i>ドミノのように倒れる<span class="new">NEW</span><small>DOMINO-FALL</small></h3>
+        <p>左の列から順に、タイルがドミノのように傾いて倒れていきます。</p>
+        <p class="how">メソッド工房の「画像・立体・物理」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 左の列から順に、タイルがドミノのように奥へ倒れる。強さ(amount)が戻ると元の位置へ帰る
+const {createImageTiles,size,smooth}=api;
+const tiles=createImageTiles();
+const half=size.width*.5;
+return {update(frame){
+ const t=Math.min(1,frame.amount/.8);
+ for(const piece of tiles){
+  const x=piece.home.x,y=piece.home.y,col=(x+half)/(2*half);        // 0 = 左端、1 = 右端
+  const k=smooth(Math.max(0,Math.min(1,t*1.4-col*1.1)));             // 左の列ほど早く倒れる
+  piece.mesh.position.set(x+k*piece.width*.2,y-k*half*.06,-k*half*.15);
+  piece.mesh.rotation.set(k*.35*Math.sin(y/half*3),k*1.3,0);
+  piece.mesh.scale.setScalar(1-.12*k);
+ }
+}};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">画像・立体・物理（JavaScript）</span><span class="when">10/10 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-flip-up.mp4" role="button" tabindex="0" aria-label="めくれて立ち上がるの動きを再生">
+        <img src="./samples/codetext-flip-up.jpg" alt="めくれて立ち上がるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>めくれて立ち上がる<span class="new">NEW</span><small>FLIP-UP</small></h3>
+        <p>横たわった文字が、手前へめくれるように起き上がって止まります。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 寝ていた文字が手前へ起き上がる（x軸まわりの回転）。わずかに行き過ぎてから止まり、退場は倒れながら消える
+const {createText,text,width,duration}=api;
+const label=createText(text,{maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const clamp=x=&gt;Math.max(0,Math.min(1,x));
+const enter=Math.min(.75,duration*.28),exit=Math.min(.4,duration*.15);
+return {update(t){
+ const u=clamp(t/enter),b=clamp((duration-t)/exit);
+ const g=1-Math.exp(-5*u)*Math.cos(9*u);              // 0 から1を少し行き過ぎて、1へ落ち着く
+ label.rotation.x=(1-g)*1.45+(1-b)*1.2;
+ label.position.set(0,-(1-g)*40*(width/480),0);
+ const fade=clamp(t/(enter*.35))*b;
+ label.fillOpacity=fade;label.outlineOpacity=fade;
+}};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/10 追加</span>
+      </div>
+    </article>
     <article class="method" data-cat="method">
       <div class="shot" data-clip="./samples/method-curtain-open.mp4" role="button" tabindex="0" aria-label="カーテンが開くの動きを再生">
         <img src="./samples/method-curtain-open.jpg" alt="カーテンが開くの途中の絵" loading="lazy" width="480" height="270">
@@ -208,7 +278,7 @@ return {update(t){
         <img src="./samples/method-sand-fall.jpg" alt="砂になって落ちるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">砂</i>砂になって落ちる<span class="new">NEW</span><small>SAND-FALL</small></h3>
+        <h3><i aria-hidden="true">砂</i>砂になって落ちる<small>SAND-FALL</small></h3>
         <p>絵が細かい砂粒になって、上のほうから順にさらさらと落ちていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 粒が砂になって、上の粒から順に、だんだん速く落ちていく
 vec3 userMethod(vec2 p, float amount) {
@@ -232,7 +302,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/graphic-stripe-slide.jpg" alt="ストライプスライドの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">縞</i>ストライプスライド<span class="new">NEW</span><small>STRIPE-SLIDE</small></h3>
+        <h3><i aria-hidden="true">縞</i>ストライプスライド<small>STRIPE-SLIDE</small></h3>
         <p>横の帯が一本おきに左右へ、時間差でスライドして流れていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 絵を8本の横帯に分けて、一本おきに左右へ、ずらしながら滑らせる
 vec3 userMethod(vec2 p, float amount) {
@@ -250,7 +320,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/image-tile-vortex.jpg" alt="渦に巻かれるタイルの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">渦</i>渦に巻かれるタイル<span class="new">NEW</span><small>TILE-VORTEX</small></h3>
+        <h3><i aria-hidden="true">渦</i>渦に巻かれるタイル<small>TILE-VORTEX</small></h3>
         <p>タイルが渦を巻いて中心へ寄り、また元の絵へ戻ります。</p>
         <p class="how">メソッド工房の「画像・立体・物理」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// タイルが渦を巻いて中心へ寄る。内側ほど速く回り、強さ(amount)が戻ると元の位置へ帰る
 const {createImageTiles,THREE,size}=api;
@@ -274,7 +344,7 @@ return {update(frame){
         <img src="./samples/codetext-rgb-settle.jpg" alt="色ずれが重なるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>色ずれが重なる<span class="new">NEW</span><small>RGB-SETTLE</small></h3>
+        <h3><i aria-hidden="true">文</i>色ずれが重なる<small>RGB-SETTLE</small></h3>
         <p>赤とシアンにずれた像が、本体に重なって落ち着きます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 赤とシアンの像が左右にずれた状態から、本体に重なって落ち着く。退場でもう一度ずれて消える
 const {createText,text,width,duration}=api;
@@ -299,7 +369,7 @@ return {update(t){
         <img src="./samples/text-bounce.jpg" alt="落ちて弾むの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>落ちて弾む<span class="new">NEW</span><small>BOUNCE</small></h3>
+        <h3><i aria-hidden="true">文</i>落ちて弾む<small>BOUNCE</small></h3>
         <p>上から落ちてきて、床に当たったように弾みながら止まります。</p>
         <p class="how">歌詞の行の「動き」で「落ちて弾む」を選びます。</p>
         <span class="tag">文字の動き（かんたん設定）</span><span class="when">10/7 追加</span>
