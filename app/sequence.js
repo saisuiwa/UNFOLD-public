@@ -1,3 +1,4 @@
+import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves} from './sequence-core.js';
 import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
@@ -278,40 +279,15 @@ export function shuffleTransitions() {
 
 // -------------------------------------------------------------- timeline --
 const beatSec = () => 60 / seq.bpm;
-function backgroundSeconds() {
-  if (!seq.slides.length) return 0;
-  const beats = seq.slides.reduce((a, s) => a + (s.hold ?? seq.holdBeats), 0) + seq.transitions.slice(0, seq.slides.length - 1).reduce((a, t) => a + t.beats, 0);
-  return beats * beatSec();
-}
+function backgroundSeconds() { return compileSequenceTiming(seq).durationUs/1e6; }
 export function totalSeconds(){return movieDuration({document:seq.lyricDocument,audioDuration:seq.audioBuffer?.duration||0,offset:seq.offset,backgroundDuration:backgroundSeconds()});}
 async function prepareDocumentFont(){const doc=seq.lyricDocument;try{await lyricOverlay?.prepare(doc);if(doc!==seq.lyricDocument)return;lyricFontStatus='';if(!seq.recording)renderAt(seq.t)}catch(e){if(doc!==seq.lyricDocument)return;lyricFontStatus=e.message}lyricControls?.refresh()}
 export function setLyricDocument(doc,{fromTap=false}={}){if(seq.recording)return;if(!fromTap){if(lyricTapping)stopPlay();lyricTap=null;lyricTapping=false;}seq.lyricDocument=cleanLyricDocument(doc);seq.t=Math.min(seq.t,totalSeconds());refreshUI();prepareDocumentFont();}
 function drawLyrics(sec){lyricOverlay?.render(seq.lyricDocument,sec+seq.offset,{duration:seq.audioBuffer?.duration||12,bpm:seq.lyricMotion.bpm,width:renderer.domElement.width,height:renderer.domElement.height});}
 function locate(sec) {
-  // -> {i: slide index shown (or from), tr: transition index or -1, u: 0..1 inside transition, beat}
-  const B = beatSec();
-  let b = sec / B;
-  const n = seq.slides.length;
-  for (let i = 0; i < n; i++) {
-    const hold = seq.slides[i].hold ?? seq.holdBeats;
-    if (b < hold || i === n - 1) return { i, tr: -1, u: 0, beat: sec / B };
-    b -= hold;
-    const tb = seq.transitions[i].beats;
-    if (b < tb) return { i, tr: i, u: b / tb, beat: sec / B };
-    b -= tb;
-  }
-  return { i: n - 1, tr: -1, u: 0, beat: sec / B };
+ const f=evaluateSequenceFrame(seq,Math.round(sec*1e6));return {i:f.slideIndex,tr:f.transitionIndex,u:f.progress,beat:sec/beatSec()};
 }
-function curves(u) {
-  const out = 1 - smooth(.70, .96, u);
-  return {
-    distort: smooth(.0, .28, u) * out,
-    form: smooth(.20, .45, u) * (1 - smooth(.60, .86, u)),
-    conceal: smooth(.03, .18, u) * (1 - smooth(.82, .97, u)),
-    swap: smooth(.46, .54, u),
-    spin: smooth(.24, .80, u),
-  };
-}
+const curves=sequenceCurves;
 
 // ---------------------------------------------------------------- render --
 function setMaterialTextures(a, b) {

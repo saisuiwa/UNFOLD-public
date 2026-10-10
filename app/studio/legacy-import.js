@@ -1,3 +1,4 @@
+import {compileSequenceTiming} from '../sequence-core.js';
 import {createProject,newLayout,assertProject,StudioError,clone} from './model.js';
 import {blobHash} from './assets.js';
 import {checkAbort} from './file.js';
@@ -20,7 +21,7 @@ export async function importLegacy(blob,{projectId=crypto.randomUUID(),includeMu
  for(const tr of state.transitions){if(typeof tr.shape==='string'&&tr.shape.startsWith('glb-')){const b=await resolveDependency('model',tr.shape);if(!b)throw new StudioError('MISSING_ASSET',[{code:'MISSING_ASSET',targetId:tr.shape,message:'GLBを再指定してください'}]);state.modelAssets[tr.shape]=await own(b,'model/gltf-binary');}for(const key of [tr.method,tr.method2])if(/^(cm-|im-)/.test(key||'')&&!state.methods.some(m=>m.id===key))throw new StudioError('MISSING_ASSET',[{code:'MISSING_ASSET',targetId:key}]);}
  const fontKeys=new Set([...(old.lyricDocument?.events||[]).map(l=>l.motion?.font),...state.methods.map(m=>m.code?.params?.font),...state.transitions.filter(t=>t.shape==='text').map(t=>t.font)].filter(Boolean));
  for(const key of fontKeys){let b;if(/^(local:|file:)/.test(key))b=await resolveDependency('font',key);else if(globalThis.location){const r=await fetch(new URL('../vendor/motion-fonts/'+encodeURIComponent(key)+'.ttf',import.meta.url));if(r.ok)b=await r.blob();}if(!b)throw new StudioError('MISSING_ASSET',[{code:'MISSING_ASSET',targetId:key,message:'書体を再指定してください'}]);state.fontAssets[key]=await own(b,'font/ttf');}
- const bpm=Number(state.settings.bpm)||98,hold=state.settings.holdBeats??4;if(bpm<=0||!Number.isFinite(bpm))throw new StudioError('INVALID_TIME');const beats=state.slides.reduce((sum,s)=>sum+(s.hold??hold),0)+state.transitions.slice(0,Math.max(0,state.slides.length-1)).reduce((sum,t)=>sum+(t.beats??4),0);let durationUs=Math.max(33333,Math.round(beats*60e6/bpm));state.durationUs=durationUs;
+ let durationUs=Math.max(33333,compileSequenceTiming(state).durationUs);state.durationUs=durationUs;
  const offsetUs=Math.round((Number(state.settings.offset)||0)*1e6);let musicId,musicDuration;
  if(includeMusic&&old.audio?.asset){musicId=ref(old.audio.asset);musicDuration=await audioDuration(blobs.get(musicId));metas[musicId].durationUs=musicDuration;durationUs=Math.max(durationUs,musicDuration-offsetUs);}
  const p=createProject({id:projectId,durationUs});p.assets=metas;p.scenes=[{id:projectId+':scene',startUs:0,endUs:p.durationUs,originUs:0}];const id=projectId+':clip',unfoldId=projectId+':unfold';p.clips=[{id,name:'取り込んだUNFOLD',sceneId:p.scenes[0].id,kind:'unfold',startUs:0,endUs:p.durationUs,sourceInUs:0,effectOriginUs:0,unfoldId,opacity:1,z:0,seed:7}];
