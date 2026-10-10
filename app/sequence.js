@@ -42,7 +42,7 @@ import { createPersistence, openStore, sourceHash } from './method-library.js';
 import { createImageMethodEditor } from './image-method-editor.js';
 import { createSafety } from './method-safety.js';
 import { createTrial } from './method-trial.js';
-import { collectMethods, planImport, registerQuarantined, remapTransitions, validateEmbedded } from './method-project.js?v=10';
+import { collectMethods, planImport, registerQuarantined, remapTransitions, validateEmbedded } from './method-project.js?v=11';
 import { createEnabler } from './method-verify.js';
 import { createQuarantineBanner } from './method-banner.js';
 import { downloadMethodFile, exportMethod, importMethodFile, importMethodText, pickMethodFile } from './method-transfer.js';

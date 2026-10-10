@@ -182,6 +182,9 @@
   .tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:4px; margin-bottom:12px; }
   .tabs button { background:#1c2324; color:var(--dim); border:1px solid var(--line); border-radius:7px; padding:7px 2px; font:inherit; font-size:11px; cursor:pointer; }
   .tabs button[aria-selected=true] { color:var(--accent); border-color:#6f8a30; background:#2b3323; font-weight:700; }
+  .studio-entry { display:block; margin:0 0 8px; padding:8px 10px; border:1px solid #6f8a30; border-radius:7px; background:#2b3323; color:var(--accent); font-size:12px; font-weight:700; text-align:center; text-decoration:none; }
+  .studio-entry small { display:block; margin-top:2px; font-size:10px; font-weight:400; color:var(--dim); }
+  .studio-entry:hover, .studio-entry:focus-visible { background:#34402a; }
   .pane[hidden] { display:none; }
   .pane h2 { margin:14px 0 6px; }
   .pane h2:first-child { margin-top:0; }
@@ -254,10 +257,11 @@
 </section>
 <aside class="right">
   <div class="panel-head"><span class="eyebrow">EDIT PANEL</span><strong>シーケンスを編集する</strong></div>
+  <a href="studio.html" class="studio-entry">05 STUDIO ↗ <small>音楽・歌詞・動画をまとめて編集</small></a>
   <div class="tabs" role="tablist">
     <button role="tab" data-tab="edit" aria-selected="true">03 選択中</button>
     <button role="tab" data-tab="look" aria-selected="false">04 見た目</button>
-    <a href="studio.html" class="studio-entry">05 STUDIO ↗</a><button role="tab" data-tab="lyric" aria-selected="false">旧 歌詞・曲</button>
+    <button role="tab" data-tab="lyric" aria-selected="false">旧 歌詞・曲</button>
     <button role="tab" data-tab="export" aria-selected="false">動画保存</button>
   </div>
   <div class="pane" id="pane-edit">
@@ -318,7 +322,7 @@
 <section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
 </main>
 <div id="seq-notice"></div>
-<script type="module" src="./sequence.js?v=85"></script>
+<script type="module" src="./sequence.js?v=86"></script>
 <script type="module" src="./panel-resize.js?v=1"></script>
 </body>
 </html>
