@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル70個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル86個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -26,13 +26,13 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>70個</b>、最後に増えたのは 10/11）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>86個</b>、最後に増えたのは 10/11）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>70</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>9</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>4</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>26</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>23</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>86</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>9</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>4</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>36</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>29</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
     <article class="method" data-cat="codetext">
@@ -130,6 +130,875 @@ function update(t){
   const f=smooth(t/(enter*.5))*q;front.fillOpacity=f;
 }
 function dispose(){for(const {m} of back){scene.remove(m);m.dispose();}scene.remove(front);front.dispose();}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-slam.mp4" role="button" tabindex="0" aria-label="語ごとにドンと落ちるの動きを再生">
+        <img src="./samples/codetext-kn-slam.jpg" alt="語ごとにドンと落ちるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>語ごとにドンと落ちる<span class="new">NEW</span><small>KN-SLAM</small></h3>
+        <p>歌詞が語ごとに上から勢いよく落ちて、衝撃で画面を揺らしながら並びます。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとに大きな状態から加速して落ち、着地でつぶれて、画面全体が揺れる。退場は語ごとに左右へ蹴り出される
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+function pose(l,t){
+  if(l.i===0){                                              // 着地するたびに画面全体が揺れる
+    let sx=0,sy=0;
+    for(const w of vis){const d=t-w.t0-.28;if(d&gt;0&amp;&amp;d&lt;.45){const a=Math.exp(-9*d);sx+=Math.sin(d*85+w.i)*a*em*.16;sy+=Math.cos(d*70+w.i*2)*a*em*.12;}}
+    root.position.set(sx,sy,0);
+  }
+  const lt=t-l.t0,k=clamp(lt/.28),bt=Math.max(0,lt-.28),q=smooth(clamp((life-t)/outro));
+  const grow=1+(1-k*k)*1.2,fall=(1-k*k)*H*.3/fit;              // 手前の大きな状態から、加速して落ちる
+  const sq=k&gt;=1?Math.exp(-9*bt)*Math.cos(30*bt):0;               // 着地でつぶれて戻る
+  const out=1-q,side=l.i%2?1:-1;                                 // 退場は語ごとに左右へ蹴り出される
+  place(l,l.x+side*out*W*.7/fit,l.y+fall-out*out*H*.3/fit,side*out*.8,grow*(1+.25*sq),grow*(1-.3*sq),smooth(lt/.05)*q);
+}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-turn.mp4" role="button" tabindex="0" aria-label="直角に曲がって入る語の動きを再生">
+        <img src="./samples/codetext-kn-turn.jpg" alt="直角に曲がって入る語の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>直角に曲がって入る語<span class="new">NEW</span><small>KN-TURN</small></h3>
+        <p>語が縦向きに上から降りて、直角にくるりと曲がり、横向きの位置に収まります。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語は縦向き（90°回転）で上から降り、直角にくるりと曲がって横向きになりながら定位置へ滑り込む。交互に曲がる向きが逆
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+function pose(l,t){
+  const lt=t-l.t0,q=smooth(clamp((life-t)/outro)),sgn=l.i%2?1:-1;
+  const k1=clamp(lt/.2),k2=clamp((lt-.2)/.25);                  // ①縦向きに降りる ②直角に曲がって横向きに収まる
+  const turn=spring(k2),e1=k1*k1;
+  const rot=(1-turn)*(Math.PI/2)*sgn,x=l.x+(1-turn)*sgn*em*3,y=l.y+(1-e1)*H*.3/fit;
+  const out=1-q;
+  place(l,x+out*sgn*W*.6/fit,y+out*H*.2/fit,rot+out*sgn*1.2,1,1,smooth(lt/.05)*q);
+}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-swap.mp4" role="button" tabindex="0" aria-label="語が入れ替わって並ぶの動きを再生">
+        <img src="./samples/codetext-kn-swap.jpg" alt="語が入れ替わって並ぶの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>語が入れ替わって並ぶ<span class="new">NEW</span><small>KN-SWAP</small></h3>
+        <p>語が向かい側の語と位置を入れ替える動きを、外側から順に続けて並びます。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 最初は語の並びが逆。外側の2語から順に、弧を描いて互いの位置と入れ替わり、正しい順になる
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+const nW=vis.length;
+vis.forEach(l=&gt;{l.tp=nW&gt;1?Math.min(life*.25,(nW-1)*.3)*Math.min(l.i,nW-1-l.i)/Math.max(1,Math.floor((nW-1)/2)):0;});   // 入れ替わる2語は同時に動く
+function pose(l,t){
+  const k=smooth(clamp((t-l.tp)/.4)),q=smooth(clamp((life-t)/outro));
+  const mate=vis[nW-1-l.i];                                        // いまの位置は、向かい側の語の位置
+  const arc=Math.sin(Math.PI*k)*em*1.1*(l.i&lt;nW-1-l.i?1:-1);
+  const x=mix(mate.x,l.x,k),y=mix(mate.y,l.y,k)+arc;
+  const out=1-q;
+  place(l,x,y-out*out*H*.25/fit,Math.sin(Math.PI*k)*.25*(l.i%2?1:-1)+out*(l.r1-.5)*1.4,1,1,smooth(t/.12)*q);
+}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-dive.mp4" role="button" tabindex="0" aria-label="語へ潜って切り替わるの動きを再生">
+        <img src="./samples/codetext-kn-dive.jpg" alt="語へ潜って切り替わるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>語へ潜って切り替わる<span class="new">NEW</span><small>KN-DIVE</small></h3>
+        <p>画面が1語ずつに近づくように拡大して、その語が中から現れて並びます。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとにカメラが寄って（拡大して）その語が中から現れ、また引く。全部の語が並んだ形に収まる
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+const focus={i:-1,b:0};
+function pose(l,t){
+  if(l.i===0){
+    let z=1,fx=0,fy=0,b0=0,fi=-1;
+    for(const w of vis){
+      const d=(t-w.t0)/.4;
+      if(d&gt;0&amp;&amp;d&lt;1){
+        const b=Math.sin(Math.PI*d),zmax=Math.max(1,Math.min(3,W*.8/Math.max(em,w.w*fit),H*.5/(em*fit)));   // 語が画面に収まる大きさまで
+        z=1+(zmax-1)*b;fx=w.x;fy=w.y;b0=b;fi=w.i;
+      }
+    }
+    focus.i=fi;focus.b=b0;
+    root.scale.setScalar(fit*z);root.position.set(-fx*fit*z*b0,-fy*fit*z*b0,0);   // 近づくあいだ、その語が中央へ
+  }
+  const lt=t-l.t0,k=clamp(lt/.35),q=smooth(clamp((life-t)/outro));
+  const s=.35+.65*spring(k);                                       // 近づいたとき、その語が中から現れる
+  const others=l.i===focus.i?1:1-smooth(focus.b*1.6);              // 近づいている間、ほかの語は消える
+  place(l,l.x,l.y,0,s,s,smooth(lt/.1)*q*others);
+}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-flow.mp4" role="button" tabindex="0" aria-label="流れて整列する語の動きを再生">
+        <img src="./samples/codetext-kn-flow.jpg" alt="流れて整列する語の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>流れて整列する語<span class="new">NEW</span><small>KN-FLOW</small></h3>
+        <p>語が波打つ流れに乗って右から流れ込み、減速して所定の位置にそろいます。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとに波形の軌道で右から流れ込み、減速して定位置へ。最後に小さく震えてそろう。退場は左へ流れ去る
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+function pose(l,t){
+  const lt=t-l.t0,k=clamp(lt/.5),e=1-Math.pow(1-k,3),q=smooth(clamp((life-t)/outro));
+  const x=l.x+(1-e)*W*.75/fit,y=l.y+Math.sin((1-e)*7+l.i*.9)*em*1.0*(1-e);   // 波に乗って右から流れ込み、減速して整列
+  const snap=k&gt;=1?Math.exp(-8*(lt-.5))*Math.sin((lt-.5)*40)*em*.08:0;
+  const out=1-q;
+  place(l,x-out*W*.8/fit+snap,y,Math.cos((1-e)*7+l.i*.9)*.2*(1-e),1,1,smooth(lt/.08)*q);
+}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-seesaw.mp4" role="button" tabindex="0" aria-label="シーソーのように傾くの動きを再生">
+        <img src="./samples/codetext-kn-seesaw.jpg" alt="シーソーのように傾くの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>シーソーのように傾く<span class="new">NEW</span><small>KN-SEESAW</small></h3>
+        <p>語が落ちた側へ画面が傾いて、シーソーのように揺れながら水平に戻ります。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語が落ちるたびに、落ちた側へ全体が傾いて減衰しながら揺れる。語の位置の左右で傾く向きが決まる
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+function pose(l,t){
+  if(l.i===0){                                                     // 語が落ちた側へ板が傾いて、揺れながら水平に戻る
+    let a=0;
+    for(const w of vis){const d=t-w.t0-.3;if(d&gt;0)a+=(w.x&gt;=0?-1:1)*Math.exp(-4.5*d)*Math.sin(15*d)*.1;}
+    root.rotation.z=a;
+  }
+  const lt=t-l.t0,k=clamp(lt/.3),q=smooth(clamp((life-t)/outro)),out=1-q;
+  place(l,l.x,l.y+(1-k*k)*H*.45/fit-out*out*H*.3/fit,out*(l.x&gt;=0?-1:1)*.6,1,1,smooth(lt/.05)*q);
+}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-typeslam.mp4" role="button" tabindex="0" aria-label="打ってからドンと拡大の動きを再生">
+        <img src="./samples/codetext-kn-typeslam.jpg" alt="打ってからドンと拡大の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>打ってからドンと拡大<span class="new">NEW</span><small>KN-TYPESLAM</small></h3>
+        <p>語が一文字ずつ打たれてから、全体がドンと大きく弾んで落ち着きます。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 1語ずつ文字単位でタイプする（カーソルがまたたく）。打ち終わると全体が1.5倍からばねで弾んで揺れる
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+// 1語ずつ打ってから、全体がドンと拡大して弾む。打つ速さは1文字あたり約0.07秒
+const nT=vis.length;let clock=0;
+vis.forEach(l=&gt;{l.chars=Array.from(l.value).length;l.t0=clock;clock+=l.chars*.07+.05;});
+const tSlam=clock+.05;
+const bar=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({color:'#ffffff',transparent:true,depthTest:false,depthWrite:false}));bar.renderOrder=5;root.add(bar);
+let barDone=false;
+function pose(l,t){
+  const q=smooth(clamp((life-t)/outro)),k=clamp((t-l.t0)/(l.chars*.07)),b=l.info&amp;&amp;l.info.blockBounds;
+  if(l.i===0){
+    const d=t-tSlam,s=d&lt;0?1:1+.5*Math.exp(-7*d)*Math.cos(18*d),sh=d&gt;0&amp;&amp;d&lt;.5?Math.sin(d*90)*Math.exp(-9*d)*em*.15:0;
+    root.scale.setScalar(fit*s);root.position.set(sh,0,0);
+    const cur=vis.find(w=&gt;t&gt;=w.t0&amp;&amp;t&lt;w.t0+w.chars*.07+.05);
+    bar.visible=!!cur&amp;&amp;t&lt;tSlam&amp;&amp;Math.floor(t*8)%2===0;
+    if(cur&amp;&amp;cur.info){const bb=cur.info.blockBounds,kk=clamp((t-cur.t0)/(cur.chars*.07));bar.position.set(cur.x+bb[0]+(bb[2]-bb[0])*kk+em*.06,cur.y,2);bar.scale.set(em*.08,em*1.0,1);}
+  }
+  if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite)){
+    const x1=b[0]+(b[2]-b[0])*(Math.floor(k*l.chars)/l.chars);       // 文字単位で右へ広げる
+    l.mesh.clipRect=k&gt;=1?null:[b[0]-2,b[1]-2,x1+(k&gt;0?1:-4),b[3]+2];
+  }
+  place(l,l.x,l.y,0,1,1,(t&gt;=l.t0?1:0)*q);
+}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-cuts.mp4" role="button" tabindex="0" aria-label="語のカット割りの動きを再生">
+        <img src="./samples/codetext-kn-cuts.jpg" alt="語のカット割りの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>語のカット割り<span class="new">NEW</span><small>KN-CUTS</small></h3>
+        <p>画面いっぱいの語が1つずつカットで切り替わり、最後に全部が並んで収まります。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語を画面いっぱいの大きさで0.3秒ずつ切り替え（位置は少しずつ変える）、最後に定位置へ全部が並ぶ
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+// 語を画面いっぱいの大きさで1つずつカット切り替えし、最後に全部が並ぶ（途中は他の語を隠す）
+const nC=vis.length,cutLen=.3,tAll=nC*cutLen;
+function pose(l,t){
+  const q=smooth(clamp((life-t)/outro)),idx=Math.floor(t/cutLen);
+  const mine=idx===l.i,done=t&gt;=tAll;
+  const big=Math.min(W*.82/Math.max(em,l.w),H*.5/em,5);
+  const pos=[[0,0],[-W*.12,H*.1],[W*.1,-H*.1],[0,H*.12],[0,-H*.12]][l.i%5];
+  if(!done){
+    const on=mine?1:0,j=((t/cutLen)%1);
+    place(l,pos[0]/fit,pos[1]/fit,mine?(l.i%2?-.06:.06):0,big*(1+.06*j),big*(1+.06*j),on*q);
+  }else{
+    const k=spring(clamp((t-tAll-l.i*.05)/.3));
+    place(l,l.x,l.y,0,.6+.4*k,.6+.4*k,smooth((t-tAll-l.i*.05)/.06)*q);
+  }
+}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-collide.mp4" role="button" tabindex="0" aria-label="正面衝突して弾むの動きを再生">
+        <img src="./samples/codetext-kn-collide.jpg" alt="正面衝突して弾むの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>正面衝突して弾む<span class="new">NEW</span><small>KN-COLLIDE</small></h3>
+        <p>語が左右から行の真ん中へ飛び込んでぶつかり、弾んで定位置へ収まります。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語は左右交互に行の真ん中へ飛び込み、ぶつかった瞬間にふくらんで、ばねで定位置へ。退場は左右へ散る
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+function pose(l,t){
+  const lt=t-l.t0,q=smooth(clamp((life-t)/outro)),sgn=l.i%2?1:-1;
+  const k1=clamp(lt/.16),k2=clamp((lt-.16)/.34);                     // ①左右から行の真ん中へ飛び込む ②ぶつかって弾み、定位置へ
+  const e1=k1*k1,e2=spring(k2);
+  const x=k2&gt;0?mix(0,l.x,e2):mix(sgn*W*.34/fit,0,e1);
+  const hit=k2&gt;0&amp;&amp;k2&lt;.35?1+.35*Math.sin(Math.PI*k2/.35):1;         // ぶつかった瞬間にふくらむ
+  const out=1-q;
+  place(l,x+out*sgn*W*.5/fit,l.y,sgn*out*.5,hit,hit,smooth(lt/.04)*q);
+}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-kn-reflow.mp4" role="button" tabindex="0" aria-label="縦から横へ起き上がるの動きを再生">
+        <img src="./samples/codetext-kn-reflow.jpg" alt="縦から横へ起き上がるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>縦から横へ起き上がる<span class="new">NEW</span><small>KN-REFLOW</small></h3>
+        <p>縦に垂れ下がっていた語が、左端を支点に1語ずつ振れて横向きに起き上がります。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語は左端を支点に、画面の中央側へ垂れた状態（上半分は下向き、下半分は上向き）から横向きへばねで振れる（針が起きるように）。退場は垂れ下がって消える
+const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
+const clamp=(x,a=0,b=1)=&gt;Math.max(a,Math.min(b,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const spring=x=&gt;{x=clamp(x);return 1-(1-x)*Math.exp(-3.4*x)*Math.cos(6.6*x)};
+const mix=(a,b,k)=&gt;a+(b-a)*k;
+const hash=(a,b)=&gt;{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.18),life=Math.max(.05,duration);
+const intro=Math.min(1.05,life*.38),outro=Math.min(.6,life*.2),stag=Math.min(.2,life*.07);
+const root=new THREE.Group();scene.add(root);
+// 歌詞を語に区切る（日本語は Intl.Segmenter。句読点は前の語につける。語が多すぎるときはまとめ、1語しかないときは半分に割る）
+const wordList=(()=&gt;{
+  const seg=(typeof Intl!=='undefined'&amp;&amp;Intl.Segmenter)?new Intl.Segmenter('ja',{granularity:'word'}):null;
+  const out=[];let off=0;
+  String(text||'').replace(/\r/g,'').split('\n').forEach((line,row)=&gt;{
+    const parts=[];
+    if(seg){for(const p of seg.segment(line)){if(p.segment.trim())parts.push({s:p.segment,start:p.index});}}
+    else{for(let i=0;i&lt;line.length;i+=2)parts.push({s:line.slice(i,i+2),start:i});}
+    const merged=[];
+    for(const p of parts){
+      if(merged.length&amp;&amp;/^[、。,.!?！？…「」『』（）()・～〜ー]+$/.test(p.s))merged[merged.length-1].s+=p.s;else merged.push({...p});
+    }
+    for(const m of merged)out.push({s:m.s,start:off+m.start,row});
+    off+=line.length+1;
+  });
+  let list=out;
+  if(list.length&gt;8){const c=Math.ceil(list.length/8),m=[];for(let i=0;i&lt;list.length;i+=c){const g=list.slice(i,i+c);m.push({s:g.map(x=&gt;x.s).join(''),start:g[0].start,row:g[0].row});}list=m;}
+  if(list.length===1&amp;&amp;Array.from(list[0].s).length&gt;=2){const a=Array.from(list[0].s),h=Math.ceil(a.length/2);list=[{s:a.slice(0,h).join(''),start:list[0].start,row:list[0].row},{s:a.slice(h).join(''),start:list[0].start+a.slice(0,h).join('').length,row:list[0].row}];}
+  return list;
+})();
+const L=[];
+for(const w of wordList){
+  const mesh=createText(w.s,{textStart:w.start,fontSize:em,anchorX:'center',anchorY:'middle',outlineWidth:'3%',outlineColor:'#101819'});
+  mesh.fillOpacity=0;mesh.outlineOpacity=0;root.add(mesh);
+  L.push({row:w.row,w:em*Math.max(.3,Array.from(w.s).length),mesh,meshes:[mesh],value:w.s,start:w.start,info:null,r1:random(),r2:random(),r3:random(),r4:random(),x:0,y:0});
+}
+const vis=L.filter(l=&gt;l.mesh);vis.forEach((l,j)=&gt;{l.i=j;l.o=vis.length&gt;1?j/(vis.length-1):.5;});
+let fit=1,laid=false,dead=false;
+function layout(){
+ const gap=em*.3,limit=W*.86,rows=[];
+ const hard=[];for(const l of L)(hard[l.row]=hard[l.row]||[]).push(l);
+ for(const row of hard){if(!row)continue;
+  for(const l of row){const b=l.mesh&amp;&amp;l.mesh.textRenderInfo&amp;&amp;l.mesh.textRenderInfo.blockBounds;
+   if(b&amp;&amp;b.length===4&amp;&amp;b.every(Number.isFinite))l.w=Math.max(em*.2,b[2]-b[0]);}
+  const total=row.reduce((sum,l,k)=&gt;sum+l.w+(k?gap:0),0),n=Math.max(1,Math.ceil(total/limit)),cap=n&gt;1?Math.min(limit,total/n*1.12+gap):limit;
+  let cur=[],x=0;
+  for(const l of row){if(cur.length&amp;&amp;x+gap+l.w&gt;cap){rows.push(cur);cur=[];x=0;}
+   x+=(cur.length?gap:0)+l.w;cur.push(l);}
+  rows.push(cur);}
+ const step=em*1.25;let maxW=1;
+ rows.forEach((row,r)=&gt;{let x=0;for(const l of row){l.x=x+l.w/2;x+=l.w+gap;}const tw=x-gap;maxW=Math.max(maxW,tw);for(const l of row){l.x-=tw/2;l.y=((rows.length-1)/2-r)*step;}});
+ fit=Math.min(1,W*.84/maxW,H*.66/(rows.length*step));root.scale.setScalar(fit);
+}
+function place(l,x,y,rot,sx,sy,a){for(const m of l.meshes){m.position.set(x,y,0);m.rotation.z=rot;m.scale.set(sx,sy,1);m.fillOpacity=a;m.outlineOpacity=a;m.visible=a&gt;.002;}}
+function update(time){
+ if(dead)return;const t=clamp(Number.isFinite(time)?time:0,0,life);
+ let changed=!laid;for(const l of vis)if(l.mesh.textRenderInfo&amp;&amp;l.info!==l.mesh.textRenderInfo){l.info=l.mesh.textRenderInfo;changed=true;}
+ if(changed){layout();laid=true;if(typeof onLaid==='function')onLaid();}
+ for(const l of vis){const u=clamp((t-stag*l.o)/intro),v=clamp((life-t-stag*(1-l.o))/outro);pose(l,t,u,v);}
+}
+function dispose(){if(dead)return;dead=true;for(const l of L)for(const m of l.meshes){root.remove(m);m.dispose();}scene.remove(root);}
+const nWords=vis.length,spread=Math.min(life*.25,(nWords-1)*.3);   // 語の登場時刻：歌詞の長さの1/4までに均等にばらまく
+vis.forEach(l=&gt;{l.t0=nWords&gt;1?spread*l.i/(nWords-1):0;});
+// 縦に垂れ下がっていた語が、左端を支点に1語ずつ振れて横向きになる（時計の針が起きるように）
+function pose(l,t){
+  const lt=t-l.t0,q=smooth(clamp((life-t)/outro)),k=spring(clamp(lt/.45));
+  const px=l.x-l.w/2,py=l.y;                                       // 左端が支点
+  const a=-(l.y&gt;=0?1:-1)*(1-k)*Math.PI/2;                         // 上半分の語は下向き(-90°)、下半分の語は上向き(+90°)に垂れて、横向き(0°)へ
+  const half=l.w/2,x=px+Math.cos(a)*half,y=py+Math.sin(a)*half;
+  const out=1-q;
+  place(l,x,y-out*out*H*.2/fit,a+out*.6,1,1,smooth(lt/.06)*q);
+}
 update(0);
 return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
         <span class="tag">文字モーション（コード）</span><span class="when">10/11 追加</span>
@@ -815,6 +1684,280 @@ function update(t){
   }
 }
 function dispose(){for(const r of ruby){group.remove(r.m);r.m.dispose();}label.dispose();scene.remove(group);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-square-tunnel.mp4" role="button" tabindex="0" aria-label="四角トンネルの背景の動きを再生">
+        <img src="./samples/effect-bg-square-tunnel.jpg" alt="四角トンネルの背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>四角トンネルの背景<span class="new">NEW</span><small>BG-SQUARE-TUNNEL</small></h3>
+        <p>四角い枠が奥から手前へ流れるように次々と広がる、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 四角い等高線を対数の間隔で手前へ流す背景（文字は描かない）。外周2.5%には模様を出さない。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float a=.12*sin(u_time*.35);                      // ゆっくり傾く
+  p=mat2(cos(a),-sin(a),sin(a),cos(a))*p;
+  float d=max(abs(p.x),abs(p.y))+.0001;             // 正方形の等高線
+  float L=log(d)*3.4-u_time*.55;                    // 対数の間隔で手前へ流れる
+  float w=.5-abs(fract(L)-.5);
+  float line=1.-smoothstep(.0,.07+.1*d,w);
+  float near=smoothstep(.02,.35,d);
+  vec3 col=mix(u_accent,vec3(1.),.35+.25*sin(L*3.1));
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,line*near*.62*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-concentric.mp4" role="button" tabindex="0" aria-label="同心円の背景の動きを再生">
+        <img src="./samples/effect-bg-concentric.jpg" alt="同心円の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>同心円の背景<span class="new">NEW</span><small>BG-CONCENTRIC</small></h3>
+        <p>同心円が中心から外へ脈打つように広がる、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 輪ごとに太さの違う同心円が中心から外へ広がる背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float d=length(p);
+  float L=d*10.-u_time*1.1;                          // 中心から外へ広がる
+  float f=fract(L);
+  float ring=smoothstep(.0,.06,f)*(1.-smoothstep(.12+.1*sin(floor(L)*1.7),.2+.1*sin(floor(L)*1.7),f));   // 輪ごとに太さが違う
+  float pulse=.55+.45*sin(u_time*2.2-d*8.);
+  vec3 col=mix(u_accent,vec3(1.),mod(floor(L),2.)*.6);
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,ring*pulse*.6*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-speed-lines.mp4" role="button" tabindex="0" aria-label="集中線の背景の動きを再生">
+        <img src="./samples/effect-bg-speed-lines.jpg" alt="集中線の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>集中線の背景<span class="new">NEW</span><small>BG-SPEED-LINES</small></h3>
+        <p>中心から外へ放射状の線が走る、文字なしの集中線の背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 放射状の線を12コマ/秒でちらつかせる集中線の背景（文字は描かない）。中心付近は空ける
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash11(float x){return fract(sin(x*127.1)*43758.5453);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float r=length(p),a=atan(p.y,p.x)/6.28318530718+.5;
+  float n=96.,id=floor(a*n),f=fract(a*n);
+  float tq=floor(u_time*12.);                       // 12コマ/秒でちらつく
+  float h=hash11(id+tq*7.3);
+  float start=.22+.2*hash11(id*3.1+tq);             // 線の始まる半径
+  float width=.08+.25*hash11(id*1.7+tq*2.);
+  float line=step(.5-width*.5,f)*step(f,.5+width*.5)*step(start,r)*step(.35,h);
+  float tip=smoothstep(start,start+.15,r);
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(mix(vec3(1.),u_accent,.25),line*tip*.7*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-diagonal.mp4" role="button" tabindex="0" aria-label="斜めの縞が流れる背景の動きを再生">
+        <img src="./samples/effect-bg-diagonal.jpg" alt="斜めの縞が流れる背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>斜めの縞が流れる背景<span class="new">NEW</span><small>BG-DIAGONAL</small></h3>
+        <p>太い縞と細い縞が逆向きに斜めへ流れる、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 太い縞と細い縞を別の速さと向きで流す背景（文字は描かない）
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float u=(p.x+p.y)*6.5-u_time*.9;
+  float v=(p.x-p.y)*3.2+u_time*.5;
+  float s1=1.-smoothstep(.0,.03,abs(fract(u)-.5)-.07);         // 太い縞（周期の約14%）
+  float s2=1.-smoothstep(.0,.04,abs(fract(v)-.5)-.035);        // 細い縞（逆向きに流れる）
+  float k=s1*.7+s2*.45;
+  vec3 col=mix(u_accent,vec3(1.),.4*step(.5,fract(u*.5)));
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,clamp(k,0.,1.)*.55*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-dot-wave.mp4" role="button" tabindex="0" aria-label="ドットの波の背景の動きを再生">
+        <img src="./samples/effect-bg-dot-wave.jpg" alt="ドットの波の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>ドットの波の背景<span class="new">NEW</span><small>BG-DOT-WAVE</small></h3>
+        <p>細かなドットが中心から外へ走る波で大きさを変える、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 18×18の網点の半径を、中心からの波で変える背景（文字は描かない）
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec2 g=p*18.,id=floor(g),f=fract(g)-.5;
+  float d=length((id+.5)/18.);
+  float wave=.5+.5*sin(d*14.-u_time*2.4);                   // 中心から外へ走る波
+  float radius=.08+.34*wave;
+  float dotv=1.-smoothstep(radius-.06,radius,length(f));
+  vec3 col=mix(u_accent,vec3(1.),wave*.5);
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,dotv*(.25+.4*wave)*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/11 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-scan-grid.mp4" role="button" tabindex="0" aria-label="走査線と方眼の背景の動きを再生">
+        <img src="./samples/effect-bg-scan-grid.jpg" alt="走査線と方眼の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>走査線と方眼の背景<span class="new">NEW</span><small>BG-SCAN-GRID</small></h3>
+        <p>方眼の上を走査線が下へ走り、四隅にカギ括弧が付く、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 方眼（2マスおきに太線）と、上から下へ走る走査線、四隅のカギ括弧の背景（文字は描かない）
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec2 g=p*10.;
+  vec2 fr=abs(fract(g)-.5);
+  float minor=1.-smoothstep(.0,.035,min(.5-fr.x,.5-fr.y));            // 方眼の細い線
+  vec2 fr2=abs(fract(g*.5)-.5);
+  float major=1.-smoothstep(.0,.025,min(.5-fr2.x,.5-fr2.y));          // 2マスおきの太い線
+  float grid=max(minor*.35,major*.6);
+  float scan=smoothstep(.05,.0,abs(vUv.y-fract(u_time*.2)));          // 上から下へ走る走査線
+  vec2 q=min(vUv,1.-vUv);                                             // 各辺からの距離
+  float inCorner=step(.05,q.x)*step(q.x,.18)*step(.05,q.y)*step(q.y,.18);
+  float corner=inCorner*(1.-step(.065,q.x)*step(.065,q.y));           // 四隅のカギ括弧
+  float edge=smoothstep(.025,.05,q.x)*smoothstep(.025,.05,q.y);
+  vec3 col=mix(u_accent,vec3(1.),.3);
+  gl_FragColor=vec4(col,clamp(grid*.5+scan*.7+corner*.9,0.,1.)*.55*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
 update(0);
 return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
         <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/11 追加</span>
