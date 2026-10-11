@@ -54,11 +54,10 @@ await withStudioPage(async page=>{
  await page.evaluate(()=>setRange('omakase-size',8));await page.waitForTimeout(300);
  const eight=await page.evaluate(()=>sizes('wide'));await page.evaluate(()=>c.undo());await page.evaluate(()=>setRange('omakase-size',8));await page.waitForTimeout(300);
  assert.deepEqual(await page.evaluate(()=>sizes('wide')),eight);
- // 4. choosing a colour family applies the colours at once
- await page.getByTestId('omakase-family').selectOption('rock');
- await page.waitForFunction(()=>colours().length===1&&/#ff3b3b|#ff4d4d|#ffd23f|#ffffff/i.test(colours()[0]));
+ // 4. choosing a colour family applies the colours at once (and only the colours)
  const rock=await page.evaluate(async()=>{const {COLOR_FAMILIES}=await import('/studio/omakase.js');return COLOR_FAMILIES.find(f=>f.id==='rock').palettes.map(p=>p.color+'/'+p.emphasisColor);});
- assert.ok(rock.includes((await page.evaluate(()=>colours()))[0]));
+ await page.getByTestId('omakase-family').selectOption('rock');
+ await page.waitForFunction(list=>colours().length===1&&list.includes(colours()[0]),rock);
  assert.deepEqual(await page.evaluate(()=>sources()),planned.sources,'motions still the same');
  await page.evaluate(()=>c.dispose());
  console.log('PASS おまかせ sliders: size (before and after a plan), opacity, family at once; one Undo each');
