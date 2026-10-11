@@ -75,7 +75,8 @@
  .comparison-panel .comparison{max-height:220px}
  .inspector{display:flex;flex-direction:column;overflow:hidden}
  .inspector-slot{flex:1 1 auto;min-height:0;overflow:auto}
- .export-controls{flex:none;max-height:46%;overflow:auto;margin-top:8px;padding-top:8px}
+ .export-controls{flex:none;max-height:40%;overflow:auto;margin-top:6px;padding-top:2px}
+ .export-controls:not(:has(*:not([hidden]))){display:none}
  .export-controls .panel-label{color:var(--mint)}
  .timeline-panel{margin:8px 14px 0;padding:6px 10px;min-height:0;max-height:42vh;overflow:auto}
  .timeline-heading{gap:10px}.timeline-heading .lock-controls{margin-left:0}.timeline-heading .clip-total{margin-left:auto}
@@ -83,4 +84,30 @@
  .timeline-tools{padding:4px 0}
  .timeline-scroll{max-height:30vh}
  footer{padding:3px 14px}
+}
+
+/* the lyric edit panel (the sequence's 動き / 色 / 書体 panel) inside the inspector */
+.studio-lyric-edit{margin:8px 0 14px}
+.studio-lyric-edit .lm-quick{border:1px solid var(--line);border-radius:8px;padding:10px;background:#131d20}
+.studio-lyric-edit .lm-quick h3{font-size:14px;margin:0 0 8px;color:var(--mint)}
+.studio-lyric-edit .lm-quick h4{font-size:12px;margin:10px 0 6px;color:var(--muted)}
+.studio-lyric-edit .lq-row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.studio-lyric-edit .lq-row .btn,.studio-lyric-edit .lm-quick .btn{min-height:28px;padding:3px 9px;font-size:12px}
+.studio-lyric-edit .lq-tabs{display:flex;gap:6px;margin:8px 0}
+.studio-lyric-edit .lq-tabs button{flex:1;min-height:30px;padding:3px 6px;font-size:12px}
+.studio-lyric-edit .lq-tabs button[aria-pressed=true]{background:var(--mint);border-color:var(--mint);color:#102b25}
+.studio-lyric-edit .lq-motions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.studio-lyric-edit .lq-motion{padding:4px;font-size:11px}
+.studio-lyric-edit .lq-motion canvas{width:100%;height:auto}
+.studio-lyric-edit .lq-palettes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:8px 0}
+.studio-lyric-edit textarea{width:100%;font-size:12px}
+.lq-code-motions{margin-top:12px;border:1px solid var(--line);border-radius:8px;padding:10px;background:#131d20}
+.lq-code-motions h4{margin:0 0 6px;font-size:12px;color:var(--muted)}
+.lq-scope{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);margin-bottom:6px}
+.lq-codes{margin:6px 0}.lq-codes>summary{cursor:pointer;font-size:12px;color:var(--mint);padding:4px 0}
+.lq-code-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:6px}
+.lq-code-card{padding:4px;display:grid;gap:3px;text-align:center;font-size:11px;min-height:0}
+.lq-code-card img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:3px;background:#0c1414}
+@media(min-width:1000px) and (min-height:620px){
+ .studio-root:has(.studio-lyric-edit) .studio-grid{grid-template-columns:224px minmax(0,1fr) 360px}
 }

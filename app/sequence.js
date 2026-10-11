@@ -6,7 +6,7 @@ import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import {applyLyricStyle,setWordColor} from './lyric-style.js';
 import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=10';
-import {createLyricControls} from './lyric-controls.js?v=12';
+import {createLyricControls} from './lyric-controls.js?v=13';
 import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=26';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
 import {createLyricOverlay} from './lyric-overlay.js?v=9';

@@ -6,7 +6,8 @@ import {createMotionLibrary} from './lyric-library.js';
 import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=5';
 import {lyricFontLabel,savedLyricFonts,listLocalLyricFonts,selectLocalLyricFont,importLyricFont} from './lyric-fonts.js';
 const node=(tag,text,cls)=>Object.assign(document.createElement(tag),{...(text==null?{}:{textContent:text}),...(cls?{className:cls}:{})});
-export function createLyricQuick({getState,onAction,onMore}){
+// customFonts:false (STUDIO) keeps to the built-in fonts: a PC font or a font file has to be chosen in the sequence and travels with the piece.
+export function createLyricQuick({getState,onAction,onMore,customFonts=true}){
  const element=node('section',null,'lm-quick');element.id='lm-quick';element.setAttribute('aria-label','選んだ歌詞を編集');let selectedId=null,textKey='',thumbKey='',token=0,range=null,localFonts=[];
  const title=node('h3','歌詞を選んで、その場で編集'),hint=node('p','タイムラインの歌詞をタップしてください。','hint');element.append(title,hint);
  const content=node('div');element.append(content);
@@ -29,6 +30,7 @@ export function createLyricQuick({getState,onAction,onMore}){
  const fontsActions=node('div',null,'lq-row'),pc=node('button','PCのフォント','btn'),fileButton=node('button','フォントファイル','btn'),file=node('input');file.type='file';file.accept='.ttf,.otf,.woff,.woff2';file.hidden=true;fontsActions.append(pc,fileButton,file);content.append(fontsActions);
  const browser=node('div',null,'lq-font-browser');browser.hidden=true;const search=node('input'),list=node('select');search.placeholder='フォント名で絞り込む';search.setAttribute('aria-label','PCフォントを検索');list.size=6;list.setAttribute('aria-label','PCフォント一覧');browser.append(search,list);content.append(browser);
  const fontNote=node('p','PCフォントはこのPCから参照します。ファイルはこのブラウザに保存。別のPCでは同じフォントを指定してください。','hint');content.append(fontNote);
+ if(!customFonts){fontsActions.hidden=true;browser.hidden=true;fontNote.textContent='ここでは内蔵の書体を選べます。PCのフォントやフォントファイルは、シーケンスで選んでから送ってください。';}
  function options(){const key=current()?.motion?.font||'gothic';font.replaceChildren();for(const k of ['gothic','mincho','round','dela','marker','dot'])font.append(new Option(lyricFontLabel(k),k));const items=savedLyricFonts();if(!items.some(i=>i.key===key)&&!['gothic','mincho','round','dela','marker','dot'].includes(key))items.push({key,label:lyricFontLabel(key)});for(const i of items)font.append(new Option(i.label,i.key));font.value=key}
  async function useFont(load){const id=selectedId,doc=getState().document,targetScope=scope.value;pc.disabled=fileButton.disabled=font.disabled=list.disabled=true;try{const key=await load();if(doc!==getState().document||id!==selectedId){status.textContent='選択が変わりました。書体をもう一度選んでください。';options();return}await onAction({type:'lyric-style',id,scope:targetScope==='all'?'all':'line',patch:{font:key}});status.textContent='書体を反映しました。';options()}catch(e){status.textContent=e.message;options()}finally{const disabled=!!getState().recording;pc.disabled=fileButton.disabled=font.disabled=list.disabled=disabled}}
  font.onchange=()=>{const key=font.value;useFont(async()=>{await prepareMotionFont({font:key},current()?.text);return key})};
