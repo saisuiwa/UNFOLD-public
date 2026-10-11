@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MOODS,planOmakase,omakaseCommands,motionOf,newSeeds,describePlan,BG_OPACITY} from '../../../app/studio/omakase.js';
+import {MOODS,planOmakase,omakaseCommands,motionOf,newSeeds,describePlan,BG_OPACITY,mergeMotion} from '../../../app/studio/omakase.js';
 import {createProject,assertProject} from '../../../app/studio/model.js';
 import {applyCommand} from '../../../app/studio/commands.js';
 
@@ -12,7 +12,7 @@ const project=(lines=12,{scenes=1}={})=>{
  for(const v of Object.values(p.views))for(const l of p.lyrics)v.layout[l.id]={x:.5,y:.5,scale:1,rotation:0,anchor:'canvas',fit:'contain',focus:{x:.5,y:.5},backdrop:'solid',textWidth:.84,fontScale:.06,breaks:[]};
  return p;
 };
-const SEEDS={mood:1,text:2,bg:3,color:4};
+const SEEDS={mood:1,text:2,bg:3,color:4,size:5};
 let serial=0;const ids=()=>'id'+(++serial);
 
 test('every key in every mood is a bundled motion; a mood has enough variety to avoid repeats', () => {
@@ -109,4 +109,30 @@ test('no scene yet: one is made to hold the backgrounds', () => {
 test('describePlan names the mood, motions, backgrounds and palette in Japanese', () => {
  const d=describePlan(planOmakase(project(),{mood:'pop',seeds:SEEDS}));
  assert.equal(d.mood,'ポップ');assert.ok(d.motions.length>=3&&d.motions.every(n=>/[ぁ-んァ-ヶ一-龠]/.test(n)));assert.ok(d.backgrounds.every(n=>/背景/.test(n)));assert.ok(d.palette.length>0);
+});
+
+test('a recipe patch (code: null) really takes the old code away; a code patch takes the recipe away; STUDIO-only fields stay', () => {
+ const withCode={font:'file:abc',fontAssetId:'asset1',color:'#ffffff',code:{version:1,source:motionOf('kn-slam').source}};
+ const recipe={version:1,layout:'editorial',enter:'rise',sustain:['sway'],exit:'fade',strength:.6,stagger:.08};
+ const a=mergeMotion(withCode,{code:null,recipe});
+ assert.equal('code' in a,false,'the old code must not survive and win');assert.equal(a.recipe.layout,'editorial');assert.equal(a.fontAssetId,'asset1');assert.equal(a.font,'file:abc');
+ const b=mergeMotion(a,{code:{version:1,source:motionOf('kn-flow').source},recipe:null});
+ assert.equal('recipe' in b,false);assert.equal(b.code.source,motionOf('kn-flow').source);assert.equal(b.fontAssetId,'asset1');
+});
+
+test('sizes: every lyric gets a size inside the range, they differ, long lines are smaller, and both views are set', () => {
+ const p=project(10);p.lyrics[3].text='とても長い歌詞の一行がここにあってそれが画面に収まるように小さくなる';
+ const plan=planOmakase(p,{mood:'impact',seeds:SEEDS});
+ assert.equal(plan.sizes.length,10);
+ for(const x of plan.sizes)assert.ok(x.fontScale>=.04&&x.fontScale<=.12,String(x.fontScale));
+ assert.ok(new Set(plan.sizes.map(x=>x.fontScale)).size>=5,'the sizes are not all the same');
+ const long=plan.sizes[3].fontScale,others=plan.sizes.filter((_,i)=>i!==3).map(x=>x.fontScale);
+ assert.ok(long<Math.max(...others),'a long line is not the biggest: '+long);
+ const command=omakaseCommands(p,plan,{parts:{text:false,bg:false,color:false,size:true},newId:ids});
+ assert.equal(command.commands.length,10*2);assert.ok(command.commands.every(c=>c.type==='setLayout'&&['wide','tall'].includes(c.viewId)));
+ const next=applyCommand(p,command).project;assertProject(next);
+ assert.equal(next.views.wide.layout.L3.fontScale,plan.sizes[3].fontScale);assert.equal(next.views.tall.layout.L3.fontScale,plan.sizes[3].fontScale);
+ // the same seed gives the same sizes; another size seed gives other sizes and leaves the rest of the plan alone
+ const again=planOmakase(p,{mood:'impact',seeds:SEEDS}),other=planOmakase(p,{mood:'impact',seeds:{...SEEDS,size:99}});
+ assert.deepEqual(again.sizes,plan.sizes);assert.notDeepEqual(other.sizes,plan.sizes);assert.deepEqual(other.lines,plan.lines);assert.deepEqual(other.blocks,plan.blocks);
 });

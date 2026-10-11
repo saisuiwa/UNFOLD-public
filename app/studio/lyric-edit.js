@@ -1,10 +1,12 @@
 // "この歌詞を編集" in STUDIO: the same panel the sequence has (動き / 色 / 書体, one word's colour, all lyrics at once),
 // plus the code motions and effects of the workshop as picture cards. It edits the STUDIO project through its commands.
 import {createLyricQuick} from '../lyric-quick.js?v=7';
-import {cleanMotion,graphemes} from '../lyric-motion.js?v=26';
+import {graphemes} from '../lyric-motion.js?v=26';
+import {mergeMotion} from './omakase.js';
 import {cleanWordColors,setWordColor,colorLyricRuns} from '../lyric-style.js';
 import {getLyricFontBlob} from '../lyric-fonts.js';
 import {DAILY_CODE_MOTIONS} from '../code-motion-daily.js';
+import {createMotionLibrary} from '../lyric-library.js';
 import {approveStudioCode,isStudioCodeApproved} from './code-trust.js';
 import {el} from './dom.js';
 
@@ -22,7 +24,7 @@ const HEX=/^#[\da-f]{6}$/i;
 export function colorsOf(lyric){let pos=0;const out=[];for(const r of lyric.runs||[]){const len=(r.text||'').length;if(r.color&&HEX.test(r.color))out.push({start:pos,end:pos+len,color:r.color});pos+=len;}return out;}
 const eventOf=l=>({id:l.id,kind:'line',decision:'lyric',text:l.text,raw:l.text,runs:(l.runs?.length?l.runs:[{text:l.text}]).map(r=>({text:r.text,emphasis:!!r.emphasis})),colors:colorsOf(l),motion:l.motion||{}});
 // the new motion: the sequence's own normaliser decides what a patch means; STUDIO-only fields (font assets) are kept
-export const mergeMotion=(old,patch)=>({...(old||{}),...cleanMotion({...cleanMotion(old||{}),...patch})});
+export {mergeMotion};
 /** New runs after one word's colour changed: the grapheme ids stay, so saved line breaks keep working. */
 export function recolorRuns(lyric,start,end,color){
  const text=lyric.runs.map(r=>r.text).join(''),ids=lyric.runs.flatMap((r,ri)=>graphemes(r.text||'').map((_,i)=>r.glyphIds?.[i]??`${r.id??ri}:${i}`));
@@ -58,19 +60,35 @@ export function createLyricEdit(controller){
    return;
   }
  }
- // the panel compares the document by identity to notice "the lyrics changed while a font was loading": keep it the same object until the lyrics really change
- let cache={key:'',document:null};
- const documentOf=()=>{const s=state(),key=s.project.id+':'+s.editVersion;if(cache.key!==key)cache={key,document:{events:s.project.lyrics.map(eventOf)}};return cache.document;};
- const quick=createLyricQuick({getState:()=>{const s=state();return {document:documentOf(),selectedId:s.selection?.kind==='lyric'?s.selection.id:null,legacy:false,recording:false};},onAction,onMore:()=>{}});
- // the workshop's code motions and effects as picture cards (the same previews as the samples page)
- const apply=(item,scopeAll)=>onAction({type:'lyric-style',id:state().selection?.id,scope:scopeAll.checked?'all':'line',patch:{code:{version:1,source:item.source},recipe:null},replay:true});
+ // the 動き tab: the size of the characters, motions saved in the library, and the workshop's code motions and effects as picture cards (the samples page previews)
+ const selectedId=()=>state().selection?.kind==='lyric'?state().selection.id:null;
  const scopeAll=el('input',{type:'checkbox','aria-label':'全歌詞に適用'}),status=el('p',{class:'hint','data-testid':'code-card-status',role:'status'});
+ const sizeValue=el('output',{class:'lq-size-value'},''),size=el('input',{type:'range',min:.03,max:.2,step:.005,value:.06,'aria-label':'文字の大きさ','data-testid':'lyric-size'});
+ const targets=()=>{const p=state().project;return scopeAll.checked?p.lyrics:[find(selectedId())].filter(Boolean);};
+ size.oninput=()=>{sizeValue.textContent=Math.round(Number(size.value)*1000)/10;};
+ size.onchange=()=>{const value=Number(size.value),p=state().project,commands=[];for(const l of targets())for(const viewId of Object.keys(p.views))commands.push({type:'setLayout',id:l.id,viewId,patch:{fontScale:value}});
+  if(commands.length)controller.dispatch(commands.length===1?commands[0]:{type:'batch',commands}).then(()=>{status.textContent='文字の大きさを反映しました。';}).catch(e=>{status.textContent=e.message;});};
+ const apply=patch=>onAction({type:'lyric-style',id:selectedId(),scope:scopeAll.checked?'all':'line',patch,replay:true});
  const group=(title,items,folder,open)=>{const box=el('details',{class:'lq-codes'},el('summary',{},title+'（'+items.length+'）')),grid=el('div',{class:'lq-code-grid'});box.open=!!open;
   for(const item of items){const b=el('button',{type:'button',class:'lq-code-card','data-key':item.key,title:item.desc||item.name,'aria-label':'動き '+item.name},el('img',{src:`./guide/samples/${folder}-${item.key}.jpg`,alt:'',loading:'lazy'}),el('span',{},item.name));
-   b.onclick=()=>apply(item,scopeAll).then(()=>{status.textContent='「'+item.name+'」を反映しました。';}).catch(e=>{status.textContent=e.message;});grid.append(b);}
+   b.onclick=()=>apply({code:{version:1,source:item.source},recipe:null}).then(()=>{status.textContent='「'+item.name+'」を反映しました。';}).catch(e=>{status.textContent=e.message;});grid.append(b);}
   box.append(grid);return box;};
  const texts=DAILY_CODE_MOTIONS.filter(m=>m.shelf!=='effect'),effects=DAILY_CODE_MOTIONS.filter(m=>m.shelf==='effect'&&!m.key.startsWith('bg-'));
- const codes=el('section',{class:'lq-code-motions','aria-label':'コードの動きとエフェクト'},el('h4',{},'コードの動き・エフェクト'),el('label',{class:'lq-scope'},scopeAll,' 全歌詞に適用'),group('文字の動き',texts,'codetext',true),group('文字つきのエフェクト',effects,'effect',false),status);
- const element=el('div',{class:'studio-lyric-edit'},quick.element,codes);
- return {element,refresh(){quick.refresh();},dispose(){quick.dispose();}};
+ const saved=el('select',{'aria-label':'保存した動き'}),savedLabel=el('label',{class:'lq-scope'},'保存した動き',saved);
+ let savedItems=[];
+ saved.onchange=()=>{const item=savedItems.find(i=>i.id===saved.value);saved.value='';if(item)apply({code:item.motion.code||null,recipe:item.motion.recipe||null,speed:item.motion.speed}).then(()=>{status.textContent='「'+item.name+'」を反映しました。';}).catch(e=>{status.textContent=e.message;});};
+ function refreshSaved(){try{savedItems=createMotionLibrary().list();}catch{savedItems=[];}saved.replaceChildren(new Option('選ぶ',''),...savedItems.map(i=>new Option(i.name,i.id)));savedLabel.hidden=!savedItems.length;}
+ const motionPanel=el('section',{class:'lq-code-motions','aria-label':'動き'},
+  el('label',{class:'lq-size'},el('span',{},'文字の大きさ'),size,sizeValue),
+  el('label',{class:'lq-scope'},scopeAll,' 全歌詞に適用（大きさ・動き）'),
+  savedLabel,group('文字の動き',texts,'codetext',true),group('文字つきのエフェクト',effects,'effect',false),status);
+ refreshSaved();
+ // the panel is the sequence's own, with this 動き tab in place of its recipe cards.
+ // It compares the document by identity to notice "the lyrics changed while a font was loading": keep it the same object until the lyrics really change.
+ let cache={key:'',document:null};
+ const documentOf=()=>{const s=state(),key=s.project.id+':'+s.editVersion;if(cache.key!==key)cache={key,document:{events:s.project.lyrics.map(eventOf)}};return cache.document;};
+ const quick=createLyricQuick({getState:()=>{const s=state();return {document:documentOf(),selectedId:s.selection?.kind==='lyric'?s.selection.id:null,legacy:false,recording:false};},onAction,onMore:()=>{},motionPanel});
+ const element=el('div',{class:'studio-lyric-edit'},quick.element);
+ function refresh(){quick.refresh();const s=state(),id=selectedId();if(!id)return;const layout=s.project.views[s.viewId]?.layout[id];if(layout){size.value=layout.fontScale;sizeValue.textContent=Math.round(layout.fontScale*1000)/10;}}
+ return {element,refresh,dispose(){quick.dispose();}};
 }

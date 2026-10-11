@@ -25,6 +25,9 @@ await withStudioPage(async page=>{
  assert.equal(await page.evaluate(()=>snapshot()),await page.evaluate(()=>before),'lyric text and timing are untouched');
  const first={sources:await page.evaluate(()=>sources()),bgs:await page.evaluate(()=>bgs())};
  assert.ok(await page.locator('.timeline-lane.lane-fx .timeline-block.fx.bg').count()>=1,'the backgrounds show in the 演出 lane');
+ const sizes=await page.evaluate(()=>c.get().project.lyrics.map(l=>c.get().project.views.wide.layout[l.id].fontScale));
+ assert.ok(new Set(sizes).size>=3,'the characters are not all the same size: '+sizes.join());
+ assert.ok(sizes.every(v=>v>=.04&&v<=.12));
  assert.match(await page.locator('.timeline-block.lyric .tl-motion').first().textContent(),/[ぁ-んァ-ヶ一-龠]/,'the lane names the motion');
  // 次の案: a different plan
  await page.getByTestId('omakase-next').click();
@@ -36,12 +39,19 @@ await withStudioPage(async page=>{
  await page.waitForFunction(a=>sources().join('|')===a,first.sources.join('|'));
  assert.equal(await page.evaluate(()=>bgs()),first.bgs);
  // ここだけ変える: the background only
- await page.getByTestId('omakase-only-bg').click();
- await page.waitForFunction(b=>bgs()!==b,first.bgs);
+ // (a re-roll can land on the same background by chance: roll again, up to a few times)
+ for(let i=0;i<6&&(await page.evaluate(()=>bgs()))===first.bgs;i++){await page.getByTestId('omakase-only-bg').click();await page.waitForTimeout(700);}
+ assert.notEqual(await page.evaluate(()=>bgs()),first.bgs,'the background changed');
  assert.equal((await page.evaluate(()=>sources())).join('|'),first.sources.join('|'),'the motions did not change');
- // Undo takes back only the last step
- await page.evaluate(()=>c.undo());
- await page.waitForFunction(b=>bgs()===b,first.bgs);
+ // ここだけ変える 大きさ: the sizes change, the motions and backgrounds do not
+ const sizesBefore=await page.evaluate(()=>c.get().project.lyrics.map(l=>c.get().project.views.wide.layout[l.id].fontScale).join());
+ const bgBefore2=await page.evaluate(()=>bgs());
+ for(let i=0;i<6&&(await page.evaluate(()=>c.get().project.lyrics.map(l=>c.get().project.views.wide.layout[l.id].fontScale).join()))===sizesBefore;i++){await page.getByTestId('omakase-only-size').click();await page.waitForTimeout(700);}
+ assert.notEqual(await page.evaluate(()=>c.get().project.lyrics.map(l=>c.get().project.views.wide.layout[l.id].fontScale).join()),sizesBefore,'the sizes changed');
+ assert.equal(await page.evaluate(()=>bgs()),bgBefore2);assert.equal((await page.evaluate(()=>sources())).join('|'),first.sources.join('|'));
+ // Undo takes back only the last step (the sizes), then the one before (the background)
+ for(let i=0;i<12&&(await page.evaluate(()=>c.get().project.lyrics.map(l=>c.get().project.views.wide.layout[l.id].fontScale).join()))!==sizesBefore;i++){await page.evaluate(()=>c.undo());await page.waitForTimeout(300);}
+ assert.equal(await page.evaluate(()=>c.get().project.lyrics.map(l=>c.get().project.views.wide.layout[l.id].fontScale).join()),sizesBefore,'Undo walks back to the earlier sizes');
  // the other clips of the project are not touched: only おまかせ backgrounds exist
  assert.equal(await page.evaluate(()=>c.get().project.clips.every(x=>x.settings?.omakase)),true);
  await page.evaluate(()=>c.dispose());

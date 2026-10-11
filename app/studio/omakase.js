@@ -6,12 +6,12 @@ import {LYRIC_PALETTES} from '../lyric-style.js';
 import {DAILY_CODE_MOTIONS} from '../code-motion-daily.js';
 
 export const MOODS=[
- {id:'calm',name:'しっとり',text:['drop-settle','squash-in','rgb-settle','gucha-melt','gucha-ripple','gucha-bubble','gucha-ghost','kn-flow','kn-dive','echo-stack'],bg:['bg-concentric','bg-dot-wave'],palettes:['クリーム','ラベンダー','白と光','ソーダ']},
- {id:'pop',name:'ポップ',text:['gucha-squash','gucha-rubber','gucha-bubble','gucha-burst','gucha-wobble','kn-slam','kn-seesaw','kn-collide','letter-boxes','keycap-type'],bg:['bg-dot-wave','bg-diagonal'],palettes:['ミント','ベリー','夕焼け','ソーダ']},
- {id:'glitch',name:'グリッチ',text:['rgb-settle','gucha-boil','gucha-shuffle','gucha-strips','kn-swap','kn-cuts','kn-typeslam','bracket-glitch','flip-up'],bg:['bg-scan-grid','bg-speed-lines'],palettes:['白と光','ソーダ','ミント']},
- {id:'graphic',name:'グラフィック',text:['kn-turn','kn-reflow','gucha-steps','gucha-lanes','gucha-tiles','gucha-flip','layer-extrude','echo-stack','tape-cards'],bg:['bg-square-tunnel','bg-diagonal','bg-scan-grid'],palettes:['白と光','ミント','夕焼け']},
- {id:'emotional',name:'エモ',text:['gucha-gather','gucha-ghost','gucha-magnet','gucha-spiral','gucha-tangle','kn-dive','drop-settle','echo-stack'],bg:['bg-concentric','bg-square-tunnel'],palettes:['ラベンダー','ベリー','夕焼け','クリーム']},
- {id:'impact',name:'勢い',text:['kn-slam','gucha-pile','gucha-burst','kn-collide','kn-typeslam','kn-cuts','layer-extrude','gucha-squash'],bg:['bg-speed-lines','bg-diagonal'],palettes:['夕焼け','白と光','ミント']},
+ {id:'calm',name:'しっとり',text:['drop-settle','squash-in','rgb-settle','gucha-melt','gucha-ripple','gucha-bubble','gucha-ghost','kn-flow','kn-dive','echo-stack'],bg:['bg-concentric','bg-dot-wave'],palettes:['クリーム','ラベンダー','白と光','ソーダ'],size:{base:.055,spread:.012}},
+ {id:'pop',name:'ポップ',text:['gucha-squash','gucha-rubber','gucha-bubble','gucha-burst','gucha-wobble','kn-slam','kn-seesaw','kn-collide','letter-boxes','keycap-type'],bg:['bg-dot-wave','bg-diagonal'],palettes:['ミント','ベリー','夕焼け','ソーダ'],size:{base:.066,spread:.02}},
+ {id:'glitch',name:'グリッチ',text:['rgb-settle','gucha-boil','gucha-shuffle','gucha-strips','kn-swap','kn-cuts','kn-typeslam','bracket-glitch','flip-up'],bg:['bg-scan-grid','bg-speed-lines'],palettes:['白と光','ソーダ','ミント'],size:{base:.06,spread:.015}},
+ {id:'graphic',name:'グラフィック',text:['kn-turn','kn-reflow','gucha-steps','gucha-lanes','gucha-tiles','gucha-flip','layer-extrude','echo-stack','tape-cards'],bg:['bg-square-tunnel','bg-diagonal','bg-scan-grid'],palettes:['白と光','ミント','夕焼け'],size:{base:.07,spread:.02}},
+ {id:'emotional',name:'エモ',text:['gucha-gather','gucha-ghost','gucha-magnet','gucha-spiral','gucha-tangle','kn-dive','drop-settle','echo-stack'],bg:['bg-concentric','bg-square-tunnel'],palettes:['ラベンダー','ベリー','夕焼け','クリーム'],size:{base:.058,spread:.015}},
+ {id:'impact',name:'勢い',text:['kn-slam','gucha-pile','gucha-burst','kn-collide','kn-typeslam','kn-cuts','layer-extrude','gucha-squash'],bg:['bg-speed-lines','bg-diagonal'],palettes:['夕焼け','白と光','ミント'],size:{base:.08,spread:.025}},
 ];
 export const MOOD_AUTO='auto';
 export const BG_OPACITY=.55;
@@ -21,7 +21,7 @@ export const moodOf=id=>MOODS.find(m=>m.id===id);
 
 function hash(text){let h=2166136261;for(const c of String(text)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 export function rng(seed){let a=hash(seed);return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
-export const newSeeds=(random=Math.random)=>({mood:Math.floor(random()*1e9),text:Math.floor(random()*1e9),bg:Math.floor(random()*1e9),color:Math.floor(random()*1e9)});
+export const newSeeds=(random=Math.random)=>({mood:Math.floor(random()*1e9),text:Math.floor(random()*1e9),bg:Math.floor(random()*1e9),color:Math.floor(random()*1e9),size:Math.floor(random()*1e9)});
 
 /** The plan for this project: which key for which lyric, which background for which stretch, which palette. */
 export function planOmakase(project,{mood=MOOD_AUTO,seeds}){
@@ -35,19 +35,31 @@ export function planOmakase(project,{mood=MOOD_AUTO,seeds}){
  const pickBg=()=>{let pool=chosen.bg.filter(k=>k!==previous);if(!pool.length)pool=chosen.bg;const key=pool[Math.floor(rb()*pool.length)];previous=key;return key;};
  if(!lyrics.length)blocks.push({startUs:0,endUs:project.durationUs,key:pickBg()});
  else{let i=0;while(i<lyrics.length){const size=3+Math.floor(rb()*3),from=i,to=Math.min(lyrics.length,i+size);i=to;blocks.push({startUs:blocks.length?lyrics[from].startUs:0,endUs:to>=lyrics.length?project.durationUs:lyrics[to].startUs,key:pickBg()});}}
+ // a size for every lyric: the mood's size, a little more or less per line, now and then a line that is made big; long lines are kept smaller so they fit
+ const rs=rng('size:'+(seeds.size??seeds.text)),sizes=lyrics.map(l=>{
+  const n=[...String(l.text||'').replace(/\s/g,'')].length,fit=n>14?Math.max(.6,14/n):1;
+  let v=chosen.size.base+(rs()*2-1)*chosen.size.spread;if(rs()<.2)v*=1.3;
+  return {id:l.id,fontScale:Math.round(Math.min(.12,Math.max(.04,v*fit))*1000)/1000};
+ });
  // a palette from the mood's list
  const rc=rng('color:'+seeds.color),name=chosen.palettes[Math.floor(rc()*chosen.palettes.length)],palette=LYRIC_PALETTES.find(p=>p.name===name)||LYRIC_PALETTES[0];
- return {moodId:chosen.id,moodName:chosen.name,seeds:{...seeds},lines,blocks,palette:{name:palette.name,color:palette.color,emphasisColor:palette.emphasisColor}};
+ return {moodId:chosen.id,moodName:chosen.name,seeds:{...seeds},lines,blocks,sizes,palette:{name:palette.name,color:palette.color,emphasisColor:palette.emphasisColor}};
 }
 
 // the sequence's own normaliser decides what a motion patch means; STUDIO-only fields (font assets) are kept
-export const mergeMotion=(old,patch)=>({...(old||{}),...cleanMotion({...cleanMotion(old||{}),...patch})});
+export function mergeMotion(old,patch){
+ const cleaned=cleanMotion({...cleanMotion(old||{}),...patch}),out={...(old||{}),...cleaned};
+ // cleanMotion returns `code` or `recipe` (or neither): the one it leaves out must not survive from the old motion, or the old code keeps winning
+ if(!('code' in cleaned))delete out.code;
+ if(!('recipe' in cleaned))delete out.recipe;
+ return out;
+}
 
 /**
  * One batch (one undo): the lyric motions / colours, and the background clips (the previous おまかせ backgrounds are replaced).
  * `parts` says what to touch; lyrics' text and timing, the song and every other clip are never touched.
  */
-export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:true},newId=()=>crypto.randomUUID()}={}){
+export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:true,size:true},newId=()=>crypto.randomUUID()}={}){
  const commands=[],line=new Map(plan.lines.map(l=>[l.id,l.key]));
  if(parts.text||parts.color){
   for(const l of project.lyrics){
@@ -56,6 +68,10 @@ export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:tru
    if(parts.color){patch.color=plan.palette.color;patch.emphasisColor=plan.palette.emphasisColor;}
    if(Object.keys(patch).length)commands.push({type:'setLyricAppearance',id:l.id,patch:{motion:mergeMotion(l.motion,patch)}});
   }
+ }
+ if(parts.size){
+  const sizes=new Map((plan.sizes||[]).map(x=>[x.id,x.fontScale]));
+  for(const l of project.lyrics)if(sizes.has(l.id))for(const viewId of Object.keys(project.views))commands.push({type:'setLayout',id:l.id,viewId,patch:{fontScale:sizes.get(l.id)}});
  }
  if(parts.bg){
   for(const c of project.clips)if(c.settings?.omakase)commands.push({type:'deleteClip',id:c.id});
@@ -74,5 +90,5 @@ export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:tru
 /** What the plan says, for the "いまの案" box. */
 export function describePlan(plan){
  const names=keys=>[...new Set(keys)].map(k=>motionOf(k)?.name||k);
- return {mood:plan.moodName,motions:names(plan.lines.map(l=>l.key)),backgrounds:names(plan.blocks.map(b=>b.key)),palette:plan.palette.name};
+ const scales=(plan.sizes||[]).map(x=>x.fontScale);return {mood:plan.moodName,motions:names(plan.lines.map(l=>l.key)),backgrounds:names(plan.blocks.map(b=>b.key)),palette:plan.palette.name,size:scales.length?{min:Math.min(...scales),max:Math.max(...scales)}:null};
 }

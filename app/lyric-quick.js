@@ -7,7 +7,8 @@ import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=5';
 import {lyricFontLabel,savedLyricFonts,listLocalLyricFonts,selectLocalLyricFont,importLyricFont} from './lyric-fonts.js';
 const node=(tag,text,cls)=>Object.assign(document.createElement(tag),{...(text==null?{}:{textContent:text}),...(cls?{className:cls}:{})});
 // customFonts:false hides the PC font / font file buttons (a host that cannot keep the font bytes).
-export function createLyricQuick({getState,onAction,onMore,customFonts=true}){
+// motionPanel replaces the whole 動き tab with the host's own content (STUDIO shows the code motions and effects there).
+export function createLyricQuick({getState,onAction,onMore,customFonts=true,motionPanel=null}){
  const element=node('section',null,'lm-quick');element.id='lm-quick';element.setAttribute('aria-label','選んだ歌詞を編集');let selectedId=null,textKey='',thumbKey='',token=0,range=null,localFonts=[];
  const title=node('h3','歌詞を選んで、その場で編集'),hint=node('p','タイムラインの歌詞をタップしてください。','hint');element.append(title,hint);
  const content=node('div');element.append(content);
@@ -48,6 +49,7 @@ export function createLyricQuick({getState,onAction,onMore,customFonts=true}){
  const tabs=node('div',null,'lq-tabs'),panels={motion:node('div'),color:node('div'),font:node('div')},tabButtons={};let activeTab='motion';
  for(const [key,label]of [['motion','動き'],['color','色'],['font','書体']]){const b=node('button',label);b.type='button';b.onclick=()=>setTab(key);tabs.append(b);tabButtons[key]=b}
  panels.motion.append(motionHeading,motions,customCards,add,savedLabel,more,motionNote);panels.color.append(chips,palette,customLabel,reset);panels.font.append(fontLabel,fontsActions,browser,fontNote);
+ if(motionPanel)panels.motion.replaceChildren(motionPanel);   // the host's own 動き tab (STUDIO: the code motions and effects)
  content.replaceChildren(nav,wordsLabel,tabs,scopeLabel,selected,panels.motion,panels.color,panels.font,status);
  function setTab(key){activeTab=key;for(const [k,p]of Object.entries(panels)){p.hidden=k!==key;tabButtons[k].setAttribute('aria-pressed',String(k===key))}scopeLabel.hidden=selected.hidden=key==='motion';scope.options[1].disabled=key==='font';if(key==='font'&&scope.value==='word')scope.value='line';describe()}
  setTab('motion');
@@ -55,7 +57,7 @@ export function createLyricQuick({getState,onAction,onMore,customFonts=true}){
   const changed=e.id!==selectedId||textKey!==e.text;selectedId=e.id;textKey=e.text;title.textContent='この歌詞を編集';if(changed){words.value=e.text;range=null;scope.value='line';setTab('motion');chips.replaceChildren();for(const part of new Intl.Segmenter('ja',{granularity:'word'}).segment(e.text)){if(!part.segment.trim())continue;const b=node('button',part.segment,'lq-word');b.type='button';b.onclick=()=>{range={start:part.index,end:part.index+part.segment.length};scope.value='word';words.focus();words.setSelectionRange(range.start,range.end);setTab('color');describe()};chips.append(b)}describe();status.textContent=''}
   const m=cleanMotion(e.motion);custom.value=m.color;options();try{savedItems=createMotionLibrary().list();saved.replaceChildren(new Option('保存した動きを選ぶ',''));for(const i of savedItems)saved.append(new Option(i.name,i.id));savedLabel.hidden=!savedItems.length;customCards.replaceChildren();for(const item of savedItems){const b=node('button',null,'lq-motion');b.append(node('span',item.motion.code?'〈 / 〉 コード':'◇ レシピ'),node('span',item.name));b.type='button';b.setAttribute('aria-label','保存した動き '+item.name);b.onclick=()=>send({type:'lyric-style',id:selectedId,patch:{code:item.motion.code||null,recipe:item.motion.recipe||null},replay:true});customCards.append(b)}more.textContent=m.code?'コードを編集・確認':'細かく調整・名前を付けて保存'}catch(err){status.textContent=err.message}
   const key=JSON.stringify([e.text,m.font,m.color,m.emphasisColor,e.colors]);for(const c of cards)c.b.setAttribute('aria-pressed',String(m.recipe?.layout===c.item.id));
-  if(key!==thumbKey){thumbKey=key;const mine=++token;prepareMotionFont(m,e.text).then(()=>{if(mine!==token)return;for(const c of cards){const ctx=c.canvas.getContext('2d');ctx.clearRect(0,0,256,144);ctx.fillStyle='#101819';ctx.fillRect(0,0,256,144);c.painter.clear();c.painter.draw(ctx,{...e,start:0,end:6,motion:{...m,code:null,recipe:c.item.motion.recipe}},2.1,{width:256,height:144})}}).catch(err=>{if(mine===token)status.textContent=err.message})}
+  if(key!==thumbKey&&!motionPanel){thumbKey=key;const mine=++token;prepareMotionFont(m,e.text).then(()=>{if(mine!==token)return;for(const c of cards){const ctx=c.canvas.getContext('2d');ctx.clearRect(0,0,256,144);ctx.fillStyle='#101819';ctx.fillRect(0,0,256,144);c.painter.clear();c.painter.draw(ctx,{...e,start:0,end:6,motion:{...m,code:null,recipe:c.item.motion.recipe}},2.1,{width:256,height:144})}}).catch(err=>{if(mine===token)status.textContent=err.message})}
   for(const control of element.querySelectorAll('button,input,textarea,select'))control.disabled=!!s.recording;
  }
  return {element,refresh,reveal(){element.scrollIntoView({block:'start',behavior:'instant'})},dispose(){token++;for(const c of cards)c.painter.clear();element.remove()}};

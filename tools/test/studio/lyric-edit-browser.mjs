@@ -41,6 +41,20 @@ await withStudioPage(async page=>{
  // 6) Undo takes back the last change (the font of both lyrics) in one step
  await page.evaluate(()=>c.undo());
  await page.waitForFunction(()=>lyricOf('L1').motion.font==='gothic'&&lyricOf('L2').motion.font==='gothic');
+ // 6b) the old recipe cards are gone from the 動き tab; the code motions are the 動き tab now, with the size of the characters
+ await page.locator('.lq-tabs button',{hasText:'動き'}).click();
+ assert.equal(await page.locator('#lm-quick .lq-motion').count(),0,'no recipe cards');
+ assert.equal(await page.locator('.lq-code-card[data-key="kn-slam"]').isVisible(),true);
+ const sizeOf=id=>page.evaluate(i=>({wide:c.get().project.views.wide.layout[i].fontScale,tall:c.get().project.views.tall.layout[i].fontScale}),id);
+ const size0=await sizeOf('L1');
+ await page.getByTestId('lyric-size').fill('0.12');
+ await page.waitForFunction(()=>c.get().project.views.wide.layout.L1.fontScale===0.12&&c.get().project.views.tall.layout.L1.fontScale===0.12);
+ assert.deepEqual(await sizeOf('L2'),size0,'only the selected lyric changed size');
+ await page.getByLabel('全歌詞に適用',{exact:false}).first().check();
+ await page.getByTestId('lyric-size').fill('0.09');
+ await page.waitForFunction(()=>c.get().project.lyrics.every(l=>c.get().project.views.wide.layout[l.id].fontScale===0.09));
+ await page.evaluate(()=>c.undo());
+ await page.waitForFunction(()=>c.get().project.views.wide.layout.L1.fontScale===0.12&&c.get().project.views.wide.layout.L2.fontScale!==0.09);
  // 7) code that is not the workshop's own is asked about; declining stops it, allowing lets it run
  const trust=await page.evaluate(async()=>{
   const m=await import('/studio/lyric-edit.js'),{isStudioCodeApproved}=await import('/studio/code-trust.js'),src='return {update(){},dispose(){}}; /* mine '+Math.random()+' */';
