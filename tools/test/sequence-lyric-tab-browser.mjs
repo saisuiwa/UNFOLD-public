@@ -36,6 +36,13 @@ try{
  const picker=selects.find(x=>x.label==='動き');
  assert.deepEqual(picker?.options,['一文字ずつ'],'one motion to pick; the others are STUDIO\'s');
  assert.deepEqual(picker?.placeholder,['STUDIOで決める動き'],'a line that already has a STUDIO motion says so');
+ // a line locked by an older version can still be set free (the lock itself is not offered any more)
+ await page.evaluate(async()=>{const u=unfoldSeq,e=u.seq.lyricDocument.events.find(x=>x.kind==='line');await u.lyricAction({type:'edit',id:e.id,patch:{locked:true}});});
+ await page.waitForFunction(()=>unfoldSeq.seq.lyricDocument.events.find(x=>x.kind==='line').locked===true);
+ const legacy=page.locator('.lm-event').first();await legacy.evaluate(d=>{d.open=true});
+ await legacy.getByRole('button',{name:'固定を解除'}).click();
+ await page.waitForFunction(()=>unfoldSeq.seq.lyricDocument.events.find(x=>x.kind==='line').locked===false);
+ assert.equal(await page.locator('.lm-event').first().getByRole('button',{name:'固定を解除'}).count(),0);
  const before=await page.evaluate(()=>unfoldSeq.seq.lyricDocument.events.filter(e=>e.kind==='line').map(e=>({id:e.id,raw:e.raw,s:e.s,e:e.e})));
  await page.locator('.lm-kanji > summary').click();
  await page.getByRole('button',{name:'① 依頼文を作ってコピー'}).click();
