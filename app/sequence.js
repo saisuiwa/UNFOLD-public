@@ -19,17 +19,17 @@ import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look
 import { createRenderControls } from './render-look-controls.js?v=2';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
 import * as THREE from './vendor/three.module.min.js';
-import { smooth, vertexShader, particleFragment } from './motion.js?v=26';
+import { smooth, vertexShader, particleFragment } from './motion.js?v=27';
 import { presetNames, presetTargets } from './shape-presets.js?v=6';
 import { createTextShape, validateText } from './text-shape.js?v=9';
-import { SceneBlur } from './effects.js?v=29';
+import { SceneBlur } from './effects.js?v=30';
 import { WebMWriter, opusHead } from './webm-writer.js?v=2';
 import { MP4Writer } from './mp4-writer.js?v=1';
 import { FONTS, createMaskTextShape, createSilhouetteShape } from './mask-shape.js?v=5';
 import { parseTimings, timingsToJSON, detectBeat, drawLyricCard, loadCardFonts, layoutLyricMV } from './lyric-mv.js?v=6';
 import { importModel } from './model-import.js?v=10';
 import { listModels, getModel, saveModel, deleteModel, updateModel } from './model-library.js?v=4';
-import { grainSequenceNote, tileSequenceNote } from './slider-notes.js?v=1';
+import { grainSequenceNote, tileSequenceNote } from './slider-notes.js?v=2';
 import { applyTiles, tilesAcross } from './tile-size.js?v=1';
 import { ALL, UNGROUPED, cleanGroupName, groupOf, groupSelect, inGroup, loadActive, renderTabs, saveActive, validActive, wantsTabs } from './model-groups.js?v=1';
 import { modelThumb, fillMissingThumbs } from './model-thumb.js?v=1';
