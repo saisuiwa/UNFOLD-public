@@ -26,6 +26,16 @@ try{
   const u=unfoldSeq;await u.lyricAction({type:'text',value:'いちまいの えを ここにおいて\nぐしゃっと *くずれて* ほどけだす\nこなごなの いろが/ふりそそぐ'});
   const e=u.seq.lyricDocument.events.find(x=>x.kind==='line');await u.lyricAction({type:'edit',id:e.id,patch:{s:1.5,e:3.5}});
  });
+ // each lyric row: no 区分 (A/Bメロ・サビ), no per-line lock, and the only motion to pick is 「一文字ずつ」 (the rest is decided in STUDIO)
+ await page.locator('.lm-event').first().evaluate(d=>{d.open=true});
+ const row=page.locator('.lm-event').first();
+ assert.equal(await row.getByText('区分',{exact:true}).count(),0,'no section select');
+ assert.equal(await row.locator('select[aria-label="この行の区分"]').count(),0);
+ assert.equal(await row.getByRole('button',{name:/動きを固定|固定を解除/}).count(),0,'no per-line lock');
+ const selects=await row.locator('select').evaluateAll(els=>els.map(s=>({label:s.parentElement.firstChild.textContent,options:[...s.options].filter(o=>!o.disabled).map(o=>o.textContent),placeholder:[...s.options].filter(o=>o.disabled).map(o=>o.textContent)})));
+ const picker=selects.find(x=>x.label==='動き');
+ assert.deepEqual(picker?.options,['一文字ずつ'],'one motion to pick; the others are STUDIO\'s');
+ assert.deepEqual(picker?.placeholder,['STUDIOで決める動き'],'a line that already has a STUDIO motion says so');
  const before=await page.evaluate(()=>unfoldSeq.seq.lyricDocument.events.filter(e=>e.kind==='line').map(e=>({id:e.id,raw:e.raw,s:e.s,e:e.e})));
  await page.locator('.lm-kanji > summary').click();
  await page.getByRole('button',{name:'① 依頼文を作ってコピー'}).click();
