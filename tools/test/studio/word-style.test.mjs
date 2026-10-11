@@ -50,3 +50,25 @@ test('the colour resolver reports the decorated ranges of each mesh text', () =>
  parts('つなぐ');assert.deepEqual(parts.marks,[{from:0,to:3,outline:false,hollow:true}]);
  parts('ひかり');assert.deepEqual(parts.marks,[],'no decoration in a plain mesh');
 });
+
+test('an outline colour: set with the outline, kept by recolouring, changed without toggling, removed with the outline', () => {
+ const l=lyric([{id:'a',text:'あいうえ'}]);
+ const red=restyleRuns(l,1,3,'outline',{color:'#FF0000'});
+ assert.deepEqual(red.map(r=>[r.text,!!r.outline,r.outlineColor||null]),[['あ',false,null],['いう',true,'#ff0000'],['え',false,null]]);
+ // recolouring the text of another word keeps the outline colour
+ const re=recolorRuns(lyric(red),0,1,'#4dd2ff');
+ assert.deepEqual(re.filter(r=>r.outline).map(r=>[r.text,r.outlineColor]),[['いう','#ff0000']]);
+ // the same characters with another colour: stays on (force), colour changes, runs merge
+ const blue=restyleRuns(lyric(red),1,3,'outline',{color:'#0000ff',force:true});
+ assert.deepEqual(blue.filter(r=>r.outline).map(r=>[r.text,r.outlineColor]),[['いう','#0000ff']]);
+ // without force the same button switches it off, and the colour goes with it
+ const off=restyleRuns(lyric(red),1,3,'outline',{color:'#0000ff'});
+ assert.deepEqual(off.map(r=>[r.text,!!r.outline,r.outlineColor||null]),[['あいうえ',false,null]]);
+ // an invalid colour is ignored (automatic)
+ assert.equal(restyleRuns(l,0,2,'outline',{color:'red'}).find(r=>r.outline).outlineColor,undefined);
+ // hollow has no outline colour
+ assert.equal(restyleRuns(lyric(red),1,3,'hollow').find(r=>r.hollow).outlineColor,undefined);
+ // the resolver hands the colour to the worker
+ const resolve=createMotionColorResolver({text:'あいうえ',runs:red,color:'#ffffff',accent:'#ffcc00'});
+ resolve('あいうえ');assert.deepEqual(resolve.marks,[{from:1,to:3,outline:true,hollow:false,outlineColor:'#ff0000'}]);
+});

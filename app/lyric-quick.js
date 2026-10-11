@@ -3,7 +3,7 @@ import {BUILTIN_MOTIONS} from './lyric-recipe.js';
 import {cleanMotion} from './lyric-motion.js?v=26';
 import {LYRIC_PALETTES} from './lyric-style.js';
 import {createMotionLibrary} from './lyric-library.js';
-import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=7';
+import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=9';
 import {lyricFontLabel,savedLyricFonts,listLocalLyricFonts,selectLocalLyricFont,importLyricFont} from './lyric-fonts.js';
 const node=(tag,text,cls)=>Object.assign(document.createElement(tag),{...(text==null?{}:{textContent:text}),...(cls?{className:cls}:{})});
 // customFonts:false hides the PC font / font file buttons (a host that cannot keep the font bytes).
@@ -28,7 +28,11 @@ export function createLyricQuick({getState,onAction,onMore,customFonts=true,moti
  const customLabel=node('label','好きな文字色','lm-field'),custom=node('input');custom.type='color';customLabel.append(custom);custom.onchange=()=>colorPatch({color:custom.value});content.append(customLabel);
  const reset=node('button','選んだ言葉の色を戻す','btn');reset.onclick=()=>{if(range)send({type:'word-color',id:selectedId,...range,color:null});else status.textContent='戻す言葉を先に選んでください。'};content.append(reset);
  const decoRow=node('div',null,'lq-row'),decoLabel=node('span','選んだ言葉だけ','lq-label');decoRow.append(decoLabel);
- for(const [key,label,hint] of [['outline','縁取り','選んだ言葉に縁取りをつけます（もう一度押すと外れます）'],['hollow','中抜き','選んだ言葉を中抜き（輪郭だけ）にします（もう一度押すと外れます）'],[null,'飾りを外す','選んだ言葉の縁取り・中抜きを外します']]){const b=node('button',label,'btn');b.type='button';b.title=hint;b.dataset.testid='word-'+(key||'plain');b.onclick=()=>{if(!range){status.textContent='先に言葉を選んでください。';return}send({type:'word-style',id:selectedId,...range,key})};decoRow.append(b)}
+ let edgeColor=null;   // the colour of the next outlines (null: automatic, dark or white by the text colour)
+ const edgeLabel=node('label','縁取りの色','lm-field'),edge=node('input'),edgeAuto=node('button','自動','btn');edge.type='color';edge.value='#0b0d12';edge.setAttribute('aria-label','縁取りの色');edge.dataset.testid='word-outline-color';edgeAuto.type='button';edgeAuto.dataset.testid='word-outline-auto';edgeAuto.title='文字の色に合わせて、黒か白の縁取りにします';edgeLabel.append(edge,edgeAuto);
+ for(const [key,label,hint] of [['outline','縁取り','選んだ言葉に縁取りをつけます（もう一度押すと外れます）'],['hollow','中抜き','選んだ言葉を中抜き（輪郭だけ）にします（もう一度押すと外れます）'],[null,'飾りを外す','選んだ言葉の縁取り・中抜きを外します']]){const b=node('button',label,'btn');b.type='button';b.title=hint;b.dataset.testid='word-'+(key||'plain');b.onclick=()=>{if(!range){status.textContent='先に言葉を選んでください。';return}send({type:'word-style',id:selectedId,...range,key,...(key==='outline'&&edgeColor?{color:edgeColor}:{})})};decoRow.append(b)}
+ edge.onchange=()=>{edgeColor=edge.value;if(range)send({type:'word-style',id:selectedId,...range,key:'outline',color:edgeColor,force:true});else status.textContent='先に言葉を選んでください。次の縁取りからこの色になります。'};
+ edgeAuto.onclick=()=>{edgeColor=null;if(range)send({type:'word-style',id:selectedId,...range,key:'outline',force:true})};
  content.append(decoRow);
  const fontLabel=node('label','書体','lm-field'),font=node('select');font.setAttribute('aria-label','その場で書体');fontLabel.append(font);content.append(fontLabel);
  const fontsActions=node('div',null,'lq-row'),pc=node('button','PCのフォント','btn'),fileButton=node('button','フォントファイル','btn'),file=node('input');file.type='file';file.accept='.ttf,.otf,.woff,.woff2';file.hidden=true;fontsActions.append(pc,fileButton,file);content.append(fontsActions);
@@ -51,7 +55,7 @@ export function createLyricQuick({getState,onAction,onMore,customFonts=true,moti
  const status=node('p',null,'lm-status');status.setAttribute('role','status');content.append(status);
  const tabs=node('div',null,'lq-tabs'),panels={motion:node('div'),color:node('div'),font:node('div')},tabButtons={};let activeTab='motion';
  for(const [key,label]of [['motion','動き'],['color','色'],['font','書体']]){const b=node('button',label);b.type='button';b.onclick=()=>setTab(key);tabs.append(b);tabButtons[key]=b}
- panels.motion.append(motionHeading,motions,customCards,add,savedLabel,more,motionNote);panels.color.append(chips,palette,customLabel,reset,decoRow);panels.font.append(fontLabel,fontsActions,browser,fontNote);
+ panels.motion.append(motionHeading,motions,customCards,add,savedLabel,more,motionNote);panels.color.append(chips,palette,customLabel,reset,decoRow,edgeLabel);panels.font.append(fontLabel,fontsActions,browser,fontNote);
  if(motionPanel)panels.motion.replaceChildren(motionPanel);   // the host's own 動き tab (STUDIO: the code motions and effects)
  content.replaceChildren(nav,wordsLabel,tabs,scopeLabel,selected,panels.motion,panels.color,panels.font,status);
  function setTab(key){activeTab=key;for(const [k,p]of Object.entries(panels)){p.hidden=k!==key;tabButtons[k].setAttribute('aria-pressed',String(k===key))}scopeLabel.hidden=selected.hidden=key==='motion';scope.options[1].disabled=key==='font';if(key==='font'&&scope.value==='word')scope.value='line';describe()}

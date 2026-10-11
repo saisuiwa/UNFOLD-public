@@ -1,5 +1,5 @@
 import {kanjiRequest,checkKanjiAnswer} from './lyric-kanji.js';
-import {openMotionStudio} from './lyric-studio.js?v=9';
+import {openMotionStudio} from './lyric-studio.js?v=11';
 import {SECTION_LABELS} from './lyric-document.js?v=4';
 import {getTimings} from './lyric-timing.js?v=2';
 import {cleanMotion,TEXT_MOTIONS} from './lyric-motion.js?v=26';

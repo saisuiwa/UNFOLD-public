@@ -1,4 +1,4 @@
-// The timeline reads like the sequence editor: four lanes (画像 / 演出 / 音声 / 歌詞), every lyric says which text motion it uses,
+// The timeline reads like the sequence editor: four lanes (歌詞 first, then 画像 / 演出 / 音声), every lyric says which text motion it uses,
 // and the selected lyric lists what is inside it (text motion, backgrounds, effects) as chips.
 import assert from 'node:assert/strict';import {withStudioPage} from './browser-helper.mjs';
 await withStudioPage(async page=>{
@@ -14,7 +14,7 @@ await withStudioPage(async page=>{
    {type:'insertClip',clip:text('bgA','A','背景','',bg)},{type:'insertClip',clip:text('wordB','B','飾り','光','')}]});
   c.select({kind:'lyric',id:'L1'});
  });
- const names=await page.locator('.timeline-lane > .lane-title').allTextContents();assert.deepEqual(names,['画像','演出','音声','歌詞'],'four lanes in this order');
+ const names=await page.locator('.timeline-lane > .lane-title').allTextContents();assert.deepEqual(names,['歌詞','画像','演出','音声'],'four lanes in this order');
  assert.equal(await page.locator('.timeline-lane.lane-scenes').count(),1,'all scenes share one lane');assert.equal(await page.locator('.timeline-lane.lane-scenes .timeline-block.scene').count(),2);
  assert.equal(await page.locator('.timeline-lane.lane-lyrics').count(),1,'all lyrics share one lane');assert.equal(await page.getByTestId('lyric-row').count(),2);
  assert.match(await page.locator('.timeline-block.lyric[data-id=L1] .tl-motion').textContent(),/語ごとにドンと落ちる/,'a lyric block names its text motion');

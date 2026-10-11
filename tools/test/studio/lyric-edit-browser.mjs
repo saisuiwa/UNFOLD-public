@@ -12,6 +12,19 @@ await withStudioPage(async page=>{
  });
  const panel=page.locator('#lm-quick');await panel.waitFor({state:'visible'});
  assert.match(await panel.locator('h3').textContent(),/この歌詞を編集/);
+ // 0) choosing a lyric moves the picture to it (a little way in, so its text is on screen): by its block and by the panel's arrows
+ const startOf=id=>page.evaluate(id=>{const l=lyricOf(id);return l.startUs+Math.min(Math.round((l.endUs-l.startUs)/2),1200000);},id);
+ await page.locator('.timeline-block.lyric[data-id="L2"]').click();
+ const want2=await startOf('L2');
+ await page.waitForFunction(w=>Math.abs(c.get().position-w)<40000,want2);
+ await page.getByRole('button',{name:'← 前の歌詞'}).click();
+ const want1=await startOf('L1');
+ await page.waitForFunction(w=>Math.abs(c.get().position-w)<40000,want1);
+ assert.equal(await page.evaluate(()=>c.get().selection.id),'L1');
+ await page.getByRole('button',{name:'次の歌詞 →'}).click();
+ await page.waitForFunction(w=>Math.abs(c.get().position-w)<40000,want2);
+ await page.locator('.timeline-block.lyric[data-id="L1"]').click();
+ await page.waitForFunction(w=>Math.abs(c.get().position-w)<40000,want1);
  // 1) a code motion card sets the lyric's code motion and the lane names it
  await page.locator('.lq-code-card[data-key="kn-slam"]').click();
  await page.waitForFunction(()=>!!lyricOf('L1').motion.code?.source);
@@ -47,6 +60,15 @@ await withStudioPage(async page=>{
  await page.evaluate(()=>c.undo());await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.hollow));
  await page.evaluate(()=>c.undo());await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline)&&!lyricOf('L1').runs.some(r=>r.hollow));
  await page.evaluate(()=>c.undo());await page.waitForFunction(()=>!lyricOf('L1').runs.some(r=>r.outline||r.hollow));
+ // 3c) the colour of the outline: chosen with the colour input (applies to the chosen word at once, keeps the outline), 自動 puts it back
+ await page.locator('.lq-word').first().click();
+ await page.getByTestId('word-outline-color').evaluate(i=>{i.value='#ff0000';i.dispatchEvent(new Event('change',{bubbles:true}));});
+ await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline&&r.outlineColor==='#ff0000'));
+ await page.locator('.lq-word').first().click();
+ await page.getByTestId('word-outline-auto').click();
+ await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline&&!r.outlineColor));
+ await page.evaluate(()=>c.undo());await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline&&r.outlineColor==='#ff0000'));
+ await page.evaluate(()=>c.undo());await page.waitForFunction(()=>!lyricOf('L1').runs.some(r=>r.outline));
  // 4) the font for ALL lyrics
  await page.locator('.lq-tabs button',{hasText:'書体'}).click();
  await page.getByLabel('色・書体を適用する範囲').selectOption('all');

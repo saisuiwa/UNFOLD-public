@@ -2,7 +2,7 @@
 import * as T from '/app/vendor/three.module.min.js';
 import {parseLyrics} from '/app/lyric-document.js?v=4';
 import {BUILTIN_MOTIONS} from '/app/lyric-recipe.js';
-import {createLyricOverlay} from '/app/lyric-overlay.js?v=11';
+import {createLyricOverlay} from '/app/lyric-overlay.js?v=13';
 const results=[],test=(name,pass)=>results.push({name,pass:!!pass});
 try{
  const r=new T.WebGLRenderer({canvas:document.querySelector('canvas'),preserveDrawingBuffer:true});r.setSize(640,360,false);r.setClearColor('#142020');const overlay=createLyricOverlay(r);
