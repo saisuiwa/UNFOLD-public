@@ -40,13 +40,13 @@ await withStudioPage(async page=>{
  await page.getByTestId('omakase-create').click();
  await page.waitForFunction(()=>sources().every(s=>s.length>0));
  const planned={sources:await page.evaluate(()=>sources()),colours:await page.evaluate(()=>colours()),sizes:await page.evaluate(()=>sizes('wide'))};
- assert.ok(mean(planned.sizes)>=.1,'bigger than the old default: '+planned.sizes.join());
+ assert.ok(mean(planned.sizes)>=.09,'bigger than the old default (5.5-10.5 %): '+planned.sizes.join());   // 12 % x the mood (.86-1.2) with a little jitter
  assert.equal(await page.evaluate(()=>opacities().every(v=>v===.5)),true,'the opacity is kept by おまかせ');
  await page.evaluate(()=>setRange('omakase-size',8));
  await page.waitForFunction(m=>sizes('wide').reduce((x,y)=>x+y,0)/6<m*.8,mean(planned.sizes));
  assert.deepEqual(await page.evaluate(()=>sources()),planned.sources,'motions did not change');
  assert.deepEqual(await page.evaluate(()=>colours()),planned.colours,'colours did not change');
- assert.ok(mean(await page.evaluate(()=>sizes('wide')))<.1);
+ assert.ok(mean(await page.evaluate(()=>sizes('wide')))<.125,'8 % x the mood stays small');
  assert.equal(await page.evaluate(()=>snapshot()),await page.evaluate(()=>before),'lyric text and timing untouched');
  await page.evaluate(()=>c.undo());
  await page.waitForFunction(s=>JSON.stringify(sizes('wide'))===s,JSON.stringify(planned.sizes));
