@@ -130,6 +130,7 @@
 .omakase-checks{gap:4px 12px;flex-wrap:wrap}.omakase-check{white-space:nowrap}
 .omakase-row{flex-wrap:wrap}.omakase-row button{white-space:nowrap;min-width:0}
 .omakase-mood span{min-width:5.2em}
+.omakase-row .omakase-label{flex:1 0 100%}
 .omakase-label{font-size:11px;color:var(--muted);white-space:nowrap}
 .omakase-summary{font-size:11.5px;line-height:1.55;padding:6px 8px}
 
