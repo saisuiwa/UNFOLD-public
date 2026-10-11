@@ -13,7 +13,20 @@ await withStudioPage(async page=>{
  // the lane order
  assert.deepEqual(await page.locator('.timeline-lane > .lane-title').allTextContents(),['歌詞','画像','演出','音声']);
  // zoom in (拡大), then choose the last lyric from elsewhere: its block scrolls into the visible part of the timeline
- await page.getByLabel('拡大').fill('8');await page.getByLabel('拡大').dispatchEvent('change');
+ // 拡大 is a slider (1-8, ×N shown next to it); it zooms while it is dragged and keeps the middle of the visible part
+ assert.equal(await page.getByTestId('timeline-zoom').getAttribute('type'),'range');
+ const setZoom=v=>page.getByTestId('timeline-zoom').evaluate((i,v)=>{i.value=String(v);i.dispatchEvent(new Event('input',{bubbles:true}));},v);
+ const width1=await page.evaluate(()=>document.querySelector('.timeline-scroll').scrollWidth);
+ await setZoom(4);
+ await page.waitForFunction(w=>document.querySelector('.timeline-scroll').scrollWidth>w*2,width1);
+ assert.equal(await page.locator('.zoom-field output').textContent(),'×4');
+ // the middle of the visible part stays: scroll to the middle at ×4, zoom to ×8, the same moment is still in the middle
+ const midAt=()=>page.evaluate(()=>{const s=document.querySelector('.timeline-scroll'),t=document.querySelector('.timeline-tracks');return (s.scrollLeft+s.clientWidth/2)/t.scrollWidth;});
+ await page.evaluate(()=>{const s=document.querySelector('.timeline-scroll');s.scrollLeft=(s.scrollWidth-s.clientWidth)/2;});
+ const before=await midAt();
+ await setZoom(8);
+ await page.waitForFunction(w=>document.querySelector('.timeline-scroll').scrollWidth>w*3,width1);
+ assert.ok(Math.abs(await midAt()-before)<.02,'the middle stays: '+before+' -> '+await midAt());
  await page.waitForFunction(()=>document.querySelector('.timeline-scroll').scrollWidth>document.querySelector('.timeline-scroll').clientWidth*3);
  const inView=id=>page.evaluate(id=>{const n=document.querySelector(`.timeline-block.lyric[data-id="${id}"]`),r=n.getBoundingClientRect(),s=document.querySelector('.timeline-scroll').getBoundingClientRect();return r.left>=s.left&&r.right<=s.right+1;},id);
  assert.equal(await inView('L9'),false,'far away to begin with');

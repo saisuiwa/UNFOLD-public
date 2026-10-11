@@ -69,6 +69,18 @@ await withStudioPage(async page=>{
  await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline&&!r.outlineColor));
  await page.evaluate(()=>c.undo());await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline&&r.outlineColor==='#ff0000'));
  await page.evaluate(()=>c.undo());await page.waitForFunction(()=>!lyricOf('L1').runs.some(r=>r.outline));
+ // 3d) the thickness of the outline: the slider changes the chosen word at once and keeps its colour; Undo
+ await page.locator('.lq-word').first().click();
+ await page.getByTestId('word-outline').click();
+ await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline));
+ await page.locator('.lq-word').first().click();
+ await page.getByTestId('word-outline-color').evaluate(i=>{i.value='#00aa00';i.dispatchEvent(new Event('change',{bubbles:true}));});
+ await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline&&r.outlineColor==='#00aa00'));
+ await page.locator('.lq-word').first().click();
+ await page.getByTestId('word-outline-width').evaluate(i=>{i.value='12';i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));});
+ await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline&&r.outlineWidth===12&&r.outlineColor==='#00aa00'));
+ await page.evaluate(()=>c.undo());await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline&&!r.outlineWidth&&r.outlineColor==='#00aa00'));
+ await page.evaluate(()=>c.undo());await page.evaluate(()=>c.undo());await page.waitForFunction(()=>!lyricOf('L1').runs.some(r=>r.outline));
  // 4) the font for ALL lyrics
  await page.locator('.lq-tabs button',{hasText:'書体'}).click();
  await page.getByLabel('色・書体を適用する範囲').selectOption('all');

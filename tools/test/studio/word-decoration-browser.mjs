@@ -24,9 +24,11 @@ await withStudioPage(async page=>{
   const allHollow=await frame(text,[{text,hollow:true}]),allOutline=await frame(text,[{text,outline:true}]);
   const colourful=await frame(text,[{text:'あ',color:'#ff4d4d'},{text:'い',hollow:true,color:'#4dd2ff'},{text:'う'}]);
   // a chosen outline colour (red): red pixels around the third character, no dark edge
+  const thin=await frame(text,[{text:'あい'},{text:'う',outline:true,outlineWidth:2}]),thick=await frame(text,[{text:'あい'},{text:'う',outline:true,outlineWidth:14}]);
+  const darkOf=(f,k)=>third(f,k).dark;
   const red=await frame(text,[{text:'あい'},{text:'う',outline:true,outlineColor:'#ff0000'}]);
   const redPixels=(f,k)=>{const x0=Math.round(W/2-W*.3)+k*Math.round(W*.2),x1=x0+Math.round(W*.2);let r=0,dark=0;for(let y=0;y<H;y++)for(let x=x0;x<x1;x++){const i=(y*W+x)*4;if(f.data[i+3]>128){if(f.data[i]>180&&f.data[i+1]<80&&f.data[i+2]<80)r++;if((f.data[i]+f.data[i+1]+f.data[i+2])/3<60)dark++;}}return {r,dark};};
-  return {red:redPixels(red,2),redElsewhere:redPixels(red,0),plain:[0,1,2].map(k=>third(plain,k)),deco:[0,1,2].map(k=>third(deco,k)),allHollow:[0,1,2].map(k=>third(allHollow,k)),allOutline:[0,1,2].map(k=>third(allOutline,k)),colourful:[0,1,2].map(k=>third(colourful,k))};
+  return {thinDark:darkOf(thin,2),thickDark:darkOf(thick,2),defaultDark:darkOf(await frame(text,[{text:'あい'},{text:'う',outline:true}]),2),red:redPixels(red,2),redElsewhere:redPixels(red,0),plain:[0,1,2].map(k=>third(plain,k)),deco:[0,1,2].map(k=>third(deco,k)),allHollow:[0,1,2].map(k=>third(allHollow,k)),allOutline:[0,1,2].map(k=>third(allOutline,k)),colourful:[0,1,2].map(k=>third(colourful,k))};
  });
  const [p0,p1,p2]=r.plain,[d0,d1,d2]=r.deco;
  assert.ok(p0.painted>2000&&p1.painted>2000&&p2.painted>2000,'plain text is drawn: '+JSON.stringify(r.plain));
@@ -45,6 +47,7 @@ await withStudioPage(async page=>{
  const [c0,c1]=r.colourful;
  assert.ok(c0.painted>2000&&c1.painted>d1.painted*.5&&c1.painted<p1.painted*.75,'coloured word, coloured hollow word: '+JSON.stringify(r.colourful));
  assert.ok(r.red.r>300&&r.red.dark<30,'the outline is the chosen red, not the automatic dark: '+JSON.stringify(r.red));assert.equal(r.redElsewhere.r,0,'no red on plain words');
+ assert.ok(r.thinDark<r.defaultDark&&r.defaultDark<r.thickDark,'the outline width is honoured: '+[r.thinDark,r.defaultDark,r.thickDark].join(' < '));
  console.log('PASS word decoration: hollow and outline on chosen words, plain words untouched',JSON.stringify({plain:p1.painted,hollow:d1.painted,outlineDark:d2.dark}));
 });
 
@@ -61,11 +64,13 @@ await withStudioPage(async page=>{
   };
   const stats=d=>{let painted=0,white=0,dark=0;for(let i=0;i<d.length;i+=4){if(d[i+3]>128){painted++;const l=(d[i]+d[i+1]+d[i+2])/3;if(l>200)white++;if(l<60)dark++;}}return {painted,white,dark};};
   const redStats=d=>{let red=0,dark=0;for(let i=0;i<d.length;i+=4){if(d[i+3]>128){if(d[i]>180&&d[i+1]<80&&d[i+2]<80)red++;if((d[i]+d[i+1]+d[i+2])/3<60)dark++;}}return {red,dark};};
-  return {plain:stats(draw([{text:'あいう'}])),hollow:stats(draw([{text:'あいう',hollow:true}])),outline:stats(draw([{text:'あいう',outline:true}])),red:redStats(draw([{text:'あいう',outline:true,outlineColor:'#ff0000'}]))};
+  const widths=[2,8,16].map(w=>stats(draw([{text:'あいう',outline:true,outlineWidth:w}])).dark);
+  return {widths,plain:stats(draw([{text:'あいう'}])),hollow:stats(draw([{text:'あいう',hollow:true}])),outline:stats(draw([{text:'あいう',outline:true}])),red:redStats(draw([{text:'あいう',outline:true,outlineColor:'#ff0000'}]))};
  });
  assert.ok(r.plain.painted>3000,'drawn: '+JSON.stringify(r.plain));
  assert.ok(r.hollow.painted<r.plain.painted*.7&&r.hollow.dark===0,'hollow is only the contour, with no dark edge: '+JSON.stringify(r));
  assert.ok(r.outline.dark>r.plain.dark*2&&r.outline.painted>r.plain.painted*1.4,'outlined text has a thick dark edge: '+JSON.stringify(r));
  assert.ok(r.red.red>1000,'the painter uses the chosen outline colour: '+JSON.stringify(r.red));
+ assert.ok(r.widths[0]<r.widths[1]&&r.widths[1]<r.widths[2],'the painter honours the width: '+r.widths.join(' < '));
  console.log('PASS word decoration in the 2D painter',JSON.stringify(r));
 });

@@ -161,3 +161,7 @@
 .omakase-slider input[type=range]{width:100%;padding:0;min-height:0}
 .omakase-slider output{font:11px ui-monospace,monospace;text-align:right;color:var(--ink)}
 .omakase-summary{max-height:9.5em;overflow:auto}
+.timeline-tools .zoom-field{display:flex;align-items:center;gap:8px;margin:0 0 0 auto;width:auto}
+.timeline-tools .zoom-field span{white-space:nowrap}
+.timeline-tools .zoom-field input[type=range]{width:160px;min-height:0;padding:0}
+.timeline-tools .zoom-field output{min-width:2.4em;text-align:right;font:11px ui-monospace,monospace;color:var(--ink)}

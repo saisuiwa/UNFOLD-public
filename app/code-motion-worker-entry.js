@@ -28,9 +28,9 @@ function hideGlyphs(mesh,hide){
 // "intent" and drives the stroke / outline opacity here; 中抜き also switches the motion's own outline off (it would fill the hollow glyph).
 // Hollow wins when a word has both.
 function applyDecoration(d){
-  const {mesh,base,hollow,outline,color,edge}=d,size=mesh.fontSize||16,intent=base?base.fillOpacity:d.intent();
+  const {mesh,base,hollow,outline,color,edge,widthPct}=d,size=mesh.fontSize||16,intent=base?base.fillOpacity:d.intent();
   if(hollow){mesh.outlineWidth=0;mesh.strokeWidth=size*STROKE_EM;mesh.strokeColor=color;mesh.strokeOpacity=intent;if(base)mesh.fillOpacity=0;}
-  else if(outline){mesh.outlineWidth=size*OUTLINE_EM;mesh.outlineColor=edge>=0?edge:luminance(color)>.5?0x0b0d12:0xffffff;mesh.outlineOpacity=intent;mesh.outlineBlur=0;if(base)mesh.fillOpacity=base.fillOpacity;}
+  else if(outline){mesh.outlineWidth=size*(widthPct>0?widthPct/100:OUTLINE_EM);mesh.outlineColor=edge>=0?edge:luminance(color)>.5?0x0b0d12:0xffffff;mesh.outlineOpacity=intent;mesh.outlineBlur=0;if(base)mesh.fillOpacity=base.fillOpacity;}
 }
 // a mesh decorated alike all over: its own fillOpacity reads 0 (hollow) while what the motion sets is remembered
 function interceptFill(mesh){let intent=mesh.fillOpacity??1;Object.defineProperty(mesh,'fillOpacity',{configurable:true,enumerable:true,get:()=>0,set:v=>{intent=v;}});return ()=>intent;}
@@ -70,9 +70,10 @@ async function prepare(p){
     for(const m of marks)for(let i=m.from;i<Math.min(n,m.to);i++){
       if(/\s/.test(value[i]))continue;
       const edge=m.outline&&!m.hollow&&m.outlineColor?parseColor(m.outlineColor,-1):-1;   // a chosen outline colour (-1: automatic)
-      const key=(m.hollow?'h':'-')+(m.outline?'o':'-')+colorAt[i]+':'+edge;
+      const widthPct=m.outline&&!m.hollow&&m.outlineWidth>0?m.outlineWidth:0;   // a chosen outline width in % of the font size (0: the default)
+      const key=(m.hollow?'h':'-')+(m.outline?'o':'-')+colorAt[i]+':'+edge+':'+widthPct;
       let g=keys.get(key);
-      if(g==null){if(list.length>=63){g=list.length;}else{list.push({hollow:m.hollow,outline:m.outline,color:colorAt[i],edge});g=list.length;keys.set(key,g);}}
+      if(g==null){if(list.length>=63){g=list.length;}else{list.push({hollow:m.hollow,outline:m.outline,color:colorAt[i],edge,widthPct});g=list.length;keys.set(key,g);}}
       group[i]=g;
     }
     const present=new Set();for(let i=0;i<n;i++)if(!/\s/.test(value[i]))present.add(group[i]);

@@ -72,3 +72,27 @@ test('an outline colour: set with the outline, kept by recolouring, changed with
  const resolve=createMotionColorResolver({text:'あいうえ',runs:red,color:'#ffffff',accent:'#ffcc00'});
  resolve('あいうえ');assert.deepEqual(resolve.marks,[{from:1,to:3,outline:true,hollow:false,outlineColor:'#ff0000'}]);
 });
+
+test('an outline width (% of the font size): set, kept when only the colour changes, kept by recolouring, changed alone, removed with the outline', () => {
+ const l=lyric([{id:'a',text:'あいうえ'}]);
+ const wide=restyleRuns(l,1,3,'outline',{width:12});
+ assert.deepEqual(wide.filter(r=>r.outline).map(r=>[r.text,r.outlineWidth,r.outlineColor]),[['いう',12,undefined]]);
+ // only the colour changes (force, width not given): the width stays
+ const colored=restyleRuns(lyric(wide),1,3,'outline',{color:'#ff0000',force:true});
+ assert.deepEqual(colored.filter(r=>r.outline).map(r=>[r.outlineWidth,r.outlineColor]),[[12,'#ff0000']]);
+ // only the width changes: the colour stays
+ const thin=restyleRuns(lyric(colored),1,3,'outline',{width:3.5,force:true});
+ assert.deepEqual(thin.filter(r=>r.outline).map(r=>[r.outlineWidth,r.outlineColor]),[[3.5,'#ff0000']]);
+ // automatic colour is an explicit null
+ const auto=restyleRuns(lyric(thin),1,3,'outline',{color:null,force:true});
+ assert.deepEqual(auto.filter(r=>r.outline).map(r=>[r.outlineWidth,r.outlineColor]),[[3.5,undefined]]);
+ // recolouring the text keeps the width; out-of-range widths are ignored (default)
+ assert.equal(recolorRuns(lyric(thin),0,1,'#4dd2ff').find(r=>r.outline).outlineWidth,3.5);
+ assert.equal(restyleRuns(l,0,1,'outline',{width:40}).find(r=>r.outline).outlineWidth,undefined);
+ // the outline off takes the width with it; hollow has none
+ assert.equal(restyleRuns(lyric(thin),1,3,'outline').some(r=>r.outline||r.outlineWidth),false);
+ assert.equal(restyleRuns(lyric(thin),1,3,'hollow').find(r=>r.hollow).outlineWidth,undefined);
+ // the worker is told
+ const resolve=createMotionColorResolver({text:'あいうえ',runs:thin,color:'#ffffff',accent:'#ffcc00'});
+ resolve('あいうえ');assert.deepEqual(resolve.marks,[{from:1,to:3,outline:true,hollow:false,outlineColor:'#ff0000',outlineWidth:3.5}]);
+});

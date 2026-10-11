@@ -20,7 +20,7 @@ export function createMotionColorResolver({text,runs=[],color,accent}){
    if(next>start&&offset<end){
     ranges[Math.max(0,offset-start)]=run.color||(run.emphasis?accent:base);
     if(run.color||run.emphasis)styled=true;
-    if(run.outline||run.hollow)resolve.marks.push({from:Math.max(0,offset-start),to:Math.min(end,next)-start,outline:!!run.outline,hollow:!!run.hollow,...(run.outline&&run.outlineColor?{outlineColor:run.outlineColor}:{})});
+    if(run.outline||run.hollow)resolve.marks.push({from:Math.max(0,offset-start),to:Math.min(end,next)-start,outline:!!run.outline,hollow:!!run.hollow,...(run.outline&&run.outlineColor?{outlineColor:run.outlineColor}:{}),...(run.outline&&run.outlineWidth?{outlineWidth:run.outlineWidth}:{})});
    }
    offset=next;if(offset>=end)break;
   }

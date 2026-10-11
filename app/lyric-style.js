@@ -24,7 +24,7 @@ export function setWordColor(colors,text,start,end,color){
 }
 export function colorLyricRuns(runs,colors){
  const text=runs.map(r=>r.text).join(''),spans=cleanWordColors(colors,text),out=[];let pos=0;
- for(const r of runs){for(const g of chars(r.text)){const c=spans.find(c=>c.start<=pos+g.start&&c.end>pos+g.start),run={text:g.text,emphasis:!!r.emphasis,...(c?{color:c.color}:{}),...(r.outline?{outline:true}:{}),...(r.outline&&r.outlineColor?{outlineColor:r.outlineColor}:{}),...(r.hollow?{hollow:true}:{})},last=out.at(-1);if(last&&last.emphasis===run.emphasis&&last.color===run.color&&!!last.outline===!!run.outline&&last.outlineColor===run.outlineColor&&!!last.hollow===!!run.hollow)last.text+=run.text;else out.push(run)}pos+=r.text.length}
+ for(const r of runs){for(const g of chars(r.text)){const c=spans.find(c=>c.start<=pos+g.start&&c.end>pos+g.start),run={text:g.text,emphasis:!!r.emphasis,...(c?{color:c.color}:{}),...(r.outline?{outline:true}:{}),...(r.outline&&r.outlineColor?{outlineColor:r.outlineColor}:{}),...(r.outline&&r.outlineWidth?{outlineWidth:r.outlineWidth}:{}),...(r.hollow?{hollow:true}:{})},last=out.at(-1);if(last&&last.emphasis===run.emphasis&&last.color===run.color&&!!last.outline===!!run.outline&&last.outlineColor===run.outlineColor&&last.outlineWidth===run.outlineWidth&&!!last.hollow===!!run.hollow)last.text+=run.text;else out.push(run)}pos+=r.text.length}
  return out;
 }
 export function applyLyricStyle(doc,{id,scope='line',patch={}}){
