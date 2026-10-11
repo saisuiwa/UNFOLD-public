@@ -30,6 +30,9 @@ await withStudioPage(async page=>{
  assert.ok(sizes.every(v=>v>=.05&&v<=.24),'inside the checked range: '+sizes.join());
  assert.ok(sizes.reduce((a,b)=>a+b,0)/sizes.length>=.1,'the characters are not small: '+sizes.join());
  assert.match(await page.locator('.timeline-block.lyric .tl-motion').first().textContent(),/[ぁ-んァ-ヶ一-龠]/,'the lane names the motion');
+ // the おまかせ backgrounds are in the 演出 lane; the layer rows under the lanes do not list them again
+ assert.equal(await page.getByTestId('clip-row').count(),0,'no layer rows for the おまかせ backgrounds');
+ assert.match(await page.getByTestId('selected-scene').innerText(),/おまかせの背景 \d+ 個は「演出」の行にあります/);
  // 次の案: a different plan
  await page.getByTestId('omakase-next').click();
  await page.waitForFunction(a=>sources().join('|')!==a,first.sources.join('|'));

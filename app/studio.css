@@ -165,3 +165,9 @@
 .timeline-tools .zoom-field span{white-space:nowrap}
 .timeline-tools .zoom-field input[type=range]{width:160px;min-height:0;padding:0}
 .timeline-tools .zoom-field output{min-width:2.4em;text-align:right;font:11px ui-monospace,monospace;color:var(--ink)}
+.slider-row{display:grid;grid-template-columns:minmax(0,1fr) 5.4em;gap:8px;align-items:center}
+.slider-row .slider-range{order:-1;width:100%;padding:0;min-height:0}
+.slider-row input[type=number]{width:100%}
+.timeline-tools .zoom-box{display:grid;gap:2px;margin-left:auto}
+.timeline-tools .zoom-box .zoom-field{margin:0}
+.timeline-tools .pan-field input:disabled{opacity:.4}

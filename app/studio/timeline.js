@@ -6,9 +6,13 @@ export function mountTimeline(root,controller){let version='',zoom=1,state,drag=
  const run=fn=>action(controller,fn)(),b=(t,f)=>button(controller,t,f);
  // 拡大 is a slider: the timeline follows the thumb while it is dragged and keeps the middle of the visible part where it was
  const zoomInput=el('input',{type:'range',min:1,max:8,step:.5,value:1,'aria-label':'拡大','data-testid':'timeline-zoom'}),zoomOut=el('output',{},'×1'),zoomField=el('label',{class:'field zoom-field'},el('span',{},'拡大'),zoomInput,zoomOut);
- zoomInput.addEventListener('input',()=>{const mid=(scroller.scrollLeft+scroller.clientWidth/2)/Math.max(1,tracks.scrollWidth);zoom=Math.max(1,Math.min(8,Number(zoomInput.value)||1));zoomOut.textContent='×'+zoom;version='';render(state);scroller.scrollLeft=Math.max(0,mid*tracks.scrollWidth-scroller.clientWidth/2);});
- const toolbar=el('div',{class:'timeline-tools'},b('シーンを追加',()=>controller.addScene()),b('再生位置で分割',()=>controller.editSelected('split')),b('配置を複製',()=>controller.editSelected('duplicate')),b('選択を削除',()=>controller.editSelected('delete')),zoomField);const waveCache=new Map();const scroller=el('div',{class:'timeline-scroll'}),tracks=el('div',{class:'timeline-tracks'}),chips=el('div',{class:'timeline-chips','data-testid':'timeline-chips','aria-live':'polite'});for(const x of toolbar.querySelectorAll('button'))if(['シーンを追加','再生位置で分割','配置を複製'].includes(x.textContent))x.dataset.advanced='';
- scroller.append(tracks);root.append(toolbar,scroller,chips);
+ const panInput=el('input',{type:'range',min:0,max:1000,step:1,value:0,'aria-label':'移動','data-testid':'timeline-pan',disabled:true}),panOut=el('output',{},'0%'),panField=el('label',{class:'field zoom-field pan-field'},el('span',{},'移動'),panInput,panOut),zoomBox=el('div',{class:'zoom-box'},zoomField,panField);
+ zoomInput.addEventListener('input',()=>{const mid=(scroller.scrollLeft+scroller.clientWidth/2)/Math.max(1,tracks.scrollWidth);zoom=Math.max(1,Math.min(8,Number(zoomInput.value)||1));zoomOut.textContent='×'+zoom;version='';render(state);scroller.scrollLeft=Math.max(0,mid*tracks.scrollWidth-scroller.clientWidth/2);syncPan();});
+ // 移動: the same as scrolling the timeline sideways (only useful when it is zoomed in); it follows the scrolling and the zoom
+ function syncPan(){const room=Math.max(0,tracks.scrollWidth-scroller.clientWidth);panInput.disabled=room<2;const f=room<2?0:scroller.scrollLeft/room;panInput.value=String(Math.round(f*1000));panOut.textContent=Math.round(f*100)+'%';}
+ panInput.addEventListener('input',()=>{const room=Math.max(0,tracks.scrollWidth-scroller.clientWidth);scroller.scrollLeft=Number(panInput.value)/1000*room;panOut.textContent=Math.round(Number(panInput.value)/10)+'%';});
+ const toolbar=el('div',{class:'timeline-tools'},b('シーンを追加',()=>controller.addScene()),b('再生位置で分割',()=>controller.editSelected('split')),b('配置を複製',()=>controller.editSelected('duplicate')),b('選択を削除',()=>controller.editSelected('delete')),zoomBox);const waveCache=new Map();const scroller=el('div',{class:'timeline-scroll'}),tracks=el('div',{class:'timeline-tracks'}),chips=el('div',{class:'timeline-chips','data-testid':'timeline-chips','aria-live':'polite'});for(const x of toolbar.querySelectorAll('button'))if(['シーンを追加','再生位置で分割','配置を複製'].includes(x.textContent))x.dataset.advanced='';
+ scroller.append(tracks);root.append(toolbar,scroller,chips);scroller.addEventListener('scroll',syncPan);
  // click or drag on the ruler or an empty stretch of a lane to move the playhead (the preview follows)
  let seeking=false,seekBusy=false;const seekTo=e=>{const rect=tracks.getBoundingClientRect(),head=parseFloat(getComputedStyle(tracks).getPropertyValue('--lane-head'))||76,frac=Math.min(1,Math.max(0,(e.clientX-rect.left-head)/Math.max(1,rect.width-head)));if(seekBusy||!state)return;seekBusy=true;controller.seek(Math.round(frac*state.project.durationUs)).catch(()=>{}).finally(()=>{seekBusy=false;});};
  tracks.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('.timeline-block,.lane-label,button,.selected-scene-heading'))return;if(!e.target.closest('.time-ruler,.lane-rail'))return;seeking=true;tracks.setPointerCapture?.(e.pointerId);seekTo(e);});
@@ -57,8 +61,9 @@ export function mountTimeline(root,controller){let version='',zoom=1,state,drag=
    {const items=pack(p.audio.map(a=>({a,start:a.startUs,end:a.endUs})).sort((x,y)=>x.start-y.start)),rows=Math.min(3,Math.max(1,...items.map(x=>x.row+1))),{l,rail}=lane('音声','lane-audio',rows*SUB+8);
     for(const it of items){const a=it.a;block('audio',a,a.startUs,a.endUs,(a.linkClipId?'↳ 映像リンク ':a.role==='music'?'♫ 主曲 ':'♪ 効果音 ')+(a.muted?'MUTE':''),{rail,locked:a.role==='music'&&p.locks.music,testid:'audio-row',top:4+Math.min(2,it.row)*SUB,height:SUB-4});}
     tracks.append(l);}
-   tracks.append(el('div',{class:'selected-scene-heading','data-testid':'selected-scene'},focused?'選択シーン '+displayTime(focused.startUs)+' → '+displayTime(focused.endUs)+' / 重なり順（上が前）':'シーンを選ぶと重なりを表示します'));
-   if(focused)for(const c of p.clips.filter(c=>c.sceneId===focused.id).sort((a,b)=>b.z-a.z))tracks.append(layerRow(c,Math.max(focused.startUs,focused.originUs+c.startUs),Math.min(focused.endUs,focused.originUs+c.endUs)));
+   const sceneClips=focused?p.clips.filter(c=>c.sceneId===focused.id):[],autoBackgrounds=sceneClips.filter(c=>c.settings?.omakase).length;   // the おまかせ backgrounds are in the 演出 lane already
+   tracks.append(el('div',{class:'selected-scene-heading','data-testid':'selected-scene'},focused?'選択シーン '+displayTime(focused.startUs)+' → '+displayTime(focused.endUs)+' / 重なり順（上が前）'+(autoBackgrounds?' ／ おまかせの背景 '+autoBackgrounds+' 個は「演出」の行にあります':''):'シーンを選ぶと重なりを表示します'));
+   if(focused)for(const c of sceneClips.filter(c=>!c.settings?.omakase).sort((a,b)=>b.z-a.z))tracks.append(layerRow(c,Math.max(focused.startUs,focused.originUs+c.startUs),Math.min(focused.endUs,focused.originUs+c.endUs)));
    tracks.append(el('div',{class:'playhead'}));
    const list=chipsFor(p,s.selection);chips.replaceChildren(...(list.length?list.map(x=>el('span',{class:'tl-chip chip-'+x.kind},el('b',{},x.label),' '+x.value)):[el('span',{class:'tl-chip-hint'},'歌詞・シーン・配置を選ぶと、使っている動きや背景がここに出ます。')]));
   }
@@ -68,6 +73,7 @@ export function mountTimeline(root,controller){let version='',zoom=1,state,drag=
   {const sel=s.selection;if(sel?.kind!=='lyric')revealed=null;
    else if(sel.id!==revealed){revealed=sel.id;const node=[...tracks.querySelectorAll('.timeline-block.lyric')].find(n=>n.dataset.id===sel.id);
     if(node){const r=node.getBoundingClientRect(),sr=scroller.getBoundingClientRect();if(r.width>0&&(r.left<sr.left+90||r.right>sr.right))scroller.scrollLeft+=r.left-sr.left-(sr.width-r.width)/2;}}}
+  syncPan();
  }
  return {render,dispose(){root.replaceChildren();}};
 }

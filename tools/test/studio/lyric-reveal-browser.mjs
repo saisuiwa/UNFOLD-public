@@ -17,9 +17,17 @@ await withStudioPage(async page=>{
  assert.equal(await page.getByTestId('timeline-zoom').getAttribute('type'),'range');
  const setZoom=v=>page.getByTestId('timeline-zoom').evaluate((i,v)=>{i.value=String(v);i.dispatchEvent(new Event('input',{bubbles:true}));},v);
  const width1=await page.evaluate(()=>document.querySelector('.timeline-scroll').scrollWidth);
+ assert.equal(await page.getByTestId('timeline-pan').isDisabled(),true,'nothing to move while the whole song is in view');
  await setZoom(4);
  await page.waitForFunction(w=>document.querySelector('.timeline-scroll').scrollWidth>w*2,width1);
- assert.equal(await page.locator('.zoom-field output').textContent(),'×4');
+ assert.equal(await page.locator('.zoom-field:not(.pan-field) output').textContent(),'×4');
+ // 移動: a slider under 拡大 that scrolls the zoomed timeline sideways, and follows the scrolling
+ assert.equal(await page.getByTestId('timeline-pan').isDisabled(),false,'enabled when zoomed in');
+ await page.getByTestId('timeline-pan').evaluate(i=>{i.value='500';i.dispatchEvent(new Event('input',{bubbles:true}));});
+ await page.waitForFunction(()=>{const s=document.querySelector('.timeline-scroll'),room=s.scrollWidth-s.clientWidth;return Math.abs(s.scrollLeft/room-.5)<.02;});
+ assert.equal(await page.locator('.pan-field output').textContent(),'50%');
+ await page.evaluate(()=>{const s=document.querySelector('.timeline-scroll');s.scrollLeft=0;});
+ await page.waitForFunction(()=>document.querySelector('[data-testid="timeline-pan"]').value==='0');
  // the middle of the visible part stays: scroll to the middle at ×4, zoom to ×8, the same moment is still in the middle
  const midAt=()=>page.evaluate(()=>{const s=document.querySelector('.timeline-scroll'),t=document.querySelector('.timeline-tracks');return (s.scrollLeft+s.clientWidth/2)/t.scrollWidth;});
  await page.evaluate(()=>{const s=document.querySelector('.timeline-scroll');s.scrollLeft=(s.scrollWidth-s.clientWidth)/2;});
