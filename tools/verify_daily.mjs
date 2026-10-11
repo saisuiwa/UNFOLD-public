@@ -298,26 +298,27 @@ try {
     need(!problems.length, problems.join('\n'));
   });
 
-  await step('the lyric panel offers every text motion, and the last one can be chosen', async () => {
+  // The sequence's lyric rows offer one motion only (一文字ずつ); every other motion is chosen in STUDIO's 動き tab (the user asked for this on 2026-10-11).
+  await step('a lyric row in the sequence offers only 一文字ずつ, and it can be chosen', async () => {
     const page = await newPage({ width: 1440, height: 900 });
     await page.goto(`${server.url}/sequence.html`, { waitUntil: 'load' });
     await page.waitForSelector('button[data-tab="lyric"]');
     await page.click('button[data-tab="lyric"]');
     await page.fill('#lm-source', '[Verse]\nきみと、はじまる\nもういちど、*うた*を');
     await page.waitForFunction(() => document.querySelectorAll('#pane-lyric .lm-rows select').length > 0, null, { timeout: 10000 });
-    const last = Object.keys(TEXT_MOTIONS).at(-1);
-    const seen = await page.evaluate(async last => {
-      const motionSelect = () => [...document.querySelectorAll('#pane-lyric .lm-rows select')].find(s => [...s.options].some(o => o.value === 'float'));
-      const options = [...motionSelect().options].filter(o => o.value).map(o => `${o.value}:${o.text}`);   // a leading empty option means "this line uses a motion from the library"
+    const seen = await page.evaluate(async () => {
+      const motionSelect = () => [...document.querySelectorAll('#pane-lyric .lm-rows select')].find(s => [...s.options].some(o => o.value === 'reveal'));
+      const options = [...motionSelect().options].filter(o => o.value).map(o => `${o.value}:${o.text}`);   // a leading empty (disabled) option means "this line uses a motion decided in STUDIO"
       const select = motionSelect();
-      select.value = last; select.dispatchEvent(new Event('change', { bubbles: true }));
+      select.value = 'reveal'; select.dispatchEvent(new Event('change', { bubbles: true }));
       await new Promise(r => setTimeout(r, 400));
-      return { options, chosen: motionSelect().value };
-    }, last);
-    const want = Object.entries(TEXT_MOTIONS).map(([key, m]) => `${key}:${m.label}`);
+      return { options, chosen: motionSelect().value, sections: document.querySelectorAll('#pane-lyric .lm-rows select[aria-label="この行の区分"]').length };
+    });
+    const want = [`reveal:${TEXT_MOTIONS.reveal.label}`];
     const problems = [];
-    if (JSON.stringify(seen.options) !== JSON.stringify(want)) problems.push(`the select lists ${seen.options.join(', ')} but the table has ${want.join(', ')}`);
-    if (seen.chosen !== last) problems.push(`choosing "${last}" did not stick (the select shows "${seen.chosen}")`);
+    if (JSON.stringify(seen.options) !== JSON.stringify(want)) problems.push(`the select lists ${seen.options.join(', ')} but only ${want.join(', ')} is wanted`);
+    if (seen.chosen !== 'reveal') problems.push(`choosing "reveal" did not stick (the select shows "${seen.chosen}")`);
+    if (seen.sections) problems.push('the 区分 select is still there');
     for (const p of page.problems) problems.push(p);
     await page.close();
     need(!problems.length, problems.join('\n'));
