@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル86個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル106個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -26,15 +26,785 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>86個</b>、最後に増えたのは 10/11）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>106個</b>、最後に増えたのは 10/12）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>86</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>9</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>4</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>36</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>29</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>106</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>17</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>4</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>36</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-scribble-scatter.mp4" role="button" tabindex="0" aria-label="落書きになって散るの動きを再生">
+        <img src="./samples/method-scribble-scatter.jpg" alt="落書きになって散るの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">落</i>落書きになって散る<span class="new">NEW</span><small>SCRIBBLE-SCATTER</small></h3>
+        <p>絵が線画の落書きになって、揺れながらばらばらに散っていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 絵が線画の落書きになって、揺れながらばらばらに散っていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(ph(1.) * .2, .45 + ph(1.) * .3, amount);
+  float a = ph(2.) * 6.2832 + uTime * (3. + ph(3.) * 4.);
+  vec2 scrawl = vec2(cos(a), sin(a * 1.37)) * (.05 + .14 * ph(4.)) * e;
+  vec2 drift = (vec2(ph(5.), ph(6.)) - .5) * 1.6 * e;
+  vec2 q = c + rot((ph(7.) - .5) * 2.4 * e) * l * (1. + e * 1.2) + scrawl + drift;
+  gKind = 9.;
+  return vec3(q, (ph(8.) - .5) * .5 * e);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-line-tangle.mp4" role="button" tabindex="0" aria-label="線がぐるぐる絡むの動きを再生">
+        <img src="./samples/method-line-tangle.jpg" alt="線がぐるぐる絡むの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">絡</i>線がぐるぐる絡む<span class="new">NEW</span><small>LINE-TANGLE</small></h3>
+        <p>線画になった粒が、渦を巻きながら中心へ絡まっていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 線画になった粒が、渦を巻きながら中心へ絡まっていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float r = length(c) / 3.;
+  float e = smoothstep(r * .15, .5 + r * .3, amount);
+  float turn = e * (3. + 2.5 * sin(r * 7. + uTime * .5)) * (1.2 - r);
+  vec2 q = rot(turn) * c * (1. - .5 * e) + rot(turn * 1.5) * l * (1. + e * 1.6);
+  q += vec2(sin(c.y * 6. + uTime * 2.), cos(c.x * 6. + uTime * 2.3)) * .05 * e;
+  gKind = 9.;
+  return vec3(q, sin(turn) * .3 * e);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-pen-shake.mp4" role="button" tabindex="0" aria-label="ペンで殴り描きの動きを再生">
+        <img src="./samples/method-pen-shake.jpg" alt="ペンで殴り描きの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">殴</i>ペンで殴り描き<span class="new">NEW</span><small>PEN-SHAKE</small></h3>
+        <p>絵が線画になり、ペンで殴り描きするように細かく震えます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 絵が線画になり、ペンで殴り描きするように細かく震える
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(0., .4, amount);
+  vec2 jit = vec2(sin(c.y * 11. + uTime * 17.), cos(c.x * 11. + uTime * 13.)) * .035 * e
+           + vec2(sin(uTime * 29. + c.x * 5.), cos(uTime * 31. + c.y * 5.)) * .02 * e;
+  vec2 q = c + l * (1. + .9 * e) + jit;
+  gKind = 9.;
+  return vec3(q, 0.);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-line-fall.mp4" role="button" tabindex="0" aria-label="線画が崩れ落ちるの動きを再生">
+        <img src="./samples/method-line-fall.jpg" alt="線画が崩れ落ちるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">崩</i>線画が崩れ落ちる<span class="new">NEW</span><small>LINE-FALL</small></h3>
+        <p>線画になった絵が、上から順に切れ落ちるように崩れていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 線画になった絵が、上から順に切れ落ちるように崩れていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float top = clamp(.5 - c.y / uSize.y, 0., 1.);
+  float e = smoothstep(top * .35 + ph(1.) * .12, top * .35 + .38 + ph(1.) * .12, amount);
+  float fall = e * e * (1.2 + ph(2.) * 1.8);
+  vec2 q = c + rot((ph(3.) - .5) * 3. * e) * l + vec2((ph(4.) - .5) * .5 * e, -fall);
+  gKind = 9.;
+  return vec3(q, (ph(5.) - .5) * .4 * e);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-thread-unravel.mp4" role="button" tabindex="0" aria-label="ほどけて糸になるの動きを再生">
+        <img src="./samples/method-thread-unravel.jpg" alt="ほどけて糸になるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">糸</i>ほどけて糸になる<span class="new">NEW</span><small>THREAD-UNRAVEL</small></h3>
+        <p>絵がほどけて、細い糸のように長く伸びて流れていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 絵がほどけて、細い糸のように長く伸びて流れていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(ph(1.) * .25, .5 + ph(1.) * .25, amount);
+  float ang = (ph(2.) - .5) * .9 + sin(c.y * 2. + uTime) * .2;
+  vec2 along = vec2(cos(ang), sin(ang)), across = vec2(-along.y, along.x);
+  vec2 stretched = along * dot(l, along) * (1. + e * 5.) + across * dot(l, across) * (1. - .5 * e);
+  vec2 q = c + stretched + along * e * (.4 + ph(3.) * 1.2) + vec2(0., sin(uTime * 1.5 + c.x * 2.) * .1 * e);
+  gKind = 9.;
+  return vec3(q, 0.);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-color-bleed.mp4" role="button" tabindex="0" aria-label="色が滲んで広がるの動きを再生">
+        <img src="./samples/method-color-bleed.jpg" alt="色が滲んで広がるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">滲</i>色が滲んで広がる<span class="new">NEW</span><small>COLOR-BLEED</small></h3>
+        <p>色が水に滲むように粒がぼやけて広がり、まわりと混ざります。</p>
+        <details><summary>コードを見る</summary><pre><code>// 色が水に滲むように、粒がぼやけて広がり、まわりの色と混ざっていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(ph(1.) * .2, .5 + ph(1.) * .25, amount);
+  vec2 flow = vec2(sin(c.y * 1.8 + uTime * .6), cos(c.x * 1.4 + uTime * .5)) * .15 * e;
+  vec2 q = c + l * (1. + e * 3.4) + flow;
+  gKind = 2.; gLocal = 1.;
+  gAlpha = mix(1., .5, e);
+  return vec3(q, -e * .15 * ph(2.));
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-paint-drip.mp4" role="button" tabindex="0" aria-label="絵の具が垂れるの動きを再生">
+        <img src="./samples/method-paint-drip.jpg" alt="絵の具が垂れるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">垂</i>絵の具が垂れる<span class="new">NEW</span><small>PAINT-DRIP</small></h3>
+        <p>絵の具が溶けて、色の筋になって下へ垂れていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 絵の具が溶けて、色の筋になって下へ垂れていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(ph(1.) * .3, .55 + ph(1.) * .25, amount);
+  float len = .3 + ph(2.) * 1.6;
+  vec2 q = c + vec2(l.x * (1. - .35 * e) + sin(uTime * 1.2 + ph(3.) * 6.) * .03 * e, l.y * (1. + e * 6.) - e * len);
+  gKind = 2.; gLocal = 1.;
+  gAlpha = mix(1., .7, e);
+  return vec3(q, 0.);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-bleed-out.mp4" role="button" tabindex="0" aria-label="中心から滲み出すの動きを再生">
+        <img src="./samples/method-bleed-out.jpg" alt="中心から滲み出すの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">溢</i>中心から滲み出す<span class="new">NEW</span><small>BLEED-OUT</small></h3>
+        <p>色が中心から外へ滲み出して、やわらかく広がっていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 色が中心から外へ滲み出して、やわらかく広がっていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float r = length(c);
+  float e = smoothstep(r * .12, .45 + r * .12 + ph(1.) * .15, amount);
+  vec2 dir = normalize(c + vec2(.001));
+  vec2 q = c + dir * e * (.5 + ph(2.) * .9) + l * (1. + e * 2.8);
+  gKind = 2.; gLocal = 1.;
+  gAlpha = mix(1., .55, e);
+  return vec3(q, 0.);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-checker-wave.mp4" role="button" tabindex="0" aria-label="波打つ市松の背景の動きを再生">
+        <img src="./samples/effect-bg-checker-wave.jpg" alt="波打つ市松の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>波打つ市松の背景<span class="new">NEW</span><small>BG-CHECKER-WAVE</small></h3>
+        <p>市松模様が波のようにうねりながら流れる、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 市松模様の角丸の四角が、波のようにうねりながら脈打つ背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*9.;
+  p.y+=sin(p.x*.8+u_time*1.5)*.6;p.x+=cos(p.y*.7+u_time*1.1)*.4;
+  vec2 g=floor(p),f=fract(p)-.5;
+  float chk=mod(g.x+g.y,2.);
+  float sq=1.-smoothstep(.34,.46,max(abs(f.x),abs(f.y)));
+  float pulse=.55+.45*sin(u_time*2.+g.x*.6+g.y*.8);
+  vec3 col=mix(u_accent,vec3(1.),.4+.3*sin(g.x*.5+u_time*.8));
+  float a=sq*chk*pulse*.6;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-sunburst.mp4" role="button" tabindex="0" aria-label="放射状の光線の背景の動きを再生">
+        <img src="./samples/effect-bg-sunburst.jpg" alt="放射状の光線の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>放射状の光線の背景<span class="new">NEW</span><small>BG-SUNBURST</small></h3>
+        <p>中心から放射状の光線が、ゆっくり回りながら広がる背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 中心から放射状に伸びる光線が、ゆっくり回転する背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float ang=atan(p.y,p.x),r=length(p);
+  float k=ang/TAU*16.+u_time*.18;
+  float f=fract(k);
+  float ray=smoothstep(.0,.1,f)*(1.-smoothstep(.34,.44,f));
+  float fall=smoothstep(.04,.22,r)*(.4+.6*smoothstep(.0,.9,r));
+  vec3 col=mix(u_accent,vec3(1.,.95,.8),.5+.5*sin(k*.7));
+  float a=ray*fall*.6;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-grid-warp.mp4" role="button" tabindex="0" aria-label="歪む方眼の背景の動きを再生">
+        <img src="./samples/effect-bg-grid-warp.jpg" alt="歪む方眼の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>歪む方眼の背景<span class="new">NEW</span><small>BG-GRID-WARP</small></h3>
+        <p>方眼の線が波のように歪んで揺れる、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 方眼の線が波のように歪んで揺れる背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*7.;
+  p+=vec2(sin(p.y*1.1+u_time*1.3),cos(p.x*1.0+u_time*1.1))*.45;
+  vec2 f=abs(fract(p)-.5);
+  float line=smoothstep(.40,.46,max(f.x,f.y));
+  float glow=.5+.5*sin(u_time*1.7+p.x*.9+p.y*.6);
+  vec3 col=mix(u_accent,vec3(1.),glow*.6);
+  float a=line*(.35+.4*glow);
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-bokeh.mp4" role="button" tabindex="0" aria-label="ぼかしの光の玉の背景の動きを再生">
+        <img src="./samples/effect-bg-bokeh.jpg" alt="ぼかしの光の玉の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>ぼかしの光の玉の背景<span class="new">NEW</span><small>BG-BOKEH</small></h3>
+        <p>やわらかい光の玉がゆっくり漂う、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// やわらかい光の玉が漂うボケの背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec3 acc=vec3(0.);float al=0.;
+  for(int i=0;i&lt;14;i++){
+    float fi=float(i);
+    float h1=hash(vec2(fi,1.)),h2=hash(vec2(fi,2.)),h3=hash(vec2(fi,3.)),h4=hash(vec2(fi,4.));
+    vec2 c=vec2((h1-.5)*aspect*.95,(h2-.5)*.9);
+    c+=vec2(sin(u_time*(.15+h3*.25)+fi*1.3),cos(u_time*(.12+h4*.22)+fi*2.1))*.08;
+    float r=.05+h3*.08;
+    float d=length(p-c);
+    float disc=smoothstep(r,r*.55,d)*(.3+.3*h4);
+    float rim=smoothstep(r*.78,r,d)*smoothstep(r*1.08,r,d)*.4;
+    float k=disc+rim;
+    acc+=mix(pal(h1+u_time*.03),u_accent,.4)*k;al+=k;
+  }
+  vec3 col=acc/max(al,.001);
+  float a=min(.75,al);
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-plasma-lines.mp4" role="button" tabindex="0" aria-label="プラズマの等高線の背景の動きを再生">
+        <img src="./samples/effect-bg-plasma-lines.jpg" alt="プラズマの等高線の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>プラズマの等高線の背景<span class="new">NEW</span><small>BG-PLASMA-LINES</small></h3>
+        <p>色がうねる等高線のような線が流れる、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// うねるプラズマの等高線が流れる背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*3.;
+  float t=u_time*.6;
+  float v=sin(p.x*2.+t)+sin(p.y*2.3-t*1.2)+sin((p.x+p.y)*1.7+t*.7)+sin(length(p)*3.5-t*1.4);
+  float line=smoothstep(.40,.47,abs(fract(v*.6)-.5));
+  vec3 col=mix(u_accent,pal(v*.12+.2),.6);
+  float a=line*.65;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-hex-pulse.mp4" role="button" tabindex="0" aria-label="六角形が脈打つ背景の動きを再生">
+        <img src="./samples/effect-bg-hex-pulse.jpg" alt="六角形が脈打つ背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>六角形が脈打つ背景<span class="new">NEW</span><small>BG-HEX-PULSE</small></h3>
+        <p>六角形のタイルが順番に光って脈打つ、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 六角形のタイルが波のように順番に光る背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*6.;
+  vec2 r=vec2(1.,1.7320508),h=r*.5;
+  vec2 ga=mod(p,r)-h,gb=mod(p-h,r)-h;
+  vec2 gv=dot(ga,ga)&lt;dot(gb,gb)?ga:gb;
+  vec2 id=p-gv;
+  vec2 q=abs(gv);
+  float hd=max(dot(q,normalize(vec2(1.,1.7320508))),q.x);
+  float wave=sin(u_time*1.8-length(id)*1.1+hash(floor(id*4.+.5))*3.)*.5+.5;
+  float on=smoothstep(.55,.75,wave);
+  float fill=smoothstep(.5,.4,hd)*on*.55;
+  float rim=smoothstep(.38,.44,hd)*smoothstep(.5,.46,hd)*on*.45;
+  vec3 col=mix(u_accent,vec3(1.),.35+.4*wave);
+  float a=max(fill,rim);
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-scribble.mp4" role="button" tabindex="0" aria-label="ぐちゃぐちゃ線の背景の動きを再生">
+        <img src="./samples/effect-bg-scribble.jpg" alt="ぐちゃぐちゃ線の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>ぐちゃぐちゃ線の背景<span class="new">NEW</span><small>BG-SCRIBBLE</small></h3>
+        <p>何本もの線がくねくね絡み合って走る、落書きのような背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 何本もの線がくねくねと絡み合って走る、落書きのような背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float a=0.;vec3 col=u_accent;
+  for(int i=0;i&lt;8;i++){
+    float fi=float(i),ph=fi*1.7;
+    float y=.34*sin(p.x*(2.2+fi*.55)+u_time*(.7+fi*.18)+ph)*cos(p.x*(.9+fi*.3)-u_time*.45+ph*1.3)+.1*sin(p.x*9.+u_time*1.5+ph);
+    float l=smoothstep(.014,.004,abs(p.y-y));
+    if(l&gt;a){a=l;col=mix(u_accent,vec3(1.),mod(fi,2.)*.75);}
+  }
+  a*=.75;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-rain-streaks.mp4" role="button" tabindex="0" aria-label="斜めの雨筋の背景の動きを再生">
+        <img src="./samples/effect-bg-rain-streaks.jpg" alt="斜めの雨筋の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>斜めの雨筋の背景<span class="new">NEW</span><small>BG-RAIN-STREAKS</small></h3>
+        <p>斜めの細い筋が次々に降り注ぐ、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 斜めの細い筋が次々に降り注ぐ背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=rot(-.35)*((vUv-.5)*vec2(aspect,1.));
+  float cols=24.;
+  float c=floor(p.x*cols),h=hash(vec2(c,7.));
+  float y=fract(p.y*.9+u_time*(.35+h*.5)+h*10.);
+  float len=.15+.4*h;
+  float streak=step(y,len)*smoothstep(len,0.,y);
+  float w=smoothstep(.22,.08,abs(fract(p.x*cols)-.5));
+  vec3 col=mix(u_accent,vec3(1.),.4+.5*h);
+  float a=streak*w*.8;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-halftone-pop.mp4" role="button" tabindex="0" aria-label="網点が膨らむ背景の動きを再生">
+        <img src="./samples/effect-bg-halftone-pop.jpg" alt="網点が膨らむ背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>網点が膨らむ背景<span class="new">NEW</span><small>BG-HALFTONE-POP</small></h3>
+        <p>網点の大きさが波のように変わって脈打つ背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 網点の大きさが波のように変わって脈打つ背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float n=22.;
+  vec2 g=p*n,id=floor(g),f=fract(g)-.5;
+  float wave=.5+.5*sin(u_time*1.5-length(id/n)*7.+hash(id)*.8);
+  float rad=.08+.26*wave;
+  float dotm=smoothstep(rad,rad-.07,length(f));
+  vec3 col=mix(u_accent,vec3(1.),.25+.4*wave);
+  float a=dotm*.6;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-zigzag.mp4" role="button" tabindex="0" aria-label="ジグザグの帯の背景の動きを再生">
+        <img src="./samples/effect-bg-zigzag.jpg" alt="ジグザグの帯の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>ジグザグの帯の背景<span class="new">NEW</span><small>BG-ZIGZAG</small></h3>
+        <p>ジグザグの帯が横に流れていく、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// ジグザグの帯が横に流れていく背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*5.;
+  float tri=abs(fract(p.x*.8+u_time*.15)-.5)*2.;
+  float yy=p.y*1.2+tri*1.6-u_time*.35;
+  float f=fract(yy);
+  float band=smoothstep(.0,.08,f)*(1.-smoothstep(.3,.38,f));
+  vec3 col=mix(u_accent,vec3(1.),mod(floor(yy),2.)*.7);
+  float a=band*.6;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-ink-bleed.mp4" role="button" tabindex="0" aria-label="インクが滲む背景の動きを再生">
+        <img src="./samples/effect-bg-ink-bleed.jpg" alt="インクが滲む背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>インクが滲む背景<span class="new">NEW</span><small>BG-INK-BLEED</small></h3>
+        <p>色のインクがにじんで混ざり合う、文字なしの背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 色のインクがにじんで混ざり合う背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*2.2;
+  float t=u_time*.25;
+  vec2 q=p;
+  for(int i=0;i&lt;3;i++){float fi=float(i);q+=.55*vec2(vn(q*1.6+t+fi*3.1),vn(q*1.6-t*.8+fi*5.3))-.275;}
+  float v=vn(q*2.1+t);
+  vec3 col=mix(u_accent,pal(v*1.3+t),.6);
+  float a=smoothstep(.5,.64,v)*.55;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="effect">
+      <div class="shot" data-clip="./samples/effect-bg-starfield.mp4" role="button" tabindex="0" aria-label="流れる星の背景の動きを再生">
+        <img src="./samples/effect-bg-starfield.jpg" alt="流れる星の背景の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✦</i>流れる星の背景<span class="new">NEW</span><small>BG-STARFIELD</small></h3>
+        <p>小さな星がきらめきながら横に流れていく背景です。</p>
+        <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 小さな星がきらめきながら横に流れていく背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=&gt;{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`;
+const FRAG=`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float a=0.;
+  for(int L=0;L&lt;3;L++){
+    float fl=float(L);
+    vec2 q=p*(14.+fl*10.);q.x+=u_time*(.6+fl*.5);
+    vec2 id=floor(q),f=fract(q)-.5;
+    float h=hash(id+fl*17.);
+    vec2 off=(vec2(hash(id+3.),hash(id+7.))-.5)*.6;
+    vec2 d2=f-off;
+    float tw=.5+.5*sin(u_time*3.+h*20.);
+    float star=smoothstep(.12+.05*h,0.,length(d2))*step(.55,h)*tw;
+    float cross=(smoothstep(.02,0.,abs(d2.x))*smoothstep(.3,0.,abs(d2.y))+smoothstep(.02,0.,abs(d2.y))*smoothstep(.3,0.,abs(d2.x)))*step(.8,h)*tw;
+    a=max(a,max(star,cross*.7));
+  }
+  vec3 col=mix(u_accent,vec3(1.,.97,.85),.6);
+  a*=.9;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">エフェクト（文字の後ろや周りの装飾）</span><span class="when">10/12 追加</span>
+      </div>
+    </article>
     <article class="method" data-cat="codetext">
       <div class="shot" data-clip="./samples/codetext-echo-stack.mp4" role="button" tabindex="0" aria-label="下へ連なる残像の動きを再生">
         <img src="./samples/codetext-echo-stack.jpg" alt="下へ連なる残像の途中の絵" loading="lazy" width="480" height="270">
@@ -4247,7 +5017,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/method-curtain-open.jpg" alt="カーテンが開くの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">幕</i>カーテンが開く<span class="new">NEW</span><small>CURTAIN-OPEN</small></h3>
+        <h3><i aria-hidden="true">幕</i>カーテンが開く<small>CURTAIN-OPEN</small></h3>
         <p>縦の帯が真ん中から順に細くなりながら、左右へ開いていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 絵を縦の10本の帯に分けて、真ん中の帯から順に細くしながら左右へ寄せる
 vec3 userMethod(vec2 p, float amount) {
@@ -4267,7 +5037,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/image-ripple-tilt.jpg" alt="波紋で傾くタイルの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">波</i>波紋で傾くタイル<span class="new">NEW</span><small>RIPPLE-TILT</small></h3>
+        <h3><i aria-hidden="true">波</i>波紋で傾くタイル<small>RIPPLE-TILT</small></h3>
         <p>中心から波紋が広がり、タイルが順に傾いて浮き上がります。</p>
         <p class="how">メソッド工房の「画像・立体・物理」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 中心から波紋が広がり、タイルが順に傾いて手前へ浮く。強さ(amount)が戻ると元の位置へ帰る
 const {createImageTiles,size,smooth}=api;
@@ -4292,7 +5062,7 @@ return {update(frame){
         <img src="./samples/codetext-squash-in.jpg" alt="ぐにゃっと伸びて止まるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>ぐにゃっと伸びて止まる<span class="new">NEW</span><small>SQUASH-IN</small></h3>
+        <h3><i aria-hidden="true">文</i>ぐにゃっと伸びて止まる<small>SQUASH-IN</small></h3>
         <p>横に平たく潰れた文字が、ぐにゃっと伸びて縦に弾み、止まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 平たく潰れた文字が、ばねのように伸び縮みしながら元の形に落ち着く。退場は縦に潰れて消える
 const {createText,text,width,fontSize,duration}=api;

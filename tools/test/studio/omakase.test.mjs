@@ -18,6 +18,7 @@ let serial=0;const ids=()=>'id'+(++serial);
 test('every key in every mood is a bundled motion; a mood has enough variety to avoid repeats', () => {
  for(const m of MOODS){
   assert.ok(m.text.length>=6,m.id+' has few motions');
+  assert.ok(m.bg.length>=4,m.id+' has few backgrounds (a long song would repeat them): '+m.bg.length);
   for(const k of [...m.text,...m.bg])assert.ok(motionOf(k),m.id+': '+k);
   for(const k of m.bg)assert.match(k,/^bg-/);
   for(const k of m.text)assert.ok(!k.startsWith('bg-')&&k!=='ring-text',m.id+': '+k+' draws no words or fills the frame');

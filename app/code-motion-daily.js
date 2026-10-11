@@ -3825,7 +3825,7 @@ void main(){
   vec2 id=p-gv;
   vec2 q=abs(gv);
   float hd=max(dot(q,normalize(vec2(1.,1.7320508))),q.x);
-  float wave=sin(u_time*1.8-length(id)*1.1+hash(floor(id*2.))*3.)*.5+.5;
+  float wave=sin(u_time*1.8-length(id)*1.1+hash(floor(id*4.+.5))*3.)*.5+.5;
   float on=smoothstep(.55,.75,wave);
   float fill=smoothstep(.5,.4,hd)*on*.55;
   float rim=smoothstep(.38,.44,hd)*smoothstep(.5,.46,hd)*on*.45;

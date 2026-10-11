@@ -136,9 +136,9 @@ vec3 userMethod(vec2 p, float amount) {
   vec2 c = partC(), l = p - c;
   float e = smoothstep(ph(1.) * .2, .45 + ph(1.) * .3, amount);
   float a = ph(2.) * 6.2832 + uTime * (3. + ph(3.) * 4.);
-  vec2 scrawl = vec2(cos(a), sin(a * 1.37)) * (.08 + .22 * ph(4.)) * e;
-  vec2 drift = (vec2(ph(5.), ph(6.)) - .5) * 2.2 * e;
-  vec2 q = c + rot((ph(7.) - .5) * 2. * e) * l + scrawl + drift;
+  vec2 scrawl = vec2(cos(a), sin(a * 1.37)) * (.05 + .14 * ph(4.)) * e;
+  vec2 drift = (vec2(ph(5.), ph(6.)) - .5) * 1.6 * e;
+  vec2 q = c + rot((ph(7.) - .5) * 2.4 * e) * l * (1. + e * 1.2) + scrawl + drift;
   gKind = 9.;
   return vec3(q, (ph(8.) - .5) * .5 * e);
 }` },
@@ -147,9 +147,9 @@ vec3 userMethod(vec2 p, float amount) {
   vec2 c = partC(), l = p - c;
   float r = length(c) / 3.;
   float e = smoothstep(r * .15, .5 + r * .3, amount);
-  float turn = e * (2.5 + ph(1.) * 5.) * (1.2 - r) + sin(uTime * 1.3 + ph(2.) * 6.2832) * .25 * e;
-  vec2 q = rot(turn) * c * (1. - .55 * e) + rot(turn * 2.) * l * (1. - .3 * e);
-  q += vec2(sin(uTime * 2. + ph(3.) * 9.), cos(uTime * 2.3 + ph(4.) * 9.)) * .08 * e;
+  float turn = e * (3. + 2.5 * sin(r * 7. + uTime * .5)) * (1.2 - r);
+  vec2 q = rot(turn) * c * (1. - .5 * e) + rot(turn * 1.5) * l * (1. + e * 1.6);
+  q += vec2(sin(c.y * 6. + uTime * 2.), cos(c.x * 6. + uTime * 2.3)) * .05 * e;
   gKind = 9.;
   return vec3(q, sin(turn) * .3 * e);
 }` },
@@ -157,9 +157,9 @@ vec3 userMethod(vec2 p, float amount) {
 vec3 userMethod(vec2 p, float amount) {
   vec2 c = partC(), l = p - c;
   float e = smoothstep(0., .4, amount);
-  vec2 jit = vec2(sin(uTime * 31. + ph(1.) * 40.), cos(uTime * 37. + ph(2.) * 40.)) * .09 * e
-           + vec2(sin(uTime * 7. + c.y * 3.), cos(uTime * 6. + c.x * 3.)) * .05 * e;
-  vec2 q = c + rot(sin(uTime * 19. + ph(3.) * 30.) * .35 * e) * l * (1. + .25 * e) + jit;
+  vec2 jit = vec2(sin(c.y * 11. + uTime * 17.), cos(c.x * 11. + uTime * 13.)) * .035 * e
+           + vec2(sin(uTime * 29. + c.x * 5.), cos(uTime * 31. + c.y * 5.)) * .02 * e;
+  vec2 q = c + l * (1. + .9 * e) + jit;
   gKind = 9.;
   return vec3(q, 0.);
 }` },
@@ -179,7 +179,7 @@ vec3 userMethod(vec2 p, float amount) {
   float e = smoothstep(ph(1.) * .25, .5 + ph(1.) * .25, amount);
   float ang = (ph(2.) - .5) * .9 + sin(c.y * 2. + uTime) * .2;
   vec2 along = vec2(cos(ang), sin(ang)), across = vec2(-along.y, along.x);
-  vec2 stretched = along * dot(l, along) * (1. + e * 9.) + across * dot(l, across) * (1. - .6 * e);
+  vec2 stretched = along * dot(l, along) * (1. + e * 5.) + across * dot(l, across) * (1. - .5 * e);
   vec2 q = c + stretched + along * e * (.4 + ph(3.) * 1.2) + vec2(0., sin(uTime * 1.5 + c.x * 2.) * .1 * e);
   gKind = 9.;
   return vec3(q, 0.);
