@@ -1,4 +1,4 @@
-const bundleURL=new URL('./vendor/code-motion-worker.js?v=2',import.meta.url);
+const bundleURL=new URL('./vendor/code-motion-worker.js?v=3',import.meta.url);
 const fallbackURL=new URL('./vendor/motion-fonts/gothic.ttf',import.meta.url);
 export const CODE_MOTION_STARTER=`const {createText,gsap,text,accent}=api;
 const label=createText(text);

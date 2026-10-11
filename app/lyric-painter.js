@@ -1,13 +1,17 @@
-import {compileLyricScene,evaluateLyricNode} from './lyric-scene.js?v=4';
+import {compileLyricScene,evaluateLyricNode} from './lyric-scene.js?v=5';
 import {lyricFontCSS,prepareLyricFont} from './lyric-fonts.js';
 export async function prepareMotionFont(motion,text){await prepareLyricFont(motion?.font,text)}
 export function createLyricPainter({fontCSS=lyricFontCSS,compileScene=compileLyricScene}={}){
  const fontFor=fontCSS;
  let scene=null,sceneKey='';const bitmaps=new Map();
- function bitmap(ctx,n,m,color,outline=false){const font=fontFor(m.font,n.size),key=JSON.stringify([n.text,font,color,outline]);if(bitmaps.has(key))return bitmaps.get(key);
+ function bitmap(ctx,n,m,color,outline=false){const font=fontFor(m.font,n.size),key=JSON.stringify([n.text,font,color,outline,!!n.outline,!!n.hollow]);if(bitmaps.has(key))return bitmaps.get(key);
   const canvas=document.createElement('canvas'),x=canvas.getContext('2d'),pad=Math.ceil(n.size*.25+5);x.font=font;const w=x.measureText(n.text).width;
   canvas.width=Math.max(1,Math.ceil(w+pad*2));canvas.height=Math.max(1,Math.ceil(n.size*1.8+pad*2));x.font=font;x.textAlign='center';x.textBaseline='middle';x.lineJoin='round';x.lineWidth=Math.max(1,n.size*.065);x.strokeStyle='rgba(0,0,0,.7)';x.fillStyle=color;
-  if(outline){x.lineWidth=Math.max(1,n.size*.013);x.strokeStyle=color;x.strokeText(n.text,canvas.width/2,canvas.height/2)}else{x.strokeText(n.text,canvas.width/2,canvas.height/2);x.fillText(n.text,canvas.width/2,canvas.height/2)}
+  // word decorations (縁取り / 中抜き, set per word in STUDIO): 中抜き draws only the contour in the word's colour, 縁取り a thick contrasting edge under the fill
+  const hex=/^#([\da-f]{6})$/i.exec(String(color)),light=hex?(parseInt(hex[1].slice(0,2),16)*.2126+parseInt(hex[1].slice(2,4),16)*.7152+parseInt(hex[1].slice(4,6),16)*.0722)/255>.5:true;
+  if(n.hollow){x.lineWidth=Math.max(1,n.size*.03);x.strokeStyle=color;x.strokeText(n.text,canvas.width/2,canvas.height/2)}
+  else if(n.outline){x.lineWidth=Math.max(2,n.size*.16);x.strokeStyle=light?'#0b0d12':'#ffffff';x.strokeText(n.text,canvas.width/2,canvas.height/2);x.fillText(n.text,canvas.width/2,canvas.height/2)}
+  else if(outline){x.lineWidth=Math.max(1,n.size*.013);x.strokeStyle=color;x.strokeText(n.text,canvas.width/2,canvas.height/2)}else{x.strokeText(n.text,canvas.width/2,canvas.height/2);x.fillText(n.text,canvas.width/2,canvas.height/2)}
   if(bitmaps.size>=192)bitmaps.delete(bitmaps.keys().next().value);bitmaps.set(key,canvas);return canvas;
  }
  const image=(ctx,img,dx=0,dy=0)=>ctx.drawImage(img,-img.width/2+dx,-img.height/2+dy);

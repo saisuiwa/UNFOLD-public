@@ -27,8 +27,8 @@ await withStudioPage(async page=>{
  assert.ok(await page.locator('.timeline-lane.lane-fx .timeline-block.fx.bg').count()>=1,'the backgrounds show in the 演出 lane');
  const sizes=await page.evaluate(()=>c.get().project.lyrics.map(l=>c.get().project.views.wide.layout[l.id].fontScale));
  assert.ok(new Set(sizes).size>=3,'the characters are not all the same size: '+sizes.join());
- assert.ok(sizes.every(v=>v>=.05&&v<=.15),'inside the checked range: '+sizes.join());
- assert.ok(sizes.reduce((a,b)=>a+b,0)/sizes.length>=.07,'the characters are not small: '+sizes.join());
+ assert.ok(sizes.every(v=>v>=.05&&v<=.24),'inside the checked range: '+sizes.join());
+ assert.ok(sizes.reduce((a,b)=>a+b,0)/sizes.length>=.1,'the characters are not small: '+sizes.join());
  assert.match(await page.locator('.timeline-block.lyric .tl-motion').first().textContent(),/[ぁ-んァ-ヶ一-龠]/,'the lane names the motion');
  // 次の案: a different plan
  await page.getByTestId('omakase-next').click();

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MOODS,COLOR_FAMILIES,FAMILY_AUTO,SIZE_MIN,SIZE_MAX,familyOf,planOmakase,omakaseCommands,motionOf,newSeeds,describePlan,BG_OPACITY,mergeMotion} from '../../../app/studio/omakase.js';
+import {MOODS,COLOR_FAMILIES,FAMILY_AUTO,SIZE_MIN,SIZE_MAX,SIZE_PCT,fitCap,uniformSizes,opacityCommands,familyOf,planOmakase,omakaseCommands,motionOf,newSeeds,describePlan,BG_OPACITY,mergeMotion} from '../../../app/studio/omakase.js';
 import {createProject,assertProject} from '../../../app/studio/model.js';
 import {applyCommand} from '../../../app/studio/commands.js';
 
@@ -173,15 +173,33 @@ test('a chosen colour family decides the palette, and only the palette', () => {
  assert.deepEqual(planOmakase(p,{mood:'calm',family:'no-such-family',seeds:SEEDS}).palette,auto.palette,'an unknown family falls back to the mood');
 });
 
-test('sizes are big enough to read: ordinary lines are 7% or more of the picture in every mood, and never beyond the checked maximum', () => {
- assert.equal(SIZE_MAX,.15);assert.ok(SIZE_MIN>=.05);
+test('the size slider sets the average: bigger by default than before, proportional to the slider, never beyond what fits', () => {
+ assert.deepEqual(SIZE_PCT,{min:6,max:24,default:12});assert.equal(SIZE_MAX,.24);assert.ok(SIZE_MIN>=.05);
  const p=project(24);
+ const mean=(mood,pct)=>{const v=[];for(let i=0;i<20;i++)for(const x of planOmakase(p,{mood,sizePct:pct,seeds:{...SEEDS,size:i*104729+1}}).sizes)v.push(x.fontScale);return {mean:v.reduce((a,b)=>a+b,0)/v.length,min:Math.min(...v),max:Math.max(...v)};};
  for(const m of MOODS){
-  const seen=[];
-  for(let i=0;i<20;i++)for(const x of planOmakase(p,{mood:m.id,seeds:{...SEEDS,size:i*104729+1}}).sizes)seen.push(x.fontScale);
-  const mean=seen.reduce((a,b)=>a+b,0)/seen.length;
-  assert.ok(mean>=.07,m.id+' mean '+mean);
-  assert.ok(Math.min(...seen)>=.055,m.id+' min '+Math.min(...seen));
-  assert.ok(Math.max(...seen)<=SIZE_MAX,m.id+' max '+Math.max(...seen));
+  const d=mean(m.id,undefined),lo=mean(m.id,8),hi=mean(m.id,20);
+  assert.ok(d.mean>=.1,m.id+' default mean '+d.mean);                      // the old moods averaged 5.5-10.5 %
+  assert.ok(hi.mean>lo.mean*2,m.id+': the slider moves the sizes '+lo.mean+' -> '+hi.mean);
+  for(const r of [d,lo,hi]){assert.ok(r.min>=SIZE_MIN&&r.max<=SIZE_MAX,m.id+' range '+r.min+'..'+r.max);}
  }
+ // long lines are capped so they fit, whatever the slider says
+ const long=project(3);long.lyrics[1].text='あ'.repeat(35);long.lyrics[2].text='あ'.repeat(10);
+ const sizes=planOmakase(long,{mood:'impact',sizePct:24,seeds:SEEDS}).sizes;
+ assert.ok(sizes[1].fontScale<=fitCap(35)+1e-9,'35 characters: '+sizes[1].fontScale);assert.ok(sizes[2].fontScale<=fitCap(10)+1e-9);
+ assert.ok(fitCap(35)<.16&&fitCap(7)===SIZE_MAX&&fitCap(16)>.2,'the cap: '+[fitCap(7),fitCap(16),fitCap(35)].join());
+});
+
+test('uniformSizes (the slider before any plan) and opacityCommands', () => {
+ const p=project(3);p.lyrics[1].text='あ'.repeat(35);
+ const u=uniformSizes(p,20);
+ assert.equal(u.length,3);assert.equal(u[0].fontScale,.2);assert.ok(u[1].fontScale<.16,'the long line is capped: '+u[1].fontScale);
+ const command=omakaseCommands(p,{sizes:u,lines:[],blocks:[],palette:{}},{parts:{text:false,bg:false,color:false,size:true},newId:ids});
+ assert.equal(command.commands.length,3*2);assert.ok(command.commands.every(c=>c.type==='setLayout'));
+ // opacity: only the lyrics that change get a command; one batch; clamped
+ assert.equal(opacityCommands(p,1),null,'already 100 %');
+ const half=opacityCommands(p,.5);assert.equal(half.commands.length,3);assert.ok(half.commands.every(c=>c.type==='setLyricAppearance'&&c.patch.opacity===.5));
+ const next=applyCommand(p,half).project;assertProject(next);assert.ok(next.lyrics.every(l=>l.opacity===.5));
+ assert.equal(opacityCommands(next,.5),null);
+ assert.equal(opacityCommands(p,0).commands[0].patch.opacity,.05,'never fully invisible');
 });

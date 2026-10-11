@@ -45,9 +45,16 @@ export const COLOR_FAMILIES=[
 ];
 export const familyOf=id=>COLOR_FAMILIES.find(f=>f.id===id);
 export const BG_OPACITY=.55;
-// the range of おまかせ sizes (fraction of the shorter side of the picture). Checked: every bundled text motion stays inside the frame at rest up to SIZE_MAX,
-// in wide and tall, for lyrics of 7 to 35 characters (the layout wraps long lines).
-export const SIZE_MIN=.05,SIZE_MAX=.15;
+// Sizes are a fraction of the shorter side of the picture. The slider 「文字の大きさの目安」 sets the average (percent); the mood and a little jitter vary it per line.
+// Longer lines are capped (fitCap) so they still fit: the layout wraps lines, and every bundled text motion was checked to stay inside the frame at rest
+// in wide and tall at exactly these caps, for lyrics of 7 to 35 characters.
+export const SIZE_MIN=.05,SIZE_MAX=.24;
+export const SIZE_PCT={min:6,max:24,default:12};
+const MEAN_BASE=.0875;   // the mean of the moods' base sizes: a mood's base / MEAN_BASE scales the slider's value (calm a little smaller, 勢い a little bigger)
+export const fitCap=n=>n>0?Math.min(SIZE_MAX,.9/Math.sqrt(n)):SIZE_MAX;
+const charCount=text=>[...String(text||'').replace(/\s/g,'')].length;
+/** The same size for every lyric (what the slider does before any おまかせ plan exists). */
+export const uniformSizes=(project,pct)=>project.lyrics.map(l=>({id:l.id,fontScale:Math.round(Math.min(fitCap(charCount(l.text)),Math.max(SIZE_MIN,pct/100))*1000)/1000}));
 const byKey=new Map(DAILY_CODE_MOTIONS.map(m=>[m.key,m]));
 export const motionOf=key=>byKey.get(key);
 export const moodOf=id=>MOODS.find(m=>m.id===id);
@@ -57,7 +64,7 @@ export function rng(seed){let a=hash(seed);return()=>{a=(a+0x6D2B79F5)|0;let t=M
 export const newSeeds=(random=Math.random)=>({mood:Math.floor(random()*1e9),text:Math.floor(random()*1e9),bg:Math.floor(random()*1e9),color:Math.floor(random()*1e9),size:Math.floor(random()*1e9)});
 
 /** The plan for this project: which key for which lyric, which background for which stretch, which palette. */
-export function planOmakase(project,{mood=MOOD_AUTO,family=FAMILY_AUTO,seeds}){
+export function planOmakase(project,{mood=MOOD_AUTO,family=FAMILY_AUTO,sizePct=SIZE_PCT.default,seeds}){
  const chosen=mood===MOOD_AUTO?MOODS[Math.floor(rng('mood:'+seeds.mood)()*MOODS.length)]:moodOf(mood)||MOODS[0];
  const lyrics=[...project.lyrics].sort((a,b)=>a.startUs-b.startUs);
  // a motion for every lyric, never the same as the line before or the one before that
@@ -68,11 +75,11 @@ export function planOmakase(project,{mood=MOOD_AUTO,family=FAMILY_AUTO,seeds}){
  const pickBg=()=>{let pool=chosen.bg.filter(k=>k!==previous);if(!pool.length)pool=chosen.bg;const key=pool[Math.floor(rb()*pool.length)];previous=key;return key;};
  if(!lyrics.length)blocks.push({startUs:0,endUs:project.durationUs,key:pickBg()});
  else{let i=0;while(i<lyrics.length){const size=3+Math.floor(rb()*3),from=i,to=Math.min(lyrics.length,i+size);i=to;blocks.push({startUs:blocks.length?lyrics[from].startUs:0,endUs:to>=lyrics.length?project.durationUs:lyrics[to].startUs,key:pickBg()});}}
- // a size for every lyric: the mood's size, a little more or less per line, now and then a line that is made big; long lines are kept smaller so they fit
+ // a size for every lyric: the slider's average scaled by the mood, a little more or less per line, now and then a line that is made big; long lines are capped so they fit
  const rs=rng('size:'+(seeds.size??seeds.text)),sizes=lyrics.map(l=>{
-  const n=[...String(l.text||'').replace(/\s/g,'')].length,fit=n>16?Math.max(.65,16/n):1;
-  let v=chosen.size.base+(rs()*2-1)*chosen.size.spread;if(rs()<.2)v*=1.3;
-  return {id:l.id,fontScale:Math.round(Math.min(SIZE_MAX,Math.max(SIZE_MIN,v*fit))*1000)/1000};
+  const n=charCount(l.text),target=Math.min(SIZE_PCT.max,Math.max(SIZE_PCT.min,Number(sizePct)||SIZE_PCT.default))/100;
+  let v=target*(chosen.size.base/MEAN_BASE)*(1+(rs()*2-1)*chosen.size.spread/chosen.size.base);if(rs()<.2)v*=1.3;
+  return {id:l.id,fontScale:Math.round(Math.min(fitCap(n),Math.max(SIZE_MIN,v))*1000)/1000};
  });
  // a colour family (the one asked for, else one of the mood's), then a palette of that family
  const rc=rng('color:'+seeds.color),asked=family!==FAMILY_AUTO?familyOf(family):null,fam=asked||familyOf(chosen.families[Math.floor(rc()*chosen.families.length)])||COLOR_FAMILIES[0],palette=fam.palettes[Math.floor(rc()*fam.palettes.length)];
@@ -93,7 +100,7 @@ export function mergeMotion(old,patch){
  * `parts` says what to touch; lyrics' text and timing, the song and every other clip are never touched.
  */
 export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:true,size:true},newId=()=>crypto.randomUUID()}={}){
- const commands=[],line=new Map(plan.lines.map(l=>[l.id,l.key]));
+ const commands=[],line=new Map((plan.lines||[]).map(l=>[l.id,l.key]));
  if(parts.text||parts.color){
   for(const l of project.lyrics){
    const patch={};
@@ -117,6 +124,13 @@ export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:tru
    commands.push({type:'insertClip',clip:{id:newId(),name:'おまかせ背景：'+item.name,sceneId:scene.id,kind:'text',startUs:start,endUs:end,sourceInUs:0,effectOriginUs:start,opacity:BG_OPACITY,z,seed:7,settings:{omakase:true},text:' ',runs:[{id:newId(),text:' '}],motion:{font:'gothic',color:plan.palette.color,emphasisColor:plan.palette.emphasisColor,code:{version:1,source:item.source}}}});
   }
  }
+ return commands.length?{type:'batch',commands}:null;
+}
+
+/** The same opacity (0..1) for every lyric, one batch; null when nothing changes. */
+export function opacityCommands(project,opacity){
+ const value=Math.min(1,Math.max(.05,Number(opacity)));
+ const commands=project.lyrics.filter(l=>Math.abs((l.opacity??1)-value)>1e-6).map(l=>({type:'setLyricAppearance',id:l.id,patch:{opacity:value}}));
  return commands.length?{type:'batch',commands}:null;
 }
 

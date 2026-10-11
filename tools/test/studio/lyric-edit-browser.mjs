@@ -30,6 +30,23 @@ await withStudioPage(async page=>{
  const after=await page.evaluate(()=>({text:lyricOf('L1').runs.map(r=>r.text).join(''),ids:lyricOf('L1').runs.flatMap(r=>r.glyphIds||[]),colored:lyricOf('L1').runs.filter(r=>r.color).map(r=>r.text).join('')}));
  assert.equal(after.text,before.text,'the words are unchanged');assert.ok(after.colored.length>0&&after.colored.length<before.text.length,'only a part is coloured: '+after.colored);
  assert.equal(after.ids.length,[...new Intl.Segmenter(undefined,{granularity:'grapheme'}).segment(before.text)].length,'every character keeps an id');
+ // 3b) 縁取り / 中抜き on the chosen word only: they exclude each other, the colour and ids stay, 飾りを外す removes them, one Undo each
+ const deco=()=>page.evaluate(()=>lyricOf('L1').runs.filter(r=>r.outline||r.hollow).map(r=>(r.outline?'o:':'h:')+r.text+':'+(r.color||'')).join('|'));
+ await page.locator('.lq-word').first().click();
+ await page.getByTestId('word-outline').click();
+ await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline));
+ const outlined=await deco();assert.match(outlined,/^o:.+:#ff91c7$/,'the outlined word keeps its colour: '+outlined);
+ assert.equal(await page.evaluate(()=>lyricOf('L1').runs.map(r=>r.text).join('')),before.text,'text unchanged');
+ await page.locator('.lq-word').first().click();
+ await page.getByTestId('word-hollow').click();
+ await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.hollow));
+ assert.match(await deco(),/^h:/,'hollow replaces outline: '+await deco());
+ await page.locator('.lq-word').first().click();
+ await page.getByTestId('word-plain').click();
+ await page.waitForFunction(()=>!lyricOf('L1').runs.some(r=>r.outline||r.hollow));
+ await page.evaluate(()=>c.undo());await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.hollow));
+ await page.evaluate(()=>c.undo());await page.waitForFunction(()=>lyricOf('L1').runs.some(r=>r.outline)&&!lyricOf('L1').runs.some(r=>r.hollow));
+ await page.evaluate(()=>c.undo());await page.waitForFunction(()=>!lyricOf('L1').runs.some(r=>r.outline||r.hollow));
  // 4) the font for ALL lyrics
  await page.locator('.lq-tabs button',{hasText:'書体'}).click();
  await page.getByLabel('色・書体を適用する範囲').selectOption('all');
