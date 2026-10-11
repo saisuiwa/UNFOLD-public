@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MOODS,planOmakase,omakaseCommands,motionOf,newSeeds,describePlan,BG_OPACITY,mergeMotion} from '../../../app/studio/omakase.js';
+import {MOODS,COLOR_FAMILIES,FAMILY_AUTO,SIZE_MIN,SIZE_MAX,familyOf,planOmakase,omakaseCommands,motionOf,newSeeds,describePlan,BG_OPACITY,mergeMotion} from '../../../app/studio/omakase.js';
 import {createProject,assertProject} from '../../../app/studio/model.js';
 import {applyCommand} from '../../../app/studio/commands.js';
 
@@ -124,7 +124,7 @@ test('sizes: every lyric gets a size inside the range, they differ, long lines a
  const p=project(10);p.lyrics[3].text='とても長い歌詞の一行がここにあってそれが画面に収まるように小さくなる';
  const plan=planOmakase(p,{mood:'impact',seeds:SEEDS});
  assert.equal(plan.sizes.length,10);
- for(const x of plan.sizes)assert.ok(x.fontScale>=.04&&x.fontScale<=.12,String(x.fontScale));
+ for(const x of plan.sizes)assert.ok(x.fontScale>=SIZE_MIN&&x.fontScale<=SIZE_MAX,String(x.fontScale));
  assert.ok(new Set(plan.sizes.map(x=>x.fontScale)).size>=5,'the sizes are not all the same');
  const long=plan.sizes[3].fontScale,others=plan.sizes.filter((_,i)=>i!==3).map(x=>x.fontScale);
  assert.ok(long<Math.max(...others),'a long line is not the biggest: '+long);
@@ -135,4 +135,53 @@ test('sizes: every lyric gets a size inside the range, they differ, long lines a
  // the same seed gives the same sizes; another size seed gives other sizes and leaves the rest of the plan alone
  const again=planOmakase(p,{mood:'impact',seeds:SEEDS}),other=planOmakase(p,{mood:'impact',seeds:{...SEEDS,size:99}});
  assert.deepEqual(again.sizes,plan.sizes);assert.notDeepEqual(other.sizes,plan.sizes);assert.deepEqual(other.lines,plan.lines);assert.deepEqual(other.blocks,plan.blocks);
+});
+
+// hue of #rrggbb in degrees and its saturation (0..1); a colour is "green" when it is clearly coloured and between yellow-green and green-cyan
+const hueSat=hex=>{const [r,g,b]=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255),max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;if(!d)return {h:0,s:0};
+ const h=max===r?((g-b)/d+6)%6:max===g?(b-r)/d+2:(r-g)/d+4;return {h:h*60,s:d/(max===0?1:max)};};
+const isGreen=hex=>{const {h,s}=hueSat(hex);return s>.25&&h>=65&&h<=170;};
+
+test('colour families: each mood allows several, none of the palettes is green, and the palette belongs to the family', () => {
+ assert.ok(COLOR_FAMILIES.length>=6);
+ for(const f of COLOR_FAMILIES){
+  assert.ok(f.palettes.length>=3,f.id);
+  for(const pal of f.palettes){assert.ok(!isGreen(pal.color),f.id+' '+pal.name+' text');assert.ok(!isGreen(pal.emphasisColor),f.id+' '+pal.name+' emphasis');}
+ }
+ for(const m of MOODS){assert.ok(m.families.length>=3,m.id);for(const id of m.families)assert.ok(familyOf(id),m.id+': '+id);}
+ const p=project();
+ for(const m of MOODS)for(let i=0;i<30;i++){
+  const plan=planOmakase(p,{mood:m.id,seeds:{...SEEDS,color:i*7919}});
+  assert.ok(m.families.includes(plan.palette.familyId),m.id+' '+plan.palette.familyId);
+  assert.ok(!isGreen(plan.palette.color)&&!isGreen(plan.palette.emphasisColor),plan.palette.name);
+ }
+});
+
+test('a chosen colour family decides the palette, and only the palette', () => {
+ const p=project(),auto=planOmakase(p,{mood:'calm',seeds:SEEDS});
+ for(const f of COLOR_FAMILIES){
+  const seen=new Set();
+  for(let i=0;i<40;i++){
+   const plan=planOmakase(p,{mood:'calm',family:f.id,seeds:{...SEEDS,color:i*104729}});
+   assert.equal(plan.palette.familyId,f.id);assert.ok(f.palettes.some(x=>x.name===plan.palette.name&&x.color===plan.palette.color));
+   assert.deepEqual(plan.lines,auto.lines,'motions are the mood\'s, not the family\'s');assert.deepEqual(plan.blocks,auto.blocks);assert.deepEqual(plan.sizes,auto.sizes);
+   seen.add(plan.palette.name);
+  }
+  assert.equal(seen.size,f.palettes.length,f.id+': every palette of the family can come up');
+ }
+ assert.equal(FAMILY_AUTO,'auto');
+ assert.deepEqual(planOmakase(p,{mood:'calm',family:'no-such-family',seeds:SEEDS}).palette,auto.palette,'an unknown family falls back to the mood');
+});
+
+test('sizes are big enough to read: ordinary lines are 7% or more of the picture in every mood, and never beyond the checked maximum', () => {
+ assert.equal(SIZE_MAX,.15);assert.ok(SIZE_MIN>=.05);
+ const p=project(24);
+ for(const m of MOODS){
+  const seen=[];
+  for(let i=0;i<20;i++)for(const x of planOmakase(p,{mood:m.id,seeds:{...SEEDS,size:i*104729+1}}).sizes)seen.push(x.fontScale);
+  const mean=seen.reduce((a,b)=>a+b,0)/seen.length;
+  assert.ok(mean>=.07,m.id+' mean '+mean);
+  assert.ok(Math.min(...seen)>=.055,m.id+' min '+Math.min(...seen));
+  assert.ok(Math.max(...seen)<=SIZE_MAX,m.id+' max '+Math.max(...seen));
+ }
 });

@@ -27,7 +27,8 @@ await withStudioPage(async page=>{
  assert.ok(await page.locator('.timeline-lane.lane-fx .timeline-block.fx.bg').count()>=1,'the backgrounds show in the 演出 lane');
  const sizes=await page.evaluate(()=>c.get().project.lyrics.map(l=>c.get().project.views.wide.layout[l.id].fontScale));
  assert.ok(new Set(sizes).size>=3,'the characters are not all the same size: '+sizes.join());
- assert.ok(sizes.every(v=>v>=.04&&v<=.12));
+ assert.ok(sizes.every(v=>v>=.05&&v<=.15),'inside the checked range: '+sizes.join());
+ assert.ok(sizes.reduce((a,b)=>a+b,0)/sizes.length>=.07,'the characters are not small: '+sizes.join());
  assert.match(await page.locator('.timeline-block.lyric .tl-motion').first().textContent(),/[ぁ-んァ-ヶ一-龠]/,'the lane names the motion');
  // 次の案: a different plan
  await page.getByTestId('omakase-next').click();
@@ -38,6 +39,16 @@ await withStudioPage(async page=>{
  await page.getByTestId('omakase-back').click();
  await page.waitForFunction(a=>sources().join('|')===a,first.sources.join('|'));
  assert.equal(await page.evaluate(()=>bgs()),first.bgs);
+ // 配色の系統: a chosen family decides the colours (and only the colours); the colours of the lyrics are one of its palettes, never a green one
+ await page.getByTestId('omakase-family').selectOption('rock');
+ const colours=()=>page.evaluate(()=>[...new Set(c.get().project.lyrics.map(l=>l.motion.color+'/'+l.motion.emphasisColor))]);
+ const beforeColours=(await colours()).join(),beforeCodes=await page.evaluate(()=>sources().join('|')),beforeBgs=await page.evaluate(()=>bgs());
+ for(let i=0;i<6&&(await colours()).join()===beforeColours;i++){await page.getByTestId('omakase-only-color').click();await page.waitForTimeout(500);}
+ const family=await page.evaluate(async()=>{const {COLOR_FAMILIES}=await import('/studio/omakase.js'),rock=COLOR_FAMILIES.find(f=>f.id==='rock');return rock.palettes.map(p=>p.color+'/'+p.emphasisColor);});
+ const after=await colours();
+ assert.equal(after.length,1,'one palette for every lyric');assert.ok(family.includes(after[0]),'the palette is one of the rock family: '+after[0]);
+ assert.equal(await page.evaluate(()=>sources().join('|')),beforeCodes,'the motions did not change');assert.equal(await page.evaluate(()=>bgs()),beforeBgs,'the backgrounds did not change');
+ await page.getByTestId('omakase-summary').filter({hasText:'ロック'}).waitFor({timeout:5000});// the summary names the palette
  // ここだけ変える: the background only
  // (a re-roll can land on the same background by chance: roll again, up to a few times)
  for(let i=0;i<6&&(await page.evaluate(()=>bgs()))===first.bgs;i++){await page.getByTestId('omakase-only-bg').click();await page.waitForTimeout(700);}
