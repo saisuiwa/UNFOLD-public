@@ -1,5 +1,6 @@
 import {openCodeMotionEditor} from './code-motion-editor.js';
 import {savedLyricFonts,lyricFontLabel} from './lyric-fonts.js';
+import {createFontPicker} from './lyric-font-picker.js';
 import {BUILTIN_MOTIONS,LAYOUTS,ENTRANCES,SUSTAINS,EXITS,normalizeRecipe} from './lyric-recipe.js';
 import {cleanMotion} from './lyric-motion.js?v=26';
 import {lyricRuns} from './lyric-document.js?v=4';
@@ -31,6 +32,9 @@ export function openMotionStudio({motion,text='小さな*光*を/明日へつな
  const range=(label,key,min,max,step,recipe=false)=>{const i=node('input');Object.assign(i,{type:'range',min,max,step});i.oninput=()=>{(recipe?current.recipe:current)[key]=Number(i.value);changed()};return field(label,i)};
  const strength=range('表示中の強さ','strength',0,1,.05,true),stagger=range('文字の時間差','stagger',0,.2,.01,true),speed=range('動きの速さ','speed',.5,2,.1),size=range('文字の大きさ','size',32,160,1);
  const font=select('書体',{gothic:'ゴシック',mincho:'明朝',round:'丸ゴシック',dela:'デラゴシック',marker:'手書き',dot:'ドット'},v=>{current.font=v;prepare()});
+ // PC fonts and font files, not only the six built-in ones
+ const fontPicker=createFontPicker({onStatus:m=>{status.textContent=m},onPick:async(key,label)=>{current.font=key;if(![...font.options].some(o=>o.value===key))font.append(new Option(label||lyricFontLabel(key),key));font.value=key;changed();status.textContent='書体「'+(label||lyricFontLabel(key))+'」を反映しました。';await prepare()}});
+ form.append(fontPicker.element);
  const color=field('文字色',node('input')),accent=field('アクセント色',node('input'));color.type=accent.type='color';color.oninput=()=>{current.color=color.value;changed()};accent.oninput=()=>{current.emphasisColor=accent.value;changed()};
  const canvas=node('canvas');canvas.width=1280;canvas.height=720;canvas.setAttribute('aria-label','モーションのプレビュー');view.append(canvas);const ctx=canvas.getContext('2d');
  const transport=node('div');transport.className='ms-transport';view.append(transport);const play=button('一時停止',()=>{playing=!playing;draw()},transport),scrub=node('input');Object.assign(scrub,{type:'range',min:0,max:6,step:.01,value:time});scrub.setAttribute('aria-label','モーションの再生位置');scrub.oninput=()=>{time=Number(scrub.value);playing=false;draw()};const counter=node('output');counter.className='ms-time';transport.append(scrub,counter);button('表示中から再生',()=>{time=1.9;playing=true},transport);

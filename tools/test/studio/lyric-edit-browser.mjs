@@ -35,9 +35,9 @@ await withStudioPage(async page=>{
  await page.getByLabel('色・書体を適用する範囲').selectOption('all');
  await page.getByLabel('その場で書体').selectOption('mincho');
  await page.waitForFunction(()=>lyricOf('L1').motion.font==='mincho'&&lyricOf('L2').motion.font==='mincho');
- // 5) PC fonts are not offered here, with a reason
- assert.equal(await page.getByRole('button',{name:'PCのフォント'}).isHidden(),true);
- assert.match(await page.locator('.lq-code-motions').count()?'ok':'', /ok/);
+ // 5) PC fonts and font files are offered here too (lyric-font-browser covers choosing one)
+ assert.equal(await page.getByRole('button',{name:'PCのフォント'}).isVisible(),true);
+ assert.equal(await page.locator('.lq-code-motions').count(),1);
  // 6) Undo takes back the last change (the font of both lyrics) in one step
  await page.evaluate(()=>c.undo());
  await page.waitForFunction(()=>lyricOf('L1').motion.font==='gothic'&&lyricOf('L2').motion.font==='gothic');

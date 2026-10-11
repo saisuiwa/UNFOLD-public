@@ -1,5 +1,5 @@
-import {createLyricQuick} from './lyric-quick.js?v=6';
-import {openMotionStudio} from './lyric-studio.js?v=6';
+import {createLyricQuick} from './lyric-quick.js?v=7';
+import {openMotionStudio} from './lyric-studio.js?v=7';
 import {SECTIONS,SECTION_LABELS} from './lyric-document.js?v=4';
 import {getTimings} from './lyric-timing.js?v=2';
 import {cleanMotion,TEXT_MOTIONS} from './lyric-motion.js?v=26';

@@ -1,8 +1,9 @@
 // "この歌詞を編集" in STUDIO: the same panel the sequence has (動き / 色 / 書体, one word's colour, all lyrics at once),
 // plus the code motions and effects of the workshop as picture cards. It edits the STUDIO project through its commands.
-import {createLyricQuick} from '../lyric-quick.js?v=6';
+import {createLyricQuick} from '../lyric-quick.js?v=7';
 import {cleanMotion,graphemes} from '../lyric-motion.js?v=26';
 import {cleanWordColors,setWordColor,colorLyricRuns} from '../lyric-style.js';
+import {getLyricFontBlob} from '../lyric-fonts.js';
 import {DAILY_CODE_MOTIONS} from '../code-motion-daily.js';
 import {approveStudioCode,isStudioCodeApproved} from './code-trust.js';
 import {el} from './dom.js';
@@ -37,10 +38,16 @@ export function createLyricEdit(controller){
   if(a.type==='select-lyric'){controller.select({kind:'lyric',id:a.id});return;}
   if(a.type==='preview-lyric'){await play(a.id);return;}
   if(a.type==='lyric-style'){
-   if(typeof a.patch?.font==='string'&&/^(local:|file:)/.test(a.patch.font))throw new Error('PCのフォントやフォントファイルは、シーケンスで選んでから送ってください。ここでは内蔵の書体を選べます。');
    const targets=a.scope==='all'?p.lyrics:[find(a.id)].filter(Boolean);if(!targets.length)return;
    if(a.patch?.code?.source)trustSource(a.patch.code.source);
-   const commands=targets.map(l=>({type:'setLyricAppearance',id:l.id,patch:{motion:mergeMotion(l.motion,a.patch||{})}}));
+   // a PC font or a font file travels with the project as an asset (the text layer reads `fontAssetId`); a built-in font drops it again
+   let fontAssetId;const key=a.patch?.font;
+   if(typeof key==='string'&&/^(local:|file:)/.test(key)){
+    const blob=await getLyricFontBlob(key);
+    if(!blob)throw new Error('このフォントのデータを取り出せませんでした。「PCのフォント」か「フォントファイル」から選び直してください。');
+    fontAssetId=await controller.addFontAsset(blob);
+   }
+   const commands=targets.map(l=>{const motion=mergeMotion(l.motion,a.patch||{});if(typeof key==='string'){if(fontAssetId)motion.fontAssetId=fontAssetId;else delete motion.fontAssetId;}return {type:'setLyricAppearance',id:l.id,patch:{motion}};});
    await controller.dispatch(commands.length===1?commands[0]:{type:'batch',commands});
    if(a.replay)await play(a.id);
    return;
@@ -54,7 +61,7 @@ export function createLyricEdit(controller){
  // the panel compares the document by identity to notice "the lyrics changed while a font was loading": keep it the same object until the lyrics really change
  let cache={key:'',document:null};
  const documentOf=()=>{const s=state(),key=s.project.id+':'+s.editVersion;if(cache.key!==key)cache={key,document:{events:s.project.lyrics.map(eventOf)}};return cache.document;};
- const quick=createLyricQuick({getState:()=>{const s=state();return {document:documentOf(),selectedId:s.selection?.kind==='lyric'?s.selection.id:null,legacy:false,recording:false};},onAction,onMore:()=>{},customFonts:false});
+ const quick=createLyricQuick({getState:()=>{const s=state();return {document:documentOf(),selectedId:s.selection?.kind==='lyric'?s.selection.id:null,legacy:false,recording:false};},onAction,onMore:()=>{}});
  // the workshop's code motions and effects as picture cards (the same previews as the samples page)
  const apply=(item,scopeAll)=>onAction({type:'lyric-style',id:state().selection?.id,scope:scopeAll.checked?'all':'line',patch:{code:{version:1,source:item.source},recipe:null},replay:true});
  const scopeAll=el('input',{type:'checkbox','aria-label':'全歌詞に適用'}),status=el('p',{class:'hint','data-testid':'code-card-status',role:'status'});

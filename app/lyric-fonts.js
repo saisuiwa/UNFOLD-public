@@ -32,6 +32,12 @@ export async function listLocalLyricFonts(){
  if(typeof globalThis.queryLocalFonts!=='function')throw Error('PCフォント一覧はChrome/EdgeのPC版で使えます。下のフォントファイル読込も使えます。');
  try{return (await globalThis.queryLocalFonts()).map(f=>{const key=localFontKey(f.postscriptName);localEntries.set(key,f);return {key,label:f.fullName||f.postscriptName}}).sort((a,b)=>a.label.localeCompare(b.label,'ja'))}catch(e){throw Error(e.name==='NotAllowedError'?'PCフォントの参照が許可されませんでした。ファイルから読み込む方法も使えます。':e.message)}
 }
+/** The bytes of a PC font or font file that was chosen on this browser (the same store the sequence uses), or null. */
+export async function getLyricFontBlob(key){
+ if(!isLyricFontKey(key)||Object.hasOwn(FONTS,key))return null;
+ const record=await fontStore('readonly',key);
+ return record?.blob instanceof Blob?record.blob:null;
+}
 export async function selectLocalLyricFont(item){await prepareLyricFont(item.key);const entry=localEntries.get(item.key);if(entry){const blob=await entry.blob();await fontStore('readwrite',item.key,{blob,label:item.label})}remember(item.key,item.label);return item.key;}
 export async function importLyricFont(file){
  if(!file||!file.size||file.size>32*1024*1024||!(/\.(ttf|otf|woff2?)$/i.test(file.name)))throw Error('32MB以内の TTF・OTF・WOFF・WOFF2 を選んでください。');

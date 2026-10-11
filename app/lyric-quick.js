@@ -6,7 +6,7 @@ import {createMotionLibrary} from './lyric-library.js';
 import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=5';
 import {lyricFontLabel,savedLyricFonts,listLocalLyricFonts,selectLocalLyricFont,importLyricFont} from './lyric-fonts.js';
 const node=(tag,text,cls)=>Object.assign(document.createElement(tag),{...(text==null?{}:{textContent:text}),...(cls?{className:cls}:{})});
-// customFonts:false (STUDIO) keeps to the built-in fonts: a PC font or a font file has to be chosen in the sequence and travels with the piece.
+// customFonts:false hides the PC font / font file buttons (a host that cannot keep the font bytes).
 export function createLyricQuick({getState,onAction,onMore,customFonts=true}){
  const element=node('section',null,'lm-quick');element.id='lm-quick';element.setAttribute('aria-label','選んだ歌詞を編集');let selectedId=null,textKey='',thumbKey='',token=0,range=null,localFonts=[];
  const title=node('h3','歌詞を選んで、その場で編集'),hint=node('p','タイムラインの歌詞をタップしてください。','hint');element.append(title,hint);
