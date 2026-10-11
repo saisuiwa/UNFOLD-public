@@ -1,6 +1,6 @@
 # STUDIOの使い方
 
-[公開STUDIO](https://unfold.saisuiwa.com/studio) を開きます。ローカルではリポジトリのルートで `python3 tools/serve.py` を実行し、`http://127.0.0.1:8771/studio.html` を開きます。旧シーケンスの「05 STUDIO」から進むこともできます。Mac Chromeで検証しています。
+[公開STUDIO](https://unfold.saisuiwa.com/studio) を開きます。ローカルではリポジトリのルートで `python3 tools/serve.py` を実行し、`http://127.0.0.1:8771/studio.html` を開きます。シーケンスの「06 STUDIO」から進むこともできます。Mac Chromeで検証しています。
 
 1. 「主曲を読み込む」で曲を置きます。最初の主曲の長さが作品の長さになります。曲より後ろに既存の配置がある場合は、先に区間を整理してください。
 2. 「＋画像・動画」「文字を追加」「光の演出を追加」で素材を重ねます。動画は元音声を使うかミュートするか選びます。空き時間ではシーンも作られます。

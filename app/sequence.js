@@ -6,7 +6,7 @@ import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import {applyLyricStyle,setWordColor} from './lyric-style.js';
 import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=10';
-import {createLyricControls} from './lyric-controls.js?v=15';
+import {createLyricControls} from './lyric-controls.js?v=16';
 import {assignLyricMotions,cleanMotion} from './lyric-motion.js?v=26';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
 import {createLyricOverlay} from './lyric-overlay.js?v=9';
@@ -556,7 +556,7 @@ export async function loadAudio(blob,name='',assetId,{restoring=false}={}){
  if(seq.recording)return;const token=audioGate.next(),revision=lyricRevision;lyricStatus='曲と埋め込み歌詞を読み込み中…';lyricControls?.refresh();
  const extraction=restoring?Promise.resolve(null):extractAudioLyrics(blob).catch(e=>({candidates:[],warnings:[e.message]}));
  const ctx=new AudioContext({sampleRate:48000});let buffer;try{buffer=await ctx.decodeAudioData(await blob.arrayBuffer())}finally{ctx.close()}
- const result=await extraction;if(!audioGate.isCurrent(token)||seq.recording)return;if(!restoring)beginEdit();stopPlay();seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL=URL.createObjectURL(blob);seq.audio=new Audio(audioURL);seq.audioBlob=blob;seq.audioBuffer=buffer;seq.audioOwner={};registerAsset(seq.audioOwner,blob,assetId);seq.audioName=name;$('seq-audio-name').textContent=name;lyricExtraction=result;
+ const result=await extraction;if(!audioGate.isCurrent(token)||seq.recording)return;if(!restoring)beginEdit();stopPlay();seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL=URL.createObjectURL(blob);seq.audio=new Audio(audioURL);seq.audioBlob=blob;seq.audioBuffer=buffer;seq.audioOwner={};registerAsset(seq.audioOwner,blob,assetId);seq.audioName=name;($('seq-audio-name')||{}).textContent=name;lyricExtraction=result;
  lyricStatus=result?.warnings?.join('\n')||'曲を読み込みました。';
  if(result?.candidates.length){if(!seq.lyricDocument?.sourceText.trim()&&!seq.lyrics.length&&revision===lyricRevision)applyCandidate(result.candidates[0]);else lyricStatus='埋め込み歌詞が見つかりました。取り込む場合は候補を選んでください。';}else if(result)lyricStatus+=' 埋め込み歌詞はありません。';
  refreshUI();
@@ -593,6 +593,7 @@ export async function lyricAction(a){
  }
  if(a.type==='resolve'){lyricRevision++;edit(()=>setLyricDocument(assignLyricMotions(resolveUnknown(seq.lyricDocument,a.id,a.decision),{style:seq.lyricDocument.style,seed:seq.lyricDocument.seed,preserveExisting:true})));return}
  if(a.type==='edit'){lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id);if(!e)return;const patch={...a.patch};if(patch.section)patch.sectionOverride=patch.section;if(patch.raw!=null){if(patch.raw!==e.raw)patch.colors=[];patch.runs=lyricRuns(patch.raw);patch.text=patch.runs.map(x=>x.text).join('')}if(patch.motion)patch.motion=cleanMotion(patch.motion);Object.assign(e,patch);d.sourceText=d.events.map(e=>e.raw).join('\n');setLyricDocument(d)});return}
+ if(a.type==='replace-raw'){lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument),by=new Map((a.lines||[]).map(x=>[x.id,String(x.raw)]));for(const e of d.events){if(e.kind!=='line'||!by.has(e.id))continue;const raw=by.get(e.id);if(raw===e.raw)continue;e.raw=raw;e.runs=lyricRuns(raw);e.text=e.runs.map(x=>x.text).join('');e.colors=[];}d.sourceText=d.events.map(e=>e.raw).join('\n');setLyricDocument(d)});return}
  if(a.type==='nudge'){edit(()=>{const d=structuredClone(seq.lyricDocument),e=d.events.find(e=>e.id===a.id),t=getTimings(d,seq.audioBuffer?.duration||12).events.find(e=>e.id===a.id);if(e&&t)e.s=t.start;setLyricDocument(moveLyric(d,a.id,a.delta))});return}
  if(a.type==='settings'){edit(()=>setLyricDocument({...seq.lyricDocument,...a.patch}));return}
  if(a.type==='motion-settings'){edit(()=>{seq.lyricMotion=cleanLyricSettings({...seq.lyricMotion,...a.patch})});return}
@@ -1102,7 +1103,7 @@ function restore(snap) {
   audioGate.invalidate();lyricRevision++;lyricTap=null;lyricTapping=false;lyricExtraction=null;
   seq.lyricDocument=cleanLyricDocument(snap.lyricDocument);seq.lyricMotion=cleanLyricSettings(snap.lyricMotion);
   if(seq.audioBlob!==snap.audioBlob){stopPlay();if(audioURL)URL.revokeObjectURL(audioURL);audioURL=snap.audioBlob?URL.createObjectURL(snap.audioBlob):'';seq.audio=audioURL?new Audio(audioURL):null;}
-  Object.assign(seq,{audioBlob:snap.audioBlob,audioOwner:snap.audioOwner,audioName:snap.audioName||'',audioBuffer:snap.audioBuffer});$('seq-audio-name').textContent=seq.audioName;
+  Object.assign(seq,{audioBlob:snap.audioBlob,audioOwner:snap.audioOwner,audioName:snap.audioName||'',audioBuffer:snap.audioBuffer});($('seq-audio-name')||{}).textContent=seq.audioName;
   lyricOverlay?.prepare(seq.lyricDocument).then(()=>renderAt(seq.t)).catch(e=>notice(e.message));
   const old = new Map(seq.slides.map(s => [s.id, s]));
   seq.slides = snap.slides.map(x => {
@@ -1335,7 +1336,7 @@ async function restoreProject(json, blobs) {
   seq.transitions = (json.transitions || []).map(withCleanFx);
   seq.lyrics = json.lyrics || [];
   if (json.audio?.asset && blobs.get(json.audio.asset)) await loadAudio(blobs.get(json.audio.asset), json.audio.name, json.audio.asset,{restoring:true});
-  else {seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';seq.audioBlob=null;seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; $('seq-audio-name').textContent = '';}
+  else {seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';seq.audioBlob=null;seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; ($('seq-audio-name')||{}).textContent = '';}
   for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-offset', 'offset', 1], ['seq-push', 'push', 100], ['seq-pulse', 'pulse', 100], ['seq-strength', 'strength', 100], ['seq-pullback', 'pullback', 100], ['seq-form-pullback', 'formPullback', 100], ['seq-detail', 'detail', 100], ['seq-tiles', 'tiles', 100], ['seq-sil', 'silSens', 100]]) $(id).value = +(seq[key] * scale).toFixed(2);
   $('seq-fill').checked = seq.fill; $('seq-bg').value = seq.bg; $('seq-with-audio').checked = seq.withAudio;
   $('lyr-style').value = seq.lyricOpts.style; $('lyr-trans').value = seq.lyricOpts.transBeats; $('lyr-snap').checked = seq.lyricOpts.snap;
@@ -1395,7 +1396,7 @@ async function newProject() {
   await clearAutosave().catch(() => {});
   seq.slides.forEach(dropTexture);
   seq.slides = []; seq.transitions = []; seq.lyrics = []; seq.selection = null; seq.t = 0; seq.link = false;
-  seq.audio?.pause(); seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; $('seq-audio-name').textContent = '';
+  seq.audio?.pause(); seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; ($('seq-audio-name')||{}).textContent = '';
   audioGate.invalidate();lyricRevision++;lyricTap=null;lyricTapping=false;lyricExtraction=null;lyricStatus='';seq.lyricDocument=null;seq.lyricMotion={bpm:seq.bpm,phase:seq.phase};seq.audioBlob=null;if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';
   $('lyr-text').value = ''; renderLyricRows();
   history.clear();
@@ -1484,11 +1485,6 @@ function wire() {
   $('seq-sil').onchange = e => { seq.silSens = Number(e.target.value) / 100; dropSilhouettes(); renderAt(seq.t); };
   $('seq-fill').onchange = e => { seq.fill = e.target.checked; rebuildBackgrounds(); renderAt(seq.t); };
   $('seq-bg').oninput = e => { seq.bg = e.target.value; rebuildBackgrounds(); refreshUI(); };
-  $('seq-audio').onchange = async e => {
-    const f = e.target.files[0];
-    if (!f) return;
-    try { await loadAudio(f, f.name); } catch (err) { console.error(err); notice('音楽を読み込めませんでした。'); }
-  };
   lyricControls=createLyricControls({getState:lyricState,onAction:lyricAction});$('pane-lyric').append(lyricControls.element);if(location.hash==='#lyric')showTab('lyric');
   $('seq-with-audio').onchange=e=>{seq.withAudio=e.target.checked;scheduleSave()};
   $('seq-offset').onchange = e => edit(()=>{seq.offset=Number(e.target.value);});

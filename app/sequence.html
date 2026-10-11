@@ -143,8 +143,6 @@
   /* three-column layout like the single-image mode */
   body:has(main.seq3) { display:flex; flex-direction:column; height:100vh; overflow:hidden; }
   main.seq3 { flex:1; min-height:0; grid-template-columns: 290px minmax(0,1fr) 340px; grid-template-rows: minmax(0,1fr) auto; height:auto; }
-  .audio-pick { display:flex; flex-direction:column; gap:4px; margin-top:8px; }
-  .audio-pick input { font-size:11px; color:var(--dim); max-width:100%; }
   main.seq3 > aside { min-height:0; overflow:auto; padding:14px; }
   main.seq3 > aside.left { border-right:1px solid var(--line); }
   main.seq3 > aside.right { border-left:1px solid var(--line); border-right:0; }
@@ -216,7 +214,7 @@
 </style>
 <link rel="stylesheet" href="./method-editor.css?v=3">
 <link rel="stylesheet" href="./shot-motion.css?v=1">
-<link rel="stylesheet" href="./lyric-controls.css?v=3">
+<link rel="stylesheet" href="./lyric-controls.css?v=4">
 <link rel="stylesheet" href="./panel-resize.css?v=2">
 </head>
 <body>
@@ -232,8 +230,6 @@
     <div class="sec-title"><h2><span>01</span> 素材</h2><span class="tag" id="seq-count"></span></div>
     <div class="drop" id="seq-drop">＋ 画像を追加（ドロップ／クリック）<br><span class="hint">タイムラインのブロックにドロップで差し替え</span></div>
     <input type="file" id="seq-files" accept="image/png,image/jpeg,image/webp" multiple hidden>
-    <div class="audio-pick"><span class="hint">音楽（波形・MV・書き出し用）</span><input id="seq-audio" type="file" accept="audio/*"></div>
-    <div class="hint" id="seq-audio-name"></div>
   </section>
   <section>
     <div class="sec-title"><h2><span>02</span> ぐちゃぐちゃにする</h2><span class="tag" id="seq-methods-tag">29 METHODS</span></div>
@@ -257,11 +253,11 @@
 </section>
 <aside class="right">
   <div class="panel-head"><span class="eyebrow">EDIT PANEL</span><strong>シーケンスを編集する</strong></div>
-  <a href="studio.html" class="studio-entry" id="studio-entry">05 STUDIO ↗ <small>曲・歌詞・画像・崩れ方を、一式そのまま送ります</small></a>
+  <a href="studio.html" class="studio-entry" id="studio-entry">06 STUDIO ↗ <small>曲・歌詞・画像・崩れ方を、一式そのまま送ります</small></a>
   <div class="tabs" role="tablist">
     <button role="tab" data-tab="edit" aria-selected="true">03 選択中</button>
     <button role="tab" data-tab="look" aria-selected="false">04 見た目</button>
-    <button role="tab" data-tab="lyric" aria-selected="false">旧 歌詞・曲</button>
+    <button role="tab" data-tab="lyric" aria-selected="false">05 曲・歌詞</button>
     <button role="tab" data-tab="export" aria-selected="false">動画保存</button>
   </div>
   <div class="pane" id="pane-edit">
@@ -322,7 +318,7 @@
 <section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
 </main>
 <div id="seq-notice"></div>
-<script type="module" src="./sequence.js?v=89"></script>
+<script type="module" src="./sequence.js?v=90"></script>
 <script type="module" src="./panel-resize.js?v=1"></script>
 </body>
 </html>
