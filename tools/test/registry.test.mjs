@@ -5,21 +5,24 @@ import * as R from '../../app/method-registry.js';
 
 const OLD = new URL('../../archive/app-before-custom-engine-2026-10-02/', import.meta.url);
 
-test('there are 29 built-in methods and the order is the shader id', () => {
-  assert.equal(R.BUILTIN_KEYS.length, 29);
+test('there are 37 built-in methods (the first 29 are the original ones) and the order is the shader id', () => {
+  assert.equal(R.BUILTIN_KEYS.length, 37);
   assert.equal(R.BUILTIN_IDS.crumple, 0);
   assert.equal(R.BUILTIN_IDS.vortex, 10);
   assert.equal(R.BUILTIN_IDS.line, 28);
+  assert.deepEqual(R.BUILTIN_KEYS.slice(29), ['scrawl', 'tangle', 'penshake', 'linefall', 'thread', 'bleed', 'drip', 'seep']);
+  assert.equal(R.BUILTIN_IDS.seep, 36);
+  for (const [key, label, symbol, en] of R.BUILTIN_METHODS) assert.ok(/^[a-z]+$/.test(key) && label && symbol && en, key);
 });
 
 test('keys, labels, symbols and ids match the page before this change', { skip: !existsSync(new URL('index.html', OLD)) }, () => {
   const html = readFileSync(new URL('index.html', OLD), 'utf8');
   const buttons = [...html.matchAll(/<button data-method="([a-z]+)" aria-pressed="(?:true|false)"><span class="symbol">([^<]*)<\/span>([^<]*)<small>([^<]*)<\/small><\/button>/g)];
   assert.equal(buttons.length, 29);
-  buttons.forEach(([, key, symbol, label, en], i) => assert.deepEqual([key, label, symbol, en], R.BUILTIN_METHODS[i], `method #${i}`));
+  buttons.forEach(([, key, symbol, label, en], i) => assert.deepEqual([key, label, symbol, en], R.BUILTIN_METHODS[i], `method #${i}`));   // (the newer built-ins follow the original 29)
   const appJs = readFileSync(new URL('app.js', OLD), 'utf8');
   const ids = JSON.parse(/const methodIds=(\{[^}]*\})/.exec(appJs)[1].replace(/([a-z]+):/g, '"$1":'));
-  assert.deepEqual(R.BUILTIN_IDS, ids);
+  assert.deepEqual(Object.fromEntries(Object.entries(R.BUILTIN_IDS).slice(0, 29)), ids);   // the original 29 keep their numbers; newer ones come after
 });
 
 test('icons: built-in ones carry their English name, custom ones say CUSTOM', () => {

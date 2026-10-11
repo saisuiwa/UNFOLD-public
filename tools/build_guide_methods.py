@@ -2,7 +2,7 @@
 # Run:  python3 tools/build_guide_methods.py
 import html, os
 OUT = os.path.join(os.path.dirname(__file__), '..', 'app', 'guide', 'methods.html')
-CATS = [('paper', '紙・タイルの崩れ'), ('particle', '粒（パーティクル）'), ('motion', 'モーション')]
+CATS = [('paper', '紙・タイルの崩れ'), ('particle', '粒（パーティクル）'), ('motion', 'モーション'), ('lineart', '線画'), ('bleed', '色の滲み')]
 M = [  # key, label, symbol, en, category, description
  ('crumple','くしゃくしゃ','▱','CRUMPLE','paper','紙を丸めるように、くしゃっと波打ちながら崩れます。いちばん基本の動き。'),
  ('scatter','ばらばら','⠿','SCATTER','paper','絵がタイルに分かれて、それぞれ回りながら散らばります。'),
@@ -32,9 +32,17 @@ M = [  # key, label, symbol, en, category, description
  ('blinds','ブラインド','☰','BLINDS','motion','ブラインドのように、細い帯がくるっと回って切り替わります。'),
  ('flip','タイル反転','◧','FLIP','motion','タイルがパタパタと裏返って、次の絵になります。'),
  ('glitch','グリッチ','▚','GLITCH','motion','デジタルノイズのように、ずれて乱れます。'),
- ('line','線で描かれる','✎','LINE DRAW','motion','線で描かれていくように、次の絵が現れます。'),
+ ('line','線で描かれる','✎','LINE DRAW','lineart','線で描かれていくように、次の絵が現れます。'),
+ ('scrawl','落書きで散る','✐','SCRAWL','lineart','絵が線画の落書きになって、揺れながらばらばらに散ります。'),
+ ('tangle','線の絡まり','➰','TANGLE','lineart','線画の粒が、渦を巻きながら中心へ絡まっていきます。'),
+ ('penshake','ペンの殴り描き','✍','PEN SHAKE','lineart','絵が線画になり、ペンで殴り描きするように震えます。'),
+ ('linefall','線画の崩れ落ち','⇣','LINE FALL','lineart','線画になった絵が、上から順に切れ落ちて崩れます。'),
+ ('thread','ほどけて糸','≡','THREAD','lineart','絵がほどけて、細い糸のように長く伸びて流れます。'),
+ ('bleed','色の滲み','◍','BLEED','bleed','色が水に滲むように、ぼやけて広がり混ざり合います。'),
+ ('drip','絵の具が垂れる','⫯','DRIP','bleed','絵の具が溶けて、色の筋になって下へ垂れます。'),
+ ('seep','滲み出す','◉','SEEP','bleed','色が中心から外へ、やわらかく滲み出して広がります。'),
 ]
-assert len(M) == 29
+assert len(M) == 37
 cat_label = dict(CATS)
 cards = []
 for key, label, sym, en, cat, desc in M:
@@ -54,8 +62,8 @@ page = f'''<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>UNFOLD メソッド集 — 29種類の崩れ方</title>
-<meta name="description" content="UNFOLDの崩れ方（メソッド）29種類を、動く見本で紹介します。自作メソッドの作り方も。">
+<title>UNFOLD メソッド集 — 37種類の崩れ方</title>
+<meta name="description" content="UNFOLDの崩れ方（メソッド）37種類を、動く見本で紹介します。自作メソッドの作り方も。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -77,12 +85,12 @@ page = f'''<!doctype html>
 <main>
   <div class="eyebrow">METHODS</div><p class="note"><a class="btn lime" href="../workshop.html">＋ メソッド工房で作る・試す</a>　コード、参照画像、色パレットをひとつの画面で。</p>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">メソッド集</h1>
-  <p class="lede">絵が崩れる動き（メソッド）は、標準で <b>29種類</b>。どれも同じ2枚の絵（港の油絵 → ネオンの街）で動かした見本です。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">絵が崩れる動き（メソッド）は、標準で <b>37種類</b>。どれも同じ2枚の絵（港の油絵 → ネオンの街）で動かした見本です。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note">使うときは、1枚モードの「ぐちゃぐちゃにする」、またはシーケンスの◆を選んだ「崩れ方」から選びます。立体になる前の、崩れていく部分の動きです。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>29</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>37</small></button></li>
       {chips}
     </ul>
     <div class="mgrid" id="mgrid">

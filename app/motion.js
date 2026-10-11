@@ -245,10 +245,80 @@ vec3 breakAt(float m,vec2 p,float amount){
     q=c+ll+vec2(e*uStrength*(1.4+ph(5.)*2.2),-e*e*uStrength*(.6+ph(6.)*1.4)+sin(e*6.+ph(7.)*6.2832+uTime*1.5)*.25*e);
     qz=(ph(8.)-.5)*1.4*e+sin(spin)*.2*e;
     gKind=8.;gLocal=1.;
-  }else{
+  }else if(m<28.5){
     // line: the picture is reduced to its outlines, which are erased — and drawn back in on the way out
     gKind=9.;
+  }else if(m<29.5){
+    // scrawl: the picture becomes line art that breaks into scribbly strokes and scatters, jittering as it goes
+    vec2 c=partC(),l=p-c;
+    float e=smoothstep(ph(1.)*.2,.45+ph(1.)*.3,amount);
+    float a=ph(2.)*6.2832+uTime*(3.+ph(3.)*4.);
+    vec2 scrawl=vec2(cos(a),sin(a*1.37))*(.05+.14*ph(4.))*e;
+    vec2 drift=(vec2(ph(5.),ph(6.))-.5)*1.6*e;
+    q=c+rot((ph(7.)-.5)*2.4*e)*l*(1.+e*1.2)+scrawl+drift;
+    qz=(ph(8.)-.5)*.5*e;
+    gKind=9.;
+  }else if(m<30.5){
+    // tangle: line-art pieces swirl towards the centre, the swirl depending on the distance only so the strokes stay connected
+    vec2 c=partC(),l=p-c;
+    float r=length(c)/3.;
+    float e=smoothstep(r*.15,.5+r*.3,amount);
+    float turn=e*(3.+2.5*sin(r*7.+uTime*.5))*(1.2-r);
+    q=rot(turn)*c*(1.-.5*e)+rot(turn*1.5)*l*(1.+e*1.6);
+    q+=vec2(sin(c.y*6.+uTime*2.),cos(c.x*6.+uTime*2.3))*.05*e;
+    qz=sin(turn)*.3*e;
+    gKind=9.;
+  }else if(m<31.5){
+    // penshake: the picture becomes line art and the lines wobble along the picture like a pen going over them again and again
+    vec2 c=partC(),l=p-c;
+    float e=smoothstep(0.,.4,amount);
+    vec2 jit=vec2(sin(c.y*11.+uTime*17.),cos(c.x*11.+uTime*13.))*.035*e+vec2(sin(uTime*29.+c.x*5.),cos(uTime*31.+c.y*5.))*.02*e;
+    q=c+l*(1.+.9*e)+jit;
+    gKind=9.;
+  }else if(m<32.5){
+    // linefall: line art that is cut loose from the top and falls piece by piece
+    vec2 c=partC(),l=p-c;
+    float top=clamp(.5-c.y/uSize.y,0.,1.);
+    float e=smoothstep(top*.35+ph(1.)*.12,top*.35+.38+ph(1.)*.12,amount);
+    float fall=e*e*(1.2+ph(2.)*1.8);
+    q=c+rot((ph(3.)-.5)*3.*e)*l+vec2((ph(4.)-.5)*.5*e,-fall);
+    qz=(ph(5.)-.5)*.4*e;
+    gKind=9.;
+  }else if(m<33.5){
+    // thread: the line art comes undone and every piece is pulled into a long thin thread
+    vec2 c=partC(),l=p-c;
+    float e=smoothstep(ph(1.)*.25,.5+ph(1.)*.25,amount);
+    float ang=(ph(2.)-.5)*.9+sin(c.y*2.+uTime)*.2;
+    vec2 along=vec2(cos(ang),sin(ang)),across=vec2(-along.y,along.x);
+    vec2 stretched=along*dot(l,along)*(1.+e*5.)+across*dot(l,across)*(1.-.5*e);
+    q=c+stretched+along*e*(.4+ph(3.)*1.2)+vec2(0.,sin(uTime*1.5+c.x*2.)*.1*e);
+    gKind=9.;
+  }else if(m<34.5){
+    // bleed: colours spread like ink in water: soft, enlarged, half transparent pieces that mix with their neighbours
+    vec2 c=partC(),l=p-c;
+    float e=smoothstep(ph(1.)*.2,.5+ph(1.)*.25,amount);
+    vec2 flow=vec2(sin(c.y*1.8+uTime*.6),cos(c.x*1.4+uTime*.5))*.15*e;
+    q=c+l*(1.+e*3.4)+flow;
+    qz=-e*.15*ph(2.);
+    gKind=2.;gLocal=1.;gAlpha=mix(1.,.5,e);
+  }else if(m<35.5){
+    // drip: paint melts into streaks of colour that run downwards
+    vec2 c=partC(),l=p-c;
+    float e=smoothstep(ph(1.)*.3,.55+ph(1.)*.25,amount);
+    float len=.3+ph(2.)*1.6;
+    q=c+vec2(l.x*(1.-.35*e)+sin(uTime*1.2+ph(3.)*6.)*.03*e,l.y*(1.+e*6.)-e*len);
+    gKind=2.;gLocal=1.;gAlpha=mix(1.,.7,e);
+  }else{
+    // seep: colour seeps outwards from the centre and spreads softly
+    vec2 c=partC(),l=p-c;
+    float r=length(c);
+    float e=smoothstep(r*.12,.45+r*.12+ph(1.)*.15,amount);
+    vec2 dir=normalize(c+vec2(.001));
+    q=c+dir*e*(.5+ph(2.)*.9)+l*(1.+e*2.8);
+    gKind=2.;gLocal=1.;gAlpha=mix(1.,.55,e);
   }
+  // the newer built-ins (29 and up): the picture is exactly the original while nothing is broken yet
+  if(m>28.5){float k=smoothstep(0.,.03,amount);q=mix(p,q,k);qz*=k;}
   return vec3(q,qz);
 }
 void main(){
@@ -256,7 +326,8 @@ void main(){
   float mixed=mod(tile*151.+floor(uSeed),256.);
   vec2 tileOrigin=vec2(mod(mixed,16.),floor(mixed/16.))/16.;
   vec2 shuffled=tileOrigin+(uv-(cell-vec2(.03125)));
-  float lineA=step(27.5,uMethod)*step(uMethod,28.5),lineB=step(27.5,uMethod2)*step(uMethod2,28.5);
+  // the line drawing (28) and the five newer line-art methods (29-33) look at the picture's own outlines, so their tiles are not shuffled
+  float lineA=step(27.5,uMethod)*step(uMethod,33.5),lineB=step(27.5,uMethod2)*step(uMethod2,33.5);
   vUv=mix(uv,shuffled,uConceal*(1.-mix(lineA,lineB,uMethodMix)));
   // flat solids (text, silhouettes) end up showing the picture straight through them, like a stencil
   vUv=mix(vUv,targetPosition.xy/uSize+.5,uProject*smoothstep(.5,.95,uForm));

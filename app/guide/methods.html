@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>UNFOLD メソッド集 — 29種類の崩れ方</title>
-<meta name="description" content="UNFOLDの崩れ方（メソッド）29種類を、動く見本で紹介します。自作メソッドの作り方も。">
+<title>UNFOLD メソッド集 — 37種類の崩れ方</title>
+<meta name="description" content="UNFOLDの崩れ方（メソッド）37種類を、動く見本で紹介します。自作メソッドの作り方も。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -26,13 +26,13 @@
 <main>
   <div class="eyebrow">METHODS</div><p class="note"><a class="btn lime" href="../workshop.html">＋ メソッド工房で作る・試す</a>　コード、参照画像、色パレットをひとつの画面で。</p>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">メソッド集</h1>
-  <p class="lede">絵が崩れる動き（メソッド）は、標準で <b>29種類</b>。どれも同じ2枚の絵（港の油絵 → ネオンの街）で動かした見本です。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">絵が崩れる動き（メソッド）は、標準で <b>37種類</b>。どれも同じ2枚の絵（港の油絵 → ネオンの街）で動かした見本です。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note">使うときは、1枚モードの「ぐちゃぐちゃにする」、またはシーケンスの◆を選んだ「崩れ方」から選びます。立体になる前の、崩れていく部分の動きです。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>29</small></button></li>
-      <li><button class="chip" type="button" data-filter="paper" aria-pressed="false">紙・タイルの崩れ<small>12</small></button></li><li><button class="chip" type="button" data-filter="particle" aria-pressed="false">粒（パーティクル）<small>12</small></button></li><li><button class="chip" type="button" data-filter="motion" aria-pressed="false">モーション<small>5</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>37</small></button></li>
+      <li><button class="chip" type="button" data-filter="paper" aria-pressed="false">紙・タイルの崩れ<small>12</small></button></li><li><button class="chip" type="button" data-filter="particle" aria-pressed="false">粒（パーティクル）<small>12</small></button></li><li><button class="chip" type="button" data-filter="motion" aria-pressed="false">モーション<small>4</small></button></li><li><button class="chip" type="button" data-filter="lineart" aria-pressed="false">線画<small>6</small></button></li><li><button class="chip" type="button" data-filter="bleed" aria-pressed="false">色の滲み<small>3</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
     <article class="method" data-cat="paper">
@@ -315,14 +315,94 @@
         <span class="tag">モーション</span>
       </div>
     </article>
-    <article class="method" data-cat="motion">
+    <article class="method" data-cat="lineart">
       <div class="shot" data-clip="./methods/line.mp4" role="button" tabindex="0" aria-label="線で描かれるの動きを再生">
         <img src="./methods/line.jpg" alt="線で描かれるの途中の絵" loading="lazy" width="400" height="224">
       </div>
       <div class="body">
         <h3><i aria-hidden="true">✎</i>線で描かれる<small>LINE DRAW</small></h3>
         <p>線で描かれていくように、次の絵が現れます。</p>
-        <span class="tag">モーション</span>
+        <span class="tag">線画</span>
+      </div>
+    </article>
+    <article class="method" data-cat="lineart">
+      <div class="shot" data-clip="./methods/scrawl.mp4" role="button" tabindex="0" aria-label="落書きで散るの動きを再生">
+        <img src="./methods/scrawl.jpg" alt="落書きで散るの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✐</i>落書きで散る<small>SCRAWL</small></h3>
+        <p>絵が線画の落書きになって、揺れながらばらばらに散ります。</p>
+        <span class="tag">線画</span>
+      </div>
+    </article>
+    <article class="method" data-cat="lineart">
+      <div class="shot" data-clip="./methods/tangle.mp4" role="button" tabindex="0" aria-label="線の絡まりの動きを再生">
+        <img src="./methods/tangle.jpg" alt="線の絡まりの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">➰</i>線の絡まり<small>TANGLE</small></h3>
+        <p>線画の粒が、渦を巻きながら中心へ絡まっていきます。</p>
+        <span class="tag">線画</span>
+      </div>
+    </article>
+    <article class="method" data-cat="lineart">
+      <div class="shot" data-clip="./methods/penshake.mp4" role="button" tabindex="0" aria-label="ペンの殴り描きの動きを再生">
+        <img src="./methods/penshake.jpg" alt="ペンの殴り描きの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✍</i>ペンの殴り描き<small>PEN SHAKE</small></h3>
+        <p>絵が線画になり、ペンで殴り描きするように震えます。</p>
+        <span class="tag">線画</span>
+      </div>
+    </article>
+    <article class="method" data-cat="lineart">
+      <div class="shot" data-clip="./methods/linefall.mp4" role="button" tabindex="0" aria-label="線画の崩れ落ちの動きを再生">
+        <img src="./methods/linefall.jpg" alt="線画の崩れ落ちの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⇣</i>線画の崩れ落ち<small>LINE FALL</small></h3>
+        <p>線画になった絵が、上から順に切れ落ちて崩れます。</p>
+        <span class="tag">線画</span>
+      </div>
+    </article>
+    <article class="method" data-cat="lineart">
+      <div class="shot" data-clip="./methods/thread.mp4" role="button" tabindex="0" aria-label="ほどけて糸の動きを再生">
+        <img src="./methods/thread.jpg" alt="ほどけて糸の途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">≡</i>ほどけて糸<small>THREAD</small></h3>
+        <p>絵がほどけて、細い糸のように長く伸びて流れます。</p>
+        <span class="tag">線画</span>
+      </div>
+    </article>
+    <article class="method" data-cat="bleed">
+      <div class="shot" data-clip="./methods/bleed.mp4" role="button" tabindex="0" aria-label="色の滲みの動きを再生">
+        <img src="./methods/bleed.jpg" alt="色の滲みの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">◍</i>色の滲み<small>BLEED</small></h3>
+        <p>色が水に滲むように、ぼやけて広がり混ざり合います。</p>
+        <span class="tag">色の滲み</span>
+      </div>
+    </article>
+    <article class="method" data-cat="bleed">
+      <div class="shot" data-clip="./methods/drip.mp4" role="button" tabindex="0" aria-label="絵の具が垂れるの動きを再生">
+        <img src="./methods/drip.jpg" alt="絵の具が垂れるの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">⫯</i>絵の具が垂れる<small>DRIP</small></h3>
+        <p>絵の具が溶けて、色の筋になって下へ垂れます。</p>
+        <span class="tag">色の滲み</span>
+      </div>
+    </article>
+    <article class="method" data-cat="bleed">
+      <div class="shot" data-clip="./methods/seep.mp4" role="button" tabindex="0" aria-label="滲み出すの動きを再生">
+        <img src="./methods/seep.jpg" alt="滲み出すの途中の絵" loading="lazy" width="400" height="224">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">◉</i>滲み出す<small>SEEP</small></h3>
+        <p>色が中心から外へ、やわらかく滲み出して広がります。</p>
+        <span class="tag">色の滲み</span>
       </div>
     </article>
     </div>

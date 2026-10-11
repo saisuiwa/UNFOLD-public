@@ -1,5 +1,5 @@
 // The tiles of the method grid, shared by the single-image page and the sequence page:
-// the 29 built-in methods, then every custom one (blue frame, ⚙ menu, a badge when it is not usable), then the "＋自作メソッド" tile.
+// the 37 built-in methods, then every custom one (blue frame, ⚙ menu, a badge when it is not usable), then the "＋自作メソッド" tile.
 import { BUILTIN_KEYS, getCustom, isCustomKey, listCustom, methodIcon, methodLabel } from './method-registry.js';
 import { statusText } from './method-menu.js';
 

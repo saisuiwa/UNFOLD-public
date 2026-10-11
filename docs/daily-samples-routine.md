@@ -37,7 +37,7 @@ node -e "import('./tools/lib/samples-catalog.mjs').then(m=>console.table(m.catal
 node -e "Promise.all([import('./app/image-method-presets.js'),import('./app/code-motion-presets.js')]).then(([a,b])=>{console.log(a.IMAGE_METHOD_PRESETS.map(p=>p.name));console.log(b.CODE_MOTION_PRESETS.map(p=>p.name))})"
 ```
 
-2つ目はMacで作られたものも含む、工房に出る全部の名前です（名前の重複はテストが落とします）。**標準の29種類**の崩れ方は `tools/build_guide_methods.py` の先頭の表にあるので、GLSLでは同じ動きを避けてください。`docs/daily-samples-log.md` も読んで、過去の日と同じ発想を繰り返さないでください。
+2つ目はMacで作られたものも含む、工房に出る全部の名前です（名前の重複はテストが落とします）。**標準の37種類**（2026-10-12に8種類を足して29→37）の崩れ方は `tools/build_guide_methods.py` の先頭の表にあるので、GLSLでは同じ動きを避けてください。`docs/daily-samples-log.md` も読んで、過去の日と同じ発想を繰り返さないでください。
 
 ## 2. 3つを作る
 

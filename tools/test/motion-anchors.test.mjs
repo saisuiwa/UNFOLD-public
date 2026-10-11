@@ -15,6 +15,6 @@ test('the vertex shader has the two places custom methods plug into, in the righ
   for (const helper of ['float hash(vec2 p)', 'mat2 rot(float a)', 'vec2 partC()', 'float ph(float k)']) assert.ok(vertexShader.indexOf(helper) < functions, helper);
 });
 
-test('only method 28 (line) switches off the tile shuffle, numbers for custom methods do not', () => {
-  assert.ok(vertexShader.includes('lineA=step(27.5,uMethod)*step(uMethod,28.5),lineB=step(27.5,uMethod2)*step(uMethod2,28.5)'));
+test('only the line-art built-ins (28 line, 29-33 the newer line-art methods) switch off the tile shuffle, numbers for custom methods do not', () => {
+  assert.ok(vertexShader.includes('lineA=step(27.5,uMethod)*step(uMethod,33.5),lineB=step(27.5,uMethod2)*step(uMethod2,33.5)'));
 });

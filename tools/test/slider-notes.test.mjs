@@ -14,7 +14,7 @@ function branches() {
   return marks.map((m, i) => ({ key: BUILTIN_KEYS[m.id], code: body.slice(m.at, i + 1 < marks.length ? marks[i + 1].at : body.length) }));
 }
 
-test('GRAIN_METHODS / TILE_METHODS / SMOOTH_METHODS match what each shader branch uses, and cover all 29 once', () => {
+test('GRAIN_METHODS / TILE_METHODS / SMOOTH_METHODS match what each shader branch uses, and cover all 37 once', () => {
   const grain = [], tile = [], smooth = [];
   for (const { key, code } of branches()) {
     const g = /partC\(\)/.test(code), t = /unfoldTileC\(\)/.test(code);
@@ -24,7 +24,7 @@ test('GRAIN_METHODS / TILE_METHODS / SMOOTH_METHODS match what each shader branc
   assert.deepEqual(grain.sort(), [...GRAIN_METHODS].sort());
   assert.deepEqual(tile.sort(), [...TILE_METHODS].sort());
   assert.deepEqual(smooth.sort(), [...SMOOTH_METHODS].sort());
-  assert.equal(GRAIN_METHODS.length + TILE_METHODS.length + SMOOTH_METHODS.length, 29);
+  assert.equal(GRAIN_METHODS.length + TILE_METHODS.length + SMOOTH_METHODS.length, 37);
 });
 
 test('the shader never reads the raw 16×16 cell inside a method branch any more (tiles go through unfoldTileC)', () => {

@@ -1,5 +1,5 @@
 import {workshopField} from './workshop-settings.js';
-// Every 崩れ方 (method) in one place: the 29 built-in ones — their position in this list is the number the shader uses —
+// Every 崩れ方 (method) in one place: the 37 built-in ones — their position in this list is the number the shader uses —
 // and the custom ones users add. Saving custom methods is method-library.js's job; this module only keeps what is loaded now.
 export const BUILTIN_METHODS = [
   ['crumple', 'くしゃくしゃ', '▱', 'CRUMPLE'], ['scatter', 'ばらばら', '⠿', 'SCATTER'], ['twist', 'ねじれ', '〰', 'TWIST'],
@@ -12,6 +12,10 @@ export const BUILTIN_METHODS = [
   ['galaxy', '銀河', '✦', 'GALAXY'], ['tornado', '竜巻', '⌇', 'TORNADO'], ['wind', '風で飛ぶ', '≈', 'WIND'],
   ['blinds', 'ブラインド', '☰', 'BLINDS'], ['flip', 'タイル反転', '◧', 'FLIP'], ['glitch', 'グリッチ', '▚', 'GLITCH'],
   ['petals', '花びらが舞う', '❀', 'PETALS'], ['line', '線で描かれる', '✎', 'LINE DRAW'],
+  // 29 and up: line art that breaks into scribbles, and colours that bleed (their code is in motion.js; the same ideas are samples in method-samples.js)
+  ['scrawl', '落書きで散る', '✐', 'SCRAWL'], ['tangle', '線の絡まり', '➰', 'TANGLE'], ['penshake', 'ペンの殴り描き', '✍', 'PEN SHAKE'],
+  ['linefall', '線画の崩れ落ち', '⇣', 'LINE FALL'], ['thread', 'ほどけて糸', '≡', 'THREAD'],
+  ['bleed', '色の滲み', '◍', 'BLEED'], ['drip', '絵の具が垂れる', '⫯', 'DRIP'], ['seep', '滲み出す', '◉', 'SEEP'],
 ];
 export const BUILTIN_KEYS = BUILTIN_METHODS.map(m => m[0]);
 export const BUILTIN_IDS = Object.fromEntries(BUILTIN_KEYS.map((k, i) => [k, i]));

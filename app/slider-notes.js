@@ -7,7 +7,7 @@
 import { BASE_TILES, tilesAcross } from './tile-size.js';
 import { isCustomKey, methodLabel } from './method-registry.js';
 
-export const GRAIN_METHODS = ['dust', 'sparkle', 'burst', 'swarm', 'rain', 'snow', 'bubbles', 'halftone', 'galaxy', 'tornado', 'wind', 'petals'];
+export const GRAIN_METHODS = ['dust', 'sparkle', 'burst', 'swarm', 'rain', 'snow', 'bubbles', 'halftone', 'galaxy', 'tornado', 'wind', 'petals', 'scrawl', 'tangle', 'penshake', 'linefall', 'thread', 'bleed', 'drip', 'seep'];
 export const TILE_METHODS = ['scatter', 'shatter', 'melt', 'shred', 'mosaic', 'confetti', 'blinds', 'flip', 'glitch'];
 export const SMOOTH_METHODS = ['crumple', 'twist', 'wave', 'peel', 'fold', 'vortex', 'ripple', 'line'];
 const names = keys => keys.map(k => methodLabel(k)).join('・');
