@@ -50,6 +50,7 @@ import { cleanFx, concealAmount, mixFx, swapCurve } from './fx-mix.js';
 import { CAM_EASES, CAM_PRESETS, CAM_RANGES, camEnds, camLife, camValues, cleanCam, legacyKenBurns, lifeProgress, mixCam } from './camera-work.js?v=1';
 import { openMethodMenu } from './method-menu.js';
 import { methodButtons, syncMethodTiles } from './method-tiles.js';
+import { putHandoff } from './studio-handoff.js?v=1';
 import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=10';
 
 const $ = id => document.getElementById(id);
@@ -1437,8 +1438,29 @@ async function addFiles(files) {
   await prepareShapes();
   renderAt(seq.t);
 }
+// "05 STUDIO": send the whole piece (song, lyrics, pictures, 崩れ方 and shapes) to STUDIO in one go, no file in between.
+// A ctrl/cmd/middle click still just opens STUDIO.
+async function sendToStudio(e) {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  const link = e.currentTarget;
+  if (link.dataset.busy) return;
+  link.dataset.busy = '1';
+  try {
+    notice('STUDIOへ、一式を送っています…');
+    await flushSave();
+    const blob = await exportFile(stateForSave());
+    const trusted = collectMethods(seq.transitions, getCustom).filter(m => getCustom(m.id)?.status === 'ok').map(m => m.code?.source || m.vertex).filter(Boolean);
+    await putHandoff(blob, { name: `unfold-project-${new Date().toISOString().slice(0, 10)}.unfold`, trustedSources: trusted });
+    location.href = 'studio.html?from=sequence';
+  } catch (err) {
+    console.error(err);
+    notice(`STUDIOへ送れませんでした：${err?.message || err}`);
+  } finally { delete link.dataset.busy; }
+}
 function wire() {
   document.querySelectorAll('.tabs [data-tab]').forEach(b => { b.onclick = () => showTab(b.dataset.tab); });
+  $('studio-entry')?.addEventListener('click', sendToStudio);
   for (const b of document.querySelectorAll('#look-mode [data-mode]')) b.onclick = () => { lookMode = b.dataset.mode; applyLookView(); };
   $('pane-look').addEventListener('pointerdown', () => { lookDragging = true; }, true);
   const lookRelease = () => { if (lookDragging) { lookDragging = false; applyLookView(); } };
