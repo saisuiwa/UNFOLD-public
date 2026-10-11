@@ -65,7 +65,7 @@ export function createLyricEdit(controller){
  const scopeAll=el('input',{type:'checkbox','aria-label':'全歌詞に適用'}),status=el('p',{class:'hint','data-testid':'code-card-status',role:'status'});
  const sizeValue=el('output',{class:'lq-size-value'},''),size=el('input',{type:'range',min:.03,max:.2,step:.005,value:.06,'aria-label':'文字の大きさ','data-testid':'lyric-size'});
  const targets=()=>{const p=state().project;return scopeAll.checked?p.lyrics:[find(selectedId())].filter(Boolean);};
- size.oninput=()=>{sizeValue.textContent=Math.round(Number(size.value)*1000)/10;};
+ size.oninput=()=>{sizeValue.textContent=Math.round(Number(size.value)*1000)/10+'%';};
  size.onchange=()=>{const value=Number(size.value),p=state().project,commands=[];for(const l of targets())for(const viewId of Object.keys(p.views))commands.push({type:'setLayout',id:l.id,viewId,patch:{fontScale:value}});
   if(commands.length)controller.dispatch(commands.length===1?commands[0]:{type:'batch',commands}).then(()=>{status.textContent='文字の大きさを反映しました。';}).catch(e=>{status.textContent=e.message;});};
  const apply=patch=>onAction({type:'lyric-style',id:selectedId(),scope:scopeAll.checked?'all':'line',patch,replay:true});
@@ -89,6 +89,6 @@ export function createLyricEdit(controller){
  const documentOf=()=>{const s=state(),key=s.project.id+':'+s.editVersion;if(cache.key!==key)cache={key,document:{events:s.project.lyrics.map(eventOf)}};return cache.document;};
  const quick=createLyricQuick({getState:()=>{const s=state();return {document:documentOf(),selectedId:s.selection?.kind==='lyric'?s.selection.id:null,legacy:false,recording:false};},onAction,onMore:()=>{},motionPanel});
  const element=el('div',{class:'studio-lyric-edit'},quick.element);
- function refresh(){quick.refresh();const s=state(),id=selectedId();if(!id)return;const layout=s.project.views[s.viewId]?.layout[id];if(layout){size.value=layout.fontScale;sizeValue.textContent=Math.round(layout.fontScale*1000)/10;}}
+ function refresh(){quick.refresh();const s=state(),id=selectedId();if(!id)return;const layout=s.project.views[s.viewId]?.layout[id];if(layout){size.value=layout.fontScale;sizeValue.textContent=Math.round(layout.fontScale*1000)/10+'%';}}
  return {element,refresh,dispose(){quick.dispose();}};
 }
