@@ -4,9 +4,18 @@ import {createLyricQuick} from '../lyric-quick.js?v=6';
 import {cleanMotion,graphemes} from '../lyric-motion.js?v=26';
 import {cleanWordColors,setWordColor,colorLyricRuns} from '../lyric-style.js';
 import {DAILY_CODE_MOTIONS} from '../code-motion-daily.js';
-import {approveStudioCode} from './code-trust.js';
+import {approveStudioCode,isStudioCodeApproved} from './code-trust.js';
 import {el} from './dom.js';
 
+// Code the panel is about to run: the workshop's own bundled motions are trusted; anything else (a motion from the saved library, code typed or pasted
+// into the editor) is asked about once, exactly like opening a piece that carries code. Declining stops the change.
+const BUNDLED=new Set(DAILY_CODE_MOTIONS.map(m=>m.source));
+export function trustSource(source,{ask=message=>confirm(message)}={}){
+ if(typeof source!=='string'||!source)return;
+ if(isStudioCodeApproved(source))return;
+ if(!BUNDLED.has(source)&&!ask('この動きのコードをSTUDIOで実行します。自分で作った、または信頼できる提供元のコードだけ許可してください。許可しますか？'))throw new DOMException('中止しました','AbortError');
+ approveStudioCode(source);
+}
 const HEX=/^#[\da-f]{6}$/i;
 // the per-word colours of a lyric are the colours of its runs
 export function colorsOf(lyric){let pos=0;const out=[];for(const r of lyric.runs||[]){const len=(r.text||'').length;if(r.color&&HEX.test(r.color))out.push({start:pos,end:pos+len,color:r.color});pos+=len;}return out;}
@@ -30,7 +39,7 @@ export function createLyricEdit(controller){
   if(a.type==='lyric-style'){
    if(typeof a.patch?.font==='string'&&/^(local:|file:)/.test(a.patch.font))throw new Error('PCのフォントやフォントファイルは、シーケンスで選んでから送ってください。ここでは内蔵の書体を選べます。');
    const targets=a.scope==='all'?p.lyrics:[find(a.id)].filter(Boolean);if(!targets.length)return;
-   if(a.patch?.code?.source)approveStudioCode(a.patch.code.source);
+   if(a.patch?.code?.source)trustSource(a.patch.code.source);
    const commands=targets.map(l=>({type:'setLyricAppearance',id:l.id,patch:{motion:mergeMotion(l.motion,a.patch||{})}}));
    await controller.dispatch(commands.length===1?commands[0]:{type:'batch',commands});
    if(a.replay)await play(a.id);

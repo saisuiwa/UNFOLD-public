@@ -41,6 +41,16 @@ await withStudioPage(async page=>{
  // 6) Undo takes back the last change (the font of both lyrics) in one step
  await page.evaluate(()=>c.undo());
  await page.waitForFunction(()=>lyricOf('L1').motion.font==='gothic'&&lyricOf('L2').motion.font==='gothic');
+ // 7) code that is not the workshop's own is asked about; declining stops it, allowing lets it run
+ const trust=await page.evaluate(async()=>{
+  const m=await import('/studio/lyric-edit.js'),{isStudioCodeApproved}=await import('/studio/code-trust.js'),src='return {update(){},dispose(){}}; /* mine '+Math.random()+' */';
+  let declined=null;try{m.trustSource(src,{ask:()=>false});}catch(e){declined=e.name;}
+  const stillUntrusted=!isStudioCodeApproved(src);let asked=0;m.trustSource(src,{ask:()=>{asked++;return true;}});
+  const approved=isStudioCodeApproved(src);m.trustSource(src,{ask:()=>{asked++;return true;}});
+  const {DAILY_CODE_MOTIONS}=await import('/code-motion-daily.js');let bundledAsked=0;m.trustSource(DAILY_CODE_MOTIONS[5].source,{ask:()=>{bundledAsked++;return false;}});
+  return {declined,stillUntrusted,asked,approved,bundledAsked};
+ });
+ assert.deepEqual(trust,{declined:'AbortError',stillUntrusted:true,asked:1,approved:true,bundledAsked:0},'foreign code is asked once; bundled code is not asked');
  // the right column is wide enough for the panel
  const w=await page.evaluate(()=>document.querySelector('.inspector').getBoundingClientRect().width);assert.ok(w>=340,'the inspector is widened for the panel: '+w);
  await page.evaluate(()=>c.dispose());
