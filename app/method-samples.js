@@ -131,6 +131,90 @@ vec3 userMethod(vec2 p, float amount) {
   gLocal = 1.;
   return vec3(c + l + away, (ph(4.) - .5) * .3 * e);
 }` },
+  { key: 'scribble-scatter', name: '落書きになって散る', symbol: '落', category: 'method', desc: '絵が線画の落書きになって、揺れながらばらばらに散っていきます。', added: '2026-10-12', poster: 0.45, source: `// 絵が線画の落書きになって、揺れながらばらばらに散っていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(ph(1.) * .2, .45 + ph(1.) * .3, amount);
+  float a = ph(2.) * 6.2832 + uTime * (3. + ph(3.) * 4.);
+  vec2 scrawl = vec2(cos(a), sin(a * 1.37)) * (.08 + .22 * ph(4.)) * e;
+  vec2 drift = (vec2(ph(5.), ph(6.)) - .5) * 2.2 * e;
+  vec2 q = c + rot((ph(7.) - .5) * 2. * e) * l + scrawl + drift;
+  gKind = 9.;
+  return vec3(q, (ph(8.) - .5) * .5 * e);
+}` },
+  { key: 'line-tangle', name: '線がぐるぐる絡む', symbol: '絡', category: 'method', desc: '線画になった粒が、渦を巻きながら中心へ絡まっていきます。', added: '2026-10-12', poster: 0.4, source: `// 線画になった粒が、渦を巻きながら中心へ絡まっていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float r = length(c) / 3.;
+  float e = smoothstep(r * .15, .5 + r * .3, amount);
+  float turn = e * (2.5 + ph(1.) * 5.) * (1.2 - r) + sin(uTime * 1.3 + ph(2.) * 6.2832) * .25 * e;
+  vec2 q = rot(turn) * c * (1. - .55 * e) + rot(turn * 2.) * l * (1. - .3 * e);
+  q += vec2(sin(uTime * 2. + ph(3.) * 9.), cos(uTime * 2.3 + ph(4.) * 9.)) * .08 * e;
+  gKind = 9.;
+  return vec3(q, sin(turn) * .3 * e);
+}` },
+  { key: 'pen-shake', name: 'ペンで殴り描き', symbol: '殴', category: 'method', desc: '絵が線画になり、ペンで殴り描きするように細かく震えます。', added: '2026-10-12', poster: 0.4, source: `// 絵が線画になり、ペンで殴り描きするように細かく震える
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(0., .4, amount);
+  vec2 jit = vec2(sin(uTime * 31. + ph(1.) * 40.), cos(uTime * 37. + ph(2.) * 40.)) * .09 * e
+           + vec2(sin(uTime * 7. + c.y * 3.), cos(uTime * 6. + c.x * 3.)) * .05 * e;
+  vec2 q = c + rot(sin(uTime * 19. + ph(3.) * 30.) * .35 * e) * l * (1. + .25 * e) + jit;
+  gKind = 9.;
+  return vec3(q, 0.);
+}` },
+  { key: 'line-fall', name: '線画が崩れ落ちる', symbol: '崩', category: 'method', desc: '線画になった絵が、上から順に切れ落ちるように崩れていきます。', added: '2026-10-12', poster: 0.38, source: `// 線画になった絵が、上から順に切れ落ちるように崩れていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float top = clamp(.5 - c.y / uSize.y, 0., 1.);
+  float e = smoothstep(top * .35 + ph(1.) * .12, top * .35 + .38 + ph(1.) * .12, amount);
+  float fall = e * e * (1.2 + ph(2.) * 1.8);
+  vec2 q = c + rot((ph(3.) - .5) * 3. * e) * l + vec2((ph(4.) - .5) * .5 * e, -fall);
+  gKind = 9.;
+  return vec3(q, (ph(5.) - .5) * .4 * e);
+}` },
+  { key: 'thread-unravel', name: 'ほどけて糸になる', symbol: '糸', category: 'method', desc: '絵がほどけて、細い糸のように長く伸びて流れていきます。', added: '2026-10-12', poster: 0.4, source: `// 絵がほどけて、細い糸のように長く伸びて流れていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(ph(1.) * .25, .5 + ph(1.) * .25, amount);
+  float ang = (ph(2.) - .5) * .9 + sin(c.y * 2. + uTime) * .2;
+  vec2 along = vec2(cos(ang), sin(ang)), across = vec2(-along.y, along.x);
+  vec2 stretched = along * dot(l, along) * (1. + e * 9.) + across * dot(l, across) * (1. - .6 * e);
+  vec2 q = c + stretched + along * e * (.4 + ph(3.) * 1.2) + vec2(0., sin(uTime * 1.5 + c.x * 2.) * .1 * e);
+  gKind = 9.;
+  return vec3(q, 0.);
+}` },
+  { key: 'color-bleed', name: '色が滲んで広がる', symbol: '滲', category: 'method', desc: '色が水に滲むように粒がぼやけて広がり、まわりと混ざります。', added: '2026-10-12', poster: 0.5, source: `// 色が水に滲むように、粒がぼやけて広がり、まわりの色と混ざっていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(ph(1.) * .2, .5 + ph(1.) * .25, amount);
+  vec2 flow = vec2(sin(c.y * 1.8 + uTime * .6), cos(c.x * 1.4 + uTime * .5)) * .15 * e;
+  vec2 q = c + l * (1. + e * 3.4) + flow;
+  gKind = 2.; gLocal = 1.;
+  gAlpha = mix(1., .5, e);
+  return vec3(q, -e * .15 * ph(2.));
+}` },
+  { key: 'paint-drip', name: '絵の具が垂れる', symbol: '垂', category: 'method', desc: '絵の具が溶けて、色の筋になって下へ垂れていきます。', added: '2026-10-12', poster: 0.5, source: `// 絵の具が溶けて、色の筋になって下へ垂れていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float e = smoothstep(ph(1.) * .3, .55 + ph(1.) * .25, amount);
+  float len = .3 + ph(2.) * 1.6;
+  vec2 q = c + vec2(l.x * (1. - .35 * e) + sin(uTime * 1.2 + ph(3.) * 6.) * .03 * e, l.y * (1. + e * 6.) - e * len);
+  gKind = 2.; gLocal = 1.;
+  gAlpha = mix(1., .7, e);
+  return vec3(q, 0.);
+}` },
+  { key: 'bleed-out', name: '中心から滲み出す', symbol: '溢', category: 'method', desc: '色が中心から外へ滲み出して、やわらかく広がっていきます。', added: '2026-10-12', poster: 0.5, source: `// 色が中心から外へ滲み出して、やわらかく広がっていく
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  float r = length(c);
+  float e = smoothstep(r * .12, .45 + r * .12 + ph(1.) * .15, amount);
+  vec2 dir = normalize(c + vec2(.001));
+  vec2 q = c + dir * e * (.5 + ph(2.) * .9) + l * (1. + e * 2.8);
+  gKind = 2.; gLocal = 1.;
+  gAlpha = mix(1., .55, e);
+  return vec3(q, 0.);
+}` },
 ];
 
 // Text to paste into an AI chat: it explains what to write, and the rules the editor checks, so what comes back is likely to pass.
@@ -150,7 +234,7 @@ vec3 userMethod(vec2 p, float amount) { ... }
 - partC(): 粒（画像をさらに細かく分けた小さなかけら）の中心。p - partC() が粒の中での位置
 - ph(float k): 粒ごとの乱数（k を変えると別の乱数）
 - uSize（画像の大きさ）、uTime（秒）、uSeed（乱数の種）、uStrength（崩れの強さ）
-- 粒の見た目: gKind に 1〜8 を入れると粒の形が変わる（1=星とハート 2=丸い点 3=泡 4=きらめき 5=網点 6=雨の筋 7=RGBずれ 8=花びら）。gAlpha（透明度 0〜1）、gGlow（光 0〜2）、gLocal = 1. で粒ごとの形を使う。
+- 粒の見た目: gKind に 1〜9 を入れると粒の見た目が変わる（1=星とハート 2=丸い点 3=泡 4=きらめき 5=網点 6=雨の筋 7=RGBずれ 8=花びら 9=線画（絵の輪郭だけが残る））。gAlpha（透明度 0〜1）、gGlow（光 0〜2）、gLocal = 1. で粒ごとの形を使う。
 
 【守ること】
 - ${LIMITS.maxChars} 文字以内。

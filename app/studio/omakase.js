@@ -5,12 +5,12 @@ import {cleanMotion} from '../lyric-motion.js?v=26';
 import {DAILY_CODE_MOTIONS} from '../code-motion-daily.js';
 
 export const MOODS=[
- {id:'calm',name:'しっとり',text:['drop-settle','squash-in','rgb-settle','gucha-melt','gucha-ripple','gucha-bubble','gucha-ghost','kn-flow','kn-dive','echo-stack'],bg:['bg-concentric','bg-dot-wave'],families:['pastel','white','cool','warm'],size:{base:.075,spread:.015}},
- {id:'pop',name:'ポップ',text:['gucha-squash','gucha-rubber','gucha-bubble','gucha-burst','gucha-wobble','kn-slam','kn-seesaw','kn-collide','letter-boxes','keycap-type'],bg:['bg-dot-wave','bg-diagonal'],families:['pastel','neon','white','warm'],size:{base:.09,spread:.02}},
- {id:'glitch',name:'グリッチ',text:['rgb-settle','gucha-boil','gucha-shuffle','gucha-strips','kn-swap','kn-cuts','kn-typeslam','bracket-glitch','flip-up'],bg:['bg-scan-grid','bg-speed-lines'],families:['neon','mono','cool','rock'],size:{base:.085,spread:.018}},
- {id:'graphic',name:'グラフィック',text:['kn-turn','kn-reflow','gucha-steps','gucha-lanes','gucha-tiles','gucha-flip','layer-extrude','echo-stack','tape-cards'],bg:['bg-square-tunnel','bg-diagonal','bg-scan-grid'],families:['mono','white','rock','gold'],size:{base:.092,spread:.02}},
- {id:'emotional',name:'エモ',text:['gucha-gather','gucha-ghost','gucha-magnet','gucha-spiral','gucha-tangle','kn-dive','drop-settle','echo-stack'],bg:['bg-concentric','bg-square-tunnel'],families:['pastel','cool','warm','gold'],size:{base:.08,spread:.016}},
- {id:'impact',name:'勢い',text:['kn-slam','gucha-pile','gucha-burst','kn-collide','kn-typeslam','kn-cuts','layer-extrude','gucha-squash'],bg:['bg-speed-lines','bg-diagonal'],families:['rock','gold','neon','white'],size:{base:.105,spread:.025}},
+ {id:'calm',name:'しっとり',text:['drop-settle','squash-in','rgb-settle','gucha-melt','gucha-ripple','gucha-bubble','gucha-ghost','kn-flow','kn-dive','echo-stack'],bg:['bg-concentric','bg-dot-wave','bg-bokeh','bg-ink-bleed','bg-plasma-lines'],families:['pastel','white','cool','warm'],size:{base:.075,spread:.015}},
+ {id:'pop',name:'ポップ',text:['gucha-squash','gucha-rubber','gucha-bubble','gucha-burst','gucha-wobble','kn-slam','kn-seesaw','kn-collide','letter-boxes','keycap-type'],bg:['bg-dot-wave','bg-diagonal','bg-checker-wave','bg-halftone-pop','bg-zigzag'],families:['pastel','neon','white','warm'],size:{base:.09,spread:.02}},
+ {id:'glitch',name:'グリッチ',text:['rgb-settle','gucha-boil','gucha-shuffle','gucha-strips','kn-swap','kn-cuts','kn-typeslam','bracket-glitch','flip-up'],bg:['bg-scan-grid','bg-speed-lines','bg-grid-warp','bg-scribble','bg-rain-streaks'],families:['neon','mono','cool','rock'],size:{base:.085,spread:.018}},
+ {id:'graphic',name:'グラフィック',text:['kn-turn','kn-reflow','gucha-steps','gucha-lanes','gucha-tiles','gucha-flip','layer-extrude','echo-stack','tape-cards'],bg:['bg-square-tunnel','bg-diagonal','bg-scan-grid','bg-hex-pulse','bg-checker-wave','bg-sunburst'],families:['mono','white','rock','gold'],size:{base:.092,spread:.02}},
+ {id:'emotional',name:'エモ',text:['gucha-gather','gucha-ghost','gucha-magnet','gucha-spiral','gucha-tangle','kn-dive','drop-settle','echo-stack'],bg:['bg-concentric','bg-square-tunnel','bg-bokeh','bg-ink-bleed','bg-starfield'],families:['pastel','cool','warm','gold'],size:{base:.08,spread:.016}},
+ {id:'impact',name:'勢い',text:['kn-slam','gucha-pile','gucha-burst','kn-collide','kn-typeslam','kn-cuts','layer-extrude','gucha-squash'],bg:['bg-speed-lines','bg-diagonal','bg-sunburst','bg-rain-streaks','bg-zigzag'],families:['rock','gold','neon','white'],size:{base:.105,spread:.025}},
 ];
 export const MOOD_AUTO='auto';
 

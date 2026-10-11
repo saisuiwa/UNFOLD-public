@@ -24,7 +24,7 @@ test('one custom method: wrapper, dispatch, renamed entry point, markers gone', 
 
 test('the wrapper keeps results safe', () => {
   const { source } = assembleVertex(vertexShader, { a: GOOD.nanValue });
-  for (const part of ['isnan(r)', 'isinf(r)', 'clamp(r,vec3(-8.),vec3(8.))', 'gKind=clamp(floor(gKind+.5),0.,8.)', 'smoothstep(0.,.03,amount)']) assert.ok(source.includes(part), part);
+  for (const part of ['isnan(r)', 'isinf(r)', 'clamp(r,vec3(-8.),vec3(8.))', 'gKind=clamp(floor(gKind+.5),0.,9.)', 'smoothstep(0.,.03,amount)']) assert.ok(source.includes(part), part);
 });
 
 test('two custom methods use both slots', () => {

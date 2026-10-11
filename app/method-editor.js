@@ -61,7 +61,7 @@ export function createMethodEditor({ vertexShader, fragmentShader, getPreviewIma
         el('li', {}, '`vec3 userMethod(vec2 p, float amount)` を1つ書く。p は位置、amount は崩れ具合（0 で元の絵）。'),
         el('li', {}, `ループは userMethod の中だけで、for (int i = 0; i < 24; i++) の形。1つ${LIMITS.maxLoop}回まで、合計${LIMITS.loopBudget}回まで。`),
         el('li', {}, `while・do・discard・# の行・uniform の宣言は使えません。${LIMITS.maxChars}文字まで。`),
-        el('li', {}, '道具: hash() rot() cell partC() ph() uTime uSeed uSize。粒の見た目は gKind（1〜8）で選びます。')));
+        el('li', {}, '道具: hash() rot() cell partC() ph() uTime uSeed uSize。粒の見た目は gKind（1〜9。9 は線画）で選びます。')));
 
     const canvas = el('canvas', { id: 'method-canvas', className: 'md-canvas' });
     const progress = el('input', { id: 'method-progress', type: 'range', min: 0, max: .8, step: .01, value: .48 });

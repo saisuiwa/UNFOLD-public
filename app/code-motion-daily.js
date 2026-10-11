@@ -3597,5 +3597,491 @@ quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
 function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
 function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
 update(0);
+return {update,dispose};`},
+ {key:'bg-checker-wave',name:'波打つ市松の背景',desc:'市松模様が波のようにうねりながら流れる、文字なしの背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// 市松模様の角丸の四角が、波のようにうねりながら脈打つ背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*9.;
+  p.y+=sin(p.x*.8+u_time*1.5)*.6;p.x+=cos(p.y*.7+u_time*1.1)*.4;
+  vec2 g=floor(p),f=fract(p)-.5;
+  float chk=mod(g.x+g.y,2.);
+  float sq=1.-smoothstep(.34,.46,max(abs(f.x),abs(f.y)));
+  float pulse=.55+.45*sin(u_time*2.+g.x*.6+g.y*.8);
+  vec3 col=mix(u_accent,vec3(1.),.4+.3*sin(g.x*.5+u_time*.8));
+  float a=sq*chk*pulse*.6;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-sunburst',name:'放射状の光線の背景',desc:'中心から放射状の光線が、ゆっくり回りながら広がる背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// 中心から放射状に伸びる光線が、ゆっくり回転する背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float ang=atan(p.y,p.x),r=length(p);
+  float k=ang/TAU*16.+u_time*.18;
+  float f=fract(k);
+  float ray=smoothstep(.0,.1,f)*(1.-smoothstep(.34,.44,f));
+  float fall=smoothstep(.04,.22,r)*(.4+.6*smoothstep(.0,.9,r));
+  vec3 col=mix(u_accent,vec3(1.,.95,.8),.5+.5*sin(k*.7));
+  float a=ray*fall*.6;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-grid-warp',name:'歪む方眼の背景',desc:'方眼の線が波のように歪んで揺れる、文字なしの背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// 方眼の線が波のように歪んで揺れる背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*7.;
+  p+=vec2(sin(p.y*1.1+u_time*1.3),cos(p.x*1.0+u_time*1.1))*.45;
+  vec2 f=abs(fract(p)-.5);
+  float line=smoothstep(.40,.46,max(f.x,f.y));
+  float glow=.5+.5*sin(u_time*1.7+p.x*.9+p.y*.6);
+  vec3 col=mix(u_accent,vec3(1.),glow*.6);
+  float a=line*(.35+.4*glow);
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-bokeh',name:'ぼかしの光の玉の背景',desc:'やわらかい光の玉がゆっくり漂う、文字なしの背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// やわらかい光の玉が漂うボケの背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  vec3 acc=vec3(0.);float al=0.;
+  for(int i=0;i<14;i++){
+    float fi=float(i);
+    float h1=hash(vec2(fi,1.)),h2=hash(vec2(fi,2.)),h3=hash(vec2(fi,3.)),h4=hash(vec2(fi,4.));
+    vec2 c=vec2((h1-.5)*aspect*.95,(h2-.5)*.9);
+    c+=vec2(sin(u_time*(.15+h3*.25)+fi*1.3),cos(u_time*(.12+h4*.22)+fi*2.1))*.08;
+    float r=.05+h3*.08;
+    float d=length(p-c);
+    float disc=smoothstep(r,r*.55,d)*(.3+.3*h4);
+    float rim=smoothstep(r*.78,r,d)*smoothstep(r*1.08,r,d)*.4;
+    float k=disc+rim;
+    acc+=mix(pal(h1+u_time*.03),u_accent,.4)*k;al+=k;
+  }
+  vec3 col=acc/max(al,.001);
+  float a=min(.75,al);
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-plasma-lines',name:'プラズマの等高線の背景',desc:'色がうねる等高線のような線が流れる、文字なしの背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// うねるプラズマの等高線が流れる背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*3.;
+  float t=u_time*.6;
+  float v=sin(p.x*2.+t)+sin(p.y*2.3-t*1.2)+sin((p.x+p.y)*1.7+t*.7)+sin(length(p)*3.5-t*1.4);
+  float line=smoothstep(.40,.47,abs(fract(v*.6)-.5));
+  vec3 col=mix(u_accent,pal(v*.12+.2),.6);
+  float a=line*.65;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-hex-pulse',name:'六角形が脈打つ背景',desc:'六角形のタイルが順番に光って脈打つ、文字なしの背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// 六角形のタイルが波のように順番に光る背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*6.;
+  vec2 r=vec2(1.,1.7320508),h=r*.5;
+  vec2 ga=mod(p,r)-h,gb=mod(p-h,r)-h;
+  vec2 gv=dot(ga,ga)<dot(gb,gb)?ga:gb;
+  vec2 id=p-gv;
+  vec2 q=abs(gv);
+  float hd=max(dot(q,normalize(vec2(1.,1.7320508))),q.x);
+  float wave=sin(u_time*1.8-length(id)*1.1+hash(floor(id*2.))*3.)*.5+.5;
+  float on=smoothstep(.55,.75,wave);
+  float fill=smoothstep(.5,.4,hd)*on*.55;
+  float rim=smoothstep(.38,.44,hd)*smoothstep(.5,.46,hd)*on*.45;
+  vec3 col=mix(u_accent,vec3(1.),.35+.4*wave);
+  float a=max(fill,rim);
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-scribble',name:'ぐちゃぐちゃ線の背景',desc:'何本もの線がくねくね絡み合って走る、落書きのような背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// 何本もの線がくねくねと絡み合って走る、落書きのような背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float a=0.;vec3 col=u_accent;
+  for(int i=0;i<8;i++){
+    float fi=float(i),ph=fi*1.7;
+    float y=.34*sin(p.x*(2.2+fi*.55)+u_time*(.7+fi*.18)+ph)*cos(p.x*(.9+fi*.3)-u_time*.45+ph*1.3)+.1*sin(p.x*9.+u_time*1.5+ph);
+    float l=smoothstep(.014,.004,abs(p.y-y));
+    if(l>a){a=l;col=mix(u_accent,vec3(1.),mod(fi,2.)*.75);}
+  }
+  a*=.75;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-rain-streaks',name:'斜めの雨筋の背景',desc:'斜めの細い筋が次々に降り注ぐ、文字なしの背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// 斜めの細い筋が次々に降り注ぐ背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=rot(-.35)*((vUv-.5)*vec2(aspect,1.));
+  float cols=24.;
+  float c=floor(p.x*cols),h=hash(vec2(c,7.));
+  float y=fract(p.y*.9+u_time*(.35+h*.5)+h*10.);
+  float len=.15+.4*h;
+  float streak=step(y,len)*smoothstep(len,0.,y);
+  float w=smoothstep(.22,.08,abs(fract(p.x*cols)-.5));
+  vec3 col=mix(u_accent,vec3(1.),.4+.5*h);
+  float a=streak*w*.8;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-halftone-pop',name:'網点が膨らむ背景',desc:'網点の大きさが波のように変わって脈打つ背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// 網点の大きさが波のように変わって脈打つ背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float n=22.;
+  vec2 g=p*n,id=floor(g),f=fract(g)-.5;
+  float wave=.5+.5*sin(u_time*1.5-length(id/n)*7.+hash(id)*.8);
+  float rad=.08+.26*wave;
+  float dotm=smoothstep(rad,rad-.07,length(f));
+  vec3 col=mix(u_accent,vec3(1.),.25+.4*wave);
+  float a=dotm*.6;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-zigzag',name:'ジグザグの帯の背景',desc:'ジグザグの帯が横に流れていく、文字なしの背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// ジグザグの帯が横に流れていく背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*5.;
+  float tri=abs(fract(p.x*.8+u_time*.15)-.5)*2.;
+  float yy=p.y*1.2+tri*1.6-u_time*.35;
+  float f=fract(yy);
+  float band=smoothstep(.0,.08,f)*(1.-smoothstep(.3,.38,f));
+  vec3 col=mix(u_accent,vec3(1.),mod(floor(yy),2.)*.7);
+  float a=band*.6;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-ink-bleed',name:'インクが滲む背景',desc:'色のインクがにじんで混ざり合う、文字なしの背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// 色のインクがにじんで混ざり合う背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.)*2.2;
+  float t=u_time*.25;
+  vec2 q=p;
+  for(int i=0;i<3;i++){float fi=float(i);q+=.55*vec2(vn(q*1.6+t+fi*3.1),vn(q*1.6-t*.8+fi*5.3))-.275;}
+  float v=vn(q*2.1+t);
+  vec3 col=mix(u_accent,pal(v*1.3+t),.6);
+  float a=smoothstep(.5,.64,v)*.55;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
+return {update,dispose};`},
+ {key:'bg-starfield',name:'流れる星の背景',desc:'小さな星がきらめきながら横に流れていく背景です。',added:'2026-10-12',shelf:'effect',poster:1.2,source:`// 小さな星がきらめきながら横に流れていく背景（文字は描かない）。文字モーションの下に重ねて使う
+const {THREE,scene,width,height,duration,accent}=api;
+const smooth=x=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x)};
+const enter=Math.min(.7,duration*.25),exit=Math.min(.6,duration*.2);
+const VERT=\`varying vec2 vUv;
+void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}\`;
+const FRAG=\`precision highp float;
+#define TAU 6.28318530718
+uniform float u_time;
+uniform float u_fade;
+uniform vec2 u_resolution;
+uniform vec3 u_accent;
+varying vec2 vUv;
+vec3 pal(float k){return .55+.45*cos(TAU*(k+vec3(0.,.33,.67)));}
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+mat2 rot(float a){return mat2(cos(a),-sin(a),sin(a),cos(a));}
+float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);}
+void main(){
+  float aspect=u_resolution.x/u_resolution.y;
+  vec2 p=(vUv-.5)*vec2(aspect,1.);
+  float a=0.;
+  for(int L=0;L<3;L++){
+    float fl=float(L);
+    vec2 q=p*(14.+fl*10.);q.x+=u_time*(.6+fl*.5);
+    vec2 id=floor(q),f=fract(q)-.5;
+    float h=hash(id+fl*17.);
+    vec2 off=(vec2(hash(id+3.),hash(id+7.))-.5)*.6;
+    vec2 d2=f-off;
+    float tw=.5+.5*sin(u_time*3.+h*20.);
+    float star=smoothstep(.12+.05*h,0.,length(d2))*step(.55,h)*tw;
+    float cross=(smoothstep(.02,0.,abs(d2.x))*smoothstep(.3,0.,abs(d2.y))+smoothstep(.02,0.,abs(d2.y))*smoothstep(.3,0.,abs(d2.x)))*step(.8,h)*tw;
+    a=max(a,max(star,cross*.7));
+  }
+  vec3 col=mix(u_accent,vec3(1.,.97,.85),.6);
+  a*=.9;
+  float edge=smoothstep(.025,.05,min(vUv.x,1.-vUv.x))*smoothstep(.025,.05,min(vUv.y,1.-vUv.y));
+  gl_FragColor=vec4(col,a*edge*u_fade);
+}\`;
+const material=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,vertexShader:VERT,fragmentShader:FRAG,
+  uniforms:{u_time:{value:0},u_fade:{value:0},u_resolution:{value:new THREE.Vector2(width,height)},u_accent:{value:new THREE.Color(accent)}}});
+const quad=new THREE.Mesh(new THREE.PlaneGeometry(width,height),material);
+quad.position.z=-10;quad.renderOrder=-5;scene.add(quad);
+function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.value=smooth(t/enter)*smooth((duration-t)/exit);}
+function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
+update(0);
 return {update,dispose};`}
 ];

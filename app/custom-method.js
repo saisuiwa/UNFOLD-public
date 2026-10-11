@@ -13,7 +13,7 @@ const runner = slot => `vec3 um_${slot}_run(vec2 p,float amount){
   vec3 r=um_${slot}_main(p,amount);
   if(any(isnan(r))||any(isinf(r)))r=vec3(p,0.);
   r=clamp(r,vec3(-8.),vec3(8.));
-  gKind=clamp(floor(gKind+.5),0.,8.);gAlpha=clamp(gAlpha,0.,1.);gGlow=clamp(gGlow,0.,2.);gLocal=step(.5,gLocal);
+  gKind=clamp(floor(gKind+.5),0.,9.);gAlpha=clamp(gAlpha,0.,1.);gGlow=clamp(gGlow,0.,2.);gLocal=step(.5,gLocal);
   return mix(vec3(p,0.),r,smoothstep(0.,.03,amount));
 }`;
 
