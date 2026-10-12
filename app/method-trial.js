@@ -53,7 +53,6 @@ const REST_SOURCE = 'vec3 userMethod(vec2 p, float amount) { return vec3(p, 0.);
 
 export function createTrial({ vertexShader, fragmentShader }) {
   let rig = null;
-  const baselines = {};            // 'small' | 'full' -> ms, measured once per page
 
   function build() {
     const canvas = document.createElement('canvas');
@@ -110,6 +109,45 @@ export function createTrial({ vertexShader, fragmentShader }) {
     }
     return median(samples);
   }
+  // Milliseconds per render of the method under test AND of the baseline, measured side by side: every timing sample of one is followed by a
+  // sample of the other (the order alternates), so a stretch of slow machine — another program using the processor, the browser busy with
+  // something else — slows both and the ratio stays what it is. The baseline used to be timed once per page and compared with a custom method
+  // timed minutes later, and on a busy machine the first method came out "9 times heavier" while it was the built-in itself.
+  function timePair(material, geometry, uMethod) {
+    const { renderer, scene, camera, uniforms, mesh, gl } = rig;
+    const baseId = BUILTIN_IDS[TRIAL.baselineKey];
+    const wait = () => gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rig.pixel);
+    const use = (m, id) => { mesh.material = m; mesh.geometry = geometry; uniforms.uMethod.value = id; };
+    const estimate = (m, id) => {
+      use(m, id); uniforms.uDistort.value = .5; renderer.render(scene, camera); wait();      // the first render uploads everything
+      const t0 = performance.now();
+      for (let i = 0; i < 3; i++) renderer.render(scene, camera);
+      wait();
+      return Math.max((performance.now() - t0) / 3, 0.001);
+    };
+    const estCustom = estimate(material, uMethod), estBase = estimate(rig.base, baseId);
+    if (estCustom > TRIAL.giveUpMs) return { customMs: estCustom, baselineMs: estBase };       // absurdly slow: no point in measuring more
+    const repsOf = est => Math.max(1, Math.min(TRIAL.maxReps, Math.floor(TRIAL.sampleMs / est)));
+    const repsCustom = repsOf(estCustom), repsBase = repsOf(estBase);
+    const sample = (m, id, reps) => {
+      use(m, id);
+      const start = performance.now();
+      for (let r = 0; r < reps; r++) renderer.render(scene, camera);
+      wait();
+      return (performance.now() - start) / reps;
+    };
+    const custom = [], base = [];
+    let customFirst = true;
+    for (const p of TRIAL.progresses) {
+      uniforms.uDistort.value = p;
+      for (let i = 0; i < TRIAL.runs; i++) {
+        if (customFirst) { custom.push(sample(material, uMethod, repsCustom)); base.push(sample(rig.base, baseId, repsBase)); }
+        else { base.push(sample(rig.base, baseId, repsBase)); custom.push(sample(material, uMethod, repsCustom)); }
+        customFirst = !customFirst;
+      }
+    }
+    return { customMs: median(custom), baselineMs: median(base) };
+  }
   function pixels(material, geometry, uMethod, progress) {
     const { renderer, scene, camera, uniforms, mesh, gl } = rig;
     mesh.material = material; mesh.geometry = geometry; uniforms.uMethod.value = uMethod; uniforms.uDistort.value = progress;
@@ -120,10 +158,9 @@ export function createTrial({ vertexShader, fragmentShader }) {
   }
   // A fresh WebGL context is slow for its first moments: the driver is still working on the shader code it was given (headless Chrome, measured: about
   // four times slower for roughly a quarter of a second after the first draw, then the time per render drops to a fraction). A series timed inside that
-  // window measures that, not the method, and as the baseline of a page is timed only once, it depended on which of the two fell into the window: the
-  // first method tried on a page came out "5 times heavier than the heaviest built-in" on more than half of the fresh pages, also when it was that
-  // built-in itself (the petals sample). So the first thing a page's trial does is draw the baseline, untimed, until `warmupMs` have passed since that
-  // first draw finished. Once per page; the factor and the floors are untouched, and a really heavy method is still refused (tools/test/trial-warmup-browser.mjs).
+  // window measures that, not the method: the first method tried on a page came out "5 times heavier than the heaviest built-in" on more than half of
+  // the fresh pages, also when it was that built-in itself (the petals sample). So the first thing a page's trial does is draw the baseline, untimed,
+  // until `warmupMs` have passed since that first draw finished. Once per page. (What is left after that — a busy processor — is what timePair() is for.)
   function warmUp() {
     const { renderer, scene, camera, uniforms, mesh, gl } = rig;
     mesh.material = rig.base; mesh.geometry = rig.geometry.small; uniforms.uMethod.value = BUILTIN_IDS[TRIAL.baselineKey]; uniforms.uDistort.value = .5;
@@ -133,7 +170,6 @@ export function createTrial({ vertexShader, fragmentShader }) {
     while (performance.now() < settleBy) draw();
   }
   const ensureRig = () => { if (!rig) { rig = build(); warmUp(); } };
-  const baseline = size => (baselines[size] ??= time(rig.base, rig.geometry[size], BUILTIN_IDS[TRIAL.baselineKey]));
 
   return {
     // Resolves to { stage, heavy, ratio, customMs, baselineMs, blank, unchanged }; the options are for tests.
@@ -143,17 +179,17 @@ export function createTrial({ vertexShader, fragmentShader }) {
       try {
         const diagnostics = await compileCheck(rig.renderer, material);
         if (diagnostics) throw new Error('コンパイルできませんでした');
-        const smallMs = time(material, rig.geometry.small, 100);
-        const small = judgeTrial({ customMs: smallMs, baselineMs: baseline('small'), floorMs: smallFloorMs, factor });
-        if (small.heavy) return { stage: 'small', customMs: smallMs, baselineMs: baselines.small, ratio: small.ratio, heavy: true, blank: false, unchanged: false };
-        const customMs = time(material, rig.geometry.full, 100);
-        const full = judgeTrial({ customMs, baselineMs: baseline('full'), floorMs: fullFloorMs, factor });
+        const smallPair = timePair(material, rig.geometry.small, 100);
+        const small = judgeTrial({ customMs: smallPair.customMs, baselineMs: smallPair.baselineMs, floorMs: smallFloorMs, factor });
+        if (small.heavy) return { stage: 'small', customMs: smallPair.customMs, baselineMs: smallPair.baselineMs, ratio: small.ratio, heavy: true, blank: false, unchanged: false };
+        const { customMs, baselineMs } = timePair(material, rig.geometry.full, 100);
+        const full = judgeTrial({ customMs, baselineMs, floorMs: fullFloorMs, factor });
         rig.rest ??= rig.material(assembleVertex(vertexShader, { a: REST_SOURCE }).source);
         const frames = (m, p) => pixels(m, rig.geometry.full, 100, p);
         const look = judgeFrames({
           start: frames(material, 0), middle: frames(material, .5), end: frames(material, 1), restMiddle: frames(rig.rest, .5), restEnd: frames(rig.rest, 1),
         });
-        return { stage: 'full', customMs, baselineMs: baselines.full, ratio: full.ratio, heavy: full.heavy, ...look };
+        return { stage: 'full', customMs, baselineMs, ratio: full.ratio, heavy: full.heavy, ...look };
       } finally {
         material.dispose();
       }
