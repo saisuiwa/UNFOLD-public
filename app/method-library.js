@@ -28,7 +28,7 @@ export function createPersistence({ store, onError = () => {} }) {
   const enqueue = (job, undo) => { queue = queue.then(job).catch(error => { undo?.(); onError(error); }); };
 
   function sync() {
-    const live = new Map(listCustom().map(c => [c.id, c]));
+    const live = new Map(listCustom().filter(c => !c.bundled).map(c => [c.id, c]));      // the methods that ship with the app are not saved
     for (const c of live.values()) {
       const sig = signature(c), before = persisted.get(c.id);
       if (before === sig) continue;

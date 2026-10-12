@@ -34,10 +34,12 @@ export function onRegistryChange(fn) { listeners.add(fn); return () => listeners
 
 // vertex: the user's GLSL (it defines userMethod). rev goes up whenever the code is registered again, so cached shaders can tell they are stale.
 // status: 'ok' | 'quarantined' | 'disabled' | 'crashed' — only 'ok' ones are used.
-export function registerCustom({ id, name, symbol = '◆', vertex, code, workshop, status = 'ok', reason = '' }) {
+// bundled: it ships with the app (the surface pack in bundled-image-methods.js): it is listed like a built-in one and is never written to the library.
+// en: the small caption under its name on the tile.
+export function registerCustom({ id, name, symbol = '◆', vertex, code, workshop, status = 'ok', reason = '', bundled = false, en = '' }) {
   if (!isCustomKey(id)) throw new Error(`自作メソッドのidは "${CUSTOM_PREFIX}" で始めてね: ${id}`);
   const previous = customs.get(id);
-  customs.set(id, { id, name: name || id, symbol: [...String(symbol || '◆')][0], vertex: String(vertex ?? ''), ...(isImageMethodKey(id)?{code:cleanImageCode(code)}:{}), ...workshopField(workshop??previous?.workshop), status, reason, rev: (previous?.rev ?? 0) + 1 });
+  customs.set(id, { id, name: name || id, symbol: [...String(symbol || '◆')][0], vertex: String(vertex ?? ''), ...(isImageMethodKey(id)?{code:cleanImageCode(code)}:{}), ...workshopField(workshop??previous?.workshop), ...(bundled ? { bundled: true } : {}), ...(en ? { en: String(en).slice(0, 16) } : {}), status, reason, rev: (previous?.rev ?? 0) + 1 });
   emit();
 }
 export function unregisterCustom(id) { if (customs.delete(id)) emit(); }
@@ -48,6 +50,7 @@ export function setCustomStatus(id, status, reason = '') {
   emit();
 }
 export const getCustom = id => customs.get(id);
+export const isBundled = id => customs.get(id)?.bundled === true;
 export const listCustom = () => [...customs.values()];
 
 export const isUsable = key => isCustomKey(key) ? customs.get(key)?.status === 'ok' : typeof key === 'string' && Object.hasOwn(BUILTIN_IDS, key);
@@ -59,7 +62,7 @@ export function methodIcon(key) {
   const builtin = BUILTIN_INFO.get(key);
   if (builtin) return [builtin.symbol, builtin.en];
   const custom = customs.get(key);
-  return custom ? [custom.symbol, custom.code?'JS · PHYSICS':'CUSTOM'] : ['◆', String(key).toUpperCase()];
+  return custom ? [custom.symbol, custom.en || (custom.code?'JS · PHYSICS':'CUSTOM')] : ['◆', String(key).toUpperCase()];
 }
 // [[key, label], ...] for <select>s: the built-in methods, then the usable custom ones. `current` stays in the list even when it can't be used.
 export function methodEntries(current = '') {

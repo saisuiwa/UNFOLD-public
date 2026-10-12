@@ -39,6 +39,7 @@ import { lookView, lookViewText } from './look-view.js?v=1';
 import { BUILTIN_KEYS, getCustom, isCustomKey, isUsable, listCustom, methodEntries, methodLabel, newCustomId, onRegistryChange, registerCustom, setCustomStatus, unregisterCustom } from './method-registry.js';
 import { compileUserMethod, createVariants } from './custom-method.js';
 import { createPersistence, openStore, sourceHash } from './method-library.js';
+import { registerBundledImageMethods } from './bundled-image-methods.js';
 import { createImageMethodEditor } from './image-method-editor.js';
 import { createSafety } from './method-safety.js';
 import { createTrial } from './method-trial.js';
@@ -1623,6 +1624,7 @@ try {
   methodEnabler = createEnabler({ compile: source => compileUserMethod(renderer, { vertexShader, fragmentShader, source }), trial: source => methodTrial.run(source), safety, notify: notice });
   quarantineBanner = createQuarantineBanner($('seq-quarantine'), { onReview: id => methodEditor.open({ id, review: true }), onEnable: id => isImageMethodKey(id)?methodEditor.open({id,review:true}):methodEnabler.enable(id) });
   // saved custom methods come back when the page opens; from then on every change in the registry is saved
+  registerBundledImageMethods();   // 焦げ穴と炎・電撃で消失など、アプリに付いてくる画像コードのメソッド（保存はしない）
   methodPersistence = createPersistence({ store: openStore(), onError: () => notice('自作メソッドをこのブラウザに保存できませんでした。') });
   // saving starts first, so that what recoverFromCrash switches off is saved too
   methodPersistence.load().then(() => { methodPersistence.start(); safety.recoverFromCrash(); }, () => notice('保存した自作メソッドを読み込めませんでした。'));

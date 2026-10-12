@@ -4,7 +4,7 @@ import {Text as TroikaText, configureTextBuilder} from 'troika-three-text';
 import {gsap} from 'gsap';
 configureTextBuilder({useWorker:false});
 const originalError=console.error.bind(console);console.error=(...args)=>{originalError(...args);self.postMessage({fatal:'Code motion font or renderer error: '+args.map(String).join(' ')});};
-let renderer,scene,camera,controller,fontURL;
+let renderer,scene,camera,controller,fontURL,fontPoolURLs={};
 const texts=[];
 // Word decorations (縁取り outline, 中抜き hollow). Troika styles a whole mesh, so a mesh that mixes plain and decorated words is split: the plain
 // base mesh hides the decorated glyphs and one overlay child mesh per decoration shows only its own glyphs. Which glyph instance belongs to which
@@ -52,6 +52,10 @@ async function prepare(p){
   renderer.setSize(p.width,p.height,false); renderer.setClearColor(0,0);
   scene=new THREE.Scene(); camera=new THREE.OrthographicCamera(-p.width/2,p.width/2,p.height/2,-p.height/2,0.1,10000);camera.position.z=1000;
   fontURL=URL.createObjectURL(new Blob([p.fontBytes],{type:'font/ttf'}));
+  // "// @fonts" motions: the bundled typefaces by key, and which of them have a given character (decided on the page from each font's cmap)
+  fontPoolURLs=Object.fromEntries(Object.entries(p.fontPool||{}).map(([k,b])=>[k,URL.createObjectURL(new Blob([b],{type:'font/ttf'}))]));
+  const coverSets=Object.fromEntries(Object.entries(p.fontCover||{}).map(([k,a])=>[k,new Set(a)]));
+  const fontsFor=ch=>{const cp=String(ch).codePointAt(0);return Object.keys(fontPoolURLs).filter(k=>coverSets[k]?.has(cp));};
   class Text extends TroikaText {constructor(){super();this.font=fontURL;this.fontSize=p.fontSize;this.color=p.color;this.gpuAccelerateSDF=false;}}
   let state=(p.seed>>>0)||1;
   const random=()=>{state=(Math.imul(state,1664525)+1013904223)>>>0;return state/4294967296;};
@@ -91,7 +95,7 @@ async function prepare(p){
       t.add(o);const item={mesh:o,base:t,...d};decorated.push(item);applyDecoration(item);
     });
   }
-  controller=new Function('api',p.source)({THREE,Text,gsap,scene,camera,text:p.text,width:p.width,height:p.height,fontSize:p.fontSize,bpm:p.bpm,color:p.color,accent:p.accent,fontURL,createText,random,runs:p.runs||[],duration:p.duration}) || {};
+  controller=new Function('api',p.source)({THREE,Text,gsap,scene,camera,text:p.text,width:p.width,height:p.height,fontSize:p.fontSize,bpm:p.bpm,color:p.color,accent:p.accent,fontURL,createText,random,runs:p.runs||[],duration:p.duration,fonts:fontPoolURLs,fontsFor}) || {};
   if(!controller.timeline && typeof controller.update!=='function')throw new Error('Return a timeline or update(time).');
   controller.timeline?.pause();
   // Include Text instances added directly by authors, not only createText().
@@ -103,5 +107,5 @@ let commands=Promise.resolve();
 self.onmessage=({data:m})=>{commands=commands.then(async()=>{try{
  if(m.type==='prepare'){await prepare(m.payload);self.postMessage({id:m.id,ok:true});}
  if(m.type==='render'){controller.timeline?.seek(m.time,false);await controller.update?.(m.time);syncDecorated();registerTexts();await Promise.all(texts.map(syncText));renderer.render(scene,camera);const bitmap=renderer.domElement.transferToImageBitmap();self.postMessage({id:m.id,bitmap},[bitmap]);}
- if(m.type==='dispose'){controller?.dispose?.();texts.forEach(t=>t.dispose());renderer?.dispose();if(fontURL)URL.revokeObjectURL(fontURL);self.close();}
+ if(m.type==='dispose'){controller?.dispose?.();texts.forEach(t=>t.dispose());renderer?.dispose();if(fontURL)URL.revokeObjectURL(fontURL);Object.values(fontPoolURLs).forEach(u=>URL.revokeObjectURL(u));self.close();}
 }catch(e){self.postMessage({id:m.id,error:String(e?.message||e)});}});};

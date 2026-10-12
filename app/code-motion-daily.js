@@ -9,6 +9,98 @@
 //     a neutral lyric instead of the motion's name.
 //   source: the body of a function that takes `api` (see app/guide/code-motions.html); text is in px, y points up, and everything is computed from the time t.
 
+const RANSOM=String.raw`// @fonts
+// __TITLE__: 1文字ごとに書体・紙の色・大きさ・傾きが違う切り抜き文字を、拍に合わせて1文字ずつ貼っていく。貼るたびに画面が拍で揺れる。
+// 貼る速さは1拍の何分の1か（__DIV__）と、貼り終えるまでに使う割合（__FILL__）、歌詞の「動きの速さ」で変わる。api.fonts / api.fontsFor は「// @fonts」の行があると使える。
+const {THREE,scene,createText,text,width,height,fontSize,duration,bpm,random,fonts,fontsFor,fontURL,color,accent,runs}=api;
+const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const back=x=>{x=clamp(x)-1;return 1+2.4*x*x*x+1.4*x*x};
+const mix=(a,b,k)=>a+(b-a)*k;
+const hash=(a,b)=>{const s=Math.sin(a*127.1+b*311.7)*43758.5453;return s-Math.floor(s)};
+const W=Math.max(1,width),H=Math.max(1,height),em=Math.max(8,fontSize||H*.15),life=Math.max(.05,duration);
+const SHAKE=__SHAKE__,DIV=__DIV__,FILL=__FILL__;      // FILL: 歌詞の表示時間のうち、貼り終えるまでに使う割合の上限
+// 紙と文字の色の組（切り抜きの紙、文字）
+const PAPERS=[['#faf9f4','#141316'],['#ece8dc','#141316'],['#cec9bc','#141316'],['#141316','#faf9f4'],['#60b6ba','#141316'],['#e45a8c','#faf9f4'],['#f4d632','#141316'],['#faf9f4','#e45a8c']];
+const luma=hex=>{const n=parseInt(String(hex).replace('#','').slice(0,6),16)||0;return (.299*(n>>16&255)+.587*(n>>8&255)+.114*(n&255))/255};
+const runAt=offset=>{let o=0;for(const r of runs||[]){const n=String(r.text||'').length;if(offset<o+n)return r;o+=n}return null};
+// 文字を1つずつ作る（空白は間、改行は行替え）
+const rows=[[]];let offset=0,visibleCount=0;
+for(const ch of Array.from(String(text||'').replace(/\r/g,''))){
+  const len=ch.length;
+  if(ch==='\n'){rows.push([]);offset+=len;continue}
+  if(/\s/.test(ch)){rows[rows.length-1].push({gap:true,w:em*.4});offset+=len;continue}
+  const run=runAt(offset),cp=ch.codePointAt(0);
+  const sc=.84+random()*.4,fs=em*sc,adv=(cp<256?.62:1)*fs;
+  const choices=[...fontsFor(ch).map(k=>fonts[k]),fontURL];          // その字を持っている書体だけ
+  const font=choices[Math.floor(random()*choices.length)];
+  let paper,ink;
+  if(run&&run.color){paper=run.color;ink=luma(run.color)>.55?'#141316':'#faf9f4'}
+  else if(run&&run.emphasis){paper=accent;ink=luma(accent)>.55?'#141316':'#faf9f4'}
+  else{const p=PAPERS[Math.floor(random()*PAPERS.length)];paper=p[0];ink=p[1]}
+  rows[rows.length-1].push({ch,font,fs,w:adv+fs*.3,h:fs*1.18,paper,ink,rot:(random()-.5)*.31,dy:(random()-.5)*.2*fs,tape:random()<.18,tapeRot:(random()-.5)*1.05,jit:[random(),random(),random(),random(),random(),random(),random(),random()],slam:(random()-.5)*.7,idx:visibleCount++});
+  offset+=len;
+}
+// 行に分ける（はみ出す行は折り返し、全体が画面に収まるよう縮める）
+const limit=W*.86,lines=[];
+for(const row of rows){let cur=[],w=0;for(const it of row){const iw=it.w*.94;if(cur.length&&w+iw>limit&&!it.gap){lines.push(cur);cur=[];w=0}cur.push(it);w+=iw}lines.push(cur)}
+const rowW=r=>r.reduce((a,it)=>a+it.w*.94,0),rowH=r=>Math.max(em*.9,...r.filter(it=>!it.gap).map(it=>it.h));
+const totalH=lines.reduce((a,r)=>a+rowH(r)*1.12,0);
+const k=Math.min(1,limit/Math.max(1,...lines.map(rowW)),H*.74/Math.max(1,totalH));
+const root=new THREE.Group();scene.add(root);
+const mats=[],geos=[];
+const chars=[];
+let y=totalH*k/2;
+for(const r of lines){
+  const rh=rowH(r)*k*1.12;y-=rh/2;
+  let x=-rowW(r)*k/2;
+  for(const it of r){
+    const w=it.w*k*.94;
+    if(it.gap){x+=w;continue}
+    const fs=it.fs*k,tw=it.w*k,th=it.h*k,g=new THREE.Group(),j=it.jit;
+    const jt=n=>(j[n]-.5)*fs*.1;
+    const shape=new THREE.Shape([new THREE.Vector2(-tw/2+jt(0),-th/2+jt(1)),new THREE.Vector2(tw/2+jt(2),-th/2+jt(3)),new THREE.Vector2(tw/2+jt(4),th/2+jt(5)),new THREE.Vector2(-tw/2+jt(6),th/2+jt(7))]);
+    const geo=new THREE.ShapeGeometry(shape);geos.push(geo);
+    const mk=(c,o)=>{const m=new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:o,depthWrite:false,depthTest:false});mats.push(m);return m};
+    const shadow=new THREE.Mesh(geo,mk('#000000',.36)),tile=new THREE.Mesh(geo,mk(it.paper,1));
+    shadow.position.set(fs*.06,-fs*.08,0);
+    const base=it.idx*4;shadow.renderOrder=base;tile.renderOrder=base+1;
+    const label=createText(it.ch,{font:it.font,fontSize:fs,color:it.ink,colorRanges:null,anchorX:'center',anchorY:'middle'});
+    label.renderOrder=base+2;label.material.depthTest=false;label.material.depthWrite=false;
+    g.add(shadow,tile,label);
+    let tape=null;
+    if(it.tape){tape=new THREE.Mesh(new THREE.PlaneGeometry(tw*.9,th*.2),mk('#eee8c8',.55));geos.push(tape.geometry);tape.position.set(0,th*.52,0);tape.rotation.z=it.tapeRot;tape.renderOrder=base+3;g.add(tape)}
+    g.position.set(x+w/2,y+it.dy*k,0);g.rotation.z=it.rot;g.visible=false;
+    root.add(g);
+    chars.push({g,it,label,shadow,tile,tape,x:g.position.x,y:g.position.y});
+    x+=w;
+  }
+  y-=rh/2;
+}
+const n=Math.max(1,chars.length),step=Math.max(.03,Math.min(60/Math.max(40,bpm||120)/DIV,life*FILL/n)),t0=.05,exit=Math.min(.35,life*.15);
+function update(t){
+  const tick=Math.floor(t*12),ph=((t*Math.max(40,bpm||120)/60)%1+1)%1,punch=Math.exp(-ph*6);
+  const sh=em*.03*SHAKE*(.5+punch);
+  root.position.set((hash(tick,1)-.5)*2*sh,(hash(tick,2)-.5)*2*sh,0);
+  root.rotation.z=(hash(tick,3)-.5)*.012*SHAKE;
+  const zoom=1+.018*punch*SHAKE;root.scale.set(zoom,zoom,1);
+  const fade=t>=life?0:smooth((life-t)/exit);
+  for(const c of chars){
+    const ti=t0+c.it.idx*step,u=(t-ti)/.15;
+    if(u<=0||fade<=0){c.g.visible=false;continue}
+    c.g.visible=true;
+    const e=back(u),a=smooth(u*4)*fade;
+    c.g.scale.setScalar(mix(1.7,1,e));
+    c.g.position.set(c.x+(hash(c.it.idx,tick)-.5)*em*.035,c.y+(hash(c.it.idx,tick+7)-.5)*em*.035,0);
+    c.g.rotation.z=c.it.rot+(1-e)*c.it.slam+(hash(c.it.idx,tick+3)-.5)*.016;
+    c.label.fillOpacity=a;c.shadow.material.opacity=.36*a;c.tile.material.opacity=a;if(c.tape)c.tape.material.opacity=.55*a;
+  }
+}
+function dispose(){for(const m of mats)m.dispose();for(const g of geos)g.dispose();scene.remove(root)}
+update(0);
+return {update,dispose};`;
+const ransom=(title,div,shake,fill)=>RANSOM.replaceAll('__TITLE__',title).replaceAll('__DIV__',String(div)).replaceAll('__SHAKE__',String(shake)).replaceAll('__FILL__',String(fill));
+
 export const DAILY_CODE_MOTIONS=[
  {key:'rgb-settle',name:'色ずれが重なる',desc:'赤とシアンにずれた像が、本体に重なって落ち着きます。',added:'2026-10-07',poster:.35,source:`// 赤とシアンの像が左右にずれた状態から、本体に重なって落ち着く。退場でもう一度ずれて消える
 const {createText,text,width,fontSize,duration}=api;
@@ -4084,4 +4176,8 @@ function update(t){material.uniforms.u_time.value=t;material.uniforms.u_fade.val
 function dispose(){quad.geometry.dispose();material.dispose();scene.remove(quad);}
 update(0);
 return {update,dispose};`}
+,
+ {key:'ransom-slow',name:'切り貼り文字（ゆっくり）',desc:'書体も紙も傾きも違う切り抜き文字を、1拍に1文字ずつゆっくり貼ります。',added:'2026-10-12',poster:1.5,source:ransom('切り貼り文字（ゆっくり）',1,.8,.8)},
+ {key:'ransom-paste',name:'切り貼り文字',desc:'書体も紙も傾きも違う切り抜き文字を、拍に合わせて貼っていきます。',added:'2026-10-12',poster:1.5,source:ransom('切り貼り文字',2,1,.6)},
+ {key:'ransom-rapid',name:'切り貼り文字（連打）',desc:'切り抜き文字を拍の4分で素早く貼り、画面を大きく揺らします。',added:'2026-10-12',poster:1.4,source:ransom('切り貼り文字（連打）',4,1.7,.45)}
 ];

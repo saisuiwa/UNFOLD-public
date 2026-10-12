@@ -1,5 +1,13 @@
-const bundleURL=new URL('./vendor/code-motion-worker.js?v=5',import.meta.url);
+import {fontCoverage} from './font-cmap.js';
+const bundleURL=new URL('./vendor/code-motion-worker.js?v=6',import.meta.url);
 const fallbackURL=new URL('./vendor/motion-fonts/gothic.ttf',import.meta.url);
+// A motion whose source has a line "// @fonts" gets the bundled typefaces as api.fonts ({key: url}) and api.fontsFor(character) -> the keys of the
+// fonts that really have that character (切り貼り文字: a different typeface for every character). Fetched once per page; the fonts are only parsed
+// when a text uses them.
+const FONT_POOL=['gothic','mincho','round','marker','dela','dot'];
+let poolLoad=null;
+const loadFontPool=()=>poolLoad??=Promise.all(FONT_POOL.map(async key=>{const r=await fetch(new URL('./vendor/motion-fonts/'+key+'.ttf',import.meta.url));if(!r.ok)throw new Error('Font pool unavailable');const bytes=await r.arrayBuffer();return [key,{bytes,has:fontCoverage(bytes)}]})).then(Object.fromEntries,e=>{poolLoad=null;throw e});
+export const wantsFontPool=source=>/^\s*\/\/\s*@fonts\b/m.test(String(source));
 export const CODE_MOTION_STARTER=`const {createText,gsap,text,accent}=api;
 const label=createText(text);
 const timeline=gsap.timeline({paused:true});
@@ -32,8 +40,11 @@ export function createCodeMotionRuntime({initializationTimeout=15000,frameTimeou
    for(const key of ['width','height'])if(!Number.isInteger(p[key])||p[key]<1||p[key]>8192)throw new Error('Invalid render dimensions.');
    if(!Number.isFinite(p.fontSize)||p.fontSize<=0)throw new Error('Invalid font size.');
    const [bundle,fontBytes]=await Promise.all([fetch(bundleURL).then(r=>{if(!r.ok)throw new Error('Worker bundle unavailable');return r.text();}),p.fontBytes?Promise.resolve(p.fontBytes):fetch(fallbackURL).then(r=>{if(!r.ok)throw new Error('Fallback font unavailable');return r.arrayBuffer();})]);
+   const pool=wantsFontPool(p.source)?await loadFontPool():null;
+   const fontPool=pool?Object.fromEntries(Object.entries(pool).map(([k,f])=>[k,f.bytes])):null;
+   const fontCover=pool?Object.fromEntries(Object.entries(pool).map(([k,f])=>[k,[...new Set(Array.from(String(p.text??'')).map(c=>c.codePointAt(0)))].filter(f.has)])):null;
    if(dead)throw new Error('Runtime disposed');await connect(bundle);
-   try{await request({type:'prepare',payload:{source:p.source,text:String(p.text??''),width:p.width,height:p.height,fontSize:p.fontSize,color:p.color??'#ffffff',accent:p.accent??'#77ccff',fontBytes,runs:Array.isArray(p.runs)?p.runs:[],duration:p.duration??1,bpm:p.bpm??120,seed:p.seed??1}},initializationTimeout);prepared=true;}catch(e){stop(e.message);throw e;}
+   try{await request({type:'prepare',payload:{fontPool,fontCover,source:p.source,text:String(p.text??''),width:p.width,height:p.height,fontSize:p.fontSize,color:p.color??'#ffffff',accent:p.accent??'#77ccff',fontBytes,runs:Array.isArray(p.runs)?p.runs:[],duration:p.duration??1,bpm:p.bpm??120,seed:p.seed??1}},initializationTimeout);prepared=true;}catch(e){stop(e.message);throw e;}
   },
   async render(time){if(!port||dead||!prepared)throw new Error('Runtime is not prepared');if(!Number.isFinite(time)||time<0)throw new Error('Invalid frame time');await ready;return request({type:'render',time},frameTimeout);},
   dispose(){stop();}

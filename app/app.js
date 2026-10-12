@@ -20,6 +20,7 @@ import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from '
 import {effectsAt,SceneBlur} from './effects.js?v=30';
 import {BUILTIN_KEYS,getCustom,listCustom,onRegistryChange,registerCustom,resolveKey,setCustomStatus,unregisterCustom} from './method-registry.js';
 import {createPersistence,openStore} from './method-library.js';
+import {registerBundledImageMethods} from './bundled-image-methods.js';
 import {createImageMethodEditor} from './image-method-editor.js';
 import {createSafety} from './method-safety.js';
 import {createTrial} from './method-trial.js';
@@ -287,6 +288,7 @@ function wireControls(){
  renderMethodTiles();
  onRegistryChange(()=>{if(!isImageMethodKey(state.method))state.method=resolveKey(state.method);syncImageControls();renderMethodTiles();updateSliderNotes();render()});
  // saved custom methods come back when the page opens; from then on every change in the registry is saved
+ registerBundledImageMethods();   // 焦げ穴と炎・電撃で消失など、アプリに付いてくる画像コードのメソッド（保存はしない）
  methodPersistence=createPersistence({store:openStore(),onError:()=>notice('自作メソッドをこのブラウザに保存できませんでした。')});
  // saving starts first, so that what recoverFromCrash switches off is saved too
  methodPersistence.load().then(()=>{methodPersistence.start();safety.recoverFromCrash()},()=>notice('保存した自作メソッドを読み込めませんでした。'));

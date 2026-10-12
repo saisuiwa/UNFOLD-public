@@ -1,5 +1,6 @@
 // The tiles of the method grid, shared by the single-image page and the sequence page:
-// the 37 built-in methods, then every custom one (blue frame, ⚙ menu, a badge when it is not usable), then the "＋自作メソッド" tile.
+// the 37 built-in methods, the ones that ship with the app as image code (bundled-image-methods.js), then every custom one (blue frame, ⚙ menu,
+// a badge when it is not usable), then the "＋自作メソッド" tile.
 import { BUILTIN_KEYS, getCustom, isCustomKey, listCustom, methodIcon, methodLabel } from './method-registry.js';
 import { statusText } from './method-menu.js';
 
@@ -16,7 +17,8 @@ function tile(key, { onPick, onMenu }) {
   const button = document.createElement('button');
   button.type = 'button'; button.dataset.method = key; button.setAttribute('aria-pressed', 'false');
   button.append(...face(key));
-  if (!isCustomKey(key)) { button.onclick = e => onPick(key, e); return button; }
+  // the methods that ship with the app look like the built-in ones (no blue frame, no ⚙) while they work; a stopped one gets the ⚙ back
+  if (!isCustomKey(key) || (getCustom(key)?.bundled && getCustom(key).status === 'ok')) { button.onclick = e => onPick(key, e); return button; }
 
   const record = getCustom(key), usable = record.status === 'ok';
   button.classList.add('added');
