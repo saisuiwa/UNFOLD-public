@@ -1,4 +1,4 @@
-// The surface pack — 焦げ穴と炎, インクのにじみ, 水彩の溶け出し, 凍結と霜, 電撃で消失, 酸の侵食, 絵の具の垂れ落ち, 紙が風化する — as methods that are
+// The surface pack — 焦げ穴と炎, インクのにじみ, 水彩の溶け出し, 凍結と霜, 電撃で消失, 酸の侵食, 絵の具の滴り, 紙が風化する — as methods that are
 // there from the start in the single-image page and the sequence page (they used to be samples of the method workshop that had to be added first).
 // They are image code (the same code as the workshop samples, image-surface-presets.js), registered under fixed ids with `bundled: true`:
 //  - listed after the built-in methods, without the blue "added" frame;
@@ -12,7 +12,7 @@ const EN = {
   'surface-electric': 'ELECTRIC', 'surface-acid': 'ACID', 'surface-drip': 'PAINT RUN', 'surface-weather': 'WEATHERED',
 };
 // the built-in 絵の具が垂れる (drip) is another method; this one drips down over the surface
-const NAMES = { 'surface-drip': '絵の具の垂れ落ち' };
+const NAMES = { 'surface-drip': '絵の具の滴り' };
 
 export const bundledImageMethodIds = () => SURFACE_METHOD_PRESETS.map(p => `im-${p.key}`);
 
