@@ -4,8 +4,15 @@ import { TRIAL, median, judgeTrial, judgeFrames, describeTrialPass } from '../..
 
 test('the limits are the ones in the design', () => {
   assert.equal(TRIAL.factor, 4);
+  assert.equal(TRIAL.smallFloorMs, 1);
+  assert.equal(TRIAL.fullFloorMs, 4);
   assert.deepEqual(TRIAL.progresses, [0, .25, .5, .75, 1]);
   assert.equal(TRIAL.runs, 3);
+});
+
+// the first draws of a fresh context are slow (about a quarter of a second): nothing may be timed inside that window
+test('the page is warmed up before anything is timed', () => {
+  assert.ok(TRIAL.warmupMs >= 400 && TRIAL.warmupMs <= 1500, `warmupMs ${TRIAL.warmupMs}`);
 });
 
 test('median', () => {

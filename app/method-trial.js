@@ -11,7 +11,8 @@ import { gridGeometry, makeTestImage } from './method-preview.js';
 // method takes a few hundredths of a millisecond, so there the floors are what really decide; on a slow GPU the baseline does.
 // baselineKey: the heaviest built-in method (measured on 2026-10-03 — on a fast GPU the 29 are too close to tell apart, see the plan).
 // sampleMs: how long one timing sample should take (so a heavy method is not measured for seconds); maxReps / giveUpMs: see time().
-export const TRIAL = { factor: 4, smallFloorMs: 1, fullFloorMs: 4, baselineKey: 'petals', progresses: [0, .25, .5, .75, 1], runs: 3, smallSub: 1, fullSub: 5, width: 160, height: 90, sampleMs: 8, maxReps: 100, giveUpMs: 200 };
+// warmupMs: how long the page's first drawing goes on before anything is timed (see warmUp()).
+export const TRIAL = { factor: 4, smallFloorMs: 1, fullFloorMs: 4, baselineKey: 'petals', progresses: [0, .25, .5, .75, 1], runs: 3, smallSub: 1, fullSub: 5, width: 160, height: 90, sampleMs: 8, maxReps: 100, giveUpMs: 200, warmupMs: 600 };
 
 export const median = values => {
   const sorted = [...values].sort((a, b) => a - b), mid = sorted.length >> 1;
@@ -117,12 +118,27 @@ export function createTrial({ vertexShader, fragmentShader }) {
     gl.readPixels(0, 0, TRIAL.width, TRIAL.height, gl.RGBA, gl.UNSIGNED_BYTE, out);
     return out;
   }
+  // A fresh WebGL context is slow for its first moments: the driver is still working on the shader code it was given (headless Chrome, measured: about
+  // four times slower for roughly a quarter of a second after the first draw, then the time per render drops to a fraction). A series timed inside that
+  // window measures that, not the method, and as the baseline of a page is timed only once, it depended on which of the two fell into the window: the
+  // first method tried on a page came out "5 times heavier than the heaviest built-in" on more than half of the fresh pages, also when it was that
+  // built-in itself (the petals sample). So the first thing a page's trial does is draw the baseline, untimed, until `warmupMs` have passed since that
+  // first draw finished. Once per page; the factor and the floors are untouched, and a really heavy method is still refused (tools/test/trial-warmup-browser.mjs).
+  function warmUp() {
+    const { renderer, scene, camera, uniforms, mesh, gl } = rig;
+    mesh.material = rig.base; mesh.geometry = rig.geometry.small; uniforms.uMethod.value = BUILTIN_IDS[TRIAL.baselineKey]; uniforms.uDistort.value = .5;
+    const draw = () => { for (let i = 0; i < 4; i++) renderer.render(scene, camera); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, rig.pixel); };
+    draw();                                                                        // the first draw compiles and uploads everything
+    const settleBy = performance.now() + TRIAL.warmupMs;
+    while (performance.now() < settleBy) draw();
+  }
+  const ensureRig = () => { if (!rig) { rig = build(); warmUp(); } };
   const baseline = size => (baselines[size] ??= time(rig.base, rig.geometry[size], BUILTIN_IDS[TRIAL.baselineKey]));
 
   return {
     // Resolves to { stage, heavy, ratio, customMs, baselineMs, blank, unchanged }; the options are for tests.
     async run(source, { factor = TRIAL.factor, smallFloorMs = TRIAL.smallFloorMs, fullFloorMs = TRIAL.fullFloorMs } = {}) {
-      rig ??= build();
+      ensureRig();
       const material = rig.material(assembleVertex(vertexShader, { a: source }).source);
       try {
         const diagnostics = await compileCheck(rig.renderer, material);
@@ -144,7 +160,7 @@ export function createTrial({ vertexShader, fragmentShader }) {
     },
     // how long every built-in method takes on the small and the full mesh (to choose the baseline); returns { key: { small, full } }
     measureBuiltins() {
-      rig ??= build();
+      ensureRig();
       const out = {};
       for (const [key, id] of Object.entries(BUILTIN_IDS)) out[key] = { small: time(rig.base, rig.geometry.small, id), full: time(rig.base, rig.geometry.full, id) };
       return out;
