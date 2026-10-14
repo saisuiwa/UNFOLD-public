@@ -215,6 +215,21 @@ vec3 userMethod(vec2 p, float amount) {
   gAlpha = mix(1., .55, e);
   return vec3(q, 0.);
 }` },
+  { key: 'checker-shift', name: '市松が上下にずれる', symbol: '市', category: 'method', desc: '市松模様のマスが縮みながら、交互に上と下へずれて崩れていきます。', added: '2026-10-14', poster: .22, source: `// 絵を12×12のマスに分け、市松模様の片方は上へ、もう片方は下へ、縮みながらずらす
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC();
+  vec2 id = floor((c / uSize + .5) * 12.);                    // マスの番号
+  float odd = mod(id.x + id.y, 2.);                           // 市松模様の 0 / 1
+  vec2 mid = ((id + .5) / 12. - .5) * uSize;                  // マスの真ん中
+  float delay = hash(id) * .25;
+  float e = smoothstep(delay, delay + .3, amount);
+  vec2 q = mid + (p - mid) * (1. - .55 * e);                  // マスごとに縮む
+  q.y += (odd * 2. - 1.) * e * uSize.y * .45;                 // 片方は上、もう片方は下
+  gKind = 2.;                                                 // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .25 * e;
+  gLocal = 1.;
+  return vec3(q, 0.);
+}` },
 ];
 
 // Text to paste into an AI chat: it explains what to write, and the rules the editor checks, so what comes back is likely to pass.

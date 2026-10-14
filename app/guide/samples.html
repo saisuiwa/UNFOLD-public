@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル109個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル112個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -26,15 +26,90 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>109個</b>、最後に増えたのは 10/12）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>112個</b>、最後に増えたのは 10/14）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>109</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>17</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>4</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>39</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>112</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>18</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>5</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>40</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-checker-shift.mp4" role="button" tabindex="0" aria-label="市松が上下にずれるの動きを再生">
+        <img src="./samples/method-checker-shift.jpg" alt="市松が上下にずれるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">市</i>市松が上下にずれる<span class="new">NEW</span><small>CHECKER-SHIFT</small></h3>
+        <p>市松模様のマスが縮みながら、交互に上と下へずれて崩れていきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 絵を12×12のマスに分け、市松模様の片方は上へ、もう片方は下へ、縮みながらずらす
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC();
+  vec2 id = floor((c / uSize + .5) * 12.);                    // マスの番号
+  float odd = mod(id.x + id.y, 2.);                           // 市松模様の 0 / 1
+  vec2 mid = ((id + .5) / 12. - .5) * uSize;                  // マスの真ん中
+  float delay = hash(id) * .25;
+  float e = smoothstep(delay, delay + .3, amount);
+  vec2 q = mid + (p - mid) * (1. - .55 * e);                  // マスごとに縮む
+  q.y += (odd * 2. - 1.) * e * uSize.y * .45;                 // 片方は上、もう片方は下
+  gKind = 2.;                                                 // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .25 * e;
+  gLocal = 1.;
+  return vec3(q, 0.);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/14 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="image">
+      <div class="shot" data-clip="./samples/image-melt-drip.mp4" role="button" tabindex="0" aria-label="とろけて垂れるタイルの動きを再生">
+        <img src="./samples/image-melt-drip.jpg" alt="とろけて垂れるタイルの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">垂</i>とろけて垂れるタイル<span class="new">NEW</span><small>MELT-DRIP</small></h3>
+        <p>タイルが列ごとに速さを変えて、縦に伸びながら下へ垂れていきます。</p>
+        <p class="how">メソッド工房の「画像・立体・物理」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// タイルが列ごとに別の速さで、縦に伸びながら下へ垂れる。強さ(amount)が戻ると元の位置へ帰る
+const {createImageTiles,size,random,smooth}=api;
+const tiles=createImageTiles();
+const half=size.width*.5;
+const speed=new Map();                                   // 列ごとの乱数（作成時に1回だけ決める）
+for(const piece of tiles){const key=Math.round(piece.home.x);if(!speed.has(key))speed.set(key,.6+random()*.9)}
+return {update(frame){
+ const t=Math.min(1,frame.amount/.8);
+ for(const piece of tiles){
+  const x=piece.home.x,y=piece.home.y,v=speed.get(Math.round(x));
+  const top=(y+half*.56)/(half*1.12);                    // 上のタイルほど遅れて垂れる（0 = 下、1 = 上）
+  const k=smooth(Math.max(0,Math.min(1,t*v*1.6-(1-top)*.35)));
+  piece.mesh.position.set(x,y-k*half*.5*v,0);
+  piece.mesh.scale.set(1-.25*k,1+1.1*k*v,1);
+ }
+}};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">画像・立体・物理（JavaScript）</span><span class="when">10/14 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-focus-in.mp4" role="button" tabindex="0" aria-label="ピントが合っていくの動きを再生">
+        <img src="./samples/codetext-focus-in.jpg" alt="ピントが合っていくの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>ピントが合っていく<span class="new">NEW</span><small>FOCUS-IN</small></h3>
+        <p>ぼやけて広がった分身が、中心に寄ってピントが合うように現れます。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 周りに散ったうすい分身が中心へ寄って、ピントが合う。退場はもう一度ぼやけて消える
+const {createText,text,width,duration}=api;
+const opts={maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'};
+const main=createText(text,opts);
+const ghosts=[];for(let i=0;i&lt;6;i++)ghosts.push(createText(text,{...opts,colorRanges:null}));
+const clamp=x=&gt;Math.max(0,Math.min(1,x));
+const smooth=x=&gt;{x=clamp(x);return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.3),exit=Math.min(.5,duration*.18);
+return {update(t){
+ const a=smooth(t/enter),b=smooth((duration-t)/exit),blur=(1-a)+(1-b),fade=smooth(t/(enter*.4))*b;
+ const r=width*.035*blur;
+ ghosts.forEach((g,i)=&gt;{const ang=i/6*Math.PI*2;g.position.set(Math.cos(ang)*r,Math.sin(ang)*r,-1);g.fillOpacity=fade*.3*Math.min(1,blur*2);g.outlineOpacity=0});
+ main.fillOpacity=fade*(.35+.65*a*b);main.outlineOpacity=fade*a*b;
+}};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/14 追加</span>
+      </div>
+    </article>
     <article class="method" data-cat="method">
       <div class="shot" data-clip="./samples/method-scribble-scatter.mp4" role="button" tabindex="0" aria-label="落書きになって散るの動きを再生">
         <img src="./samples/method-scribble-scatter.jpg" alt="落書きになって散るの途中の絵" loading="lazy" width="480" height="270">
@@ -1110,7 +1185,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-echo-stack.jpg" alt="下へ連なる残像の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>下へ連なる残像<span class="new">NEW</span><small>ECHO-STACK</small></h3>
+        <h3><i aria-hidden="true">文</i>下へ連なる残像<small>ECHO-STACK</small></h3>
         <p>歌詞が下へ少しずつ小さく薄くなりながら、残像のように連なって現れます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 歌詞を下へ向けて少しずつ小さく薄くしながら重ね、残像のように連なって現れる。登場は上の段から、退場は下の段から畳まれる
 const {scene,createText,text,width,height,fontSize,duration}=api;
@@ -1161,7 +1236,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-layer-extrude.jpg" alt="重なって押し出される文字の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>重なって押し出される文字<span class="new">NEW</span><small>LAYER-EXTRUDE</small></h3>
+        <h3><i aria-hidden="true">文</i>重なって押し出される文字<small>LAYER-EXTRUDE</small></h3>
         <p>文字の奥に青・橙・灰色の層が重なって、立体的に押し出されて見えます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 文字の奥へ向けて、青・橙・灰色の層を少しずつずらして重ね、押し出されたように見せる。層は登場で伸び、退場で縮む
 const {scene,createText,text,width,height,fontSize,duration}=api;
@@ -1210,7 +1285,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-slam.jpg" alt="語ごとにドンと落ちるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>語ごとにドンと落ちる<span class="new">NEW</span><small>KN-SLAM</small></h3>
+        <h3><i aria-hidden="true">文</i>語ごとにドンと落ちる<small>KN-SLAM</small></h3>
         <p>歌詞が語ごとに上から勢いよく落ちて、衝撃で画面を揺らしながら並びます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとに大きな状態から加速して落ち、着地でつぶれて、画面全体が揺れる。退場は語ごとに左右へ蹴り出される
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -1297,7 +1372,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-turn.jpg" alt="直角に曲がって入る語の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>直角に曲がって入る語<span class="new">NEW</span><small>KN-TURN</small></h3>
+        <h3><i aria-hidden="true">文</i>直角に曲がって入る語<small>KN-TURN</small></h3>
         <p>語が縦向きに上から降りて、直角にくるりと曲がり、横向きの位置に収まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語は縦向き（90°回転）で上から降り、直角にくるりと曲がって横向きになりながら定位置へ滑り込む。交互に曲がる向きが逆
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -1380,7 +1455,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-swap.jpg" alt="語が入れ替わって並ぶの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>語が入れ替わって並ぶ<span class="new">NEW</span><small>KN-SWAP</small></h3>
+        <h3><i aria-hidden="true">文</i>語が入れ替わって並ぶ<small>KN-SWAP</small></h3>
         <p>語が向かい側の語と位置を入れ替える動きを、外側から順に続けて並びます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 最初は語の並びが逆。外側の2語から順に、弧を描いて互いの位置と入れ替わり、正しい順になる
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -1465,7 +1540,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-dive.jpg" alt="語へ潜って切り替わるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>語へ潜って切り替わる<span class="new">NEW</span><small>KN-DIVE</small></h3>
+        <h3><i aria-hidden="true">文</i>語へ潜って切り替わる<small>KN-DIVE</small></h3>
         <p>画面が1語ずつに近づくように拡大して、その語が中から現れて並びます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとにカメラが寄って（拡大して）その語が中から現れ、また引く。全部の語が並んだ形に収まる
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -1559,7 +1634,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-flow.jpg" alt="流れて整列する語の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>流れて整列する語<span class="new">NEW</span><small>KN-FLOW</small></h3>
+        <h3><i aria-hidden="true">文</i>流れて整列する語<small>KN-FLOW</small></h3>
         <p>語が波打つ流れに乗って右から流れ込み、減速して所定の位置にそろいます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとに波形の軌道で右から流れ込み、減速して定位置へ。最後に小さく震えてそろう。退場は左へ流れ去る
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -1641,7 +1716,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-seesaw.jpg" alt="シーソーのように傾くの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>シーソーのように傾く<span class="new">NEW</span><small>KN-SEESAW</small></h3>
+        <h3><i aria-hidden="true">文</i>シーソーのように傾く<small>KN-SEESAW</small></h3>
         <p>語が落ちた側へ画面が傾いて、シーソーのように揺れながら水平に戻ります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語が落ちるたびに、落ちた側へ全体が傾いて減衰しながら揺れる。語の位置の左右で傾く向きが決まる
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -1725,7 +1800,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-typeslam.jpg" alt="打ってからドンと拡大の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>打ってからドンと拡大<span class="new">NEW</span><small>KN-TYPESLAM</small></h3>
+        <h3><i aria-hidden="true">文</i>打ってからドンと拡大<small>KN-TYPESLAM</small></h3>
         <p>語が一文字ずつ打たれてから、全体がドンと大きく弾んで落ち着きます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 1語ずつ文字単位でタイプする（カーソルがまたたく）。打ち終わると全体が1.5倍からばねで弾んで揺れる
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -1821,7 +1896,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-cuts.jpg" alt="語のカット割りの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>語のカット割り<span class="new">NEW</span><small>KN-CUTS</small></h3>
+        <h3><i aria-hidden="true">文</i>語のカット割り<small>KN-CUTS</small></h3>
         <p>画面いっぱいの語が1つずつカットで切り替わり、最後に全部が並んで収まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語を画面いっぱいの大きさで0.3秒ずつ切り替え（位置は少しずつ変える）、最後に定位置へ全部が並ぶ
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -1911,7 +1986,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-collide.jpg" alt="正面衝突して弾むの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>正面衝突して弾む<span class="new">NEW</span><small>KN-COLLIDE</small></h3>
+        <h3><i aria-hidden="true">文</i>正面衝突して弾む<small>KN-COLLIDE</small></h3>
         <p>語が左右から行の真ん中へ飛び込んでぶつかり、弾んで定位置へ収まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語は左右交互に行の真ん中へ飛び込み、ぶつかった瞬間にふくらんで、ばねで定位置へ。退場は左右へ散る
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -1995,7 +2070,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-kn-reflow.jpg" alt="縦から横へ起き上がるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>縦から横へ起き上がる<span class="new">NEW</span><small>KN-REFLOW</small></h3>
+        <h3><i aria-hidden="true">文</i>縦から横へ起き上がる<small>KN-REFLOW</small></h3>
         <p>縦に垂れ下がっていた語が、左端を支点に1語ずつ振れて横向きに起き上がります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語は左端を支点に、画面の中央側へ垂れた状態（上半分は下向き、下半分は上向き）から横向きへばねで振れる（針が起きるように）。退場は垂れ下がって消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -2079,7 +2154,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-keycap-type.jpg" alt="キーを打って現れるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>キーを打って現れる<span class="new">NEW</span><small>KEYCAP-TYPE</small></h3>
+        <h3><i aria-hidden="true">✦</i>キーを打って現れる<small>KEYCAP-TYPE</small></h3>
         <p>文字が一つずつキーキャップに乗って、カチッと押されて現れます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 文字を1つずつキーキャップに乗せ、先頭から順に押し込んでから文字を出す。強調した言葉のキーはアクセント色。退場は全部のキーが同時に押されて沈む
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -2192,7 +2267,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-keycap-bar.jpg" alt="大きなキーを押し込むの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>大きなキーを押し込む<span class="new">NEW</span><small>KEYCAP-BAR</small></h3>
+        <h3><i aria-hidden="true">✦</i>大きなキーを押し込む<small>KEYCAP-BAR</small></h3>
         <p>文字を乗せた大きなキーが、カチッと沈んで光を漏らします。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 歌詞全体を1つの大きなキー（スペースキーのようなもの）に乗せ、沈み込んでから戻る。キーの下からアクセント色の光が漏れて脈打つ
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -2273,7 +2348,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-keyboard-rgb.jpg" alt="虹色に光るキーボードの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>虹色に光るキーボード<span class="new">NEW</span><small>KEYBOARD-RGB</small></h3>
+        <h3><i aria-hidden="true">✦</i>虹色に光るキーボード<small>KEYBOARD-RGB</small></h3>
         <p>虹色に光るキーボードの上で、キーがぱちぱち打たれて光ります。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 光るキーボードの上で、キーがぱちぱち打たれて虹色に光る。キーは一つずつ別の拍で押し込まれる（時間とマスの番号だけで決まる）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -2340,7 +2415,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-letter-boxes.jpg" alt="色つきの箱に一文字ずつの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>色つきの箱に一文字ずつ<span class="new">NEW</span><small>LETTER-BOXES</small></h3>
+        <h3><i aria-hidden="true">✦</i>色つきの箱に一文字ずつ<small>LETTER-BOXES</small></h3>
         <p>文字が白と色つきの箱に一文字ずつ収まって、ぽんぽんと並んで現れます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 文字を1つずつ、白と強調色の箱に入れる。箱は少しずつ傾き、上下にずれて、ばねで弾みながら並ぶ。退場は箱がしぼんで消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -2413,7 +2488,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-ring-text.jpg" alt="円のまわりを回る文字の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>円のまわりを回る文字<span class="new">NEW</span><small>RING-TEXT</small></h3>
+        <h3><i aria-hidden="true">✦</i>円のまわりを回る文字<small>RING-TEXT</small></h3>
         <p>中央の円に歌詞が出て、そのまわりを同じ歌詞が輪になってぐるぐる回ります。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 中央の円に歌詞を出し、そのまわりを同じ歌詞が輪になってぐるぐる回る。輪は外側へ向けて文字の上が向く
 const {THREE,scene,createText,text,width,height,fontSize,duration}=api;
@@ -2468,7 +2543,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-tape-cards.jpg" alt="テープ付きのカードの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>テープ付きのカード<span class="new">NEW</span><small>TAPE-CARDS</small></h3>
+        <h3><i aria-hidden="true">✦</i>テープ付きのカード<small>TAPE-CARDS</small></h3>
         <p>文字が一枚ずつカードに載って落ちてきて、中心線を引いてテープで留めます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 文字を1枚ずつカードに載せて落とし、中心の線（両端に矢印）を引いてから、角をテープで留める。退場はテープが外れてカードが沈む
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -2590,7 +2665,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bracket-glitch.jpg" alt="カッコ付きのグリッチの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>カッコ付きのグリッチ<span class="new">NEW</span><small>BRACKET-GLITCH</small></h3>
+        <h3><i aria-hidden="true">✦</i>カッコ付きのグリッチ<small>BRACKET-GLITCH</small></h3>
         <p>歌詞が【 】で囲まれ、横に切れてずれながら、色違いの影とローマ字の読みを添えます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 歌詞を【 】のカッコで囲み、横に切れてずれるグリッチと色違いの影を、登場と一定の間隔で走らせる。かなの上には読みのローマ字を添える
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -2697,7 +2772,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-romaji-ruby.jpg" alt="ローマ字のルビの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>ローマ字のルビ<span class="new">NEW</span><small>ROMAJI-RUBY</small></h3>
+        <h3><i aria-hidden="true">✦</i>ローマ字のルビ<small>ROMAJI-RUBY</small></h3>
         <p>ひらがなやカタカナの上に、読みのローマ字が小さく添えられて現れます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// ひらがな・カタカナの上に、読みのローマ字を小さく添える。ローマ字は左から順に浮かんで現れる（漢字には付けない）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -2764,7 +2839,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-square-tunnel.jpg" alt="四角トンネルの背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>四角トンネルの背景<span class="new">NEW</span><small>BG-SQUARE-TUNNEL</small></h3>
+        <h3><i aria-hidden="true">✦</i>四角トンネルの背景<small>BG-SQUARE-TUNNEL</small></h3>
         <p>四角い枠が奥から手前へ流れるように次々と広がる、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 四角い等高線を対数の間隔で手前へ流す背景（文字は描かない）。外周2.5%には模様を出さない。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -2810,7 +2885,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-concentric.jpg" alt="同心円の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>同心円の背景<span class="new">NEW</span><small>BG-CONCENTRIC</small></h3>
+        <h3><i aria-hidden="true">✦</i>同心円の背景<small>BG-CONCENTRIC</small></h3>
         <p>同心円が中心から外へ脈打つように広がる、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 輪ごとに太さの違う同心円が中心から外へ広がる背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -2854,7 +2929,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-speed-lines.jpg" alt="集中線の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>集中線の背景<span class="new">NEW</span><small>BG-SPEED-LINES</small></h3>
+        <h3><i aria-hidden="true">✦</i>集中線の背景<small>BG-SPEED-LINES</small></h3>
         <p>中心から外へ放射状の線が走る、文字なしの集中線の背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 放射状の線を12コマ/秒でちらつかせる集中線の背景（文字は描かない）。中心付近は空ける
 const {THREE,scene,width,height,duration,accent}=api;
@@ -2901,7 +2976,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-diagonal.jpg" alt="斜めの縞が流れる背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>斜めの縞が流れる背景<span class="new">NEW</span><small>BG-DIAGONAL</small></h3>
+        <h3><i aria-hidden="true">✦</i>斜めの縞が流れる背景<small>BG-DIAGONAL</small></h3>
         <p>太い縞と細い縞が逆向きに斜めへ流れる、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 太い縞と細い縞を別の速さと向きで流す背景（文字は描かない）
 const {THREE,scene,width,height,duration,accent}=api;
@@ -2945,7 +3020,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-dot-wave.jpg" alt="ドットの波の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>ドットの波の背景<span class="new">NEW</span><small>BG-DOT-WAVE</small></h3>
+        <h3><i aria-hidden="true">✦</i>ドットの波の背景<small>BG-DOT-WAVE</small></h3>
         <p>細かなドットが中心から外へ走る波で大きさを変える、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 18×18の網点の半径を、中心からの波で変える背景（文字は描かない）
 const {THREE,scene,width,height,duration,accent}=api;
@@ -2989,7 +3064,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-scan-grid.jpg" alt="走査線と方眼の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>走査線と方眼の背景<span class="new">NEW</span><small>BG-SCAN-GRID</small></h3>
+        <h3><i aria-hidden="true">✦</i>走査線と方眼の背景<small>BG-SCAN-GRID</small></h3>
         <p>方眼の上を走査線が下へ走り、四隅にカギ括弧が付く、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 方眼（2マスおきに太線）と、上から下へ走る走査線、四隅のカギ括弧の背景（文字は描かない）
 const {THREE,scene,width,height,duration,accent}=api;
@@ -3038,7 +3113,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/method-radial-sweep.jpg" alt="針のように掃くの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">針</i>針のように掃く<span class="new">NEW</span><small>RADIAL-SWEEP</small></h3>
+        <h3><i aria-hidden="true">針</i>針のように掃く<small>RADIAL-SWEEP</small></h3>
         <p>時計の針が回るように、粒が時計回りに順にはじき飛ばされていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 時計の針が一周するあいだに、針に触れた粒から外へはじき飛ばされる
 vec3 userMethod(vec2 p, float amount) {
@@ -3061,7 +3136,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/image-domino-fall.jpg" alt="ドミノのように倒れるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">倒</i>ドミノのように倒れる<span class="new">NEW</span><small>DOMINO-FALL</small></h3>
+        <h3><i aria-hidden="true">倒</i>ドミノのように倒れる<small>DOMINO-FALL</small></h3>
         <p>左の列から順に、タイルがドミノのように傾いて倒れていきます。</p>
         <p class="how">メソッド工房の「画像・立体・物理」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 左の列から順に、タイルがドミノのように奥へ倒れる。強さ(amount)が戻ると元の位置へ帰る
 const {createImageTiles,size,smooth}=api;
@@ -3085,7 +3160,7 @@ return {update(frame){
         <img src="./samples/codetext-flip-up.jpg" alt="めくれて立ち上がるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>めくれて立ち上がる<span class="new">NEW</span><small>FLIP-UP</small></h3>
+        <h3><i aria-hidden="true">文</i>めくれて立ち上がる<small>FLIP-UP</small></h3>
         <p>横たわった文字が、手前へめくれるように起き上がって止まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 寝ていた文字が手前へ起き上がる（x軸まわりの回転）。わずかに行き過ぎてから止まり、退場は倒れながら消える
 const {createText,text,width,fontSize,duration}=api;
@@ -3110,7 +3185,7 @@ return {update(t){
         <img src="./samples/codetext-gucha-gather.jpg" alt="散らかって集まるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>散らかって集まる<span class="new">NEW</span><small>GUCHA-GATHER</small></h3>
+        <h3><i aria-hidden="true">文</i>散らかって集まる<small>GUCHA-GATHER</small></h3>
         <p>画面じゅうに散らばった文字が、くるくる回りながら集まって並びます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 散らばった文字が、ばねで元の位置へ集まる。退場は、また別の場所へ散らばって消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3175,7 +3250,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-melt.jpg" alt="とろけてたれるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>とろけてたれる<span class="new">NEW</span><small>GUCHA-MELT</small></h3>
+        <h3><i aria-hidden="true">文</i>とろけてたれる<small>GUCHA-MELT</small></h3>
         <p>文字がぷるんと現れて、最後は下へどろりと溶けて垂れていきます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 横に太って縦に潰れた状態からぷるんと立つ。退場は縦に伸びながら下へ垂れて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3238,7 +3313,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-boil.jpg" alt="手描きのぶるぶるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>手描きのぶるぶる<span class="new">NEW</span><small>GUCHA-BOIL</small></h3>
+        <h3><i aria-hidden="true">文</i>手描きのぶるぶる<small>GUCHA-BOIL</small></h3>
         <p>手描きアニメのように、文字が小刻みにぶるぶる震えながら現れます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 10コマ/秒の手描きのゆれ。登場と退場では、ゆれが大きく荒れる
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3300,7 +3375,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-shuffle.jpg" alt="入れ替わって整列の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>入れ替わって整列<span class="new">NEW</span><small>GUCHA-SHUFFLE</small></h3>
+        <h3><i aria-hidden="true">文</i>入れ替わって整列<small>GUCHA-SHUFFLE</small></h3>
         <p>文字が互いに入れ替わりながら弧を描いて動き、正しい並びに揃います。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 文字が互いの位置から弧を描いて元の位置へ。退場ではまた別の文字の位置へ入れ替わって消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3365,7 +3440,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-pile.jpg" alt="山から弾けて広がるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>山から弾けて広がる<span class="new">NEW</span><small>GUCHA-PILE</small></h3>
+        <h3><i aria-hidden="true">文</i>山から弾けて広がる<small>GUCHA-PILE</small></h3>
         <p>文字がひと山に重なった状態から、ぱっと弾けて元の位置に広がります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 全部の文字が重なった山から、ばねで弾けて並ぶ。退場は山へ吸い込まれて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3428,7 +3503,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-spiral.jpg" alt="ぐるぐる巻き込むの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>ぐるぐる巻き込む<span class="new">NEW</span><small>GUCHA-SPIRAL</small></h3>
+        <h3><i aria-hidden="true">文</i>ぐるぐる巻き込む<small>GUCHA-SPIRAL</small></h3>
         <p>文字が渦を巻きながら外から中へ入ってきて、元の位置に収まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 渦を巻いて外側から元の位置へ入る。退場は逆向きに巻き上げられて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3489,7 +3564,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-tangle.jpg" alt="絡まってほどけるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>絡まってほどける<span class="new">NEW</span><small>GUCHA-TANGLE</small></h3>
+        <h3><i aria-hidden="true">文</i>絡まってほどける<small>GUCHA-TANGLE</small></h3>
         <p>糸くずのように絡まって揺れていた文字が、ほどけて一列に整います。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// リサジュー曲線で絡まった状態から、振れ幅を減らしてほどける。退場は再び絡まって消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3550,7 +3625,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-tiles.jpg" alt="割れて組み上がるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>割れて組み上がる<span class="new">NEW</span><small>GUCHA-TILES</small></h3>
+        <h3><i aria-hidden="true">文</i>割れて組み上がる<small>GUCHA-TILES</small></h3>
         <p>文字が細かいかけらに割れていて、ひとつずつ飛んできて組み上がります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 文字を2×3のかけらに割り、かけらごとに時間差で飛んできて組み上がる。退場は割れて落ちる
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3628,7 +3703,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-burst.jpg" alt="弾けて降り注ぐの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>弾けて降り注ぐ<span class="new">NEW</span><small>GUCHA-BURST</small></h3>
+        <h3><i aria-hidden="true">文</i>弾けて降り注ぐ<small>GUCHA-BURST</small></h3>
         <p>文字が真ん中から弾け飛び、弧を描いて降りて、元の位置で小さく弾みます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 中心から放物線で飛んで元の位置に着地し、小さく弾んで止まる。退場は重力で下へ落ちて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3694,7 +3769,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-wobble.jpg" alt="ぐにゃぐにゃ波打つの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>ぐにゃぐにゃ波打つ<span class="new">NEW</span><small>GUCHA-WOBBLE</small></h3>
+        <h3><i aria-hidden="true">文</i>ぐにゃぐにゃ波打つ<small>GUCHA-WOBBLE</small></h3>
         <p>文字がぐにゃぐにゃと波打つように揺れながら現れて、ぴたりと止まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 左から右へ波が走り、文字が縦横に伸び縮みして傾く。波の大きさは登場で最大になり、だんだん静まる
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3755,7 +3830,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-ripple.jpg" alt="中心から波紋で弾むの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>中心から波紋で弾む<span class="new">NEW</span><small>GUCHA-RIPPLE</small></h3>
+        <h3><i aria-hidden="true">文</i>中心から波紋で弾む<small>GUCHA-RIPPLE</small></h3>
         <p>中心から外へ波紋のように、文字がぽんぽんと時間差で弾んで現れます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 中心に近い文字から順に、ばねで弾みながら四分の一回転して現れる。退場は中心から外へ順に縮んで消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3820,7 +3895,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-squash.jpg" alt="落ちてつぶれて立つの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>落ちてつぶれて立つ<span class="new">NEW</span><small>GUCHA-SQUASH</small></h3>
+        <h3><i aria-hidden="true">文</i>落ちてつぶれて立つ<small>GUCHA-SQUASH</small></h3>
         <p>上から落ちた文字がぺしゃりとつぶれて、弾みながら立ち上がります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 文字が上から加速して落ち、着地でつぶれて何度か弾んで止まる。退場は伸びながら上へ吸い上げられて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3885,7 +3960,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-ghost.jpg" alt="分身が重なって一つにの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>分身が重なって一つに<span class="new">NEW</span><small>GUCHA-GHOST</small></h3>
+        <h3><i aria-hidden="true">文</i>分身が重なって一つに<small>GUCHA-GHOST</small></h3>
         <p>ぶれた分身が回りながら本体に重なって、くっきりと一つの文字になります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 色違いの分身を文字のまわりで回し、半径を縮めて本体へ重ねる。退場では分身が再び広がって消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -3951,7 +4026,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-magnet.jpg" alt="磁石のように引き合うの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>磁石のように引き合う<span class="new">NEW</span><small>GUCHA-MAGNET</small></h3>
+        <h3><i aria-hidden="true">文</i>磁石のように引き合う<small>GUCHA-MAGNET</small></h3>
         <p>外側に離れていた文字が磁石のように引き寄せられて、かちっと収まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 文字が中心と反対側の遠くから、だんだん加速して元の位置へ吸い付き、小さく震えて止まる。退場は弾かれて飛び去る
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -4015,7 +4090,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-lanes.jpg" alt="レーンを滑って揃うの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>レーンを滑って揃う<span class="new">NEW</span><small>GUCHA-LANES</small></h3>
+        <h3><i aria-hidden="true">文</i>レーンを滑って揃う<small>GUCHA-LANES</small></h3>
         <p>文字が左右交互のレーンを滑ってきて、ぴたりと一列に揃います。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 文字を3段のレーンに分け、左右交互の方向から急加速・急減速で滑り込む。退場は別の向きへ滑り出る
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -4077,7 +4152,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-flip.jpg" alt="カードみたいにめくれるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>カードみたいにめくれる<span class="new">NEW</span><small>GUCHA-FLIP</small></h3>
+        <h3><i aria-hidden="true">文</i>カードみたいにめくれる<small>GUCHA-FLIP</small></h3>
         <p>文字がカードのようにくるりとめくれて、表向きにぴたっと止まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 文字をカードに見立てて縦軸で半回転させる。裏返しの間は鏡文字になり、行き過ぎてから止まる。退場はもう一度めくれて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -4139,7 +4214,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-bubble.jpg" alt="泡のように浮かび上がるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>泡のように浮かび上がる<span class="new">NEW</span><small>GUCHA-BUBBLE</small></h3>
+        <h3><i aria-hidden="true">文</i>泡のように浮かび上がる<small>GUCHA-BUBBLE</small></h3>
         <p>文字が泡のようにゆらゆら浮かび上がり、最後はぷくっとふくらんで消えます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 下から横に揺れながら浮かんで元の位置へ。伸び縮みしながら小さく膨らむ。退場は上へ浮かびふくらんで消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -4202,7 +4277,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-rubber.jpg" alt="伸びてパチンと戻るの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>伸びてパチンと戻る<span class="new">NEW</span><small>GUCHA-RUBBER</small></h3>
+        <h3><i aria-hidden="true">文</i>伸びてパチンと戻る<small>GUCHA-RUBBER</small></h3>
         <p>横に引き伸ばされた文字が、ゴムのようにパチンと戻って弾みます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 左へ引っ張られて横に伸びた文字が、ばねで元の形に戻る（縮みすぎてから止まる）。退場は縦に引き伸ばされて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -4264,7 +4339,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-strips.jpg" alt="横にずれて重なり合うの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>横にずれて重なり合う<span class="new">NEW</span><small>GUCHA-STRIPS</small></h3>
+        <h3><i aria-hidden="true">文</i>横にずれて重なり合う<small>GUCHA-STRIPS</small></h3>
         <p>横に切れた文字の帯が左右にずれていて、すうっと重なって読める形に戻ります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 文字を3本の横帯に切り、帯ごとに左右へ大きくずらしてから揃える。退場はまた帯がずれて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -4336,7 +4411,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-gucha-steps.jpg" alt="直角に歩いて収まるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>直角に歩いて収まる<span class="new">NEW</span><small>GUCHA-STEPS</small></h3>
+        <h3><i aria-hidden="true">文</i>直角に歩いて収まる<small>GUCHA-STEPS</small></h3>
         <p>文字がマス目の上を横へ、続けて縦へと直角に歩いて、元の位置へ収まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 文字を整数マスぶん離れた位置に置き、まず横、続いて縦へ急加速・急減速で動かす。退場は縦、続いて横へ歩いて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,random}=api;
@@ -4399,7 +4474,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-nebula.jpg" alt="うねる色の霧の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>うねる色の霧<span class="new">NEW</span><small>SHADER-NEBULA</small></h3>
+        <h3><i aria-hidden="true">✦</i>うねる色の霧<small>SHADER-NEBULA</small></h3>
         <p>色が溶けあうフルシェーダーの霧が、文字の後ろでうねりながら現れます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// フルのフラグメントシェーダー（#define / uniform / main）で、色の溶けあう霧を文字の後ろにうねらせる
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -4462,7 +4537,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-dots.jpg" alt="波打つドットの海の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>波打つドットの海<span class="new">NEW</span><small>SHADER-DOTS</small></h3>
+        <h3><i aria-hidden="true">✦</i>波打つドットの海<small>SHADER-DOTS</small></h3>
         <p>ドットの大きさが波のように変わる網点が、文字の後ろに帯になって流れます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// ドットの大きさが波のように変わる網点を、横長の帯にして文字の後ろに流す（フルシェーダー）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -4517,7 +4592,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-rings.jpg" alt="脈打つリングの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>脈打つリング<span class="new">NEW</span><small>SHADER-RINGS</small></h3>
+        <h3><i aria-hidden="true">✦</i>脈打つリング<small>SHADER-RINGS</small></h3>
         <p>赤・緑・青がずれた同心円のリングが、ゆがみながら脈打ちます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 赤・緑・青を少しずつずらした同心円のリングが、ゆがみながら脈打つ（フルシェーダー）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -4575,7 +4650,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-truchet.jpg" alt="動くトルシェタイルの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>動くトルシェタイル<span class="new">NEW</span><small>SHADER-TRUCHET</small></h3>
+        <h3><i aria-hidden="true">✦</i>動くトルシェタイル<small>SHADER-TRUCHET</small></h3>
         <p>弧のタイルがマスごとに向きを変えて、迷路のような模様が動きます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 弧のタイルがマスごとに向きを入れ替え、迷路のような模様が動く（フルシェーダー、時間だけで決まる）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -4641,7 +4716,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-toy.jpg" alt="Shadertoyの枠の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>Shadertoyの枠<span class="new">NEW</span><small>SHADER-TOY</small></h3>
+        <h3><i aria-hidden="true">✦</i>Shadertoyの枠<small>SHADER-TOY</small></h3>
         <p>Shadertoyのコードをそのまま貼れる枠で、光の粒が輪を描いて回ります。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// Shadertoy形式（mainImage / iTime / iResolution）のコードをそのまま貼れる枠。黒い所は透けて、光だけが文字の後ろに残る
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -4706,7 +4781,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-ribbons.jpg" alt="うねるリボンの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>うねるリボン<span class="new">NEW</span><small>SHADER-RIBBONS</small></h3>
+        <h3><i aria-hidden="true">✦</i>うねるリボン<small>SHADER-RIBBONS</small></h3>
         <p>色の違う細いリボンが重なりながら、波のようにうねって流れます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 細い帯を6本、位相の違う sin 波で重ねて流す（for は6回の定数ループ）。後から描いた帯が上に来る
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -4763,7 +4838,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-voronoi.jpg" alt="ひび割れの細胞の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>ひび割れの細胞<span class="new">NEW</span><small>SHADER-VORONOI</small></h3>
+        <h3><i aria-hidden="true">✦</i>ひび割れの細胞<small>SHADER-VORONOI</small></h3>
         <p>細胞のような区切りがゆっくり動いて、境目が光の線になって走ります。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// ボロノイ図（最近傍と2番目の距離の差）の境目だけを光らせる。点は sin でゆっくり漂う（3×3の定数ループ）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -4828,7 +4903,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-lissajous.jpg" alt="リサジュー糸の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>リサジュー糸<span class="new">NEW</span><small>SHADER-LISSAJOUS</small></h3>
+        <h3><i aria-hidden="true">✦</i>リサジュー糸<small>SHADER-LISSAJOUS</small></h3>
         <p>1本の光る糸が、リサジュー曲線を描きながらゆっくり形を変えます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 曲線を48本の線分にして、各画素から最短距離を求めて光らせる（for は48回の定数ループ）。曲線上の位置で色を変える
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -4893,7 +4968,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-kaleido.jpg" alt="万華鏡の花の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>万華鏡の花<span class="new">NEW</span><small>SHADER-KALEIDO</small></h3>
+        <h3><i aria-hidden="true">✦</i>万華鏡の花<small>SHADER-KALEIDO</small></h3>
         <p>丸い万華鏡の中で、対称な模様がゆっくり回りながら色を変えます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 角度を6分割して折り返し（abs と mod）、折り返した座標に波の模様を重ねる。円の外は透明
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -4950,7 +5025,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-metaballs.jpg" alt="ぷるぷるメタボールの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>ぷるぷるメタボール<span class="new">NEW</span><small>SHADER-METABALLS</small></h3>
+        <h3><i aria-hidden="true">✦</i>ぷるぷるメタボール<small>SHADER-METABALLS</small></h3>
         <p>ゼリーのような玉がくっついたり離れたりしながら、ぷるぷる漂います。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 7つの玉の場（r²/d²）を足して、しきい値で輪郭を出す。しきい値の少し手前を縁取りの光にする（for は7回）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -5008,7 +5083,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-lines.jpg" alt="波打つ線の山の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>波打つ線の山<span class="new">NEW</span><small>SHADER-LINES</small></h3>
+        <h3><i aria-hidden="true">✦</i>波打つ線の山<small>SHADER-LINES</small></h3>
         <p>何本もの細い線が重なって、山脈のように波打ち続けます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 14本の線を上から順に重ね、線の下を暗く塗って奥の線を隠す。線の高さは周波数の違う sin を足して作る（for は14回）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -5071,7 +5146,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-cascade.jpg" alt="中心から広がるマス目の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>中心から広がるマス目<span class="new">NEW</span><small>SHADER-CASCADE</small></h3>
+        <h3><i aria-hidden="true">✦</i>中心から広がるマス目<small>SHADER-CASCADE</small></h3>
         <p>マス目が中心から外へ順に、ふくらんで回りながら丸くなっていきます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// マスごとの時刻を「中心からの距離」だけずらし、①ふくらむ ②四分の一回転して角が丸くなる、の2段階を smoothstep でつなぐ。色はマスごとのハッシュ
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -5132,7 +5207,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-aurora.jpg" alt="オーロラのカーテンの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>オーロラのカーテン<span class="new">NEW</span><small>SHADER-AURORA</small></h3>
+        <h3><i aria-hidden="true">✦</i>オーロラのカーテン<small>SHADER-AURORA</small></h3>
         <p>緑から紫へ色を変えるカーテンが、縦のすじをなびかせて揺れます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 一次元の値ノイズでカーテンの下端と高さを決め、縦すじ（高周波の sin）を掛ける。下ほど明るく、上へ向かって透けて消える
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -5189,7 +5264,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-petals.jpg" alt="開く花びらの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>開く花びら<span class="new">NEW</span><small>SHADER-PETALS</small></h3>
+        <h3><i aria-hidden="true">✦</i>開く花びら<small>SHADER-PETALS</small></h3>
         <p>重なった花びらが逆向きに回りながら、息をするように開いたり閉じたりします。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 極座標で半径を |cos(n/2·角度)| に比例させて花びらの輪郭を作る。花びらの数は5・7・9枚、回る向きは交互（for は3回）
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;
@@ -5251,7 +5326,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-shader-stars.jpg" alt="きらめく星屑の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>きらめく星屑<span class="new">NEW</span><small>SHADER-STARS</small></h3>
+        <h3><i aria-hidden="true">✦</i>きらめく星屑<small>SHADER-STARS</small></h3>
         <p>小さな星がそれぞれのタイミングで瞬いて、十字の光を放ちます。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// マスごとのハッシュで星の有無・位置・瞬きの位相を決め、周囲3×3マスぶんを足す。核（1/d²）と十字の筋を重ねる
 const {THREE,scene,createText,text,width,height,fontSize,duration,accent}=api;

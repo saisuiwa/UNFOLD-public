@@ -97,5 +97,22 @@ return {update(frame){
   piece.mesh.rotation.set(k*.35*Math.sin(y/half*3),k*1.3,0);
   piece.mesh.scale.setScalar(1-.12*k);
  }
+}};`}},
+ {key:'melt-drip',name:'とろけて垂れるタイル',symbol:'垂',desc:'タイルが列ごとに速さを変えて、縦に伸びながら下へ垂れていきます。',added:'2026-10-14',poster:1.0,
+  code:{version:1,runtime:IMAGE_RUNTIME,params:{columns:14,gravity:4,bounce:.5,seed:9,returnMode:'reverse',label:'UNFOLD',font:'gothic'},source:`// タイルが列ごとに別の速さで、縦に伸びながら下へ垂れる。強さ(amount)が戻ると元の位置へ帰る
+const {createImageTiles,size,random,smooth}=api;
+const tiles=createImageTiles();
+const half=size.width*.5;
+const speed=new Map();                                   // 列ごとの乱数（作成時に1回だけ決める）
+for(const piece of tiles){const key=Math.round(piece.home.x);if(!speed.has(key))speed.set(key,.6+random()*.9)}
+return {update(frame){
+ const t=Math.min(1,frame.amount/.8);
+ for(const piece of tiles){
+  const x=piece.home.x,y=piece.home.y,v=speed.get(Math.round(x));
+  const top=(y+half*.56)/(half*1.12);                    // 上のタイルほど遅れて垂れる（0 = 下、1 = 上）
+  const k=smooth(Math.max(0,Math.min(1,t*v*1.6-(1-top)*.35)));
+  piece.mesh.position.set(x,y-k*half*.5*v,0);
+  piece.mesh.scale.set(1-.25*k,1+1.1*k*v,1);
+ }
 }};`}}
 ];

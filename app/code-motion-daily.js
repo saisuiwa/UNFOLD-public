@@ -4179,5 +4179,19 @@ return {update,dispose};`}
 ,
  {key:'ransom-slow',name:'切り貼り文字（ゆっくり）',desc:'書体も紙も傾きも違う切り抜き文字を、1拍に1文字ずつゆっくり貼ります。',added:'2026-10-12',poster:1.5,source:ransom('切り貼り文字（ゆっくり）',1,.8,.8)},
  {key:'ransom-paste',name:'切り貼り文字',desc:'書体も紙も傾きも違う切り抜き文字を、拍に合わせて貼っていきます。',added:'2026-10-12',poster:1.5,source:ransom('切り貼り文字',2,1,.6)},
- {key:'ransom-rapid',name:'切り貼り文字（連打）',desc:'切り抜き文字を拍の4分で素早く貼り、画面を大きく揺らします。',added:'2026-10-12',poster:1.4,source:ransom('切り貼り文字（連打）',4,1.7,.45)}
+ {key:'ransom-rapid',name:'切り貼り文字（連打）',desc:'切り抜き文字を拍の4分で素早く貼り、画面を大きく揺らします。',added:'2026-10-12',poster:1.4,source:ransom('切り貼り文字（連打）',4,1.7,.45)},
+ {key:'focus-in',name:'ピントが合っていく',desc:'ぼやけて広がった分身が、中心に寄ってピントが合うように現れます。',added:'2026-10-14',poster:.5,source:`// 周りに散ったうすい分身が中心へ寄って、ピントが合う。退場はもう一度ぼやけて消える
+const {createText,text,width,duration}=api;
+const opts={maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'};
+const main=createText(text,opts);
+const ghosts=[];for(let i=0;i<6;i++)ghosts.push(createText(text,{...opts,colorRanges:null}));
+const clamp=x=>Math.max(0,Math.min(1,x));
+const smooth=x=>{x=clamp(x);return x*x*(3-2*x)};
+const enter=Math.min(.9,duration*.3),exit=Math.min(.5,duration*.18);
+return {update(t){
+ const a=smooth(t/enter),b=smooth((duration-t)/exit),blur=(1-a)+(1-b),fade=smooth(t/(enter*.4))*b;
+ const r=width*.035*blur;
+ ghosts.forEach((g,i)=>{const ang=i/6*Math.PI*2;g.position.set(Math.cos(ang)*r,Math.sin(ang)*r,-1);g.fillOpacity=fade*.3*Math.min(1,blur*2);g.outlineOpacity=0});
+ main.fillOpacity=fade*(.35+.65*a*b);main.outlineOpacity=fade*a*b;
+}};`}
 ];
