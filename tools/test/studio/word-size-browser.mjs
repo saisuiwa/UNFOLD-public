@@ -1,7 +1,8 @@
 // 選んだ言葉の大きさ (大きく / 小さく / ふつう) in STUDIO's lyric panel, and the motions the person saved in the library being used by おまかせ.
 import assert from 'node:assert/strict';import {withStudioPage} from './browser-helper.mjs';
 const SAVED='// 私が保存した動き\nconst {createText,text,width}=api;\nconst t=createText(text,{maxWidth:width*.8,textAlign:"center"});\nreturn {update(time){t.fillOpacity=Math.min(1,time*4)}};';
-await withStudioPage(async page=>{
+const dialogs=page=>{const s={asked:0,answer:true};page.on('dialog',d=>{s.asked++;(s.answer?d.accept():d.dismiss()).catch(()=>{});});return s;};
+async function open(page){
  await page.evaluate(async saved=>{
   // the person's library (the lyric panel and おまかせ both read it)
   localStorage.setItem('unfold-motion-library-v1',JSON.stringify([{id:'mine1',name:'私の保存した動き',description:'',motion:{code:{version:1,source:saved}}}]));
@@ -15,6 +16,15 @@ await withStudioPage(async page=>{
   window.scales=id=>lyricOf(id).runs.map(r=>r.text+':'+(r.scale||1)).join('|');
   c.select({kind:'lyric',id:'L0'});
  },SAVED);
+}
+
+const usesSaved=page=>page.evaluate(()=>c.get().project.lyrics.filter(l=>(l.motion.code?.source||'').includes('私が保存した動き')).length);
+async function roll(page,testid){const before=await page.locator('.omakase-counter').textContent();await page.getByTestId(testid).click();await page.waitForFunction(b=>document.querySelector('.omakase-counter').textContent!==b,before,{timeout:30000});}
+
+// A) the word buttons, and おまかせ with the saved motion once the person allowed it
+await withStudioPage(async page=>{
+ const d=dialogs(page);
+ await open(page);
  const panel=page.locator('#lm-quick');await panel.waitFor({state:'visible'});
  await panel.getByRole('button',{name:'色',exact:true}).click();   // the 色 tab holds the word buttons
  for(const t of ['word-size-bigger','word-size-smaller','word-size-normal'])assert.equal(await page.getByTestId(t).count(),1,t+' is there');
@@ -46,20 +56,32 @@ await withStudioPage(async page=>{
  await page.evaluate(()=>c.undo());await page.evaluate(()=>c.undo());
  await page.waitForFunction(()=>!lyricOf('L0').runs.some(r=>r.scale===1.25)||true);
 
- // おまかせ uses the saved motion (the person's library), and not when 「保存した動き・新しい動きも使う」 is off
- const usesSaved=()=>page.evaluate(()=>c.get().project.lyrics.filter(l=>(l.motion.code?.source||'').includes('私が保存した動き')).length);
- const counter=()=>page.locator('.omakase-counter').textContent();
- // one plan: click, then wait until the counter moved (the plan has been applied when おまかせ draws its panel again)
- async function roll(testid){const before=await counter();await page.getByTestId(testid).click();await page.waitForFunction(b=>document.querySelector('.omakase-counter').textContent!==b,before,{timeout:30000});}
  await page.evaluate(()=>c.select(null));
- const panelO=page.getByTestId('omakase-panel');await panelO.waitFor({state:'visible'});
+ await page.getByTestId('omakase-panel').waitFor({state:'visible'});
  let hit=0;
- await roll('omakase-create');hit+=await usesSaved();
- for(let i=0;i<30&&hit===0;i++){await roll('omakase-next');hit+=await usesSaved();}
+ await roll(page,'omakase-create');hit+=await usesSaved(page);
+ for(let i=0;i<30&&hit===0;i++){await roll(page,'omakase-next');hit+=await usesSaved(page);}
  assert.ok(hit>0,'the saved motion is used by おまかせ within some plans');
+ assert.equal(d.asked,1,'STUDIO asked once before running the saved code');
+ for(let i=0;i<3;i++)await roll(page,'omakase-next');
+ assert.equal(d.asked,1,'and not again');
  await page.getByLabel('保存した動き・新しい動きも使う').uncheck();
  let again=0;
- for(let i=0;i<8;i++){await roll('omakase-next');again+=await usesSaved();}
+ for(let i=0;i<8;i++){await roll(page,'omakase-next');again+=await usesSaved(page);}
  assert.equal(again,0,'switched off: the saved motion is not used');
- console.log('PASS 言葉の大きさ ボタン and おまかせ with the saved library motion', JSON.stringify({hit}));
+ console.log('PASS 言葉の大きさ ボタン and おまかせ with the saved library motion (asked once)', JSON.stringify({hit,asked:d.asked}));
+});
+
+// B) declined: the saved code is never used, never approved, and the question is not repeated
+await withStudioPage(async page=>{
+ const d=dialogs(page);d.answer=false;
+ await open(page);
+ await page.evaluate(()=>c.select(null));
+ await page.getByTestId('omakase-panel').waitFor({state:'visible'});
+ let uses=0;
+ for(let i=0;i<8;i++){await roll(page,i===0?'omakase-create':'omakase-next');uses+=await usesSaved(page);}
+ assert.equal(d.asked,1,'asked once, and not again after no');
+ assert.equal(uses,0,'declined: the saved motion is not used');
+ assert.equal(await page.evaluate(()=>(localStorage.getItem('unfold-studio-approved-code-v1')||'').includes('私が保存した動き')),false,'nothing was approved without the person saying so');
+ console.log('PASS declined saved code is left out and never approved');
 });

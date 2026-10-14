@@ -2,7 +2,7 @@
 // ここだけ変える to re-roll one part. Every step is one undoable batch (studio/omakase.js builds it).
 import {el,button} from './dom.js';
 import {createMotionLibrary} from '../lyric-library.js';
-import {approveStudioCode} from './code-trust.js';
+import {approveStudioCode,isStudioCodeApproved} from './code-trust.js';
 import {MOODS,MOOD_AUTO,COLOR_FAMILIES,FAMILY_AUTO,LAYOUT_SPREAD,LAYOUT_CENTER,SIZE_PCT,newSeeds,planOmakase,omakaseCommands,opacityCommands,uniformSizes,describePlan,extraMotions} from './omakase.js';
 
 export function createOmakasePanel(controller){
@@ -24,8 +24,6 @@ export function createOmakasePanel(controller){
   const p=project();
   if(!p.lyrics.length&&!entry.parts.bg)throw new Error('歌詞がありません。シーケンスで歌詞を入れてから送ってください。');
   const plan=planOmakase(p,{mood:entry.mood,family:entry.family,sizePct:entry.sizePct,layout:entry.layout,seeds:entry.seeds,extras:entry.extras||[]});
-  // the person's own saved code is theirs: STUDIO may run it (it was approved when it was saved in the library)
-  for(const line of plan.lines)if(line.extra?.code?.source)approveStudioCode(line.extra.code.source);
   const command=omakaseCommands(p,plan,{parts:entry.parts});
   if(!command)throw new Error('変える所がありません。');
   await controller.dispatch(command);
@@ -34,7 +32,21 @@ export function createOmakasePanel(controller){
  const parts=()=>({text:true,bg:withBg.checked,color:withColor.checked,size:withSize.checked,layout:true});
  // the motions beyond the moods' own lists (new bundled ones, the person's saved ones) are read once for each plan, so that 前の案 gives the same plan again
  const libraryItems=()=>{try{return createMotionLibrary().list();}catch{return [];}};
- const fresh=(base={})=>({mood:mood.value,family:family.value,layout:layoutSel.value,sizePct:Number(sizeSlider.value),seeds:newSeeds(),parts:parts(),extras:extraMotions({library:libraryItems(),saved:withSaved.checked}),...base});
+ // Saved code that STUDIO has not been told to run yet is asked about once, in one question, exactly like a motion applied by hand (lyric-edit.js trustSource):
+ // what is declined is left out of the plan and nothing is approved silently.
+ const declined=new Set();
+ function allowSaved(list){
+  const refused=list.filter(e=>e.from==='saved'&&e.code?.source&&declined.has(e.code.source));   // said no earlier in this session: not asked again, not used
+  list=list.filter(e=>!refused.includes(e));
+  const waiting=list.filter(e=>e.from==='saved'&&e.code?.source&&!isStudioCodeApproved(e.code.source));
+  if(!waiting.length)return list;
+  const names=waiting.slice(0,5).map(e=>'「'+e.name+'」').join('')+(waiting.length>5?'ほか':'');
+  const ok=confirm('保存した動き '+waiting.length+' 個（'+names+'）のコードを、おまかせでSTUDIOが実行します。自分で作った、または信頼できる提供元のコードだけ許可してください。許可しますか？\n「キャンセル」なら、これらは使いません。');
+  if(!ok){for(const e of waiting)declined.add(e.code.source);return list.filter(e=>!waiting.includes(e));}
+  for(const e of waiting)approveStudioCode(e.code.source);
+  return list;
+ }
+ const fresh=(base={})=>({mood:mood.value,family:family.value,layout:layoutSel.value,sizePct:Number(sizeSlider.value),seeds:newSeeds(),parts:parts(),extras:allowSaved(extraMotions({library:libraryItems(),saved:withSaved.checked})),...base});
  const push=async entry=>{state.history=state.history.slice(0,state.index+1);state.history.push(entry);state.index=state.history.length-1;await apply(entry);};
  const create=()=>run(()=>{sync();return push(fresh());});
  const next=()=>run(()=>{sync();if(state.index<state.history.length-1){state.index++;return apply(state.history[state.index]);}return push(fresh());});
