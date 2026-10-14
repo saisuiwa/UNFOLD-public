@@ -307,3 +307,39 @@ test('a motion that is drawn much bigger than its text is kept in the middle ins
  assert.equal(extentOf('no-such-motion',v,10),null);
  assert.ok(extentOf('gucha-melt',{width:1080,height:1920},12).h>0);
 });
+
+// ---- 候補を広げる: motions that are not in a mood's list ----------------------------------------------------------------------------------------
+import {extraMotions} from '../../../app/studio/omakase.js';
+import {DAILY_CODE_MOTIONS} from '../../../app/code-motion-daily.js';
+const LIB=[
+ {id:'m1',name:'私のぷるぷる',motion:{code:{version:1,source:'// my own\nconst {createText,text}=api;const t=createText(text);return {update(){t.fillOpacity=1}};'}}},
+ {id:'m2',name:'私のレシピ',motion:{recipe:{layout:'center',units:'char',enter:'rise',exit:'fade',ease:'smooth',stagger:.05,distance:.5,dur:.6}}},
+ {id:'m3',name:'私の背景',workshop:{shelf:'effect'},motion:{code:{version:1,source:'// my effect\nreturn {update(){}};'}}},
+];
+test('extraMotions: bundled text motions no mood lists, and the saved ones except effects', () => {
+ const listed=new Set(MOODS.flatMap(m=>[...m.text,...m.bg])),e=extraMotions({library:LIB});
+ const bundled=e.filter(x=>x.from==='bundled'),saved=e.filter(x=>x.from==='saved');
+ assert.ok(bundled.length>=1,'a bundled text motion that no mood lists is offered');
+ for(const b of bundled){assert.ok(!listed.has(b.key));const d=DAILY_CODE_MOTIONS.find(x=>x.key===b.key);assert.ok(d&&d.shelf!=='effect'&&!d.key.startsWith('bg-'));assert.notEqual(b.key,'ring-text');}
+ assert.deepEqual(saved.map(x=>x.key),['saved:m1','saved:m2'],'the effect is left out');
+ assert.ok(saved[0].code.source.includes('my own')&&saved[1].recipe);
+ assert.equal(extraMotions({library:LIB,saved:false}).some(x=>x.from==='saved'),false);
+});
+test('a plan uses the extra motions too, keeps them when replayed, and its commands carry the saved code / recipe', () => {
+ const p=project(30),extras=extraMotions({library:LIB});
+ const plan=planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:3},extras}),again=planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:3},extras});
+ assert.deepEqual(plan.lines,again.lines);
+ const used=plan.lines.filter(l=>l.extra);
+ assert.ok(used.length>=2,'saved motions are used: '+used.length);
+ assert.ok(plan.lines.some(l=>!l.extra),'the mood\'s own motions are still used');
+ const q=applyCommand(p,omakaseCommands(p,plan,{parts:{text:true,bg:false,color:false,size:false,layout:false}})).project;
+ assertProject(q);
+ const code=plan.lines.find(l=>l.extra?.code),recipe=plan.lines.find(l=>l.extra?.recipe);
+ if(code)assert.equal(q.lyrics.find(l=>l.id===code.id).motion.code.source,code.extra.code.source);
+ if(recipe){const m=q.lyrics.find(l=>l.id===recipe.id).motion;assert.ok(m.recipe&&!m.code);}
+ // the names of the saved motions show in the description
+ assert.ok(describePlan(plan).motions.some(n=>n==='私のぷるぷる'||n==='私のレシピ'));
+ // without extras nothing changes from before
+ const plain=planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:3}});
+ assert.ok(plain.lines.every(l=>!l.extra&&MOODS.find(m=>m.id==='pop').text.includes(l.key)));
+});

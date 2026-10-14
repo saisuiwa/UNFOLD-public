@@ -115,3 +115,16 @@ test('word sizes (scale) survive a colour change, 縁取り / 中抜き and colo
  resolve('元気',{textStart:2});
  assert.deepEqual(resolve.sizes,[{from:0,to:2,scale:1.5}]);
 });
+
+test('resizeRuns: 大きく / 小さく multiply the size of the chosen characters only, ふつう resets it, the size stays in range and colours stay', async () => {
+ const {resizeRuns}=await import('../../../app/studio/word-size.js');
+ const l=lyric([{id:'a',text:'私は',emphasis:false},{id:'b',text:'元気',emphasis:true,color:'#ff0000'}]);
+ const big=resizeRuns(l,2,4,{factor:1.25});
+ assert.deepEqual(big.map(r=>[r.text,r.scale]),[['私は',undefined],['元気',1.25]]);
+ assert.equal(big[1].color,'#ff0000');assert.equal(big[1].emphasis,true);
+ const bigger=resizeRuns(lyric(big),2,4,{factor:1.25});assert.equal(bigger.find(r=>r.text==='元気').scale,1.56);
+ const small=resizeRuns(lyric(big),0,1,{factor:.8});assert.deepEqual(small.map(r=>[r.text,r.scale]),[['私',.8],['は',undefined],['元気',1.25]]);
+ const normal=resizeRuns(lyric(small),0,4,{value:1});assert.ok(normal.every(r=>r.scale===undefined));assert.equal(text(normal),'私は元気');
+ let r=lyric([{id:'a',text:'あ'}]);for(let i=0;i<12;i++)r=lyric(resizeRuns(r,0,1,{factor:1.25}));assert.equal(r.runs[0].scale,2.5);
+ for(let i=0;i<20;i++)r=lyric(resizeRuns(r,0,1,{factor:.8}));assert.equal(r.runs[0].scale,.4);
+});

@@ -82,3 +82,20 @@ export function sizeRuns(lyric,ranges){
   else out.push({...it,glyphIds:[it.id]});}
  return out.map(r=>({text:r.text,emphasis:r.emphasis,...(r.color?{color:r.color}:{}),...(r.outline?{outline:true}:{}),...(r.outline&&r.outlineColor?{outlineColor:r.outlineColor}:{}),...(r.outline&&r.outlineWidth?{outlineWidth:r.outlineWidth}:{}),...(r.hollow?{hollow:true}:{}),...(r.scale>0&&r.scale!==1?{scale:r.scale}:{}),id:r.glyphIds[0]?.split(':')[0]||crypto.randomUUID(),glyphIds:r.glyphIds}));
 }
+
+export const WORD_SIZE_MIN=.4,WORD_SIZE_MAX=2.5,WORD_SIZE_STEP=1.25;
+/**
+ * New runs after the size of the characters [start, end) changed: `factor` multiplies what each character has now (大きく 1.25, 小さく 0.8),
+ * `value` sets it (1 = ふつう). Colours, outlines and grapheme ids stay; the result stays inside 0.4 .. 2.5.
+ */
+export function resizeRuns(lyric,start,end,{factor,value}={}){
+ const per=[];let pos=0;
+ for(const r of lyric.runs||[])for(const g of graphemes(r.text||'')){
+  const now=r.scale>0?r.scale:1,chosen=pos<end&&pos+g.length>start;
+  let next=now;
+  if(chosen)next=value>0?value:factor>0?now*factor:now;
+  next=Math.round(Math.max(WORD_SIZE_MIN,Math.min(WORD_SIZE_MAX,next))*100)/100;
+  per.push({from:pos,to:pos+g.length,scale:Math.abs(next-1)<.005?1:next});pos+=g.length;
+ }
+ return sizeRuns(lyric,per.filter(x=>x.scale!==1));
+}

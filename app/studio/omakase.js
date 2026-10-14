@@ -161,13 +161,33 @@ function planLayout(project,lyrics,sizes,lines,{mood,layout,seeds}){
  return {places,words};
 }
 
+// ---- 候補を広げる (motions that are not in a mood's list) ----------------------------------------------------------------------------------
+// A mood's own list is what was checked by hand. Everything else a person can have is added to the pool of every mood, so that a motion made later
+// (the daily routine's new text motions) or by the person (the motions saved in the library, 「保存した動き」) is used by おまかせ too:
+//  - bundled text motions that no mood lists (not an effect, not a background, not the full-frame ring);
+//  - the person's saved motions (code or recipe) from the library, except effects (shelf: 'effect').
+// Their size on screen is not measured: placeLine() uses its careful estimate for them.
+const NOT_FOR_TEXT=new Set(['ring-text']);
+export function extraMotions({library=[],saved=true}={}){
+ const listed=new Set(MOODS.flatMap(m=>[...m.text,...m.bg]));
+ const out=DAILY_CODE_MOTIONS.filter(m=>m.shelf!=='effect'&&!m.key.startsWith('bg-')&&!listed.has(m.key)&&!NOT_FOR_TEXT.has(m.key)).map(m=>({key:m.key,name:m.name,from:'bundled'}));
+ if(saved)for(const item of library){
+  if(!item||item.workshop?.shelf==='effect')continue;
+  const code=item.motion?.code,recipe=item.motion?.recipe;
+  if(!(code?.source||recipe))continue;
+  out.push({key:'saved:'+item.id,name:String(item.name||'保存した動き').slice(0,40),from:'saved',...(code?.source?{code:{version:1,source:code.source}}:{recipe})});
+ }
+ return out;
+}
+
 /** The plan for this project: which key for which lyric, which background for which stretch, which palette. */
-export function planOmakase(project,{mood=MOOD_AUTO,family=FAMILY_AUTO,sizePct=SIZE_PCT.default,layout=LAYOUT_SPREAD,seeds}){
+export function planOmakase(project,{mood=MOOD_AUTO,family=FAMILY_AUTO,sizePct=SIZE_PCT.default,layout=LAYOUT_SPREAD,seeds,extras=[]}){
  const chosen=mood===MOOD_AUTO?MOODS[Math.floor(rng('mood:'+seeds.mood)()*MOODS.length)]:moodOf(mood)||MOODS[0];
  const lyrics=[...project.lyrics].sort((a,b)=>a.startUs-b.startUs);
  // a motion for every lyric, never the same as the line before or the one before that
  const rt=rng('text:'+seeds.text),recent=[],lines=[];
- for(const l of lyrics){let pool=chosen.text.filter(k=>!recent.includes(k));if(!pool.length)pool=chosen.text;const key=pool[Math.floor(rt()*pool.length)];recent.push(key);if(recent.length>2)recent.shift();lines.push({id:l.id,key});}
+ const extraByKey=new Map(extras.map(e=>[e.key,e])),everyKey=[...chosen.text,...extras.map(e=>e.key).filter(k=>!chosen.text.includes(k))];
+ for(const l of lyrics){let pool=everyKey.filter(k=>!recent.includes(k));if(!pool.length)pool=everyKey;const key=pool[Math.floor(rt()*pool.length)];recent.push(key);if(recent.length>2)recent.shift();const e=extraByKey.get(key);lines.push({id:l.id,key,...(e?.from==='saved'?{extra:{name:e.name,...(e.code?{code:e.code}:{recipe:e.recipe})}}:{})});}
  // a background for every stretch of 3-5 lines; the stretches follow each other without a gap
  const rb=rng('bg:'+seeds.bg),blocks=[];let previous='';
  const pickBg=()=>{let pool=chosen.bg.filter(k=>k!==previous);if(!pool.length)pool=chosen.bg;const key=pool[Math.floor(rb()*pool.length)];previous=key;return key;};
@@ -199,11 +219,15 @@ export function mergeMotion(old,patch){
  * `parts` says what to touch; lyrics' text and timing, the song and every other clip are never touched.
  */
 export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:true,size:true,layout:false},newId=()=>crypto.randomUUID()}={}){
- const commands=[],line=new Map((plan.lines||[]).map(l=>[l.id,l.key]));
+ const commands=[],line=new Map((plan.lines||[]).map(l=>[l.id,l]));
  if(parts.text||parts.color){
   for(const l of project.lyrics){
    const patch={};
-   if(parts.text&&line.has(l.id)){patch.code={version:1,source:motionOf(line.get(l.id)).source};patch.recipe=null;}
+   if(parts.text&&line.has(l.id)){
+    const entry=line.get(l.id);
+    if(entry.extra?.recipe){patch.recipe=entry.extra.recipe;patch.code=null;}
+    else{patch.code=entry.extra?.code||{version:1,source:motionOf(entry.key).source};patch.recipe=null;}
+   }
    if(parts.color){patch.color=plan.palette.color;patch.emphasisColor=plan.palette.emphasisColor;}
    if(Object.keys(patch).length)commands.push({type:'setLyricAppearance',id:l.id,patch:{motion:mergeMotion(l.motion,patch)}});
   }
@@ -247,6 +271,6 @@ export function opacityCommands(project,opacity){
 
 /** What the plan says, for the "いまの案" box. */
 export function describePlan(plan){
- const names=keys=>[...new Set(keys)].map(k=>motionOf(k)?.name||k);
+ const names=keys=>[...new Set(keys)].map(k=>motionOf(k)?.name||(plan.lines||[]).find(l=>l.key===k)?.extra?.name||k);
  const scales=(plan.sizes||[]).map(x=>x.fontScale);return {mood:plan.moodName,motions:names(plan.lines.map(l=>l.key)),backgrounds:names(plan.blocks.map(b=>b.key)),palette:plan.palette.name,layout:plan.layout===LAYOUT_CENTER?'真ん中に揃える':'位置と語の大小をばらけさせる',size:scales.length?{min:Math.min(...scales),max:Math.max(...scales)}:null};
 }

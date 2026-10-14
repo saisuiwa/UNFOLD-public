@@ -1,7 +1,8 @@
 // "この歌詞を編集" in STUDIO: the same panel the sequence has (動き / 色 / 書体, one word's colour, all lyrics at once),
 // plus the code motions and effects of the workshop as picture cards. It edits the STUDIO project through its commands.
-import {createLyricQuick} from '../lyric-quick.js?v=18';
+import {createLyricQuick} from '../lyric-quick.js?v=19';
 import {graphemes} from '../lyric-motion.js?v=26';
+import {resizeRuns} from './word-size.js';
 import {mergeMotion} from './omakase.js';
 import {cleanWordColors,setWordColor,colorLyricRuns} from '../lyric-style.js';
 import {getLyricFontBlob} from '../lyric-fonts.js';
@@ -84,6 +85,11 @@ export function createLyricEdit(controller){
    await controller.dispatch({type:'setLyricText',id:l.id,text:l.text,runs:recolorRuns(l,a.start,a.end,a.color)});
    return;
   }
+  if(a.type==='word-size'){
+   const l=find(a.id);if(!l)return;
+   await controller.dispatch({type:'setLyricText',id:l.id,text:l.text,runs:resizeRuns(l,a.start,a.end,{factor:a.factor,value:a.value})});
+   return;
+  }
   if(a.type==='word-style'){
    const l=find(a.id);if(!l)return;
    await controller.dispatch({type:'setLyricText',id:l.id,text:l.text,runs:restyleRuns(l,a.start,a.end,a.key??null,{color:a.color,width:a.width,force:!!a.force})});
@@ -117,7 +123,7 @@ export function createLyricEdit(controller){
  // It compares the document by identity to notice "the lyrics changed while a font was loading": keep it the same object until the lyrics really change.
  let cache={key:'',document:null};
  const documentOf=()=>{const s=state(),key=s.project.id+':'+s.editVersion;if(cache.key!==key)cache={key,document:{events:s.project.lyrics.map(eventOf)}};return cache.document;};
- const quick=createLyricQuick({getState:()=>{const s=state();return {document:documentOf(),selectedId:s.selection?.kind==='lyric'?s.selection.id:null,legacy:false,recording:false};},onAction,onMore:()=>{},motionPanel});
+ const quick=createLyricQuick({getState:()=>{const s=state();return {document:documentOf(),selectedId:s.selection?.kind==='lyric'?s.selection.id:null,legacy:false,recording:false};},onAction,onMore:()=>{},motionPanel,wordSize:true});
  const element=el('div',{class:'studio-lyric-edit'},quick.element);
  function refresh(){quick.refresh();const s=state(),id=selectedId();if(!id)return;const layout=s.project.views[s.viewId]?.layout[id];if(layout){size.value=layout.fontScale;sizeValue.textContent=Math.round(layout.fontScale*1000)/10+'%';}}
  return {element,refresh,dispose(){quick.dispose();}};

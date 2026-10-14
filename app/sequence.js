@@ -1586,16 +1586,76 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 
+// The four pictures the sequence starts with: colourful, with fine detail (so every method shows what it does), and always the same (no Math.random).
 function sampleCanvas(i) {
-  const c = document.createElement('canvas');
-  c.width = 1600; c.height = 900;
+  const W = 1600, H = 900, c = document.createElement('canvas');
+  c.width = W; c.height = H;
   const x = c.getContext('2d');
-  const pal = [['#ff7145', '#2855b9'], ['#cce876', '#183625'], ['#678cc5', '#f1f0da'], ['#dc472c', '#eee9d6']][i % 4];
-  x.fillStyle = pal[0]; x.fillRect(0, 0, 1600, 900);
-  x.strokeStyle = pal[1]; x.lineWidth = 3;
-  for (let k = 0; k < 1600; k += 80) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, 900); x.stroke(); }
-  for (let k = 0; k < 900; k += 80) { x.beginPath(); x.moveTo(0, k); x.lineTo(1600, k); x.stroke(); }
-  x.fillStyle = pal[1]; x.font = 'bold 300px sans-serif'; x.textAlign = 'center'; x.fillText(['ONE', 'TWO', 'THREE', 'FOUR'][i % 4], 800, 560);
+  let seed = 7919 * (i + 3) >>> 0;
+  const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+  const paint = [
+    // ONE: sunset — a hot gradient sky, a big sun with rings, layered wavy hills
+    () => {
+      let g = x.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, '#2b1055'); g.addColorStop(.35, '#d4217a'); g.addColorStop(.62, '#ff7a3d'); g.addColorStop(1, '#ffd45e');
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+      for (let r = 520; r > 40; r -= 64) { x.beginPath(); x.arc(800, 470, r, 0, 7); x.fillStyle = `hsla(${24 + (520 - r) / 9},100%,${58 + (520 - r) / 16}%,.30)`; x.fill(); }
+      const hills = ['#5b2a86', '#3a1f7a', '#1f1a63', '#0f1747'];
+      hills.forEach((col, k) => {
+        x.beginPath(); x.moveTo(0, H);
+        for (let px = 0; px <= W; px += 20) x.lineTo(px, 560 + k * 85 + Math.sin(px / (150 - k * 18) + k * 2) * (38 + k * 8));
+        x.lineTo(W, H); x.closePath(); x.fillStyle = col; x.fill();
+      });
+      for (let k = 0; k < 70; k++) { x.fillStyle = `rgba(255,255,255,${.35 + rnd() * .5})`; x.beginPath(); x.arc(rnd() * W, rnd() * 300, 1 + rnd() * 3, 0, 7); x.fill(); }
+    },
+    // TWO: candy plaid — a woven tartan of translucent bands in rainbow colours over a teal ground, with dots
+    () => {
+      x.fillStyle = '#0fb5ae'; x.fillRect(0, 0, W, H);
+      const hues = [350, 42, 275, 160, 205, 12];
+      for (let k = 0; k < 14; k++) { x.fillStyle = `hsla(${hues[k % 6]},90%,60%,.55)`; x.fillRect(k * 118 - 40, 0, 46 + (k % 3) * 22, H); }
+      for (let k = 0; k < 9; k++) { x.fillStyle = `hsla(${hues[(k + 2) % 6]},95%,58%,.5)`; x.fillRect(0, k * 112 - 20, W, 38 + (k % 4) * 14); }
+      for (let gx = 40; gx < W; gx += 80) for (let gy = 40; gy < H; gy += 80) { x.fillStyle = `hsla(${(gx + gy) % 360},100%,92%,.9)`; x.beginPath(); x.arc(gx, gy, 7, 0, 7); x.fill(); }
+      x.strokeStyle = 'rgba(255,255,255,.55)'; x.lineWidth = 3;
+      for (let k = -H; k < W; k += 160) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k + H, H); x.stroke(); }
+    },
+    // THREE: ocean — blue-to-green waves of many bands, bubbles and a bright fish school of triangles
+    () => {
+      let g = x.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, '#00296b'); g.addColorStop(.5, '#0096c7'); g.addColorStop(1, '#2ec4b6');
+      x.fillStyle = g; x.fillRect(0, 0, W, H);
+      for (let k = 0; k < 16; k++) {
+        x.beginPath(); x.moveTo(0, H);
+        for (let px = 0; px <= W; px += 16) x.lineTo(px, 120 + k * 50 + Math.sin(px / (90 + k * 9) + k) * (20 + k * 2));
+        x.lineTo(W, H); x.closePath(); x.fillStyle = `hsla(${190 + k * 7},85%,${28 + k * 2.2}%,.42)`; x.fill();
+      }
+      for (let k = 0; k < 46; k++) {
+        const px = rnd() * W, py = 90 + rnd() * 700, s = 16 + rnd() * 34, h = [48, 330, 20, 280, 170][k % 5];
+        x.fillStyle = `hsl(${h},95%,62%)`; x.beginPath(); x.moveTo(px, py); x.lineTo(px - s * 1.6, py - s * .55); x.lineTo(px - s * 1.6, py + s * .55); x.closePath(); x.fill();
+        x.beginPath(); x.ellipse(px + s * .2, py, s * 1.1, s * .6, 0, 0, 7); x.fill();
+        x.fillStyle = '#fff'; x.beginPath(); x.arc(px + s * .55, py - s * .12, s * .13, 0, 7); x.fill();
+      }
+      for (let k = 0; k < 60; k++) { x.strokeStyle = `rgba(255,255,255,${.25 + rnd() * .4})`; x.lineWidth = 2; x.beginPath(); x.arc(rnd() * W, rnd() * H, 4 + rnd() * 16, 0, 7); x.stroke(); }
+    },
+    // FOUR: pop geometry — big blocks of yellow, pink, cyan and violet with circles, triangles, zigzags and halftone dots
+    () => {
+      const blocks = [['#ffd23f', 0, 0, 820, 460], ['#ff4f9a', 820, 0, 780, 460], ['#2ee6d6', 0, 460, 700, 440], ['#7b4dff', 700, 460, 900, 440]];
+      for (const [col, bx, by, bw, bh] of blocks) { x.fillStyle = col; x.fillRect(bx, by, bw, bh); }
+      x.fillStyle = '#ff7a00'; x.beginPath(); x.arc(410, 230, 150, 0, 7); x.fill();
+      x.fillStyle = '#ffffff'; x.beginPath(); x.moveTo(1010, 400); x.lineTo(1210, 60); x.lineTo(1410, 400); x.closePath(); x.fill();
+      x.fillStyle = '#1b1b3a'; x.beginPath(); x.arc(350, 690, 170, Math.PI, 0); x.fill();
+      x.fillStyle = '#ffe14d'; x.beginPath(); x.arc(1150, 690, 190, 0, 7); x.fill();
+      x.strokeStyle = '#1b1b3a'; x.lineWidth = 14; x.lineJoin = 'round'; x.beginPath();
+      for (let k = 0; k <= 12; k++) x.lineTo(40 + k * 60, 110 + (k % 2 ? 0 : 80)); x.stroke();
+      for (let gx = 0; gx < 18; gx++) for (let gy = 0; gy < 6; gy++) { x.fillStyle = 'rgba(27,27,58,.55)'; x.beginPath(); x.arc(860 + gx * 40, 500 + gy * 40 + (gx % 2) * 20, 3 + gy * 1.6, 0, 7); x.fill(); }
+      x.fillStyle = '#ff4f9a'; for (let k = 0; k < 7; k++) { x.beginPath(); x.moveTo(60 + k * 90, 900); x.lineTo(105 + k * 90, 820); x.lineTo(150 + k * 90, 900); x.closePath(); x.fill(); }
+    },
+  ][i % 4];
+  paint();
+  // the word: a white label with a coloured outline, so it reads on every picture
+  const word = ['ONE', 'TWO', 'THREE', 'FOUR'][i % 4];
+  x.font = 'bold 300px sans-serif'; x.textAlign = 'center'; x.lineJoin = 'round';
+  x.lineWidth = 34; x.strokeStyle = ['#2b1055', '#073b3a', '#00296b', '#1b1b3a'][i % 4]; x.strokeText(word, 800, 560);
+  x.fillStyle = '#ffffff'; x.fillText(word, 800, 560);
   return c;
 }
 
@@ -1678,6 +1738,6 @@ try {
   window.unfoldMethods = { registerCustom, unregisterCustom, setCustomStatus, listCustom, variants, editor: methodEditor, persistence: methodPersistence, safety, enabler: methodEnabler, transfer: { importFile: importMethodFile, importText: importMethodText, download: downloadMethodFile } };
 } catch (e) {
   console.error(e);
-  $('seq-notice').textContent = '3D表示を開始できませんでした。WebGL対応のChromeで開いてね。';
+  $('seq-notice').textContent = '3D表示を開始できませんでした。WebGL対応のChromeで開いてね。（原因: ' + String(e?.message || e).slice(0, 160) + '）';
   $('seq-notice').classList.add('show');
 }

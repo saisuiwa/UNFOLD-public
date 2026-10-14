@@ -7,8 +7,9 @@ import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=12';
 import {lyricFontLabel,savedLyricFonts,listLocalLyricFonts,selectLocalLyricFont,importLyricFont} from './lyric-fonts.js';
 const node=(tag,text,cls)=>Object.assign(document.createElement(tag),{...(text==null?{}:{textContent:text}),...(cls?{className:cls}:{})});
 // customFonts:false hides the PC font / font file buttons (a host that cannot keep the font bytes).
+// wordSize:true adds 大きく / 小さく / ふつう for the chosen words (a host that draws a run's `scale`: STUDIO).
 // motionPanel replaces the whole 動き tab with the host's own content (STUDIO shows the code motions and effects there).
-export function createLyricQuick({getState,onAction,onMore,customFonts=true,motionPanel=null}){
+export function createLyricQuick({getState,onAction,onMore,customFonts=true,motionPanel=null,wordSize=false}){
  const element=node('section',null,'lm-quick');element.id='lm-quick';element.setAttribute('aria-label','選んだ歌詞を編集');let selectedId=null,textKey='',thumbKey='',token=0,range=null,localFonts=[];
  const title=node('h3','歌詞を選んで、その場で編集'),hint=node('p','タイムラインの歌詞をタップしてください。','hint');element.append(title,hint);
  const content=node('div');element.append(content);
@@ -37,6 +38,15 @@ export function createLyricQuick({getState,onAction,onMore,customFonts=true,moti
  edgeSize.oninput=()=>{widthOut.textContent=edgeSize.value+'%'};
  edgeSize.onchange=()=>{edgeWidth=Number(edgeSize.value);if(range)send({type:'word-style',id:selectedId,...range,key:'outline',width:edgeWidth,force:true});else status.textContent='先に言葉を選んでください。次の縁取りからこの太さになります。'};
  content.append(decoRow);
+ let sizeRow=null;
+ if(wordSize){
+  sizeRow=node('div',null,'lq-row');const sizeLabel=node('span','選んだ言葉の大きさ','lq-label');sizeRow.append(sizeLabel);
+  for(const [label,hint,test,patch] of [['大きく','選んだ言葉を、いまより大きくします（押すたびに大きくなります）','bigger',{factor:1.25}],['小さく','選んだ言葉を、いまより小さくします（押すたびに小さくなります）','smaller',{factor:.8}],['ふつう','選んだ言葉の大きさを元に戻します','normal',{value:1}]]){
+   const b=node('button',label,'btn');b.type='button';b.title=hint;b.dataset.testid='word-size-'+test;
+   b.onclick=()=>{if(!range){status.textContent='先に大きさを変える言葉を選んでください。';return}send({type:'word-size',id:selectedId,...range,...patch})};
+   sizeRow.append(b);
+  }
+ }
  const fontLabel=node('label','書体','lm-field'),font=node('select');font.setAttribute('aria-label','その場で書体');fontLabel.append(font);content.append(fontLabel);
  const fontsActions=node('div',null,'lq-row'),pc=node('button','PCのフォント','btn'),fileButton=node('button','フォントファイル','btn'),file=node('input');file.type='file';file.accept='.ttf,.otf,.woff,.woff2';file.hidden=true;fontsActions.append(pc,fileButton,file);content.append(fontsActions);
  const browser=node('div',null,'lq-font-browser');browser.hidden=true;const search=node('input'),list=node('select');search.placeholder='フォント名で絞り込む';search.setAttribute('aria-label','PCフォントを検索');list.size=6;list.setAttribute('aria-label','PCフォント一覧');browser.append(search,list);content.append(browser);
@@ -58,7 +68,7 @@ export function createLyricQuick({getState,onAction,onMore,customFonts=true,moti
  const status=node('p',null,'lm-status');status.setAttribute('role','status');content.append(status);
  const tabs=node('div',null,'lq-tabs'),panels={motion:node('div'),color:node('div'),font:node('div')},tabButtons={};let activeTab='motion';
  for(const [key,label]of [['motion','動き'],['color','色'],['font','書体']]){const b=node('button',label);b.type='button';b.onclick=()=>setTab(key);tabs.append(b);tabButtons[key]=b}
- panels.motion.append(motionHeading,motions,customCards,add,savedLabel,more,motionNote);panels.color.append(chips,palette,customLabel,reset,decoRow,edgeLabel,widthLabel);panels.font.append(fontLabel,fontsActions,browser,fontNote);
+ panels.motion.append(motionHeading,motions,customCards,add,savedLabel,more,motionNote);panels.color.append(chips,palette,customLabel,reset,decoRow,...(sizeRow?[sizeRow]:[]),edgeLabel,widthLabel);panels.font.append(fontLabel,fontsActions,browser,fontNote);
  if(motionPanel)panels.motion.replaceChildren(motionPanel);   // the host's own 動き tab (STUDIO: the code motions and effects)
  content.replaceChildren(nav,wordsLabel,tabs,scopeLabel,selected,panels.motion,panels.color,panels.font,status);
  function setTab(key){activeTab=key;for(const [k,p]of Object.entries(panels)){p.hidden=k!==key;tabButtons[k].setAttribute('aria-pressed',String(k===key))}scopeLabel.hidden=selected.hidden=key==='motion';scope.options[1].disabled=key==='font';if(key==='font'&&scope.value==='word')scope.value='line';describe()}
