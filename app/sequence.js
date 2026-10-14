@@ -102,7 +102,7 @@ export const seq = {
   audioBuffer: null, audioOwner: null, audioName: '', withAudio: true, phase: 0, link: false, selection: null,
   fx: { blur: 0, bloom: 0, neon: 0, neonColor: '', glass: 0, chroma: 0, glitch: 0, scan: 0, grain: 0, vignette: 0, bokeh: 0 },
   cam: { persp: 0, kenburns: 0, handheld: 0, tilt: 0, orbit: 0 },
-  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, detail: 1, tiles: .5, depth: 1, fill: true, silSens: 0.5,
+  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0.5, detail: 1, tiles: .5, depth: 1, fill: true, silSens: 0.5,
   playing: false, t: 0, audio: null, recording: false,
 };
 
@@ -367,12 +367,16 @@ function updateTransport(sec, L) {
 }
 // which part of a change is on screen — the same colours as the timeline bands and the two "引き" sliders
 const PHASE_LABELS = { chaos: 'ぐちゃぐちゃ', form: '立体化' };
-const PHASE_BANDS = [['chaos', 0, 32.5], ['form', 32.5, 73], ['chaos', 73, 83]];   // where curves() has form / distort above half
+// where curves() has form / distort above half (percent of the change); the solid's part moves later with 「ぐちゃぐちゃの長さ」
+function phaseBands() {
+  const d = Math.max(0, Math.min(1, Number(seq.chaosLength) || 0)) * .2, s = .2 + d, back = u => s + (u - .2) * (1 - s) / .8;   // u' -> real u
+  return [['chaos', 0, +(back(.325) * 100).toFixed(1)], ['form', +(back(.325) * 100).toFixed(1), +(back(.73) * 100).toFixed(1)], ['chaos', +(back(.73) * 100).toFixed(1), +(back(.83) * 100).toFixed(1)]];
+}
 function phaseOf(L) {
   if (L.tr < 0) return null;
   if (seq.transitions[L.tr].shape === 'none') return L.u > .03 && L.u < .97 ? 'chaos' : null;
   const u = L.u * 100;
-  return PHASE_BANDS.find(([, a, b]) => u >= a && u < b)?.[0] || null;
+  return phaseBands().find(([, a, b]) => u >= a && u < b)?.[0] || null;
 }
 // the 04 見た目 tab shows only what works where the playhead is (docs/superpowers/specs/2026-10-02-phase-filtered-look-tab-design.md).
 // lookMode is not saved: reopening starts in 'auto'.
@@ -1263,7 +1267,7 @@ function stateForSave() {
   return {
     lyricDocument:seq.lyricDocument,
     settings: { lyricMotion:cleanLyricSettings(seq.lyricMotion), bpm: seq.bpm, phase: seq.phase, holdBeats: seq.holdBeats, offset: seq.offset, bg: seq.bg, push: seq.push, pulse: seq.pulse,
-      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, detail: seq.detail, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook) },
+      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, chaosLength: seq.chaosLength, detail: seq.detail, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook) },
     slides: seq.slides, transitions: seq.transitions, lyrics: seq.lyrics,
     audio: seq.audioOwner ? { owner: seq.audioOwner, name: seq.audioName } : null,
     methods: collectMethods(seq.transitions, getCustom),     // goes into .unfold files only (exportFile); the autosave ignores it
@@ -1317,6 +1321,7 @@ async function restoreProject(json, blobs) {
   const st = json.settings || {};
   seq.renderLook = cleanRenderLook(st.renderLook);
   for (const k of ['bpm', 'phase', 'holdBeats', 'offset', 'bg', 'push', 'pulse', 'strength', 'pullback', 'formPullback', 'detail', 'tiles', 'depth', 'fill', 'silSens', 'withAudio', 'link']) if (st[k] !== undefined) seq[k] = st[k];
+  seq.chaosLength = Number.isFinite(st.chaosLength) ? Math.max(0, Math.min(1, st.chaosLength)) : 0;   // a project saved before this setting keeps its timing
   if (st.lyricOpts) seq.lyricOpts = { ...seq.lyricOpts, ...st.lyricOpts };
   if (st.fx) seq.fx = { ...seq.fx, ...st.fx };
   if (st.cam) seq.cam = { ...seq.cam, ...st.cam };
@@ -1338,7 +1343,7 @@ async function restoreProject(json, blobs) {
   seq.lyrics = json.lyrics || [];
   if (json.audio?.asset && blobs.get(json.audio.asset)) await loadAudio(blobs.get(json.audio.asset), json.audio.name, json.audio.asset,{restoring:true});
   else {seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';seq.audioBlob=null;seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; ($('seq-audio-name')||{}).textContent = '';}
-  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-offset', 'offset', 1], ['seq-push', 'push', 100], ['seq-pulse', 'pulse', 100], ['seq-strength', 'strength', 100], ['seq-pullback', 'pullback', 100], ['seq-form-pullback', 'formPullback', 100], ['seq-detail', 'detail', 100], ['seq-tiles', 'tiles', 100], ['seq-sil', 'silSens', 100]]) $(id).value = +(seq[key] * scale).toFixed(2);
+  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-offset', 'offset', 1], ['seq-push', 'push', 100], ['seq-pulse', 'pulse', 100], ['seq-strength', 'strength', 100], ['seq-pullback', 'pullback', 100], ['seq-form-pullback', 'formPullback', 100], ['seq-chaos', 'chaosLength', 100], ['seq-detail', 'detail', 100], ['seq-tiles', 'tiles', 100], ['seq-sil', 'silSens', 100]]) $(id).value = +(seq[key] * scale).toFixed(2);
   $('seq-fill').checked = seq.fill; $('seq-bg').value = seq.bg; $('seq-with-audio').checked = seq.withAudio;
   $('lyr-style').value = seq.lyricOpts.style; $('lyr-trans').value = seq.lyricOpts.transBeats; $('lyr-snap').checked = seq.lyricOpts.snap;
   $('lyr-text').value = seq.lyrics.map(l => l.t).join('\n');
@@ -1412,7 +1417,7 @@ const timelineApi = {
   transitionInfo: i => {
     const tr = seq.transitions[i];
     const label = methodLabel(tr.method) + (tr.method2 ? '→' + methodLabel(tr.method2) : '') + (tr.shape === 'none' ? { through: ' ⇢', reveal: ' ⤳', return: ' ⇄' }[tr.flow ?? 'through'] : ' / ' + shapeLabel(tr));
-    return { label: label + (tr.fx && Object.keys(tr.fx).length ? ' ✦' : ''), flat: tr.shape === 'none', bands: tr.shape === 'none' ? [['chaos', 3, 97]] : PHASE_BANDS, title: `${label}（${+tr.beats.toFixed(2)}拍）\nドラッグで切り替え位置、両端で長さ` };
+    return { label: label + (tr.fx && Object.keys(tr.fx).length ? ' ✦' : ''), flat: tr.shape === 'none', bands: tr.shape === 'none' ? [['chaos', 3, 97]] : phaseBands(), title: `${label}（${+tr.beats.toFixed(2)}拍）\nドラッグで切り替え位置、両端で長さ` };
   },
   isLinked: k => seq.link && linkedTransition(seq.lyrics[k]?.id) >= 0,
   select: sel => {if(sel.kind==='lyric'&&seq.lyricDocument){lyricSelectedId=seq.lyrics[sel.i]?.id;seq.selection=sel;showTab('lyric');lyricControls?.refresh();lyricControls?.revealQuick();timeline.render();return} seq.selection = sel; renderInspector(); renderMethodGrid(); timeline.render(); showTab('edit'); },
@@ -1477,7 +1482,7 @@ function wire() {
   for (const ev of ['dragenter', 'dragover']) dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); });
   dz.ondragleave = () => dz.classList.remove('over');
   dz.ondrop = e => { e.preventDefault(); dz.classList.remove('over'); addFiles([...e.dataTransfer.files]); };
-  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-push', 'push', .01], ['seq-pulse', 'pulse', .01], ['seq-strength', 'strength', .01], ['seq-pullback', 'pullback', .01], ['seq-form-pullback', 'formPullback', .01]]) {
+  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-push', 'push', .01], ['seq-pulse', 'pulse', .01], ['seq-strength', 'strength', .01], ['seq-pullback', 'pullback', .01], ['seq-form-pullback', 'formPullback', .01], ['seq-chaos', 'chaosLength', .01]]) {
     $(id).oninput = e => { seq[key] = Number(e.target.value) * scale; refreshUI(); };
   }
   $('seq-detail').oninput = e => { seq.detail = Number(e.target.value) / 100; applyParticleDetail(); renderAt(seq.t); scheduleSave(); };
@@ -1499,7 +1504,7 @@ function wire() {
     if (seq.recording) return;
     stopPlay();
     const L = locate(seq.t);
-    if (L.tr < 0 || curves(L.u).form < .05) { notice('立体化の位置に移動すると、ドラッグで向きを変えられるよ。'); return; }
+    if (L.tr < 0 || curves(L.u, seq.chaosLength).form < .05) { notice('立体化の位置に移動すると、ドラッグで向きを変えられるよ。'); return; }
     const tr = seq.transitions[L.tr];
     drag = { x: e.clientX, y: e.clientY, viewX: tr.viewX || 0, viewY: tr.viewY || 0, index: L.tr };
     canvas.setPointerCapture(e.pointerId);

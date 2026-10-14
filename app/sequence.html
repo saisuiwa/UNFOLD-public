@@ -272,6 +272,7 @@
     <div class="row"><label>音楽の開始位置（秒）</label><input id="seq-offset" type="number" value="0" step="0.01"></div>
     <h2>見た目</h2>
     <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>崩れの強さ</label><input id="seq-strength" type="range" min="0" max="100" value="80"></div>
+    <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>ぐちゃぐちゃの長さ</label><input id="seq-chaos" type="range" min="0" max="100" value="50" title="立体化が始まるまでの、ぐちゃぐちゃの時間。0%で今までどおり（崩れの途中で立体化が始まる）。右に動かすほど、崩れきってから立体になります。変化全体の長さは変わりません"></div>
     <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>ぐちゃぐちゃ中の引き</label><input id="seq-pullback" type="range" min="0" max="100" value="100" title="0%で画面いっぱいのまま崩れる。100%で今までどおり小さく引く"></div>
     <div class="row" data-phase="form"><label><span class="phase-dot form"></span>立体化中の引き</label><input id="seq-form-pullback" type="range" min="0" max="100" value="100" title="0%で立体になっても画面いっぱいのまま。100%で今までどおり小さく引く"></div>
     <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>粒の細かさ（GLB・文字）</label><input id="seq-detail" type="range" min="0" max="100" value="100" title="銀河・塵・雪など粒で崩すときの粒の大きさ。0%でプリセットと同じ、100%でモデルの面そのまま"></div>
@@ -318,7 +319,7 @@
 <section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
 </main>
 <div id="seq-notice"></div>
-<script type="module" src="./sequence.js?v=104"></script>
+<script type="module" src="./sequence.js?v=105"></script>
 <script type="module" src="./panel-resize.js?v=1"></script>
 </body>
 </html>

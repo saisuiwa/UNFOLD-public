@@ -14,7 +14,7 @@ import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js'
 import {BUILTIN_IDS as METHOD_IDS} from './method-registry.js';
 import {assembleVertex} from './custom-method.js';
 import {importModel} from './model-import.js';
-import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves as curves} from './sequence-core.js';
+import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves as curves,warpTime} from './sequence-core.js';
 import {StudioError} from './studio/model.js';
 import {checkAbort} from './studio/file.js';
 import {layerFrame} from './studio/image-layer.js';
@@ -50,7 +50,7 @@ const defaults = {
   audioBuffer: null, audioOwner: null, audioName: '', withAudio: true, phase: 0, link: false, selection: null,
   fx: { blur: 0, bloom: 0, neon: 0, neonColor: '', glass: 0, chroma: 0, glitch: 0, scan: 0, grain: 0, vignette: 0, bokeh: 0 },
   cam: { persp: 0, kenburns: 0, handheld: 0, tilt: 0, orbit: 0 },
-  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, detail: 1, tiles: .5, depth: 1, fill: true, silSens: 0.5,
+  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0, detail: 1, tiles: .5, depth: 1, fill: true, silSens: 0.5,
   playing: false, t: 0, audio: null, recording: false,
 };
 export function drawSequenceVisual(ctx,sec) {
@@ -62,7 +62,8 @@ export function drawSequenceVisual(ctx,sec) {
   const u = mesh.material.uniforms;
   let c = { distort: 0, form: 0, conceal: 0, swap: 0, spin: 0 };
   let tr = null;
-  if (L.tr >= 0) { tr = seq.transitions[L.tr]; c = curves(L.u); }
+  if (L.tr >= 0) { tr = seq.transitions[L.tr]; c = curves(L.u, seq.chaosLength); }
+  const uw = warpTime(L.u, seq.chaosLength);   // the solid's part of the change (picture swap, look) runs on this later time
   const imageCode=imageTransition(tr);if(tr?.shape === 'none')c.form=0;
   // no solid + "pass through": one gesture — A breaks away, B flies in from the other side (no pause in the middle)
   const flow = imageCode?'return':tr?.shape === 'none' ? (tr.flow ?? 'through') : '';
@@ -77,7 +78,7 @@ export function drawSequenceVisual(ctx,sec) {
     c.conceal = smooth(.03, .2, u2) * (1 - smooth(.8, .97, u2));
     c.swap = u2 < .5 ? 0 : 1;
   }
-  if (tr && tr.shape !== 'none') c.swap = swapCurve(tr, L.u, c.swap);   // a ◆ can keep the solid the first picture (lateSwap)
+  if (tr && tr.shape !== 'none') c.swap = swapCurve(tr, uw, c.swap);   // a ◆ can keep the solid the first picture (lateSwap)
   const key = tr ? shapeKey(tr, L.tr) : 'sphere';
   let geo = geoCache.get(key);
   if (!geo) {   // still being built: show the sphere grid meanwhile
@@ -146,7 +147,7 @@ export function drawSequenceVisual(ctx,sec) {
   renderer.setClearColor(seq.bg, 1);
   // effects: the global look, each picture's own look (flowing from one to the next across a ◆), then this ◆'s own settings while it is breaking up / solid
   const env = tr ? Math.max(c.distort, c.form) : 0;
-  const fx = mixFx(FX_KEYS, { global: seq.fx, from: seq.slides[L.i].fx, to: tr ? (seq.slides[L.i + 1]?.fx ?? {}) : null, trFx: tr?.fx, u: L.u, env, late: tr?.lateSwap === true && tr.shape !== 'none' });
+  const fx = mixFx(FX_KEYS, { global: seq.fx, from: seq.slides[L.i].fx, to: tr ? (seq.slides[L.i + 1]?.fx ?? {}) : null, trFx: tr?.fx, u: tr && tr.shape !== 'none' ? uw : L.u, env, late: tr?.lateSwap === true && tr.shape !== 'none' });
   applyRenderLook(u, seq.renderLook);
   u.uGlass.value = imageCode?0:fx.glass;
   sceneBlur.render(scene, view, imageCode?0:fx.blur, imageCode?0:fx.glitch, imageCode?0:fx.chroma, sec, imageCode?{}:{ ...fx, neonColor: seq.fx.neonColor });
