@@ -2,7 +2,9 @@ const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3
 // ぐちゃぐちゃの長さ (chaos length, 0..1): how much longer the breaking-up lasts before the solid starts to form. 0 is the original timing.
 // The solid's part of the change (form, picture swap, spin and the way back) starts later and is squeezed into the rest, so the change keeps its length;
 // the breaking-up itself finishes before the solid begins instead of being cut off half way.
-const chaosShift=hold=>Math.max(0,Math.min(1,Number(hold)||0))*.2;
+// 0..50 % of the slider move the solid's start from 20 % to 30 % of the change (as first released); the upper half goes on to 65 %, so that a slow effect
+// such as 焦げ穴と炎 (it burns through the picture until about 62 %) can finish before the solid forms.
+export const chaosShift=hold=>{const h=Math.max(0,Math.min(1,Number(hold)||0));return h<=.5?h*.2:.1+(h-.5)*.7;};
 /** The time of the solid's part: the same as u when hold is 0, otherwise later (u' <= u). */
 export function warpTime(u,hold=0){const d=chaosShift(hold);if(!d)return u;const s=.2+d;return u<s?u*(.2/s):.2+(u-s)*(.8/(1-s));}
 export function sequenceCurves(u,hold=0){const d=chaosShift(hold),w=warpTime(u,hold),out=1-smooth(.70,.96,w);return {distort:smooth(0,.28+d*.6,u)*out,form:smooth(.20,.45,w)*(1-smooth(.60,.86,w)),conceal:smooth(.03,.18,u)*(1-smooth(.82,.97,w)),swap:smooth(.46,.54,w),spin:smooth(.24,.80,w)};}

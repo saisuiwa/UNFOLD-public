@@ -1,5 +1,5 @@
 import {drawSequenceVisual} from './sequence-renderer.js';
-import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves} from './sequence-core.js';
+import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift} from './sequence-core.js';
 import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
@@ -369,7 +369,7 @@ function updateTransport(sec, L) {
 const PHASE_LABELS = { chaos: 'ぐちゃぐちゃ', form: '立体化' };
 // where curves() has form / distort above half (percent of the change); the solid's part moves later with 「ぐちゃぐちゃの長さ」
 function phaseBands() {
-  const d = Math.max(0, Math.min(1, Number(seq.chaosLength) || 0)) * .2, s = .2 + d, back = u => s + (u - .2) * (1 - s) / .8;   // u' -> real u
+  const d = chaosShift(seq.chaosLength), s = .2 + d, back = u => s + (u - .2) * (1 - s) / .8;   // u' -> real u
   return [['chaos', 0, +(back(.325) * 100).toFixed(1)], ['form', +(back(.325) * 100).toFixed(1), +(back(.73) * 100).toFixed(1)], ['chaos', +(back(.73) * 100).toFixed(1), +(back(.83) * 100).toFixed(1)]];
 }
 function phaseOf(L) {
