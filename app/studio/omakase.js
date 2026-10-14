@@ -3,14 +3,16 @@
 // Pure functions: no DOM, no controller.
 import {cleanMotion} from '../lyric-motion.js?v=26';
 import {DAILY_CODE_MOTIONS} from '../code-motion-daily.js';
+import {pickWordScales,sizeRuns} from './word-size.js';
+import {EXTENTS} from './omakase-extents.js';
 
 export const MOODS=[
- {id:'calm',name:'しっとり',text:['drop-settle','squash-in','rgb-settle','gucha-melt','gucha-ripple','gucha-bubble','gucha-ghost','kn-flow','kn-dive','echo-stack'],bg:['bg-concentric','bg-dot-wave','bg-bokeh','bg-ink-bleed','bg-plasma-lines'],families:['pastel','white','cool','warm'],size:{base:.075,spread:.015}},
- {id:'pop',name:'ポップ',text:['gucha-squash','gucha-rubber','gucha-bubble','gucha-burst','gucha-wobble','kn-slam','kn-seesaw','kn-collide','letter-boxes','keycap-type'],bg:['bg-dot-wave','bg-diagonal','bg-checker-wave','bg-halftone-pop','bg-zigzag'],families:['pastel','neon','white','warm'],size:{base:.09,spread:.02}},
- {id:'glitch',name:'グリッチ',text:['rgb-settle','gucha-boil','gucha-shuffle','gucha-strips','kn-swap','kn-cuts','kn-typeslam','bracket-glitch','flip-up'],bg:['bg-scan-grid','bg-speed-lines','bg-grid-warp','bg-scribble','bg-rain-streaks'],families:['neon','mono','cool','rock'],size:{base:.085,spread:.018}},
- {id:'graphic',name:'グラフィック',text:['kn-turn','kn-reflow','gucha-steps','gucha-lanes','gucha-tiles','gucha-flip','layer-extrude','echo-stack','tape-cards'],bg:['bg-square-tunnel','bg-diagonal','bg-scan-grid','bg-hex-pulse','bg-checker-wave','bg-sunburst'],families:['mono','white','rock','gold'],size:{base:.092,spread:.02}},
- {id:'emotional',name:'エモ',text:['gucha-gather','gucha-ghost','gucha-magnet','gucha-spiral','gucha-tangle','kn-dive','drop-settle','echo-stack'],bg:['bg-concentric','bg-square-tunnel','bg-bokeh','bg-ink-bleed','bg-starfield'],families:['pastel','cool','warm','gold'],size:{base:.08,spread:.016}},
- {id:'impact',name:'勢い',text:['kn-slam','gucha-pile','gucha-burst','kn-collide','kn-typeslam','kn-cuts','layer-extrude','gucha-squash'],bg:['bg-speed-lines','bg-diagonal','bg-sunburst','bg-rain-streaks','bg-zigzag'],families:['rock','gold','neon','white'],size:{base:.105,spread:.025}},
+ {id:'calm',name:'しっとり',text:['drop-settle','squash-in','rgb-settle','gucha-melt','gucha-ripple','gucha-bubble','gucha-ghost','kn-flow','kn-dive','echo-stack','tate-columns','slant-flow','handdrawn-mark','marker-highlight','sticky-notes'],bg:['bg-concentric','bg-dot-wave','bg-bokeh','bg-ink-bleed','bg-plasma-lines'],families:['pastel','white','cool','warm'],size:{base:.075,spread:.015}},
+ {id:'pop',name:'ポップ',text:['gucha-squash','gucha-rubber','gucha-bubble','gucha-burst','gucha-wobble','kn-slam','kn-seesaw','kn-collide','letter-boxes','keycap-type','size-beat','corner-words','stair-words','sticker-stick','bubble-pop','sticky-notes','patch-badge','handdrawn-mark'],bg:['bg-dot-wave','bg-diagonal','bg-checker-wave','bg-halftone-pop','bg-zigzag'],families:['pastel','neon','white','warm'],size:{base:.09,spread:.02}},
+ {id:'glitch',name:'グリッチ',text:['rgb-settle','gucha-boil','gucha-shuffle','gucha-strips','kn-swap','kn-cuts','kn-typeslam','bracket-glitch','flip-up','cross-vertical','slant-flow','label-writer','stamp-ink','ticket-stub'],bg:['bg-scan-grid','bg-speed-lines','bg-grid-warp','bg-scribble','bg-rain-streaks'],families:['neon','mono','cool','rock'],size:{base:.085,spread:.018}},
+ {id:'graphic',name:'グラフィック',text:['kn-turn','kn-reflow','gucha-steps','gucha-lanes','gucha-tiles','gucha-flip','layer-extrude','echo-stack','tape-cards','tate-columns','cross-vertical','corner-words','stair-words','label-writer','stamp-ink','ticket-stub','chalk-board','patch-badge','marker-highlight'],bg:['bg-square-tunnel','bg-diagonal','bg-scan-grid','bg-hex-pulse','bg-checker-wave','bg-sunburst'],families:['mono','white','rock','gold'],size:{base:.092,spread:.02}},
+ {id:'emotional',name:'エモ',text:['gucha-gather','gucha-ghost','gucha-magnet','gucha-spiral','gucha-tangle','kn-dive','drop-settle','echo-stack','tate-columns','slant-flow','sticky-notes','handdrawn-mark','chalk-board'],bg:['bg-concentric','bg-square-tunnel','bg-bokeh','bg-ink-bleed','bg-starfield'],families:['pastel','cool','warm','gold'],size:{base:.08,spread:.016}},
+ {id:'impact',name:'勢い',text:['kn-slam','gucha-pile','gucha-burst','kn-collide','kn-typeslam','kn-cuts','layer-extrude','gucha-squash','size-beat','slant-flow','cross-vertical','stamp-ink','sticker-stick','patch-badge','label-writer'],bg:['bg-speed-lines','bg-diagonal','bg-sunburst','bg-rain-streaks','bg-zigzag'],families:['rock','gold','neon','white'],size:{base:.105,spread:.025}},
 ];
 export const MOOD_AUTO='auto';
 
@@ -61,10 +63,106 @@ export const moodOf=id=>MOODS.find(m=>m.id===id);
 
 function hash(text){let h=2166136261;for(const c of String(text)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
 export function rng(seed){let a=hash(seed);return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
-export const newSeeds=(random=Math.random)=>({mood:Math.floor(random()*1e9),text:Math.floor(random()*1e9),bg:Math.floor(random()*1e9),color:Math.floor(random()*1e9),size:Math.floor(random()*1e9)});
+export const newSeeds=(random=Math.random)=>({mood:Math.floor(random()*1e9),text:Math.floor(random()*1e9),bg:Math.floor(random()*1e9),color:Math.floor(random()*1e9),size:Math.floor(random()*1e9),layout:Math.floor(random()*1e9)});
+
+
+// ---- 配置と語ごとの大小 (where a line sits in the picture, and how big each word is) --------------------------------------------------------------
+// The text motions draw their line around the middle of the picture; the lyric's layout (x, y, scale, rotation) moves that whole drawing, so a line can
+// sit in a corner, at an edge, be tilted or turned sideways. The drawing is scaled down a little (and kept inside a margin) so it never leaves the picture.
+// The word sizes are runs' `scale` (word-size.js): content words big, particles small, as 参考ツール does.
+export const LAYOUT_SPREAD='spread',LAYOUT_CENTER='center';
+const PLACES={center:[.5,.5],'top-left':[.3,.3],'top-right':[.7,.3],'bottom-left':[.3,.7],'bottom-right':[.7,.7],top:[.5,.24],bottom:[.5,.76],left:[.27,.5],right:[.73,.5]};
+// per mood: how often each place is used, how far lines are tilted (degrees), how often a short line is turned sideways, how strong the word sizes are
+const LAYOUT_STYLE={
+ calm:{weights:{center:5,bottom:2,top:1.5,left:1,right:1,'top-left':1,'bottom-right':1},tilt:1.5,sideways:0,words:.6},
+ pop:{weights:{center:2,'top-left':2,'top-right':2,'bottom-left':2,'bottom-right':2,top:1,bottom:1,left:1,right:1},tilt:7,sideways:.05,words:1},
+ glitch:{weights:{center:2,'top-left':2,'bottom-right':2,left:1.5,right:1.5,top:1,bottom:1},tilt:3,sideways:.12,words:.9},
+ graphic:{weights:{center:2,left:2,right:2,top:1.5,bottom:1.5,'top-left':1.5,'bottom-right':1.5},tilt:0,sideways:.14,words:1},
+ emotional:{weights:{center:4,'bottom-left':1.5,'top-right':1.5,bottom:1.5,top:1},tilt:3,sideways:.04,words:.7},
+ impact:{weights:{center:3,'top-left':1.5,'top-right':1.5,'bottom-left':1.5,'bottom-right':1.5,left:1,right:1},tilt:5,sideways:.06,words:1}
+};
+const FALLBACK_STYLE=LAYOUT_STYLE.pop,MARGIN=.045;
+// motions that place and size the words themselves (a vertical column, stairs, corners ...): they stay where they are and get no word sizes from the plan
+export const SELF_PLACED=new Set(['tate-columns','stair-words','corner-words','cross-vertical','size-beat','slant-flow']);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function weighted(weights,rnd,exclude){
+ const entries=Object.entries(weights).filter(([k])=>k!==exclude);
+ let total=entries.reduce((s,[,w])=>s+w,0),r=rnd()*total;
+ for(const [k,w] of entries){r-=w;if(r<=0)return k;}
+ return entries.at(-1)[0];
+}
+/**
+ * How wide and tall (in multiples of the font size) the line of this motion really is at rest: measured per motion, view and length
+ * (omakase-extents.js, made by tools/omakase_extents.mjs) and read in between; a motion that was not measured gets the plain estimate, with room to spare.
+ */
+export function extentOf(key,view,chars){
+ const table=EXTENTS[key]?.[view.width>=view.height?'wide':'tall'];
+ if(table?.length){
+  if(chars<=table[0][0])return {w:table[0][1],h:table[0][2]};
+  for(let i=1;i<table.length;i++)if(chars<=table[i][0]){const [n0,w0,h0]=table[i-1],[n1,w1,h1]=table[i],u=(chars-n0)/(n1-n0);return {w:w0+(w1-w0)*u,h:h0+(h1-h0)*u};}
+  const [,w,h]=table.at(-1);return {w,h};
+ }
+ return null;
+}
+/**
+ * Where one line goes in one view: {x,y,scale,rotation}. `extent` is the measured size of the drawn line in multiples of the font size ({w,h}; null = a plain
+ * estimate from the characters, 1.5 times for safety). If the place asked for cannot be reached with the line this big, the line is made a little smaller,
+ * and if it still cannot, it stays in the middle (as before).
+ */
+export function placeLine({chars,fontScale,view,place,rotation=0,scale=1,extent=null}){
+ const W=view.width,H=view.height,m=Math.min(W,H),fs=fontScale*m;
+ let boxW,boxH;
+ if(extent){boxW=extent.w*fs;boxH=extent.h*fs;}
+ else{const perLine=Math.max(1,Math.floor(W*.82/fs)),lines=Math.max(1,Math.ceil(chars/perLine));boxW=Math.min(chars,perLine)*fs*1.5;boxH=lines*fs*1.4*1.5;}
+ const half=(rot,s)=>{const a=Math.abs(rot)*Math.PI/180,c=Math.abs(Math.cos(a)),sn=Math.abs(Math.sin(a));return {hw:(c*boxW+sn*boxH)*s/2/W,hh:(sn*boxW+c*boxH)*s/2/H};};
+ const fits=({hw,hh})=>hw<=.5-MARGIN&&hh<=.5-MARGIN;
+ const round=(x,y,s,r)=>({x:Math.round(x*1000)/1000,y:Math.round(y*1000)/1000,scale:Math.round(s*1000)/1000,rotation:Math.round(r*10)/10});
+ const [tx,ty]=PLACES[place]||PLACES.center;
+ if(place!=='center'){
+  for(let s=scale;s>=.5;s*=.92){
+   const h=half(rotation,s);if(!fits(h))continue;
+   const x=clamp(tx,MARGIN+h.hw,1-MARGIN-h.hw),y=clamp(ty,MARGIN+h.hh,1-MARGIN-h.hh);
+   if(Math.abs(x-tx)<=.04&&Math.abs(y-ty)<=.04)return round(x,y,s,rotation);
+  }
+ }
+ // the middle: as it was before; a tilt is kept only when the tilted line still fits
+ for(const rot of [rotation,0]){
+  for(let s=1;s>=.8;s*=.95){if(fits(half(rot,s)))return round(.5,.5,s,rot);}
+ }
+ return round(.5,.5,1,0);
+}
+function planLayout(project,lyrics,sizes,lines,{mood,layout,seeds}){
+ const style=LAYOUT_STYLE[mood]||FALLBACK_STYLE,views=Object.values(project.views||{}),scaleOf=new Map(sizes.map(s=>[s.id,s.fontScale])),keyOf=new Map(lines.map(l=>[l.id,l.key]));
+ const places=[],words=[];
+ if(layout===LAYOUT_CENTER){
+  for(const l of lyrics){places.push({id:l.id,views:Object.fromEntries(views.map(v=>[v.id,{x:.5,y:.5,scale:1,rotation:0}]))});words.push({id:l.id,ranges:[]});}
+  return {places,words};
+ }
+ const rp=rng('layout:'+(seeds.layout??seeds.size??seeds.text)),rw=rng('words:'+(seeds.layout??seeds.size??seeds.text));
+ let previous='';
+ for(const l of lyrics){
+  const n=charCount(l.text);
+  if(SELF_PLACED.has(keyOf.get(l.id))){
+   places.push({id:l.id,place:'self',views:Object.fromEntries(views.map(v=>[v.id,{x:.5,y:.5,scale:1,rotation:0}]))});words.push({id:l.id,ranges:[]});
+   continue;
+  }
+  let place=weighted(style.weights,rp,previous);previous=place;
+  let rotation=0;
+  const tilt=style.tilt*(rp()*2-1);
+  if(n<=9&&(place==='left'||place==='right')&&rp()<style.sideways)rotation=rp()<.5?90:-90;
+  else if(Math.abs(tilt)>.8)rotation=tilt;
+  else rp();
+  const scale=place==='center'?1:.72+rp()*.14;
+  const byView={};
+  for(const v of views)byView[v.id]=placeLine({chars:n,fontScale:scaleOf.get(l.id)??.08,view:v,place,rotation,scale,extent:extentOf(keyOf.get(l.id),v,n)});
+  places.push({id:l.id,place,views:byView});
+  words.push({id:l.id,ranges:pickWordScales(l.text,rw,{strength:style.words})});
+ }
+ return {places,words};
+}
 
 /** The plan for this project: which key for which lyric, which background for which stretch, which palette. */
-export function planOmakase(project,{mood=MOOD_AUTO,family=FAMILY_AUTO,sizePct=SIZE_PCT.default,seeds}){
+export function planOmakase(project,{mood=MOOD_AUTO,family=FAMILY_AUTO,sizePct=SIZE_PCT.default,layout=LAYOUT_SPREAD,seeds}){
  const chosen=mood===MOOD_AUTO?MOODS[Math.floor(rng('mood:'+seeds.mood)()*MOODS.length)]:moodOf(mood)||MOODS[0];
  const lyrics=[...project.lyrics].sort((a,b)=>a.startUs-b.startUs);
  // a motion for every lyric, never the same as the line before or the one before that
@@ -83,7 +181,8 @@ export function planOmakase(project,{mood=MOOD_AUTO,family=FAMILY_AUTO,sizePct=S
  });
  // a colour family (the one asked for, else one of the mood's), then a palette of that family
  const rc=rng('color:'+seeds.color),asked=family!==FAMILY_AUTO?familyOf(family):null,fam=asked||familyOf(chosen.families[Math.floor(rc()*chosen.families.length)])||COLOR_FAMILIES[0],palette=fam.palettes[Math.floor(rc()*fam.palettes.length)];
- return {moodId:chosen.id,moodName:chosen.name,seeds:{...seeds},lines,blocks,sizes,palette:{name:palette.name,color:palette.color,emphasisColor:palette.emphasisColor,familyId:fam.id,familyName:fam.name}};
+ const {places,words}=planLayout(project,lyrics,sizes,lines,{mood:chosen.id,layout,seeds});
+ return {moodId:chosen.id,moodName:chosen.name,seeds:{...seeds},lines,blocks,sizes,places,words,layout,palette:{name:palette.name,color:palette.color,emphasisColor:palette.emphasisColor,familyId:fam.id,familyName:fam.name}};
 }
 
 // the sequence's own normaliser decides what a motion patch means; STUDIO-only fields (font assets) are kept
@@ -99,7 +198,7 @@ export function mergeMotion(old,patch){
  * One batch (one undo): the lyric motions / colours, and the background clips (the previous おまかせ backgrounds are replaced).
  * `parts` says what to touch; lyrics' text and timing, the song and every other clip are never touched.
  */
-export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:true,size:true},newId=()=>crypto.randomUUID()}={}){
+export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:true,size:true,layout:false},newId=()=>crypto.randomUUID()}={}){
  const commands=[],line=new Map((plan.lines||[]).map(l=>[l.id,l.key]));
  if(parts.text||parts.color){
   for(const l of project.lyrics){
@@ -112,6 +211,18 @@ export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:tru
  if(parts.size){
   const sizes=new Map((plan.sizes||[]).map(x=>[x.id,x.fontScale]));
   for(const l of project.lyrics)if(sizes.has(l.id))for(const viewId of Object.keys(project.views))commands.push({type:'setLayout',id:l.id,viewId,patch:{fontScale:sizes.get(l.id)}});
+ }
+ if(parts.layout){
+  const lyricById=new Map(project.lyrics.map(l=>[l.id,l]));
+  for(const pl of plan.places||[]){
+   for(const [viewId,patch] of Object.entries(pl.views||{}))if(project.views[viewId]?.layout[pl.id])commands.push({type:'setLayout',id:pl.id,viewId,patch});
+  }
+  for(const w of plan.words||[]){
+   const l=lyricById.get(w.id);if(!l)continue;
+   const had=(l.runs||[]).some(r=>r.scale!=null&&r.scale!==1);
+   if(!w.ranges.length&&!had)continue;
+   commands.push({type:'setLyricText',id:l.id,text:l.text,runs:sizeRuns(l,w.ranges)});
+  }
  }
  if(parts.bg){
   for(const c of project.clips)if(c.settings?.omakase)commands.push({type:'deleteClip',id:c.id});
@@ -137,5 +248,5 @@ export function opacityCommands(project,opacity){
 /** What the plan says, for the "いまの案" box. */
 export function describePlan(plan){
  const names=keys=>[...new Set(keys)].map(k=>motionOf(k)?.name||k);
- const scales=(plan.sizes||[]).map(x=>x.fontScale);return {mood:plan.moodName,motions:names(plan.lines.map(l=>l.key)),backgrounds:names(plan.blocks.map(b=>b.key)),palette:plan.palette.name,size:scales.length?{min:Math.min(...scales),max:Math.max(...scales)}:null};
+ const scales=(plan.sizes||[]).map(x=>x.fontScale);return {mood:plan.moodName,motions:names(plan.lines.map(l=>l.key)),backgrounds:names(plan.blocks.map(b=>b.key)),palette:plan.palette.name,layout:plan.layout===LAYOUT_CENTER?'真ん中に揃える':'位置と語の大小をばらけさせる',size:scales.length?{min:Math.min(...scales),max:Math.max(...scales)}:null};
 }

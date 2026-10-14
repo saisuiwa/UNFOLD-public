@@ -1,11 +1,12 @@
 // Troika colorRanges use offsets within each mesh, while lyric runs use the
 // original text. Resolve fragments in creation order, including skipped spaces.
 // Besides the colours, `resolve.marks` holds the word decorations (縁取り outline / 中抜き hollow) of the last fragment,
-// as ranges of that mesh's own text: [{from,to,outline,hollow}].
+// as ranges of that mesh's own text: [{from,to,outline,hollow}]. `resolve.sizes` holds the word sizes (a run's `scale`, 1 = as set) of the last
+// fragment in the same ranges: [{from,to,scale}] (only for runs that are not 1).
 export function createMotionColorResolver({text,runs=[],color,accent}){
  let cursor=0;
  const resolve=(value,options={})=>{
-  resolve.marks=[];
+  resolve.marks=[];resolve.sizes=[];
   if(Object.hasOwn(options,'colorRanges'))return options.colorRanges;
   value=String(value);if(!value)return null;
   const explicit=Number.isInteger(options.textStart)&&options.textStart>=0&&options.textStart+value.length<=text.length;
@@ -22,10 +23,11 @@ export function createMotionColorResolver({text,runs=[],color,accent}){
     if(run.color||run.emphasis)styled=true;
     if(run.outline||run.hollow)resolve.marks.push({from:Math.max(0,offset-start),to:Math.min(end,next)-start,outline:!!run.outline,hollow:!!run.hollow,...(run.outline&&run.outlineColor?{outlineColor:run.outlineColor}:{}),...(run.outline&&run.outlineWidth?{outlineWidth:run.outlineWidth}:{})});
    }
+   if(next>start&&offset<end&&Number.isFinite(run.scale)&&run.scale>0&&run.scale!==1)resolve.sizes.push({from:Math.max(0,offset-start),to:Math.min(end,next)-start,scale:run.scale});
    offset=next;if(offset>=end)break;
   }
   return styled?ranges:null;
  };
- resolve.marks=[];
+ resolve.marks=[];resolve.sizes=[];
  return resolve;
 }

@@ -4,7 +4,7 @@ export function layoutTextRuns({runs,layout,width,height,measure}){
  const glyphs=[];for(const [ri,r] of runs.entries())for(const [i,text] of graphemes(r.text||'').entries())glyphs.push({...r,text,id:r.glyphIds?.[i]??`${r.id??ri}:${i}`,runId:r.id??String(ri)});
  const fontSize=Math.max(.03,layout.fontScale||.06)*Math.min(width,height)*(layout.scale||1),size=Math.max(Math.min(width,height)*.03,fontSize),maxWidth=width*layout.textWidth,lines=[],breaks=new Set(layout.breaks||[]);let line=[];
  const finish=()=>{lines.push({glyphs:line});line=[];};
- for(const g of glyphs){if(g.text==='\n'){finish();continue;}g.fontSize=size;g.width=measure(g.text,size,g.font);if(breaks.has(g.id)&&line.length)finish();
+ for(const g of glyphs){if(g.text==='\n'){finish();continue;}g.fontSize=size*(g.scale>0&&g.scale<=3?g.scale:1);g.width=measure(g.text,g.fontSize,g.font);if(breaks.has(g.id)&&line.length)finish();
  if(line.length&&line.reduce((s,n)=>s+n.width,0)+g.width>maxWidth&&!nonstart.includes(g.text)){
  const last=line.at(-1);if(nonend.includes(last.text)&&line.length>1){line.pop();finish();line.push(last);}else finish();}
  line.push(g);}

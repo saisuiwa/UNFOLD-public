@@ -1,6 +1,6 @@
 // "この歌詞を編集" in STUDIO: the same panel the sequence has (動き / 色 / 書体, one word's colour, all lyrics at once),
 // plus the code motions and effects of the workshop as picture cards. It edits the STUDIO project through its commands.
-import {createLyricQuick} from '../lyric-quick.js?v=17';
+import {createLyricQuick} from '../lyric-quick.js?v=18';
 import {graphemes} from '../lyric-motion.js?v=26';
 import {mergeMotion} from './omakase.js';
 import {cleanWordColors,setWordColor,colorLyricRuns} from '../lyric-style.js';
@@ -28,7 +28,7 @@ export {mergeMotion};
 /** New runs after one word's colour changed: the grapheme ids stay, so saved line breaks keep working. */
 export function recolorRuns(lyric,start,end,color){
  const text=lyric.runs.map(r=>r.text).join(''),ids=lyric.runs.flatMap((r,ri)=>graphemes(r.text||'').map((_,i)=>r.glyphIds?.[i]??`${r.id??ri}:${i}`));
- const colors=setWordColor(colorsOf(lyric),text,start,end,color),plain=lyric.runs.map(r=>({text:r.text,emphasis:!!r.emphasis,...(r.outline?{outline:true}:{}),...(r.outline&&r.outlineColor?{outlineColor:r.outlineColor}:{}),...(r.outline&&r.outlineWidth?{outlineWidth:r.outlineWidth}:{}),...(r.hollow?{hollow:true}:{})})),next=colorLyricRuns(plain,colors);
+ const colors=setWordColor(colorsOf(lyric),text,start,end,color),plain=lyric.runs.map(r=>({text:r.text,emphasis:!!r.emphasis,...(r.outline?{outline:true}:{}),...(r.outline&&r.outlineColor?{outlineColor:r.outlineColor}:{}),...(r.outline&&r.outlineWidth?{outlineWidth:r.outlineWidth}:{}),...(r.hollow?{hollow:true}:{}),...(r.scale>0&&r.scale!==1?{scale:r.scale}:{})})),next=colorLyricRuns(plain,colors);
  let cursor=0;return next.map(r=>{const n=graphemes(r.text).length,glyphIds=ids.slice(cursor,cursor+n);cursor+=n;return {...r,id:glyphIds[0]?.split(':')[0]||crypto.randomUUID(),glyphIds};});
 }
 
@@ -41,7 +41,7 @@ export function recolorRuns(lyric,start,end,color){
  */
 export function restyleRuns(lyric,start,end,key,{color,width,force=false}={}){
  const items=[];let pos=0;
- for(const [ri,r] of (lyric.runs||[]).entries())for(const [i,g] of graphemes(r.text||'').entries()){items.push({from:pos,to:pos+g.length,text:g,emphasis:!!r.emphasis,color:r.color,outline:!!r.outline,outlineColor:r.outline?r.outlineColor:undefined,outlineWidth:r.outline?r.outlineWidth:undefined,hollow:!!r.hollow,id:r.glyphIds?.[i]??`${r.id??ri}:${i}`});pos+=g.length;}
+ for(const [ri,r] of (lyric.runs||[]).entries())for(const [i,g] of graphemes(r.text||'').entries()){items.push({from:pos,to:pos+g.length,text:g,emphasis:!!r.emphasis,color:r.color,outline:!!r.outline,outlineColor:r.outline?r.outlineColor:undefined,outlineWidth:r.outline?r.outlineWidth:undefined,hollow:!!r.hollow,scale:r.scale>0&&r.scale!==1?r.scale:undefined,id:r.glyphIds?.[i]??`${r.id??ri}:${i}`});pos+=g.length;}
  const chosen=items.filter(it=>it.from<end&&it.to>start);
  if(!chosen.length)throw new Error('言葉を先に選んでください。');
  const on=key!=null&&(force||!chosen.every(it=>it[key])),edgeOf=v=>/^#[\da-f]{6}$/i.test(v||'')?v.toLowerCase():undefined,widthOf=v=>Number.isFinite(Number(v))&&Number(v)>=2&&Number(v)<=16?Math.round(Number(v)*10)/10:undefined;
@@ -52,9 +52,9 @@ export function restyleRuns(lyric,start,end,key,{color,width,force=false}={}){
  }
  const out=[];
  for(const it of items){const last=out.at(-1);
-  if(last&&last.emphasis===it.emphasis&&last.color===it.color&&last.outline===it.outline&&last.outlineColor===it.outlineColor&&last.outlineWidth===it.outlineWidth&&last.hollow===it.hollow){last.text+=it.text;last.glyphIds.push(it.id);}
-  else out.push({text:it.text,emphasis:it.emphasis,color:it.color,outline:it.outline,outlineColor:it.outlineColor,outlineWidth:it.outlineWidth,hollow:it.hollow,glyphIds:[it.id]});}
- return out.map(r=>({text:r.text,emphasis:r.emphasis,...(r.color?{color:r.color}:{}),...(r.outline?{outline:true}:{}),...(r.outline&&r.outlineColor?{outlineColor:r.outlineColor}:{}),...(r.outline&&r.outlineWidth?{outlineWidth:r.outlineWidth}:{}),...(r.hollow?{hollow:true}:{}),id:r.glyphIds[0]?.split(':')[0]||crypto.randomUUID(),glyphIds:r.glyphIds}));
+  if(last&&last.emphasis===it.emphasis&&last.color===it.color&&last.outline===it.outline&&last.outlineColor===it.outlineColor&&last.outlineWidth===it.outlineWidth&&last.hollow===it.hollow&&last.scale===it.scale){last.text+=it.text;last.glyphIds.push(it.id);}
+  else out.push({text:it.text,emphasis:it.emphasis,color:it.color,outline:it.outline,outlineColor:it.outlineColor,outlineWidth:it.outlineWidth,hollow:it.hollow,scale:it.scale,glyphIds:[it.id]});}
+ return out.map(r=>({text:r.text,emphasis:r.emphasis,...(r.color?{color:r.color}:{}),...(r.outline?{outline:true}:{}),...(r.outline&&r.outlineColor?{outlineColor:r.outlineColor}:{}),...(r.outline&&r.outlineWidth?{outlineWidth:r.outlineWidth}:{}),...(r.hollow?{hollow:true}:{}),...(r.scale>0&&r.scale!==1?{scale:r.scale}:{}),id:r.glyphIds[0]?.split(':')[0]||crypto.randomUUID(),glyphIds:r.glyphIds}));
 }
 
 export function createLyricEdit(controller){

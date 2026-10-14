@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as R from '../../app/method-registry.js';
 import { createPersistence } from '../../app/method-library.js';
-import { registerBundledImageMethods, bundledImageMethodIds } from '../../app/bundled-image-methods.js';
+import { registerBundledImageMethods, bundledImageMethodIds, bundledMethodIds, BUNDLED_GLSL_PICKS, BUNDLED_IMAGE_PICKS, BUNDLED_EXAMPLE_PICKS } from '../../app/bundled-image-methods.js';
+import { checkSource } from '../../app/method-guard.js';
+import { SAMPLES } from '../../app/method-samples.js';
 import { SURFACE_METHOD_PRESETS } from '../../app/image-surface-presets.js';
 import { collectMethods, usedMethodIds } from '../../app/method-project.js';
 
@@ -16,7 +18,8 @@ test('the surface pack is registered under fixed ids, usable, flagged as bundled
   reset();
   registerBundledImageMethods();
   const ids = bundledImageMethodIds();
-  assert.equal(ids.length, SURFACE_METHOD_PRESETS.length);
+  assert.equal(ids.length, SURFACE_METHOD_PRESETS.length + BUNDLED_IMAGE_PICKS.length + BUNDLED_EXAMPLE_PICKS.length, 'every pick was found');
+  assert.equal(bundledMethodIds().length, ids.length + BUNDLED_GLSL_PICKS.length);
   assert.ok(ids.includes('im-surface-burn') && ids.includes('im-surface-electric'));
   for (const id of ids) {
     const c = R.getCustom(id);
@@ -33,10 +36,26 @@ test('the surface pack is registered under fixed ids, usable, flagged as bundled
   reset();
 });
 
+test('the bundled GLSL methods are the samples that are not a built-in method, and each passes the editor\'s own check', () => {
+  reset();
+  registerBundledImageMethods();
+  const builtin = new Set(R.BUILTIN_METHODS.map(m => m[0]));
+  for (const [key] of BUNDLED_GLSL_PICKS) {
+    assert.ok(!builtin.has(key), key + ' is already a built-in method');
+    const sample = SAMPLES.find(s => s.key === key);
+    assert.ok(sample, key);
+    const id = R.CUSTOM_PREFIX + 'b-' + key, c = R.getCustom(id);
+    assert.ok(c && c.bundled && c.status === 'ok' && c.vertex === sample.source && !c.code, id);
+    assert.equal(checkSource(c.vertex).ok, true, key);
+    assert.ok(R.methodIcon(id)[1] && R.methodIcon(id)[1] !== 'CUSTOM', id + ' has its own caption');
+  }
+  reset();
+});
+
 test('registering twice changes nothing but the revision (the page may do it again)', () => {
   reset();
   registerBundledImageMethods(); registerBundledImageMethods();
-  assert.equal(R.listCustom().length, SURFACE_METHOD_PRESETS.length);
+  assert.equal(R.listCustom().length, bundledMethodIds().length);
   reset();
 });
 

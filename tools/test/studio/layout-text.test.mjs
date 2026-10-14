@@ -6,3 +6,10 @@ test('independent portrait layout, normalized parent anchors and contain versus 
 test('wrap keeps run and grapheme identity, timing, combining marks and emoji',()=>{const runs=[{id:'r',text:'か\u3099👨‍👩‍👧‍👦光をつなぐ',timing:{startUs:10},color:'#ff0000'}],r=wrap(runs,{textWidth:.2});assert.equal(r.glyphs.length,7);assert.deepEqual(r.glyphs.map(g=>g.id),['r:0','r:1','r:2','r:3','r:4','r:5','r:6']);assert.equal(r.glyphs[0].text,'か\u3099');assert.ok(r.glyphs.every(g=>g.runId==='r'&&g.timing.startUs===10));assert.ok(r.lines.length>1);});
 test('Japanese line endings and starts, manual and explicit breaks preserve all text',()=>{const r=wrap([{id:'a',text:'あいう「えお」、かき\nくけこ'}],{textWidth:.25,breaks:['a:11']});for(const l of r.lines){assert.ok(!'、。」'.includes(l.glyphs[0]?.text));assert.ok(!'「'.includes(l.glyphs.at(-1)?.text));}assert.equal(r.glyphs.map(g=>g.text).join(''),'あいう「えお」、かきくけこ');});
 test('600 characters and long English words report overflow without shrinking below readable floor',()=>{const r=wrap([{id:'long',text:'あ'.repeat(600)}],{fontScale:.06});assert.equal(r.glyphs.length,600);assert.ok(r.issues.some(x=>x.code==='TEXT_OVERFLOW'));assert.ok(r.glyphs.every(g=>g.fontSize>=1080*.03));assert.equal(wrap([{id:'en',text:'A'.repeat(900)}]).glyphs.length,900);});
+test('a run\'s scale makes its glyphs bigger or smaller in the classic layout (width and font size), the rest is unchanged',()=>{
+ const r=wrap([{id:'a',text:'私',scale:1.5},{id:'b',text:'は',scale:.5},{id:'c',text:'元気'}],{fontScale:.06});
+ const g=r.glyphs,base=g[2].fontSize;
+ assert.equal(g[0].fontSize,base*1.5);assert.equal(g[1].fontSize,base*.5);
+ assert.equal(g[0].width,base*1.5);assert.equal(g[1].width,base*.5);
+ assert.deepEqual(g.map(x=>x.text),['私','は','元','気']);
+});

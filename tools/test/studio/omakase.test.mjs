@@ -204,3 +204,106 @@ test('uniformSizes (the slider before any plan) and opacityCommands', () => {
  assert.equal(opacityCommands(next,.5),null);
  assert.equal(opacityCommands(p,0).commands[0].patch.opacity,.05,'never fully invisible');
 });
+
+// ---- 配置と語ごとの大小 ------------------------------------------------------------------------------------------------------------------------
+import {placeLine,LAYOUT_CENTER,LAYOUT_SPREAD} from '../../../app/studio/omakase.js';
+import {pickWordScales,sizeRuns,wordPieces,wordKind} from '../../../app/studio/word-size.js';
+const jp=(texts)=>{const p=project(texts.length);texts.forEach((t,i)=>{p.lyrics[i].text=t;p.lyrics[i].runs=[{id:'r'+i,text:t}];});return p;};
+const LINES=['私は元気です','かたちをほどいて自由に。','君と見た夏の終わりの空は今でも覚えているよ','走り出せ、夜明けまで','ありがとう','もっと強く、もっと高く','今日も明日もずっと','夜に溶けていく'];
+
+test('word pieces: content words are big and particles small (私 は 元気 です)', () => {
+ const kinds=wordPieces('私は元気です').map(p=>p.text+':'+wordKind(p));
+ assert.deepEqual(kinds,['私:big','は:small','元気:big','です:small']);
+ // ほどいて is one word: its て is not made small on its own
+ const k2=wordPieces('かたちをほどいて自由に。').map(p=>wordKind(p));
+ assert.ok(k2.includes('attach'));
+});
+test('word scales: big words > 1 > small words, the mean size stays 1, short lines are left alone, the same seed gives the same sizes', () => {
+ const rnd=()=>{let a=9;return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};};
+ const text='私は元気です',s=pickWordScales(text,rnd());
+ assert.ok(s.length>=3);
+ const big=s.find(r=>text.slice(r.from,r.to)==='元気').scale,small=s.find(r=>text.slice(r.from,r.to)==='は').scale;
+ assert.ok(big>1.2&&small<.85,'big '+big+' small '+small);
+ assert.ok(big/small>1.8,'the contrast is visible: '+big/small);
+ let total=0,n=0;for(const r of s){const len=r.to-r.from;total+=r.scale*len;n+=len;}
+ const unsized=text.length-n;assert.ok(Math.abs((total+unsized)/text.length-1)<.06,'mean '+(total+unsized)/text.length);
+ assert.deepEqual(pickWordScales(text,rnd()),s);
+ assert.deepEqual(pickWordScales('あい',rnd()),[]);
+ for(const l of LINES)for(const r of pickWordScales(l,rnd()))assert.ok(r.scale>=.5&&r.scale<=1.75,l+' '+r.scale);
+});
+test('sizeRuns keeps colours, outlines and grapheme ids, merges equal neighbours and can clear the sizes', () => {
+ const lyric={id:'L',text:'私は元気です',runs:[{id:'a',text:'私は',glyphIds:['a:0','a:1']},{id:'b',text:'元気',emphasis:true,color:'#ff0000',outline:true,outlineColor:'#000000',outlineWidth:8,glyphIds:['b:0','b:1']},{id:'c',text:'です',glyphIds:['c:0','c:1']}]};
+ const out=sizeRuns(lyric,[{from:0,to:1,scale:1.5},{from:1,to:2,scale:.7},{from:2,to:4,scale:1.5},{from:4,to:6,scale:.7}]);
+ assert.equal(out.map(r=>r.text).join(''),'私は元気です');
+ assert.deepEqual(out.map(r=>r.scale),[1.5,.7,1.5,.7]);
+ const gen=out.find(r=>r.text==='元気');assert.equal(gen.emphasis,true);assert.equal(gen.color,'#ff0000');assert.equal(gen.outline,true);assert.equal(gen.outlineColor,'#000000');
+ assert.deepEqual(out.flatMap(r=>r.glyphIds),['a:0','a:1','b:0','b:1','c:0','c:1']);
+ const cleared=sizeRuns({...lyric,runs:out},[]);assert.ok(cleared.every(r=>r.scale===undefined));
+});
+test('placeLine keeps a line inside the margin in wide and tall, for every place, rotation and length', () => {
+ const views=[{width:1920,height:1080},{width:1080,height:1920}];
+ for(const view of views)for(const place of ['center','top-left','top-right','bottom-left','bottom-right','top','bottom','left','right'])
+  for(const chars of [3,8,14,24,35])for(const rotation of [0,5,-6,90,-90]){
+   const fontScale=Math.min(.12,fitCap(chars)),r=placeLine({chars,fontScale,view,place,rotation,scale:.8});
+   assert.ok(r.x>=.04&&r.x<=.96&&r.y>=.04&&r.y<=.96,JSON.stringify({view:view.width,place,chars,rotation,r}));
+   assert.ok(r.scale>0&&r.scale<=1+1e-9);
+   if(place!=='center'&&(Math.abs(r.x-.5)>.05||Math.abs(r.y-.5)>.05))assert.ok(r.scale<=.8+1e-9);
+  }
+});
+test('spread plan: lines sit at different places, tilt a little, differ between plans, and cover wide and tall', () => {
+ const p=jp(LINES.concat(LINES));
+ const plan=planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:11}});
+ assert.equal(plan.places.length,p.lyrics.length);
+ const spots=new Set(plan.places.map(x=>x.place).filter(x=>x!=='self'));
+ assert.ok(spots.size>=4,'places: '+[...spots]);
+ for(const pl of plan.places){assert.ok(pl.views.wide&&pl.views.tall);for(const v of Object.values(pl.views)){assert.ok(Math.abs(v.rotation)<=90);assert.ok(v.x>=.04&&v.x<=.96&&v.y>=.04&&v.y<=.96);}}
+ const other=planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:12}});
+ assert.notDeepEqual(other.places,plan.places);
+ assert.deepEqual(planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:11}}).places,plan.places,'replayable');
+ // neighbours do not repeat the same place
+ for(let i=1;i<plan.places.length;i++)if(plan.places[i].place!=='self'&&plan.places[i-1].place!=='self')assert.notEqual(plan.places[i].place,plan.places[i-1].place);
+});
+test('the calm mood stays mostly in the middle, and 真ん中に揃える puts every line at the centre with no word sizes', () => {
+ const p=jp(Array.from({length:40},(_,i)=>LINES[i%LINES.length]));
+ const calm=planOmakase(p,{mood:'calm',seeds:{...SEEDS,layout:3}});
+ const centred=calm.places.filter(x=>x.place==='center'||x.place==='self').length;
+ assert.ok(centred>=calm.places.length*.3,'calm centred '+centred);
+ const flat=planOmakase(p,{mood:'pop',layout:LAYOUT_CENTER,seeds:SEEDS});
+ for(const pl of flat.places)for(const v of Object.values(pl.views))assert.deepEqual(v,{x:.5,y:.5,scale:1,rotation:0});
+ assert.ok(flat.words.every(w=>w.ranges.length===0));
+});
+test('omakaseCommands(layout): sets x/y/scale/rotation in both views and word sizes in the runs; the project stays valid; undoing the sizes is possible', () => {
+ const p=jp(LINES);
+ const plan=planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:5}});
+ const cmd=omakaseCommands(p,plan,{parts:{text:false,bg:false,color:false,size:false,layout:true}});
+ assert.equal(cmd.type,'batch');
+ const q=applyCommand(p,cmd).project;
+ assertProject(q);
+ const moved=p.lyrics.filter(l=>{const a=p.views.wide.layout[l.id],b=q.views.wide.layout[l.id];return a.x!==b.x||a.y!==b.y||a.rotation!==b.rotation||a.scale!==b.scale;});
+ assert.ok(moved.length>=4,'moved '+moved.length);
+ const sized=q.lyrics.filter(l=>l.runs.some(r=>r.scale));
+ assert.ok(sized.length>=4,'word sizes '+sized.length);
+ for(const l of q.lyrics){assert.equal(l.runs.map(r=>r.text).join(''),l.text);assert.equal(l.startUs,p.lyrics.find(x=>x.id===l.id).startUs);}
+ // choosing 真ん中に揃える afterwards brings everything back
+ const back=omakaseCommands(q,planOmakase(q,{mood:'pop',layout:LAYOUT_CENTER,seeds:SEEDS}),{parts:{text:false,bg:false,color:false,size:false,layout:true}});
+ const r=applyCommand(q,back).project;
+ assert.ok(r.lyrics.every(l=>l.runs.every(x=>x.scale===undefined)));
+ for(const l of r.lyrics){const a=r.views.wide.layout[l.id];assert.deepEqual([a.x,a.y,a.scale,a.rotation],[.5,.5,1,0]);}
+});
+
+import {EXTENTS} from '../../../app/studio/omakase-extents.js';
+import {extentOf} from '../../../app/studio/omakase.js';
+test('every text motion of every mood has a measured extent (run node tools/omakase_extents.mjs after adding a motion)', () => {
+ for(const m of MOODS)for(const k of m.text){const e=EXTENTS[k];assert.ok(e&&e.wide?.length===5&&e.tall?.length===5&&[...e.wide,...e.tall].every(([n,w,h])=>n>0&&w>=.5&&h>=.5),m.id+': '+k+' has no extent');}
+});
+test('a motion that is drawn much bigger than its text is kept in the middle instead of being pushed out of the picture', () => {
+ const view={width:1920,height:1080},big={w:30,h:14};
+ const r=placeLine({chars:16,fontScale:.1,view,place:'top-left',rotation:5,scale:.8,extent:big});
+ assert.deepEqual([r.x,r.y],[.5,.5]);
+ const small=placeLine({chars:6,fontScale:.08,view,place:'top-left',rotation:0,scale:.8,extent:{w:6,h:1.4}});
+ assert.ok(small.x<.4&&small.y<.4,JSON.stringify(small));
+ // a short line of a block motion reads its measured size, longer lines read further down the table
+ const v={width:1920,height:1080},a=extentOf('sticky-notes',v,5),b=extentOf('sticky-notes',v,35);assert.ok(a&&b&&b.w>a.w*.5);
+ assert.equal(extentOf('no-such-motion',v,10),null);
+ assert.ok(extentOf('gucha-melt',{width:1080,height:1920},12).h>0);
+});

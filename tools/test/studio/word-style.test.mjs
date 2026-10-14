@@ -96,3 +96,22 @@ test('an outline width (% of the font size): set, kept when only the colour chan
  const resolve=createMotionColorResolver({text:'あいうえ',runs:thin,color:'#ffffff',accent:'#ffcc00'});
  resolve('あいうえ');assert.deepEqual(resolve.marks,[{from:1,to:3,outline:true,hollow:false,outlineColor:'#ff0000',outlineWidth:3.5}]);
 });
+
+// ---- 語ごとの大きさ (a run's `scale`) -------------------------------------------------------------------------------------------------------
+test('word sizes (scale) survive a colour change, 縁取り / 中抜き and colorLyricRuns; the resolver hands them to the worker as ranges of the mesh text', () => {
+ const l=lyric([{id:'a',text:'私',scale:1.5},{id:'b',text:'は',scale:.7},{id:'c',text:'元気',scale:1.5,emphasis:true},{id:'d',text:'です',scale:.7}]);
+ const colored=recolorRuns(l,0,1,'#00ff00');
+ assert.equal(text(colored),'私は元気です');
+ assert.deepEqual(colored.map(r=>[r.text,r.scale]),[['私',1.5],['は',.7],['元気',1.5],['です',.7]]);
+ const outlined=restyleRuns(lyric(colored),2,4,'outline');
+ assert.deepEqual(outlined.map(r=>[r.text,r.scale,!!r.outline]),[['私',1.5,false],['は',.7,false],['元気',1.5,true],['です',.7,false]]);
+ const again=colorLyricRuns([{text:'私は',scale:1.5},{text:'元気',scale:.7}],[]);
+ assert.deepEqual(again.map(r=>[r.text,r.scale]),[['私は',1.5],['元気',.7]]);
+ // a scale of 1 is the same as none, and it is not stored
+ assert.equal('scale' in restyleRuns(lyric([{id:'a',text:'あい',scale:1}]),0,1,'outline')[0],false);
+ const resolve=createMotionColorResolver({text:'私は元気です',runs:l.runs,color:'#ffffff',accent:'#ff0000'});
+ resolve('私は元気です',{});
+ assert.deepEqual(resolve.sizes,[{from:0,to:1,scale:1.5},{from:1,to:2,scale:.7},{from:2,to:4,scale:1.5},{from:4,to:6,scale:.7}]);
+ resolve('元気',{textStart:2});
+ assert.deepEqual(resolve.sizes,[{from:0,to:2,scale:1.5}]);
+});

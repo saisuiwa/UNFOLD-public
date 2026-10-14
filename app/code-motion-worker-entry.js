@@ -14,6 +14,32 @@ const parseColor=(v,fallback=0xffffff)=>{if(typeof v==='number')return v&0xfffff
 const luminance=c=>.2126*(c>>16&255)/255+.7152*(c>>8&255)/255+.0722*(c&255)/255;
 const tagOf=g=>((g&3)<<16)|(((g>>2)&3)<<8)|((g>>4)&3);
 const OUTLINE_EM=.07,STROKE_EM=.024;
+// Word sizes (a run's `scale`). Troika sets one size per mesh, so after every sync each glyph quad is scaled about its own centre and the glyphs
+// after it are moved along (the gap between two glyphs follows the mean of their two scales); every line is then put back on its original middle.
+// Instances are in character order, whitespace has zero bounds and is skipped. Done on the glyph quads only: the motion's own animation is untouched.
+const scaled=new WeakSet();
+function scaleGlyphs(mesh,sizes){
+  const geometry=mesh.geometry,bounds=geometry?.getAttribute?.('aTroikaGlyphBounds');
+  if(!bounds||!sizes?.length||scaled.has(bounds.array))return;
+  const b=bounds.array.slice(),n=b.length/4,s=new Array(n).fill(1);
+  for(const r of sizes)for(let i=r.from;i<Math.min(n,r.to);i++)s[i]=r.scale;
+  const vis=[];for(let i=0;i<n;i++)if(b[i*4]||b[i*4+1]||b[i*4+2]||b[i*4+3])vis.push(i);
+  if(!vis.length||vis.every(i=>s[i]===1))return;
+  // lines: a new line starts when the vertical centre moves by more than half a glyph height
+  const lines=[];let line=[];let prevY=null,prevH=0;
+  for(const i of vis){const cy=(b[i*4+1]+b[i*4+3])/2,h=b[i*4+3]-b[i*4+1];
+    if(prevY!==null&&Math.abs(cy-prevY)>Math.max(h,prevH)*.5){lines.push(line);line=[];}
+    line.push(i);prevY=cy;prevH=h;}
+  lines.push(line);
+  for(const ids of lines){
+    const cx=ids.map(i=>(b[i*4]+b[i*4+2])/2),before=(Math.min(...ids.map(i=>b[i*4]))+Math.max(...ids.map(i=>b[i*4+2])))/2;
+    const nc=[cx[0]];for(let k=1;k<ids.length;k++)nc.push(nc[k-1]+(cx[k]-cx[k-1])*(s[ids[k-1]]+s[ids[k]])/2);
+    const out=ids.map((i,k)=>{const hw=(b[i*4+2]-b[i*4])/2*s[i];return [nc[k]-hw,nc[k]+hw];});
+    const after=(Math.min(...out.map(o=>o[0]))+Math.max(...out.map(o=>o[1])))/2,shift=before-after;
+    ids.forEach((i,k)=>{const cy=(b[i*4+1]+b[i*4+3])/2,hh=(b[i*4+3]-b[i*4+1])/2*s[i];b[i*4]=out[k][0]+shift;b[i*4+2]=out[k][1]+shift;b[i*4+1]=cy-hh;b[i*4+3]=cy+hh;});
+  }
+  scaled.add(b);bounds.array=b;bounds.needsUpdate=true;mesh.frustumCulled=false;
+}
 function hideGlyphs(mesh,hide){
   const geometry=mesh.geometry,colors=geometry?.getAttribute?.('aTroikaGlyphColor'),bounds=geometry?.getAttribute?.('aTroikaGlyphBounds');
   if(!colors||!bounds)return;
@@ -62,12 +88,13 @@ async function prepare(p){
   const resolveColors=createMotionColorResolver(p);
   const createText=(value,options={})=>{
     const {textStart,...style}=options;
-    const colorRanges=resolveColors(value,options),marks=resolveColors.marks||[];
+    const colorRanges=resolveColors(value,options),marks=resolveColors.marks||[],sizes=resolveColors.sizes||[];
     const t=new Text();Object.assign(t,{text:String(value),font:fontURL,fontSize:p.fontSize,color:p.color,anchorX:'center',anchorY:'middle',gpuAccelerateSDF:false,...style,colorRanges});
-    if(marks.length)decorate(t,String(value),colorRanges,marks,style.color??p.color);
+    if(marks.length)decorate(t,String(value),colorRanges,marks,style.color??p.color,sizes);
+    if(sizes.length)t.addEventListener('synccomplete',()=>scaleGlyphs(t,sizes));
     scene.add(t);texts.push(t);return t;
   };
-  function decorate(t,value,colorRanges,marks,baseColor){
+  function decorate(t,value,colorRanges,marks,baseColor,sizes=[]){
     const n=value.length,colorAt=new Array(n),group=new Array(n).fill(0),keys=new Map(),list=[];
     let current=parseColor(colorRanges?.[0]??baseColor);
     for(let i=0;i<n;i++){if(colorRanges&&Object.hasOwn(colorRanges,i))current=parseColor(colorRanges[i],current);colorAt[i]=current;}
@@ -91,7 +118,7 @@ async function prepare(p){
       const g=index+1;if(!present.has(g))return;
       const o=new Text();
       Object.assign(o,{text:value,font:fontURL,fontSize:t.fontSize,color:t.color,anchorX:t.anchorX,anchorY:t.anchorY,maxWidth:t.maxWidth,textAlign:t.textAlign,letterSpacing:t.letterSpacing,lineHeight:t.lineHeight,whiteSpace:t.whiteSpace,overflowWrap:t.overflowWrap,curveRadius:t.curveRadius,gpuAccelerateSDF:false,colorRanges:ranges});
-      o.addEventListener('synccomplete',()=>hideGlyphs(o,tag=>tag!==g));
+      o.addEventListener('synccomplete',()=>{hideGlyphs(o,tag=>tag!==g);if(sizes.length)scaleGlyphs(o,sizes);});
       t.add(o);const item={mesh:o,base:t,...d};decorated.push(item);applyDecoration(item);
     });
   }

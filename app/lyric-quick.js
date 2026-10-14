@@ -3,7 +3,7 @@ import {BUILTIN_MOTIONS} from './lyric-recipe.js';
 import {cleanMotion} from './lyric-motion.js?v=26';
 import {LYRIC_PALETTES} from './lyric-style.js';
 import {createMotionLibrary} from './lyric-library.js';
-import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=11';
+import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=12';
 import {lyricFontLabel,savedLyricFonts,listLocalLyricFonts,selectLocalLyricFont,importLyricFont} from './lyric-fonts.js';
 const node=(tag,text,cls)=>Object.assign(document.createElement(tag),{...(text==null?{}:{textContent:text}),...(cls?{className:cls}:{})});
 // customFonts:false hides the PC font / font file buttons (a host that cannot keep the font bytes).

@@ -1,5 +1,5 @@
 import {fontCoverage} from './font-cmap.js';
-const bundleURL=new URL('./vendor/code-motion-worker.js?v=6',import.meta.url);
+const bundleURL=new URL('./vendor/code-motion-worker.js?v=7',import.meta.url);
 const fallbackURL=new URL('./vendor/motion-fonts/gothic.ttf',import.meta.url);
 // A motion whose source has a line "// @fonts" gets the bundled typefaces as api.fonts ({key: url}) and api.fontsFor(character) -> the keys of the
 // fonts that really have that character (切り貼り文字: a different typeface for every character). Fetched once per page; the fonts are only parsed

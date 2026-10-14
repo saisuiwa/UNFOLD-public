@@ -3,7 +3,9 @@
 import assert from 'node:assert/strict';
 import { startStaticServer } from '../lib/static-server.mjs';
 import { launchBrowser } from '../lib/browser.mjs';
-const IDS = ['burn', 'ink', 'watercolor', 'frost', 'electric', 'acid', 'drip', 'weather'].map(k => `im-surface-${k}`);
+import { bundledImageMethodIds, bundledMethodIds } from '../../app/bundled-image-methods.js';
+const IDS = bundledImageMethodIds();              // the image-code ones, in registration order (the surface pack first)
+const ALL = 37 + bundledMethodIds().length;      // 37 built-in + every bundled one (surface, tiles / physics, surface art, GLSL)
 const server = await startStaticServer(), browser = await launchBrowser();
 try {
   const problems = [];
@@ -27,9 +29,9 @@ try {
   const single = await open('/index.html', () => document.querySelectorAll('#methods button[data-method]').length >= 37);
   await single.waitForFunction(() => document.querySelector('#methods button[data-method="im-surface-burn"]'));
   const a = await tiles(single, '#methods', '#methods-tag');
-  assert.deepEqual(a.ids.filter(k => k.startsWith('im-')), IDS, 'the eight tiles come right after the 37 built-in ones');
-  assert.equal(a.ids.length, 45);
-  assert.equal(a.tag.trim(), '45 METHODS');
+  assert.deepEqual(a.ids.filter(k => k.startsWith('im-')), IDS, 'the bundled tiles come right after the 37 built-in ones');
+  assert.equal(a.ids.length, ALL);
+  assert.equal(a.tag.trim(), ALL + ' METHODS');
   assert.equal(a.gears, 0, 'no ⚙ on a bundled tile');
   assert.equal(a.added, 0, 'no blue "added" frame');
   assert.match(a.names['im-surface-burn'], /焦げ穴と炎/);
@@ -44,7 +46,7 @@ try {
   const seq = await open('/sequence.html?empty', () => window.unfoldSeq && document.querySelector('#seq-methods button[data-method="im-surface-burn"]'));
   const b = await tiles(seq, '#seq-methods', '#seq-methods-tag');
   assert.deepEqual(b.ids.filter(k => k.startsWith('im-')), IDS);
-  assert.equal(b.tag.trim(), '45 METHODS');
+  assert.equal(b.tag.trim(), ALL + ' METHODS');
   assert.equal(b.gears, 0);
   // nothing of the pack was written to the library, but a user's method still is
   const stored = await seq.evaluate(async () => {
@@ -72,5 +74,5 @@ try {
   assert.ok(size > 5000, `the burn transition exported (${size} bytes)`);
   await seq.close();
   assert.deepEqual(problems, []);
-  console.log('PASS bundled surface methods: 8 tiles in both pages (45 METHODS, no ⚙), not saved, a transition exports', JSON.stringify({ exportBytes: size }));
+  console.log('PASS bundled methods: every bundled tile in both pages (37 + bundled METHODS, no ⚙), not saved, a transition exports', JSON.stringify({ exportBytes: size }));
 } finally { await browser.close(); await server.close(); }
