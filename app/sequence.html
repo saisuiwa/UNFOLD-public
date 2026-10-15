@@ -85,6 +85,11 @@
   /* inspector */
   .inspector { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-top:10px; }
   .insp-title { font-weight:800; color:var(--accent); margin-bottom:6px; }
+  /* 04 見た目: the 変形 settings of the ◆ under the playhead (the same panel as 03 選択中 shows for a selected ◆) */
+  .look-trans { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:14px 0; }
+  .look-trans:empty { display:none; }
+  .look-trans .look-trans-note { margin:0 0 8px; }
+  .look-trans input:not([type=checkbox]):not([type=range]), .look-trans select { flex:1; min-width:0; }
   .insp-thumb { width:100%; border-radius:8px; margin-bottom:6px; }
   .inspector input:not([type=checkbox]):not([type=range]), .inspector select { flex:1; min-width:0; }
   .row.wrap { flex-wrap:wrap; }
@@ -96,6 +101,13 @@
   .tl-sep { width:1px; height:18px; background:var(--line); margin:0 4px; }
   .tl-toggle { display:inline-flex; align-items:center; gap:4px; color:var(--dim); cursor:pointer; }
   .tl-status { margin-left:auto; color:var(--dim); font-size:11px; }
+  /* 拡大 / 移動: the same two sliders as STUDIO's timeline */
+  .tl-zoom-box { display:grid; gap:1px; }
+  .tl-zoom-field { display:flex; align-items:center; gap:6px; color:var(--dim); font-size:11px; line-height:1.2; }
+  .tl-zoom-field span { width:2.2em; white-space:nowrap; }
+  .tl-zoom-field input[type=range] { width:120px; height:14px; margin:0; padding:0; }
+  .tl-zoom-field input:disabled { opacity:.4; }
+  .tl-zoom-field output { min-width:2.8em; text-align:right; font:11px ui-monospace,monospace; color:var(--ink); }
   .tl-body { display:flex; }
   .tl-heads { flex:none; width:64px; border-right:1px solid var(--line); }
   .tl-head { display:flex; align-items:center; justify-content:center; color:var(--dim); font-size:11px; border-bottom:1px solid #1b2324; }
@@ -258,7 +270,7 @@
     <button role="tab" data-tab="edit" aria-selected="true">03 選択中</button>
     <button role="tab" data-tab="look" aria-selected="false">04 見た目</button>
     <button role="tab" data-tab="lyric" aria-selected="false">05 曲・歌詞</button>
-    <button role="tab" data-tab="export" aria-selected="false">動画保存</button>
+    <button role="tab" data-tab="export" aria-selected="false">動画保存・GLB追加</button>
   </div>
   <div class="pane" id="pane-edit">
     <div id="seq-inspector" class="inspector"></div>
@@ -285,7 +297,8 @@
     <div class="row"><label>画面いっぱいに表示</label><input id="seq-fill" type="checkbox" checked></div>
     <div class="row"><label>背景色</label><input id="seq-bg" type="color" value="#111718"></div>
     <div id="seq-fx"></div>
-    <div class="model-library"><h2>追加した立体の形（GLB）</h2><button class="btn" id="seq-model-add">＋ GLBを追加</button><a class="hint" href="./guide/glb.html" style="display:block;margin:6px 0 2px;color:#9ed8f3">GLB置き場（すぐ使える形）から追加 →</a><input id="seq-model-input" type="file" accept=".glb" multiple hidden><div id="seq-model-tabs"></div><div id="seq-model-list"></div><p class="hint" id="seq-model-status" role="status">保存したGLBを読み込み中…</p></div>
+    <!-- the 変形 (◆) settings of the part under the playhead: 崩れ方・立体化・形 ... (filled in by sequence.js, shown while ぐちゃぐちゃ / 立体化 is on screen) -->
+    <div id="seq-look-trans" class="look-trans" data-phase="chaos form"></div>
   </div>
   <div class="pane" id="pane-lyric" hidden></div>
 <div hidden id="legacy-lyric-controls">  <div class="pane" id="old-pane-lyric" hidden>
@@ -314,12 +327,13 @@
     <div class="row"><a class="btn" id="seq-download" hidden>動画を保存</a></div>
     <video id="seq-result" controls hidden></video>
     <p class="hint">1コマずつ計算して書き出すので、パソコンが重くてもズレません。タブは開いたままでOK。</p>
+    <div class="model-library"><h2>追加した立体の形（GLB）</h2><button class="btn" id="seq-model-add">＋ GLBを追加</button><a class="hint" href="./guide/glb.html" style="display:block;margin:6px 0 2px;color:#9ed8f3">GLB置き場（すぐ使える形）から追加 →</a><input id="seq-model-input" type="file" accept=".glb" multiple hidden><div id="seq-model-tabs"></div><div id="seq-model-list"></div><p class="hint" id="seq-model-status" role="status">保存したGLBを読み込み中…</p></div>
   </div>
 </aside>
 <section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
 </main>
 <div id="seq-notice"></div>
-<script type="module" src="./sequence.js?v=106"></script>
+<script type="module" src="./sequence.js?v=107"></script>
 <script type="module" src="./panel-resize.js?v=1"></script>
 </body>
 </html>

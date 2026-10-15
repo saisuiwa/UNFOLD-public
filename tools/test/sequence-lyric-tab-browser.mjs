@@ -12,7 +12,7 @@ try{
  assert.equal(await page.locator('#seq-audio').count(),0,'the left music picker is gone');
  assert.equal(await page.locator('.audio-pick').count(),0);
  const tabs=await page.locator('.tabs [data-tab]').allTextContents();
- assert.deepEqual(tabs.map(t=>t.trim()),['03 選択中','04 見た目','05 曲・歌詞','動画保存']);
+ assert.deepEqual(tabs.map(t=>t.trim()),['03 選択中','04 見た目','05 曲・歌詞','動画保存・GLB追加']);
  assert.match((await page.locator('#studio-entry').textContent()).trim(),/^06 STUDIO/);
  await page.locator('.tabs [data-tab="lyric"]').click();
  assert.equal(await page.locator('#lm-quick').count(),0,'the per-lyric panel is STUDIO\'s now');

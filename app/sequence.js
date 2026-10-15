@@ -34,7 +34,7 @@ import { applyTiles, tilesAcross } from './tile-size.js?v=1';
 import { ALL, UNGROUPED, cleanGroupName, groupOf, groupSelect, inGroup, loadActive, renderTabs, saveActive, validActive, wantsTabs } from './model-groups.js?v=1';
 import { modelThumb, fillMissingThumbs } from './model-thumb.js?v=1';
 import { particleParts } from './model-layout.js?v=10';
-import { createTimeline } from './timeline.js?v=6';
+import { createTimeline } from './timeline.js?v=7';
 import { lookView, lookViewText } from './look-view.js?v=1';
 import { BUILTIN_KEYS, getCustom, isCustomKey, isUsable, listCustom, methodEntries, methodLabel, newCustomId, onRegistryChange, registerCustom, setCustomStatus, unregisterCustom } from './method-registry.js';
 import { compileUserMethod, createVariants } from './custom-method.js';
@@ -361,7 +361,7 @@ function updateTransport(sec, L) {
   $('seq-phase').textContent = L.tr >= 0 ? `${L.i + 1} → ${L.i + 2}　${methodLabel(seq.transitions[L.tr].method)} / ${shapeLabel(seq.transitions[L.tr])}` : `${L.i + 1} / ${seq.slides.length}`;
   const ph = phaseOf(L);
   if (ph) $('seq-phase').append(Object.assign(document.createElement('span'), { className: 'phase-chip ' + ph, textContent: imageTransition(seq.transitions[L.tr])&&seq.transitions[L.tr].shape==='none'?'コード演出':PHASE_LABELS[ph] }));
-  lookPhase = ph;
+  lookPhase = ph; lookTr = L.tr;
   applyLookView();
   updateInspectorWhere();
 }
@@ -380,7 +380,7 @@ function phaseOf(L) {
 }
 // the 04 見た目 tab shows only what works where the playhead is (docs/superpowers/specs/2026-10-02-phase-filtered-look-tab-design.md).
 // lookMode is not saved: reopening starts in 'auto'.
-let lookMode = 'auto', lookPhase = null, lookDragging = false;
+let lookMode = 'auto', lookPhase = null, lookTr = -1, lookDragging = false;
 function applyLookView() {
   const pane = $('pane-look');
   // never change the panel during playback or while a control in it is held
@@ -390,6 +390,30 @@ function applyLookView() {
   $('look-view-label').textContent = label;
   $('look-view-hint').textContent = hint;
   for (const b of document.querySelectorAll('#look-mode [data-mode]')) b.setAttribute('aria-pressed', String(b.dataset.mode === lookMode));
+  renderLookTransition();
+}
+// 04 見た目 also holds the 変形 settings (崩れ方・立体化・形 …) of the ◆ under the playhead, so the shape that is on screen can be changed right there.
+// On a still picture only 「すべて」 shows it, for the ◆ the left-hand method buttons act on. It is built while the tab is open (showTab builds it on opening).
+let lookTransKey = '';
+function lookTransitionIndex(fresh) {
+  if (seq.slides.length < 2) return -1;
+  const tr = fresh ? locate(seq.t).tr : lookTr;
+  if (tr >= 0) return tr;
+  return lookMode === 'all' ? targetTransition() : -1;
+}
+function renderLookTransition(force = false) {
+  const box = $('seq-look-trans'), pane = $('pane-look');
+  if (!box || !pane || pane.hidden) return;
+  const j = lookTransitionIndex(force), tr = seq.transitions[j], key = tr ? String(j) : '';
+  if (!force && key === lookTransKey) return;
+  lookTransKey = key;
+  box.replaceChildren();
+  if (!tr) return;
+  const title = document.createElement('div'); title.className = 'insp-title';
+  const note = document.createElement('p'); note.className = 'hint look-trans-note';
+  note.textContent = '再生位置にある◆の設定です。形を選ぶと、すぐ画面に反映されます。';
+  box.append(title, note);
+  inspectTransition(box, title, j, tr);
 }
 function shapeLabel(tr) {
   if (tr.shape === 'none') return { through: '立体化なし・通り抜け', reveal: '立体化なし・吹き飛んで次が現れる', return: '立体化なし・行って戻る' }[tr.flow ?? 'through'];
@@ -419,7 +443,7 @@ function renderModelLibrary() {
     });
     row.append(name, grp, remove); return row;
   }));
-  $('seq-model-status').textContent = savedModels.size ? `保存済み ${savedModels.size}個。画像の下にある形メニューから選べます。` : '追加したGLBはこのブラウザに保存され、1枚モードでも使えます。';
+  $('seq-model-status').textContent = savedModels.size ? `保存済み ${savedModels.size}個。「04 見た目」の変形（形メニュー）や、◆を選んだ「03 選択中」から選べます。` : '追加したGLBはこのブラウザに保存され、1枚モードでも使えます。';
 }
 async function loadModelLibrary() {
   try { for (const model of await listModels()) savedModels.set(model.id, model); renderModelLibrary(); refreshUI();
@@ -440,7 +464,7 @@ async function importSequenceModel(file) {
     const tab = validActive([...savedModels.values()], activeGroup), group = tab === ALL || tab === UNGROUPED ? '' : tab;   // a new GLB joins the tab you are looking at
     const model = await saveModel(file.name.replace(/\.glb$/i, ''), buffer, data.originalTriangles, thumb, group);
     savedModels.set(model.id, model); geoCache.set(model.id, customGeometry(data));
-    renderModelLibrary(); refreshUI(); notice('GLBを保存したよ。形メニューから選んでね。'); return true;
+    renderModelLibrary(); refreshUI(); notice('GLBを保存したよ。「04 見た目」の変形（形メニュー）から選んでね。'); return true;
   } catch (e) { console.error(e); $('seq-model-status').textContent = e.message || 'GLBを追加できませんでした。'; notice(e.message || 'GLBを追加できませんでした。'); }
   finally { button.disabled = false; $('seq-model-input').value = ''; }
 }
@@ -838,6 +862,7 @@ function deleteCustomMethod(id) {
 function showTab(name) {
   document.querySelectorAll('.tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
   document.querySelectorAll('aside.right .pane').forEach(p => { p.hidden = p.id !== `pane-${name}`; });
+  if (name === 'look') renderLookTransition(true);
 }
 
 // ---------------------------------------------------------- inspector --
@@ -852,6 +877,7 @@ function selectOf(entries, value) {
   return sel;
 }
 function renderInspector() {
+  renderLookTransition(true);
   const box = $('seq-inspector');
   box.replaceChildren();
   const sel = seq.selection, target = sel && selectionTarget(sel);

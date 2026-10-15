@@ -38,6 +38,20 @@ export function createTimeline(root, api) {
   button('－', '縮小', () => zoomAt(0.7, scroller.clientWidth / 2));
   button('＋', '拡大（⌘/Ctrl+ホイールでも）', () => zoomAt(1.4, scroller.clientWidth / 2));
   button('全体', '全体を表示', () => fit());
+  // 拡大 / 移動: the same two sliders as STUDIO's timeline. ×1 is 「全体」 (the whole song fits); 移動 is the sideways scroll position
+  const zoomBox = el('div', 'tl-zoom-box', bar);
+  const zoomField = (name, input, out) => {
+    const f = el('label', 'tl-zoom-field', zoomBox);
+    el('span', '', f).textContent = name;
+    f.append(input, out);
+    input.setAttribute('aria-label', name);
+    return f;
+  };
+  const zoomIn = Object.assign(el('input'), { type: 'range', min: 1, max: 8, step: .5, value: 1 }), zoomOut = el('output');
+  const panIn = Object.assign(el('input'), { type: 'range', min: 0, max: 1000, step: 1, value: 0, disabled: true }), panOut = el('output');
+  zoomIn.dataset.testid = 'timeline-zoom'; panIn.dataset.testid = 'timeline-pan';
+  zoomField('拡大', zoomIn, zoomOut); zoomField('移動', panIn, panOut);
+  zoomOut.textContent = '×1'; panOut.textContent = '0%';
   el('span', 'tl-sep', bar);
   const linkB = el('label', 'tl-toggle', bar);
   const linkIn = el('input', '', linkB); linkIn.type = 'checkbox';
@@ -59,19 +73,44 @@ export function createTimeline(root, api) {
   const x2t = x => (x + scroller.scrollLeft) / pps;
   const clientX2t = cx => x2t(cx - scroller.getBoundingClientRect().left);
 
+  // the scale at which the whole song fits (「全体」); the 拡大 slider counts from there
+  const fitPps = () => Math.max(2, Math.min(400, Math.max(200, scroller.clientWidth - 20) / Math.max(5, total)));
+  const clampZoom = z => Math.max(1, Math.min(8, z));
+  function syncZoom() {
+    const z = pps / fitPps();
+    zoomIn.value = String(clampZoom(z));
+    zoomOut.textContent = '×' + Math.round(z * 10) / 10;
+  }
+  // 移動 follows the sideways scrolling (only useful once zoomed in)
+  function syncPan() {
+    const room = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    panIn.disabled = room < 2;
+    const f = room < 2 ? 0 : Math.min(1, scroller.scrollLeft / room);
+    panIn.value = String(Math.round(f * 1000));
+    panOut.textContent = Math.round(f * 100) + '%';
+  }
   function fit() {
     const w = Math.max(200, scroller.clientWidth - 20);
     pps = Math.max(2, Math.min(400, w / Math.max(5, total)));
     scroller.scrollLeft = 0;
     render();
   }
-  function zoomAt(f, anchorX) {
+  // a new scale, keeping the time under anchorX where it is
+  function setPps(next, anchorX) {
     const t = x2t(anchorX);
-    pps = Math.max(2, Math.min(400, pps * f));
+    pps = Math.max(2, Math.min(400, next));
     render();
     scroller.scrollLeft = Math.max(0, t * pps - anchorX);
     drawCanvases();
+    syncPan();
   }
+  const zoomAt = (f, anchorX) => setPps(pps * f, anchorX);
+  zoomIn.addEventListener('input', () => setPps(fitPps() * clampZoom(Number(zoomIn.value) || 1), scroller.clientWidth / 2));
+  panIn.addEventListener('input', () => {
+    const room = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    scroller.scrollLeft = Number(panIn.value) / 1000 * room;
+    syncPan();
+  });
 
   // ------------------------------------------------------------ drawing --
   function render() {
@@ -140,6 +179,7 @@ ${l.s.toFixed(2)} - ${(end+s.offset).toFixed(2)}秒
     status.textContent = s.status || '';
     drawCanvases();
     setTime(s.t, false);
+    syncZoom(); syncPan();
   }
   function computePeaks(buffer) {
     if (!buffer) return null;
@@ -194,11 +234,11 @@ ${l.s.toFixed(2)} - ${(end+s.offset).toFixed(2)}秒
       scroller.scrollLeft = Math.max(0, x - 60); drawCanvases();
     }
   }
-  scroller.addEventListener('scroll', () => { drawCanvases(); setTime(api.state().t, false); });
+  scroller.addEventListener('scroll', () => { drawCanvases(); setTime(api.state().t, false); syncPan(); });
   scroller.addEventListener('wheel', e => {
     if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - scroller.getBoundingClientRect().left); }
   }, { passive: false });
-  new ResizeObserver(() => drawCanvases()).observe(scroller);
+  new ResizeObserver(() => { drawCanvases(); syncZoom(); syncPan(); }).observe(scroller);
 
   // ----------------------------------------------------------- gestures --
   scroller.addEventListener('pointerdown', e => {
