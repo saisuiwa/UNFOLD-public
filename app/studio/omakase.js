@@ -1,7 +1,7 @@
 // おまかせ: choose a motion for every lyric, a background for each stretch of lines and a palette, from per-mood allow-lists
 // (the idea of 参考ツール's moods; the motions are UNFOLD's own). Everything is derived from seeds, so a plan can be replayed (前の案) and one part re-rolled (ここだけ変える).
 // Pure functions: no DOM, no controller.
-import {cleanMotion} from '../lyric-motion.js?v=26';
+import {cleanMotion} from '../lyric-motion.js?v=28';
 import {DAILY_CODE_MOTIONS} from '../code-motion-daily.js';
 import {pickWordScales,sizeRuns} from './word-size.js';
 import {EXTENTS} from './omakase-extents.js';

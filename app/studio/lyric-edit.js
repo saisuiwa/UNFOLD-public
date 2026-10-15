@@ -1,7 +1,7 @@
 // "この歌詞を編集" in STUDIO: the same panel the sequence has (動き / 色 / 書体, one word's colour, all lyrics at once),
 // plus the code motions and effects of the workshop as picture cards. It edits the STUDIO project through its commands.
-import {createLyricQuick} from '../lyric-quick.js?v=19';
-import {graphemes} from '../lyric-motion.js?v=26';
+import {createLyricQuick} from '../lyric-quick.js?v=21';
+import {graphemes} from '../lyric-motion.js?v=28';
 import {resizeRuns} from './word-size.js';
 import {mergeMotion} from './omakase.js';
 import {cleanWordColors,setWordColor,colorLyricRuns} from '../lyric-style.js';

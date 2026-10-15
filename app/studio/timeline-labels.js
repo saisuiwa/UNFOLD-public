@@ -1,7 +1,7 @@
 // Names for what the timeline shows: people read "語ごとにドンと落ちる" and "くしゃくしゃ / ハート", not code or ids.
 import {CODE_MOTION_PRESETS} from '../code-motion-presets.js';
 import {WORKSHOP_EXAMPLES} from '../workshop-examples.js';
-import {TEXT_MOTIONS} from '../lyric-motion.js?v=26';
+import {TEXT_MOTIONS} from '../lyric-motion.js?v=28';
 import {BUILTIN_MOTIONS,LAYOUTS,ENTRANCES} from '../lyric-recipe.js';
 import {BUILTIN_METHODS} from '../method-registry.js';
 

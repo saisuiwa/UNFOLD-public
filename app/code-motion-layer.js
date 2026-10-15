@@ -1,7 +1,7 @@
 import {createCodeMotionRuntime} from './code-motion-runtime.js';
 import {isCodeMotionApproved} from './code-motion-format.js';
 import {getCodeMotionFont} from './lyric-fonts.js';
-import {cleanMotion} from './lyric-motion.js?v=26';
+import {cleanMotion} from './lyric-motion.js?v=28';
 export function codeFrameInput(event,time,{width,height,bpm=120,seed=7}){
  const m=cleanMotion(event.motion),duration=Math.max(.001,event.end-event.start),localTime=Math.max(0,(time-event.start)*m.speed);
  const params={source:m.code.source,text:event.text,runs:event.runs,width:Math.round(width),height:Math.round(height),fontSize:height/720*112*m.size/72,color:m.color,accent:m.emphasisColor,font:m.font,seed,duration:duration*m.speed,bpm};

@@ -17,7 +17,9 @@ try{
  await page.locator('.tabs [data-tab="lyric"]').click();
  assert.equal(await page.locator('#lm-quick').count(),0,'the per-lyric panel is STUDIO\'s now');
  for(const label of ['読みやすく','元気に','やわらかく'])assert.equal(await page.getByRole('button',{name:label,exact:true}).count(),0,label);
- assert.equal(await page.getByRole('button',{name:'モーション集・自作'}).count(),1,'the motion studio stays');
+ assert.equal(await page.getByRole('button',{name:'モーション集・自作'}).count(),0,'the sequence has no 歌詞の見え方 (motions are decided in STUDIO)');
+ assert.equal(await page.getByText('歌詞の見え方').count(),0);assert.equal(await page.getByLabel('歌詞を表示').count(),0);
+ assert.equal(await page.locator('#pane-lyric .lm-section h3').allTextContents().then(a=>a.map(t=>t.replace(/\s/g,''))).then(a=>a.join('|')),'1曲を入れる|2歌詞を入れる|3曲に合わせる');
  assert.equal(await page.getByRole('button',{name:'この歌詞をその場で編集'}).count(),0);
  // a song still loads from the tab
  assert.equal(await page.locator('#pane-lyric input[type=file][accept="audio/*"]').count(),1);
@@ -32,10 +34,12 @@ try{
  assert.equal(await row.getByText('区分',{exact:true}).count(),0,'no section select');
  assert.equal(await row.locator('select[aria-label="この行の区分"]').count(),0);
  assert.equal(await row.getByRole('button',{name:/動きを固定|固定を解除/}).count(),0,'no per-line lock');
- const selects=await row.locator('select').evaluateAll(els=>els.map(s=>({label:s.parentElement.firstChild.textContent,options:[...s.options].filter(o=>!o.disabled).map(o=>o.textContent),placeholder:[...s.options].filter(o=>o.disabled).map(o=>o.textContent)})));
+ const selects=await row.locator('select').evaluateAll(els=>els.map(s=>({label:s.parentElement.firstChild.textContent,options:[...s.options].filter(o=>!o.disabled).map(o=>o.textContent),placeholder:[...s.options].filter(o=>o.disabled).map(o=>o.textContent),value:s.value})));
  const picker=selects.find(x=>x.label==='動き');
  assert.deepEqual(picker?.options,['一文字ずつ'],'one motion to pick; the others are STUDIO\'s');
- assert.deepEqual(picker?.placeholder,['STUDIOで決める動き'],'a line that already has a STUDIO motion says so');
+ assert.deepEqual(picker?.placeholder,[],'typed lines are plain 一文字ずつ: no STUDIO motion is assigned in the sequence');
+ assert.equal(picker?.value,'reveal');
+ assert.deepEqual(await page.evaluate(()=>unfoldSeq.seq.lyricDocument.events.filter(e=>e.kind==='line').map(e=>[e.motion?.preset,!!e.motion?.recipe,!!e.motion?.code])),[['reveal',false,false],['reveal',false,false],['reveal',false,false]],'every typed line is reveal, without a recipe or code');
  // a line locked by an older version can still be set free (the lock itself is not offered any more)
  await page.evaluate(async()=>{const u=unfoldSeq,e=u.seq.lyricDocument.events.find(x=>x.kind==='line');await u.lyricAction({type:'edit',id:e.id,patch:{locked:true}});});
  await page.waitForFunction(()=>unfoldSeq.seq.lyricDocument.events.find(x=>x.kind==='line').locked===true);
@@ -71,6 +75,24 @@ try{
  await page.waitForFunction(()=>unfoldSeq.seq.lyricDocument.events.filter(e=>e.kind==='line')[0].raw==='いちまいの えを ここにおいて');
  const undone=await page.evaluate(()=>unfoldSeq.seq.lyricDocument.events.filter(e=>e.kind==='line').map(e=>e.raw));
  assert.deepEqual(undone,before.map(x=>x.raw));
+ // a document that already holds recipes (older projects picked them automatically): the sequence plays it plain, the document itself is not changed
+ const view=await page.evaluate(async()=>{
+  const {BUILTIN_MOTIONS}=await import('./lyric-recipe.js'),url=performance.getEntriesByType('resource').map(r=>r.name).find(n=>/\/lyric-motion\.js/.test(n)),{plainLyricView}=await import(url),u=unfoldSeq;
+  await u.lyricAction({type:'recipe-apply',motion:BUILTIN_MOTIONS[5].motion});
+  const doc=u.seq.lyricDocument,lines=doc.events.filter(e=>e.kind==='line'),plain=plainLyricView(doc).events.filter(e=>e.kind==='line');
+  return {stored:lines.map(e=>!!e.motion.recipe),shown:plain.map(e=>[e.motion.preset,!!e.motion.recipe,!!e.motion.code]),same:plainLyricView(doc)===plainLyricView(doc)};
+ });
+ assert.deepEqual(view.stored,[true,true,true],'the document keeps the recipes (STUDIO gets them as they are)');
+ assert.deepEqual(view.shown,[['reveal',false,false],['reveal',false,false],['reveal',false,false]],'what the sequence shows is plain');
+ assert.equal(view.same,true);
+ await page.locator('.lm-event').first().evaluate(d=>{d.open=true});
+ assert.deepEqual(await page.locator('.lm-event').first().locator('select:has(option[value="reveal"]) option:disabled').allTextContents(),['STUDIOで決める動き'],'a line that holds a STUDIO motion says so');
+ // lyrics switched off by an older version can be switched on again (the 歌詞を表示 box is gone)
+ await page.evaluate(()=>unfoldSeq.lyricAction({type:'settings',patch:{enabled:false}}));
+ await page.waitForFunction(()=>unfoldSeq.seq.lyricDocument.enabled===false);
+ await page.getByRole('button',{name:'歌詞を表示する'}).click();
+ await page.waitForFunction(()=>unfoldSeq.seq.lyricDocument.enabled===true);
+ assert.equal(await page.getByRole('button',{name:'歌詞を表示する'}).isVisible(),false);
  assert.deepEqual(problems,[]);
- console.log('PASS sequence lyric tab: clean-up, numbers, kanji paste-back with kept timings and one Undo');
+ console.log('PASS sequence lyric tab: clean-up, numbers, plain 一文字ずつ only, kanji paste-back with kept timings and one Undo');
 }finally{await browser.close();await server.close();}

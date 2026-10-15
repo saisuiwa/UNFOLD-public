@@ -1,7 +1,7 @@
 import {workshopField} from './workshop-settings.js';
 import {cleanCodeMotion} from './code-motion-format.js';
 import {isLyricFontKey} from './lyric-fonts.js';
-import {cleanMotion} from './lyric-motion.js?v=26';
+import {cleanMotion} from './lyric-motion.js?v=28';
 import {validateRecipe,BUILTIN_MOTIONS} from './lyric-recipe.js';
 export const MOTION_LIBRARY_KEY='unfold-motion-library-v1';
 const maxChars=131072,validFonts=['gothic','mincho','round','dela','marker','dot'];
