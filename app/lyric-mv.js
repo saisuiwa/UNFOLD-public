@@ -1,32 +1,10 @@
 // Lyric MV helpers: timing files, tempo detection, lyric cards and the automatic sequence layout.
 import { FONTS, ensureFont } from './mask-shape.js?v=5';
+import { parseTimings, timingsToJSON } from './lyric-timings.js?v=2';
 
 // ---------------------------------------------------------------- timings --
-// -> [{s, e?, t, k?}] sorted by start time
-export function parseTimings(text, name = '') {
-  const trimmed = text.trim();
-  // an LRC file usually starts with "[" too ("[00:01.90]…" or "[ti:…]"), so a leading "[" alone doesn't mean JSON
-  const looksLrc = /\.lrc$/i.test(name) || /^\[(\d+:\d+|[a-z]+:)/i.test(trimmed);
-  if (/\.json$/i.test(name) || trimmed.startsWith('{') || (trimmed.startsWith('[') && !looksLrc)) {
-    const d = JSON.parse(trimmed);
-    const rows = Array.isArray(d) ? d : d.lines;
-    if (!Array.isArray(rows)) throw new Error('JSONに歌詞の行（lines）が見つかりませんでした。');
-    return rows.map(r => ({ s: Number(r.s ?? r.start ?? r.time), e: r.e ?? r.end, t: String(r.t ?? r.text ?? ''), k: r.k ?? r.kind }))
-      .filter(r => Number.isFinite(r.s) && r.t.trim()).sort((a, b) => a.s - b.s);
-  }
-  const out = [];
-  for (const line of text.split(/\r?\n/)) {             // LRC: [mm:ss.xx] text (several tags allowed)
-    const tags = [...line.matchAll(/\[(\d+):(\d+(?:\.\d+)?)\]/g)];
-    const body = line.replace(/\[\d+:\d+(?:\.\d+)?\]/g, '').trim();
-    if (!tags.length || !body) continue;
-    for (const m of tags) out.push({ s: Number(m[1]) * 60 + Number(m[2]), t: body });
-  }
-  if (!out.length) throw new Error('タイミングを読み取れませんでした（.json か .lrc を選んでね）。');
-  return out.sort((a, b) => a.s - b.s);
-}
-export function timingsToJSON(lines) {
-  return JSON.stringify({ lines: lines.map(l => ({ s: +l.s.toFixed(2), ...(l.e != null ? { e: +Number(l.e).toFixed(2) } : {}), t: l.t, ...(l.k ? { k: l.k } : {}) })) }, null, 1);
-}
+// the JSON / LRC / SRT readers live in lyric-timings.js (no three.js there, so the lyric timing page can use them too)
+export { parseTimings, timingsToJSON };
 
 // ------------------------------------------------------------------ tempo --
 // onset envelope → autocorrelation for the tempo → Fourier fit for the exact period and phase

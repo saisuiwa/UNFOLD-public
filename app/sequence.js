@@ -26,7 +26,7 @@ import { SceneBlur } from './effects.js?v=30';
 import { WebMWriter, opusHead } from './webm-writer.js?v=2';
 import { MP4Writer } from './mp4-writer.js?v=1';
 import { FONTS, createMaskTextShape, createSilhouetteShape } from './mask-shape.js?v=5';
-import { parseTimings, timingsToJSON, detectBeat, drawLyricCard, loadCardFonts, layoutLyricMV } from './lyric-mv.js?v=7';
+import { parseTimings, timingsToJSON, detectBeat, drawLyricCard, loadCardFonts, layoutLyricMV } from './lyric-mv.js?v=8';
 import { importModel } from './model-import.js?v=10';
 import { listModels, getModel, saveModel, deleteModel, updateModel } from './model-library.js?v=4';
 import { grainSequenceNote, tileSequenceNote } from './slider-notes.js?v=2';
@@ -609,7 +609,7 @@ export async function lyricAction(a){
  if(a.type==='text-edit'){lyricRevision++;return}
  if(a.type==='audio'){await loadAudio(a.file,a.file.name);return}
  if(a.type==='text'){if(a.value===(seq.lyricDocument?.sourceText||''))return;lyricRevision++;lyricTap=null;lyricTapping=false;edit(()=>setLyricDocument(assignLyricMotions(parseLyrics(a.value,seq.lyricDocument),{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7,preserveExisting:true,plain:true})));return}
- if(a.type==='import'){const value=await a.file.text();let restored=null;if(/\.json$/i.test(a.file.name))restored=lyricTimingDocument(JSON.parse(value));lyricRevision++;edit(()=>setLyricDocument(restored||assignLyricMotions(/\.(json|lrc)$/i.test(a.file.name)?importTimedLyrics(parseTimings(value,a.file.name),'file'):parseLyrics(value),{style:'readable',seed:7,plain:true})));return}
+ if(a.type==='import'){const value=await a.file.text();let restored=null;if(/\.json$/i.test(a.file.name))restored=lyricTimingDocument(JSON.parse(value));lyricRevision++;edit(()=>setLyricDocument(restored||assignLyricMotions(/\.(json|lrc|srt)$/i.test(a.file.name)?importTimedLyrics(parseTimings(value,a.file.name),'file'):parseLyrics(value),{style:'readable',seed:7,plain:true})));return}
  if(a.type==='candidate'){const c=lyricExtraction?.candidates.find(c=>c.id===a.id);if(c){lyricRevision++;edit(()=>applyCandidate(c))}return}
  if(a.type==='shuffle'){
   const doc=seq.lyricDocument;
