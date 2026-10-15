@@ -230,6 +230,20 @@ vec3 userMethod(vec2 p, float amount) {
   gLocal = 1.;
   return vec3(q, 0.);
 }` },
+  { key: 'ring-burst', name: '輪が広がって弾く', symbol: '輪', category: 'method', desc: '中心から輪が広がり、輪が通った所の粒が外へ弾け飛んでいきます。', added: '2026-10-15', poster: .3, source: `// 中心から輪が広がって、輪が通った所の粒が外へ弾ける
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  vec2 u = c / uSize.y;                                       // 縦を1とした座標（中心が原点）
+  float r = length(u);                                        // 中心からの距離
+  float delay = r * .55 + ph(1.) * .05;                       // 中心に近い粒から先に弾ける
+  float e = smoothstep(delay, delay + .22, amount);
+  vec2 dir = normalize(u + vec2(.0001));
+  vec2 q = c + l * (1. - .3 * e) + dir * e * e * (.5 + ph(2.) * .7) * uSize.y;
+  gKind = 2.;                                                 // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .3 * e;
+  gLocal = 1.;
+  return vec3(q, e * (ph(3.) - .5) * .3);
+}` },
 ];
 
 // Text to paste into an AI chat: it explains what to write, and the rules the editor checks, so what comes back is likely to pass.

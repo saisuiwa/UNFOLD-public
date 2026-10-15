@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル128個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル131個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=2">
 </head>
 <body>
@@ -26,15 +26,89 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>128個</b>、最後に増えたのは 10/14）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>131個</b>、最後に増えたのは 10/15）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>128</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>18</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>5</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>56</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>131</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>19</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>6</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>57</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="method">
+      <div class="shot" data-clip="./samples/method-ring-burst.mp4" role="button" tabindex="0" aria-label="輪が広がって弾くの動きを再生">
+        <img src="./samples/method-ring-burst.jpg" alt="輪が広がって弾くの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">輪</i>輪が広がって弾く<span class="new">NEW</span><small>RING-BURST</small></h3>
+        <p>中心から輪が広がり、輪が通った所の粒が外へ弾け飛んでいきます。</p>
+        <details><summary>コードを見る</summary><pre><code>// 中心から輪が広がって、輪が通った所の粒が外へ弾ける
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  vec2 u = c / uSize.y;                                       // 縦を1とした座標（中心が原点）
+  float r = length(u);                                        // 中心からの距離
+  float delay = r * .55 + ph(1.) * .05;                       // 中心に近い粒から先に弾ける
+  float e = smoothstep(delay, delay + .22, amount);
+  vec2 dir = normalize(u + vec2(.0001));
+  vec2 q = c + l * (1. - .3 * e) + dir * e * e * (.5 + ph(2.) * .7) * uSize.y;
+  gKind = 2.;                                                 // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .3 * e;
+  gLocal = 1.;
+  return vec3(q, e * (ph(3.) - .5) * .3);
+}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">崩れ方</span><span class="when">10/15 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="image">
+      <div class="shot" data-clip="./samples/image-ring-spin.mp4" role="button" tabindex="0" aria-label="リングごとに逆回りの動きを再生">
+        <img src="./samples/image-ring-spin.jpg" alt="リングごとに逆回りの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">環</i>リングごとに逆回り<span class="new">NEW</span><small>RING-SPIN</small></h3>
+        <p>同心円のリングごとに、タイルが交互に逆向きへ回って、また戻ります。</p>
+        <p class="how">メソッド工房の「画像・立体・物理」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 中心からの距離でリングに分けて、リングごとに交互に逆向きへ回る。強さ(amount)が戻ると元の位置へ帰る
+const {createImageTiles,size,smooth}=api;
+const tiles=createImageTiles();
+const half=size.width*.5;
+return {update(frame){
+ const t=Math.min(1,frame.amount/.8);
+ for(const piece of tiles){
+  const x=piece.home.x,y=piece.home.y,r=Math.hypot(x,y)/half;
+  const ring=Math.floor(r*4.5);                          // 外へ向かって 0, 1, 2 … のリング
+  const dir=ring%2===0?1:-1;
+  const k=smooth(Math.max(0,Math.min(1,t*1.5-ring*.12)));
+  const turn=dir*k*(.45+.08*ring),c=Math.cos(turn),s=Math.sin(turn);
+  piece.mesh.position.set(x*c-y*s,x*s+y*c,0);
+  piece.mesh.rotation.set(0,0,turn);
+  piece.mesh.scale.setScalar(1-.1*k);
+ }
+}};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">画像・立体・物理（JavaScript）</span><span class="when">10/15 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="codetext">
+      <div class="shot" data-clip="./samples/codetext-strobe-in.mp4" role="button" tabindex="0" aria-label="ストロボで現れるの動きを再生">
+        <img src="./samples/codetext-strobe-in.jpg" alt="ストロボで現れるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">文</i>ストロボで現れる<span class="new">NEW</span><small>STROBE-IN</small></h3>
+        <p>ストロボのように点いたり消えたりを繰り返して、最後に点いたままになります。</p>
+        <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 点滅しながら、だんだん点いている時間が長くなって、最後は点きっぱなしになる。退場は点滅して消える
+const {createText,text,width,duration}=api;
+const label=createText(text,{maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const clamp=x=&gt;Math.max(0,Math.min(1,x));
+const enter=Math.min(.9,duration*.3),exit=Math.min(.45,duration*.15);
+return {update(t){
+ const a=clamp(t/enter),b=clamp((duration-t)/exit);
+ const phase=(t*13)%1,onIn=phase&lt;.25+.75*a,onOut=((duration-t)*13)%1&lt;.25+.75*b;   // 点いている割合が 25% から 100% へ
+ const on=(a&gt;=1||onIn)&amp;&amp;(b&gt;=1||onOut)&amp;&amp;t&gt;0.02&amp;&amp;t&lt;duration-.02;   // 行の前と後ろでは必ず消える
+ const flash=on?1:0;
+ label.fillOpacity=flash;label.outlineOpacity=flash;
+ label.scale.setScalar(1+(on&amp;&amp;a&lt;1?.05*(1-a):0));
+}};</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>
+        <span class="tag">文字モーション（コード）</span><span class="when">10/15 追加</span>
+      </div>
+    </article>
     <article class="method" data-cat="method">
       <div class="shot" data-clip="./samples/method-checker-shift.mp4" role="button" tabindex="0" aria-label="市松が上下にずれるの動きを再生">
         <img src="./samples/method-checker-shift.jpg" alt="市松が上下にずれるの途中の絵" loading="lazy" width="480" height="270">
@@ -4032,7 +4106,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/method-scribble-scatter.jpg" alt="落書きになって散るの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">落</i>落書きになって散る<span class="new">NEW</span><small>SCRIBBLE-SCATTER</small></h3>
+        <h3><i aria-hidden="true">落</i>落書きになって散る<small>SCRIBBLE-SCATTER</small></h3>
         <p>絵が線画の落書きになって、揺れながらばらばらに散っていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 絵が線画の落書きになって、揺れながらばらばらに散っていく
 vec3 userMethod(vec2 p, float amount) {
@@ -4053,7 +4127,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/method-line-tangle.jpg" alt="線がぐるぐる絡むの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">絡</i>線がぐるぐる絡む<span class="new">NEW</span><small>LINE-TANGLE</small></h3>
+        <h3><i aria-hidden="true">絡</i>線がぐるぐる絡む<small>LINE-TANGLE</small></h3>
         <p>線画になった粒が、渦を巻きながら中心へ絡まっていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 線画になった粒が、渦を巻きながら中心へ絡まっていく
 vec3 userMethod(vec2 p, float amount) {
@@ -4074,7 +4148,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/method-pen-shake.jpg" alt="ペンで殴り描きの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">殴</i>ペンで殴り描き<span class="new">NEW</span><small>PEN-SHAKE</small></h3>
+        <h3><i aria-hidden="true">殴</i>ペンで殴り描き<small>PEN-SHAKE</small></h3>
         <p>絵が線画になり、ペンで殴り描きするように細かく震えます。</p>
         <details><summary>コードを見る</summary><pre><code>// 絵が線画になり、ペンで殴り描きするように細かく震える
 vec3 userMethod(vec2 p, float amount) {
@@ -4094,7 +4168,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/method-line-fall.jpg" alt="線画が崩れ落ちるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">崩</i>線画が崩れ落ちる<span class="new">NEW</span><small>LINE-FALL</small></h3>
+        <h3><i aria-hidden="true">崩</i>線画が崩れ落ちる<small>LINE-FALL</small></h3>
         <p>線画になった絵が、上から順に切れ落ちるように崩れていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 線画になった絵が、上から順に切れ落ちるように崩れていく
 vec3 userMethod(vec2 p, float amount) {
@@ -4114,7 +4188,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/method-thread-unravel.jpg" alt="ほどけて糸になるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">糸</i>ほどけて糸になる<span class="new">NEW</span><small>THREAD-UNRAVEL</small></h3>
+        <h3><i aria-hidden="true">糸</i>ほどけて糸になる<small>THREAD-UNRAVEL</small></h3>
         <p>絵がほどけて、細い糸のように長く伸びて流れていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 絵がほどけて、細い糸のように長く伸びて流れていく
 vec3 userMethod(vec2 p, float amount) {
@@ -4135,7 +4209,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/method-color-bleed.jpg" alt="色が滲んで広がるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">滲</i>色が滲んで広がる<span class="new">NEW</span><small>COLOR-BLEED</small></h3>
+        <h3><i aria-hidden="true">滲</i>色が滲んで広がる<small>COLOR-BLEED</small></h3>
         <p>色が水に滲むように粒がぼやけて広がり、まわりと混ざります。</p>
         <details><summary>コードを見る</summary><pre><code>// 色が水に滲むように、粒がぼやけて広がり、まわりの色と混ざっていく
 vec3 userMethod(vec2 p, float amount) {
@@ -4155,7 +4229,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/method-paint-drip.jpg" alt="絵の具が垂れるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">垂</i>絵の具が垂れる<span class="new">NEW</span><small>PAINT-DRIP</small></h3>
+        <h3><i aria-hidden="true">垂</i>絵の具が垂れる<small>PAINT-DRIP</small></h3>
         <p>絵の具が溶けて、色の筋になって下へ垂れていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 絵の具が溶けて、色の筋になって下へ垂れていく
 vec3 userMethod(vec2 p, float amount) {
@@ -4175,7 +4249,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/method-bleed-out.jpg" alt="中心から滲み出すの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">溢</i>中心から滲み出す<span class="new">NEW</span><small>BLEED-OUT</small></h3>
+        <h3><i aria-hidden="true">溢</i>中心から滲み出す<small>BLEED-OUT</small></h3>
         <p>色が中心から外へ滲み出して、やわらかく広がっていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 色が中心から外へ滲み出して、やわらかく広がっていく
 vec3 userMethod(vec2 p, float amount) {
@@ -4196,7 +4270,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/codetext-ransom-slow.jpg" alt="切り貼り文字（ゆっくり）の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>切り貼り文字（ゆっくり）<span class="new">NEW</span><small>RANSOM-SLOW</small></h3>
+        <h3><i aria-hidden="true">文</i>切り貼り文字（ゆっくり）<small>RANSOM-SLOW</small></h3>
         <p>書体も紙も傾きも違う切り抜き文字を、1拍に1文字ずつゆっくり貼ります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// @fonts
 // 切り貼り文字（ゆっくり）: 1文字ごとに書体・紙の色・大きさ・傾きが違う切り抜き文字を、拍に合わせて1文字ずつ貼っていく。貼るたびに画面が拍で揺れる。
@@ -4296,7 +4370,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-ransom-paste.jpg" alt="切り貼り文字の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>切り貼り文字<span class="new">NEW</span><small>RANSOM-PASTE</small></h3>
+        <h3><i aria-hidden="true">文</i>切り貼り文字<small>RANSOM-PASTE</small></h3>
         <p>書体も紙も傾きも違う切り抜き文字を、拍に合わせて貼っていきます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// @fonts
 // 切り貼り文字: 1文字ごとに書体・紙の色・大きさ・傾きが違う切り抜き文字を、拍に合わせて1文字ずつ貼っていく。貼るたびに画面が拍で揺れる。
@@ -4396,7 +4470,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-ransom-rapid.jpg" alt="切り貼り文字（連打）の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>切り貼り文字（連打）<span class="new">NEW</span><small>RANSOM-RAPID</small></h3>
+        <h3><i aria-hidden="true">文</i>切り貼り文字（連打）<small>RANSOM-RAPID</small></h3>
         <p>切り抜き文字を拍の4分で素早く貼り、画面を大きく揺らします。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// @fonts
 // 切り貼り文字（連打）: 1文字ごとに書体・紙の色・大きさ・傾きが違う切り抜き文字を、拍に合わせて1文字ずつ貼っていく。貼るたびに画面が拍で揺れる。
@@ -4496,7 +4570,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-checker-wave.jpg" alt="波打つ市松の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>波打つ市松の背景<span class="new">NEW</span><small>BG-CHECKER-WAVE</small></h3>
+        <h3><i aria-hidden="true">✦</i>波打つ市松の背景<small>BG-CHECKER-WAVE</small></h3>
         <p>市松模様が波のようにうねりながら流れる、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 市松模様の角丸の四角が、波のようにうねりながら脈打つ背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4545,7 +4619,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-sunburst.jpg" alt="放射状の光線の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>放射状の光線の背景<span class="new">NEW</span><small>BG-SUNBURST</small></h3>
+        <h3><i aria-hidden="true">✦</i>放射状の光線の背景<small>BG-SUNBURST</small></h3>
         <p>中心から放射状の光線が、ゆっくり回りながら広がる背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 中心から放射状に伸びる光線が、ゆっくり回転する背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4594,7 +4668,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-grid-warp.jpg" alt="歪む方眼の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>歪む方眼の背景<span class="new">NEW</span><small>BG-GRID-WARP</small></h3>
+        <h3><i aria-hidden="true">✦</i>歪む方眼の背景<small>BG-GRID-WARP</small></h3>
         <p>方眼の線が波のように歪んで揺れる、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 方眼の線が波のように歪んで揺れる背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4642,7 +4716,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-bokeh.jpg" alt="ぼかしの光の玉の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>ぼかしの光の玉の背景<span class="new">NEW</span><small>BG-BOKEH</small></h3>
+        <h3><i aria-hidden="true">✦</i>ぼかしの光の玉の背景<small>BG-BOKEH</small></h3>
         <p>やわらかい光の玉がゆっくり漂う、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// やわらかい光の玉が漂うボケの背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4699,7 +4773,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-plasma-lines.jpg" alt="プラズマの等高線の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>プラズマの等高線の背景<span class="new">NEW</span><small>BG-PLASMA-LINES</small></h3>
+        <h3><i aria-hidden="true">✦</i>プラズマの等高線の背景<small>BG-PLASMA-LINES</small></h3>
         <p>色がうねる等高線のような線が流れる、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// うねるプラズマの等高線が流れる背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4746,7 +4820,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-hex-pulse.jpg" alt="六角形が脈打つ背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>六角形が脈打つ背景<span class="new">NEW</span><small>BG-HEX-PULSE</small></h3>
+        <h3><i aria-hidden="true">✦</i>六角形が脈打つ背景<small>BG-HEX-PULSE</small></h3>
         <p>六角形のタイルが順番に光って脈打つ、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 六角形のタイルが波のように順番に光る背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4800,7 +4874,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-scribble.jpg" alt="ぐちゃぐちゃ線の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>ぐちゃぐちゃ線の背景<span class="new">NEW</span><small>BG-SCRIBBLE</small></h3>
+        <h3><i aria-hidden="true">✦</i>ぐちゃぐちゃ線の背景<small>BG-SCRIBBLE</small></h3>
         <p>何本もの線がくねくね絡み合って走る、落書きのような背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 何本もの線がくねくねと絡み合って走る、落書きのような背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4850,7 +4924,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-rain-streaks.jpg" alt="斜めの雨筋の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>斜めの雨筋の背景<span class="new">NEW</span><small>BG-RAIN-STREAKS</small></h3>
+        <h3><i aria-hidden="true">✦</i>斜めの雨筋の背景<small>BG-RAIN-STREAKS</small></h3>
         <p>斜めの細い筋が次々に降り注ぐ、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 斜めの細い筋が次々に降り注ぐ背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4900,7 +4974,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-halftone-pop.jpg" alt="網点が膨らむ背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>網点が膨らむ背景<span class="new">NEW</span><small>BG-HALFTONE-POP</small></h3>
+        <h3><i aria-hidden="true">✦</i>網点が膨らむ背景<small>BG-HALFTONE-POP</small></h3>
         <p>網点の大きさが波のように変わって脈打つ背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 網点の大きさが波のように変わって脈打つ背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4949,7 +5023,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-zigzag.jpg" alt="ジグザグの帯の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>ジグザグの帯の背景<span class="new">NEW</span><small>BG-ZIGZAG</small></h3>
+        <h3><i aria-hidden="true">✦</i>ジグザグの帯の背景<small>BG-ZIGZAG</small></h3>
         <p>ジグザグの帯が横に流れていく、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// ジグザグの帯が横に流れていく背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -4997,7 +5071,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-ink-bleed.jpg" alt="インクが滲む背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>インクが滲む背景<span class="new">NEW</span><small>BG-INK-BLEED</small></h3>
+        <h3><i aria-hidden="true">✦</i>インクが滲む背景<small>BG-INK-BLEED</small></h3>
         <p>色のインクがにじんで混ざり合う、文字なしの背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 色のインクがにじんで混ざり合う背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;
@@ -5045,7 +5119,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/effect-bg-starfield.jpg" alt="流れる星の背景の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✦</i>流れる星の背景<span class="new">NEW</span><small>BG-STARFIELD</small></h3>
+        <h3><i aria-hidden="true">✦</i>流れる星の背景<small>BG-STARFIELD</small></h3>
         <p>小さな星がきらめきながら横に流れていく背景です。</p>
         <p class="how">メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。</p><details><summary>コードを見る</summary><pre><code>// 小さな星がきらめきながら横に流れていく背景（文字は描かない）。文字モーションの下に重ねて使う
 const {THREE,scene,width,height,duration,accent}=api;

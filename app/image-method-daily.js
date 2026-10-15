@@ -114,5 +114,23 @@ return {update(frame){
   piece.mesh.position.set(x,y-k*half*.5*v,0);
   piece.mesh.scale.set(1-.25*k,1+1.1*k*v,1);
  }
+}};`}},
+ {key:'ring-spin',name:'リングごとに逆回り',symbol:'環',desc:'同心円のリングごとに、タイルが交互に逆向きへ回って、また戻ります。',added:'2026-10-15',poster:1.2,
+  code:{version:1,runtime:IMAGE_RUNTIME,params:{columns:14,gravity:4,bounce:.5,seed:4,returnMode:'reverse',label:'UNFOLD',font:'gothic'},source:`// 中心からの距離でリングに分けて、リングごとに交互に逆向きへ回る。強さ(amount)が戻ると元の位置へ帰る
+const {createImageTiles,size,smooth}=api;
+const tiles=createImageTiles();
+const half=size.width*.5;
+return {update(frame){
+ const t=Math.min(1,frame.amount/.8);
+ for(const piece of tiles){
+  const x=piece.home.x,y=piece.home.y,r=Math.hypot(x,y)/half;
+  const ring=Math.floor(r*4.5);                          // 外へ向かって 0, 1, 2 … のリング
+  const dir=ring%2===0?1:-1;
+  const k=smooth(Math.max(0,Math.min(1,t*1.5-ring*.12)));
+  const turn=dir*k*(.45+.08*ring),c=Math.cos(turn),s=Math.sin(turn);
+  piece.mesh.position.set(x*c-y*s,x*s+y*c,0);
+  piece.mesh.rotation.set(0,0,turn);
+  piece.mesh.scale.setScalar(1-.1*k);
+ }
 }};`}}
 ];

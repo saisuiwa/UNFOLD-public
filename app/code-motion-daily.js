@@ -7951,4 +7951,17 @@ function dispose(){
 }
 update(0);
 return {update,dispose};`},
+ {key:'strobe-in',name:'ストロボで現れる',desc:'ストロボのように点いたり消えたりを繰り返して、最後に点いたままになります。',added:'2026-10-15',poster:.4,source:`// 点滅しながら、だんだん点いている時間が長くなって、最後は点きっぱなしになる。退場は点滅して消える
+const {createText,text,width,duration}=api;
+const label=createText(text,{maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const clamp=x=>Math.max(0,Math.min(1,x));
+const enter=Math.min(.9,duration*.3),exit=Math.min(.45,duration*.15);
+return {update(t){
+ const a=clamp(t/enter),b=clamp((duration-t)/exit);
+ const phase=(t*13)%1,onIn=phase<.25+.75*a,onOut=((duration-t)*13)%1<.25+.75*b;   // 点いている割合が 25% から 100% へ
+ const on=(a>=1||onIn)&&(b>=1||onOut)&&t>0.02&&t<duration-.02;   // 行の前と後ろでは必ず消える
+ const flash=on?1:0;
+ label.fillOpacity=flash;label.outlineOpacity=flash;
+ label.scale.setScalar(1+(on&&a<1?.05*(1-a):0));
+}};`}
 ];
