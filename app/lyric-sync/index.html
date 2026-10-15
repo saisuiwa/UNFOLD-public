@@ -40,7 +40,7 @@ audio{width:100%;margin-top:10px}
 <main>
 <p class="hint" style="margin:0"><a href="../sequence.html">← UNFOLD（シーケンス）に戻る</a></p>
 <h1>歌詞タイミング合わせ</h1>
-<p class="lead">曲と歌詞を入れると、ElevenLabs の強制アラインメントで、行ごとの開始時刻を出します。結果は UNFOLD の「歌詞を選択（LRC/JSON）」で読み込めます。</p>
+<p class="lead">曲と歌詞を入れると、行ごとの開始時刻を出します。方法は2つ。ElevenLabs の強制アラインメント（APIキーが要ります）か、<b>APIキーなし</b>で、字幕ファイル（SRT など）の目安の時刻を曲の声の立ち上がりに合わせる方法です。結果は UNFOLD の「歌詞を選択（LRC/JSON）」で読み込めます。</p>
 
 <section>
 <h2>1　ElevenLabs の APIキー</h2>
@@ -66,9 +66,25 @@ audio{width:100%;margin-top:10px}
 <p id="status" role="status"></p>
 </section>
 
+<section id="keyless">
+<h2>または　APIキーなしで合わせる</h2>
+<p class="hint">無料の「MP3→SRT」サイトや、パソコンの Whisper などで作った <b>SRT / LRC / JSON</b> を入れると、行と目安の時刻が入ります。そのあと下の「声の立ち上がりに合わせる」で、曲の音を見て、各行の開始時刻を歌い出しに合わせ直します（曲は上の「2　曲」で選びます）。送信はせず、このブラウザの中だけで調べます。</p>
+<label for="rough">目安の時刻のファイル（.srt / .lrc / .json）</label>
+<input id="rough" type="file" accept=".srt,.lrc,.json,.txt">
+<details class="hint"><summary>しくみと、うまくいかないとき</summary>
+<p>曲の「人の声の帯域（およそ 250〜3500 Hz）」の大きさを 0.05 秒ごとに測り、各行の目安の時刻の前後 1 秒ほどの中から、音がいちばんはっきり立ち上がる所を歌い出しとして選びます。行の終わりも、声が切れる所に合わせます。</p>
+<p>Whisper 系の時刻は歌い出しより 0.5〜1 秒ほど早く出やすいので、「早めに出ている」では少し遅い側を探します。タップ同期など、だいたい合っている時刻なら「だいたい合っている」を選んでください。</p>
+<p>立ち上がりがはっきりしない行は、ほかの行の動きから推定して「※推定」と出します。伴奏が大きい曲、息づかいが大きい所、コーラスが重なる所は外れることがあります。ボーカルだけのファイルがあれば精度が上がります。▶ で聴いて、ずれた行だけ直してください。</p>
+</details>
+</section>
+
 <section id="result" hidden>
 <h2>4　結果（時刻は直せます）</h2>
 <p class="hint">▶ を押すと、その行の少し前から再生します。ずれた行は、秒の数字を直してください。歌詞の文字は、そのまま書き直せます（漢字にしても、時刻は変わりません）。</p>
+<div class="row"><label for="lead" style="margin:0">目安の時刻は</label>
+<select id="lead"><option value="0.5">歌い出しより早めに出ている（Whisper・字幕サイトなど）</option><option value="0">だいたい合っている（タップ同期など）</option></select>
+<button id="snap" class="primary">声の立ち上がりに合わせる</button><button id="unsnap" hidden>目安の時刻に戻す</button></div>
+<p class="hint">APIキーなしの方法です。もう一度押すと、読み込んだ目安の時刻から合わせ直します（手で直した時刻は消えます）。行を分けたり、つないだあとは、そのときの時刻を目安にします。</p>
 <details class="hint" id="kanji" open><summary>★ 歌詞をまとめて漢字にする（AIに頼む）</summary>
 <p class="hint">1. 「依頼文をコピー」を押して、ChatGPT や Claude などに貼ります。2. 返ってきた歌詞をコピー（コードブロックの右上のコピーボタンでOK）して、「コピーした歌詞を貼って反映」を押します。うまくいかないときは、下の欄に貼って「反映」を押してください。行の数が変わらないことが条件です。行を分けたいときは、先に各行の「ここで分ける」を使ってください。</p>
 <div class="row"><button id="copyRequest">依頼文をコピー</button><button id="pasteRewrite" class="primary">コピーした歌詞を貼って反映</button></div>
@@ -84,9 +100,11 @@ audio{width:100%;margin-top:10px}
 <script type="module">
 import {extractAudioLyrics} from '../audio-lyrics.js?v=2';
 import {parseLyricLines, alignmentText, lineTimes, fixOrder, toLrc, toJson, requestAlignment, splitRow, mergeRows, applyRewritten, kanjiRequest} from './align.js';
+import {bandEnergyDb, snapRows, rowsFromTimings, toMono} from './snap.js?v=1';
+import {parseTimings} from '../lyric-timings.js?v=2';
 const $ = id => document.getElementById(id);
 const store = {get(k){try{return localStorage.getItem(k)||''}catch{return ''}}, set(k,v){try{localStorage.setItem(k,v)}catch{}}, del(k){try{localStorage.removeItem(k)}catch{}}};
-let rows = [], url = '';
+let rows = [], url = '', rough = null;      // rough: the rows as they were before 「声の立ち上がりに合わせる」
 
 $('key').value = store.get('lyric-sync-key'); $('remember').checked = !!$('key').value;
 $('base').value = store.get('lyric-sync-base') || $('base').value;
@@ -159,11 +177,54 @@ $('run').onclick = async () => {
   $('run').disabled = true; say('ElevenLabs に送っています…（曲の長さによって、数十秒かかることがあります）');
   try {
     const answer = await requestAlignment({file, text: alignmentText(lines), apiKey, baseUrl: $('base').value.trim() || undefined});
-    rows = fixOrder(lineTimes(lines, answer)); render();
+    rows = fixOrder(lineTimes(lines, answer)); rough = null; $('unsnap').hidden = true; render();
     say(`${rows.length}行の時刻が出ました。${rows.every(r => r.exact) ? '' : '\n文字数が少し合わなかった行は「※推定」と出ています。再生して確かめてください。'}`);
   } catch (e) {
     say(e.name === 'TypeError' ? 'ElevenLabs に届きませんでした（ネットワークか、ブラウザから直接呼べない設定の可能性があります）。\n' + e.message : e.message, true);
   } finally { $('run').disabled = false; }
+};
+
+// ---- without an API key: a rough SRT / LRC / JSON is moved to where the voice comes in (snap.js) --------------------------
+$('rough').addEventListener('change', async () => {
+  const f = $('rough').files[0]; $('rough').value = '';       // cleared so the same file can be chosen again
+  if (!f) return;
+  try {
+    rows = fixOrder(rowsFromTimings(parseTimings(await f.text(), f.name))); rough = null; $('unsnap').hidden = true; render();
+    say(`${rows.length}行を読み込みました（目安の時刻です）。曲を選んで「声の立ち上がりに合わせる」を押してください。`);
+  } catch (e) { say(e.message, true); }
+});
+let envelope = null;           // the loudness of the chosen song, kept so a second press does not decode it again
+async function loudness(file) {
+  const key = `${file.name}:${file.size}:${file.lastModified}`;
+  if (envelope?.key === key) return envelope.db;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  try {
+    const buf = await ctx.decodeAudioData(await file.arrayBuffer());
+    const db = bandEnergyDb(toMono(Array.from({length: buf.numberOfChannels}, (_, c) => buf.getChannelData(c))), buf.sampleRate);
+    envelope = {key, db};
+    return db;
+  } finally { ctx.close?.(); }
+}
+$('snap').onclick = async () => {
+  const file = $('audio').files[0];
+  if (!file) return say('曲のファイルを選んでください（上の「2　曲」）。', true);
+  if (!rows.length) return;
+  $('snap').disabled = true; say('曲の音を調べています…（数秒かかります）');
+  try {
+    const db = await loudness(file);
+    if (!rough || rough.length !== rows.length) rough = rows.map(r => ({...r}));      // the first press, or lines were cut / joined since
+    const base = rough.map((r, i) => ({...r, t: rows[i].t}));                          // the times start from the rough ones; reworded text is kept
+    const result = snapRows(base, db, {lead: Number($('lead').value)});
+    rows = fixOrder(result.rows); render(); $('unsnap').hidden = false;
+    say(`${rows.length}行のうち ${result.clear} 行を、声の立ち上がりに合わせました。${result.weak ? `\n残りの ${result.weak} 行は立ち上がりがはっきりせず、推定のままです（「※推定」）。再生して確かめてください。` : ''}`);
+  } catch (e) {
+    say(e.name === 'EncodingError' ? '曲を読み込めませんでした（この形式をブラウザが開けないようです）。' : e.message, true);
+  } finally { $('snap').disabled = false; }
+};
+$('unsnap').onclick = () => {
+  if (!rough) return;
+  rows = rough.map((r, i) => ({...r, t: rows[i]?.t ?? r.t})); rough = null; $('unsnap').hidden = true; render();
+  say('目安の時刻に戻しました。');
 };
 
 $('copyRequest').onclick = async () => {
