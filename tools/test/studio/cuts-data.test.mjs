@@ -153,3 +153,16 @@ test('honest plans pass through the value check unchanged (over many seeds, ever
  assert.ok(checked>1000,'checked '+checked);
  assert.deepEqual(changed.slice(0,5),[],`${changed.length} values were changed`);
 });
+
+test('the opacity of the worlds (物の濃さ) is stored on the cuts that have a world, and kept (held to 0..1) when the data is read', () => {
+ const p=projectOf();
+ const full=planOf(p,{worldAmount:1}),thin=planOf(p,{worldAmount:1,worldOpacity:.3});
+ assert.ok(full.cuts.some(c=>c.world)&&full.cuts.filter(c=>c.world).every(c=>c.worldA===1),'the default is 100%');
+ assert.ok(thin.cuts.filter(c=>c.world).every(c=>c.worldA===.3)&&thin.cuts.filter(c=>!c.world).every(c=>c.worldA===undefined));
+ for(const [id,d] of thin.data)for(const [i,c] of cleanCutData(d).cuts.entries())assert.equal(c.worldA,d.cuts[i].worldA,'kept as stored');
+ // the plan itself (which cuts get a world, which one) does not depend on the opacity
+ assert.deepEqual(thin.cuts.map(c=>c.world),full.cuts.map(c=>c.world));
+ const withWorld=[...full.data.values()].find(d=>d.cuts.some(c=>c.world));
+ const bad=v=>cleanCutData({...withWorld,cuts:withWorld.cuts.map(c=>c.world?{...c,worldA:v}:c)}).cuts.find(c=>c.world).worldA;
+ assert.equal(bad(5),1);assert.equal(bad(-2),0);assert.equal(bad('x'),1);assert.equal(bad(.45),.45);
+});

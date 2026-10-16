@@ -60,7 +60,8 @@ export const BG={
  split:{name:'斜め二色',tags:['graphic','impact','glitch'],w:1,
   plan:r=>({ang:sign(r)*(10+r()*25),sw:.08+r()*.08,u:.42+r()*.16}),
   draw(c,e,P){const x0=e.W*(P.u+P.sw*Math.sin(e.t*.7)),sk=e.H*Math.tan(P.ang*DEG)/2;
-   c.fillStyle=mixHex(e.bg,e.accent,.2);c.beginPath();c.moveTo(x0+sk,0);c.lineTo(e.W,0);c.lineTo(e.W,e.H);c.lineTo(x0-sk,e.H);c.closePath();c.fill();}},
+   c.fillStyle=e.opaque===false?rgba(e.accent,.2):mixHex(e.bg,e.accent,.2);   // 下に絵があるときは、半分を塗りつぶさず、薄い色を重ねる
+   c.beginPath();c.moveTo(x0+sk,0);c.lineTo(e.W,0);c.lineTo(e.W,e.H);c.lineTo(x0-sk,e.H);c.closePath();c.fill();}},
  glow:{name:'ゆれる光',tags:['emotional','calm','pop'],w:1.2,
   plan:r=>({ph:[r()*TAU,r()*TAU,r()*TAU],a:.2+r()*.1}),
   draw(c,e,P){const R=e.H*.85,cols=[rgba(e.accent,P.a),rgba(e.fg,P.a*.45),rgba(mixHex(e.accent,e.fg,.5),P.a*.7)];

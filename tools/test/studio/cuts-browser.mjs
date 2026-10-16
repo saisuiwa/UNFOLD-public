@@ -56,6 +56,9 @@ await withStudioPage(async page=>{
  await page.getByTestId('omakase-next').click();await page.waitForFunction(a=>JSON.stringify(c.get().project.lyrics.map(l=>l.cut))!==a,first,{timeout:60000});
  const second=await planOf();assert.notEqual(second,first);
  await page.getByTestId('omakase-back').click();await page.waitForFunction(a=>JSON.stringify(c.get().project.lyrics.map(l=>l.cut))===a,first,{timeout:60000});
+ // ---- 物の濃さ: 物の世界を100%にして、濃さを30%にすると、世界のあるカットは全部 worldA=0.3（文字は薄くならない）
+ for(const [k,v] of [['worldAmount','100'],['worldOpacity','30']]){await page.getByTestId('omakase-cut-'+k).fill(v);await page.getByTestId('omakase-cut-'+k).dispatchEvent('change');await page.waitForTimeout(400);}
+ await page.waitForFunction(()=>{const cuts=c.get().project.lyrics.flatMap(l=>l.cut.cuts);return cuts.some(x=>x.world)&&cuts.filter(x=>x.world).every(x=>x.worldA===.3);},null,{timeout:60000});
  // ---- 設定のスライダー: カメラ0・画面効果0・つなぎ0・世界0・引き継ぎ0・ゴースト0 なら、その部品は使われない
  for(const k of ['camAmount','fxAmount','transAmount','worldAmount','carryAmount','ghostAmount']){await page.getByTestId('omakase-cut-'+k).fill('0');await page.getByTestId('omakase-cut-'+k).dispatchEvent('change');await page.waitForTimeout(400);}
  await page.waitForFunction(()=>c.get().project.lyrics.every(l=>l.cut.cuts.every(x=>!x.cam&&!x.fx&&!x.trans&&!x.world&&!x.carry&&x.ghost===0)),null,{timeout:60000});

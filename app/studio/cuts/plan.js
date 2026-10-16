@@ -276,9 +276,10 @@ export function assignGlyphParts(cuts,{seed=1,fontMode='cut',treatAmount=.45,hol
  *  - 文字数が世界の上限（fits）を超えるときは使わない（ステッカーは8字まで、吹き出しは14字まで、…）。縦書きのカットには使わない。
  *  - 0.6秒未満のカットは、物が出てくる時間が足りないので出にくい。直前と同じ世界は選ばない。
  *  - 世界は、次のカットがすぐ続かない時（行末・最後）だけ、自分で退場する（worldExit）。続く時は、そのまま切り替わる。
+ *  - 世界の物の濃さ（worldOpacity 0..1）は、世界のあるカットに worldA として入れる（文字は薄くならない）。
  *  - 物の上で読みにくい加工（蛍光ペン・下線・箱・中抜き・押し出し・ぼけた字・ぼかし送り）は付けない（none に戻す）。
  */
-export function assignWorlds(cuts,{seed=1,worldAmount=.5}={}){
+export function assignWorlds(cuts,{seed=1,worldAmount=.5,worldOpacity=1}={}){
  const hist=[];
  cuts.forEach((c,i)=>{
   const id=c.id,r=rng(`world:${seed}:${id}`);
@@ -287,7 +288,7 @@ export function assignWorlds(cuts,{seed=1,worldAmount=.5}={}){
   const any=Object.values(WORLD).some(d=>d.fits(n));
   if(worldAmount>0&&any&&!c.gVertical&&r()<worldAmount*(D<.6?.6:1))key=pickFrom(r,WORLD,{mood:c.moodId,history:hist,n:3,f:.25,extra:d=>d.fits(n)?1:0});else r();
   if(key)hist.push(key);
-  c.world=key;c.worldP=key?WORLD[key].plan(rng(`wp:${seed}:${id}`),c):null;c.worldExit=!!key&&!touchingNext;
+  c.world=key;c.worldP=key?WORLD[key].plan(rng(`wp:${seed}:${id}`),c):null;c.worldExit=!!key&&!touchingNext;c.worldA=key?Math.round(clamp(worldOpacity,0,1)*100)/100:undefined;
   if(key){c.gVertical=false;if(['marker','underline','box','hollow','extrude','soft','blurTrail'].includes(c.treat)){c.treat='none';c.treatP={};}}
  });
  return cuts;
@@ -417,7 +418,7 @@ function cleanCutDataUncached(d){
    ghost:finite(c.ghost,0,0,2.5),ghostP:{dir:c.ghostP?.dir===-1?-1:1},
    enter,enterP:cleanP('enter',ENTER,enter,c.enterP)??{},hold,holdP:cleanP('hold',HOLD,hold,c.holdP)??{},exit,exitP:cleanP('exit',EXIT,exit,c.exitP)??{},
    treat,treatP:cleanP('treat',TREAT,treat,c.treatP)??{},gFont:key(Object.fromEntries(GLYPH_FONTS.map(f=>[f,1])),c.gFont,'gothic'),gVertical:!!c.gVertical&&!world,
-   world,worldP:world?cleanP('world',WORLD,world,c.worldP):null,worldExit:!!c.worldExit,carry:!!c.carry,carryDur:finite(c.carryDur,0,0,1),dScale:c.dScale>0?finite(c.dScale,1,.5,2):undefined
+   world,worldP:world?cleanP('world',WORLD,world,c.worldP):null,worldExit:!!c.worldExit,worldA:world?finite(c.worldA,1,0,1):undefined,carry:!!c.carry,carryDur:finite(c.carryDur,0,0,1),dScale:c.dScale>0?finite(c.dScale,1,.5,2):undefined
   });
  }
  return {v:CUT_VERSION,text:d.text,sig:d.sig,dur:d.dur,seed:d.seed|0,cuts};
@@ -450,7 +451,7 @@ export function linesOf(project,{freeText=false}={}){
  return {lyrics:subjects,subjects,lines:subjects.map(l=>({text:String(l.text).replace(/\s*\n\s*/g,' ').trim(),start:l.startUs/1e6,end:l.endUs/1e6}))};
 }
 
-export const CUT_DEFAULTS={freeText:true,mood:MIX,density:.57,recap:'auto',wordSizes:true,sizePct:12,bgMode:'auto',camAmount:.6,fxAmount:.5,transAmount:.65,treatAmount:.45,holdAmount:.7,ghostAmount:.2,worldAmount:.55,carryAmount:.35,avoidFlash:true,fontMode:'cut',refine:true};
+export const CUT_DEFAULTS={freeText:true,mood:MIX,density:.57,recap:'auto',wordSizes:true,sizePct:12,bgMode:'auto',camAmount:.6,fxAmount:.5,transAmount:.65,treatAmount:.45,holdAmount:.7,ghostAmount:.2,worldAmount:.55,worldOpacity:1,carryAmount:.35,avoidFlash:true,fontMode:'cut',refine:true};
 
 /**
  * 計画の前半（文字の大きさを測らなくてよい所まで）。返す cuts は、まだ検査と手直しの前。
@@ -464,7 +465,7 @@ export function planCutsRaw(project,opts={}){
  for(const c of cuts){c.color=pal.color;c.emphasisColor=pal.emphasisColor;}   // 部品を選ぶ前に付ける（物の世界の計画が文字色を見るので）
  assignParts(cuts,{seed,bgMode:o.bgMode,camAmount:o.camAmount,fxAmount:o.fxAmount,transAmount:o.transAmount,ghostAmount:o.ghostAmount,avoidFlash:o.avoidFlash});
  assignGlyphParts(cuts,{seed,fontMode:o.fontMode,treatAmount:o.treatAmount,holdAmount:o.holdAmount});
- assignWorlds(cuts,{seed,worldAmount:o.worldAmount});
+ assignWorlds(cuts,{seed,worldAmount:o.worldAmount,worldOpacity:o.worldOpacity});
  assignCarry(cuts,{seed,carryAmount:o.carryAmount});
  return {cuts,lyrics,seed,options:o};
 }

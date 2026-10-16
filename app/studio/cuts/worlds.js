@@ -263,11 +263,18 @@ export function worldEnv(cut,lt,W=960,H=540){
 /** 世界（物）と、その上の文字を描く。ctx は絵と同じ大きさ。item は buildItem(…frame) で作ったもの */
 export function renderWorld(ctx,cut,item,lt,{layer,W=960,H=540,props=true,tint}={}){
  const Wd=WORLD[cut.world],P=cut.worldP,F=item.worldFrame,e=worldEnv(cut,lt,W,H);
+ // 物（板・枠・テープ…）の濃さ。1より小さいとき、物だけを別の層に描いて、薄くして重ねる（文字は薄くしない）。層がなければ、そのまま描く
+ const a=props?Math.max(0,Math.min(1,cut.worldA??1)):1;
+ const paint=fn=>{
+  if(a>=.999||!layer){fn(ctx);return;}
+  const L=layer();L.save();Wd.xform?.(L,e,P,F);fn(L);L.restore();
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=a;ctx.drawImage(L.canvas,0,0);ctx.restore();
+ };
  ctx.save();
  Wd.xform?.(ctx,e,P,F);
- if(props)Wd.back?.(ctx,e,P,F,item);
+ if(props)paint(c=>Wd.back?.(c,e,P,F,item));
  ctx.save();ctx.translate(F.box.cx-F.box.w/2,F.box.cy-F.box.h/2);renderText(ctx,item,lt,{layer,tint});ctx.restore();
- if(props)Wd.front?.(ctx,e,P,F,item);   // props=false: 文字だけ（ゴーストの層）
+ if(props)paint(c=>Wd.front?.(c,e,P,F,item));   // props=false: 文字だけ（ゴーストの層）
  ctx.restore();
 }
 
