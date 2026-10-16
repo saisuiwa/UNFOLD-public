@@ -147,7 +147,7 @@ test('honest plans pass through the value check unchanged (over many seeds, ever
   const {data}=planOf(projectOf(),{seed,camAmount:1,fxAmount:1,transAmount:1,worldAmount:1,carryAmount:1,treatAmount:1,holdAmount:1});
   for(const [id,d] of data){
    const clean=cleanCutData(d);
-   d.cuts.forEach((c,i)=>{if(JSON.stringify(clean.cuts[i].runs)!==JSON.stringify(c.runs))changed.push(`${seed}/${id}/${i}/runs`);for(const k of ['bgP','camP','fxP','transP','enterP','holdP','exitP','treatP','worldP']){if(c[k]==null)continue;checked++;if(JSON.stringify(clean.cuts[i][k])!==JSON.stringify(c[k]))changed.push(`${seed}/${id}/${i}/${k}: ${JSON.stringify(c[k])} -> ${JSON.stringify(clean.cuts[i][k])}`);}});
+   d.cuts.forEach((c,i)=>{/* 描くのに使う項目（文字・大きさ・強調・色）だけ比べる */const eff=rs=>JSON.stringify(rs.map(r=>({t:r.text,s:r.scale??1,e:!!r.emphasis,c:r.color})));if(eff(clean.cuts[i].runs)!==eff(c.runs))changed.push(`${seed}/${id}/${i}/runs`);for(const k of ['bgP','camP','fxP','transP','enterP','holdP','exitP','treatP','worldP']){if(c[k]==null)continue;checked++;if(JSON.stringify(clean.cuts[i][k])!==JSON.stringify(c[k]))changed.push(`${seed}/${id}/${i}/${k}: ${JSON.stringify(c[k])} -> ${JSON.stringify(clean.cuts[i][k])}`);}});
   }
  }
  assert.ok(checked>1000,'checked '+checked);
