@@ -22,7 +22,10 @@ export function createOmakasePanel(controller){
  const cutSliders=Object.fromEntries(CUT_SLIDERS.map(([key,label,value,tip])=>{const input=el('input',{type:'range',min:0,max:100,step:1,value:Math.round(value*100),'aria-label':label+'（%）','data-testid':'omakase-cut-'+key}),out=el('output',{},Math.round(value*100)+'%');input.addEventListener('input',()=>{out.textContent=input.value+'%';});return [key,{input,out,label,tip}];}));
  const freeText=el('input',{type:'checkbox','aria-label':'自由文字にも付ける',checked:true,'data-testid':'omakase-cut-free'}),avoidFlash=el('input',{type:'checkbox','aria-label':'強い点滅を避ける',checked:true,'data-testid':'omakase-cut-avoidFlash'}),cutBg=el('input',{type:'checkbox','aria-label':'背景の絵も付ける',checked:true,'data-testid':'omakase-cut-bg'});
  const cutOptions=()=>({...Object.fromEntries(CUT_SLIDERS.map(([key])=>[key,Number(cutSliders[key].input.value)/100])),avoidFlash:avoidFlash.checked,bgMode:cutBg.checked?'auto':'none',freeText:freeText.checked});
+ // まだカット割りの案を作っていない間は、スライダーを動かしても絵は変わらない（設定だけ）。そのことと、ここから作れることを、枠の一番上に出す
+ const cutHint=el('p',{class:'hint','data-testid':'omakase-cut-hint'}),cutCreate=button(controller,'この設定で作る',()=>create(),{class:'primary','data-testid':'omakase-cut-create'});
  const cutBox=el('div',{class:'omakase-cut','data-testid':'omakase-cut-box',hidden:true},
+  cutHint,cutCreate,
   el('div',{class:'omakase-sliders'},...CUT_SLIDERS.map(([key])=>el('label',{class:'omakase-slider',...(cutSliders[key].tip?{title:cutSliders[key].tip}:{})},el('span',{},cutSliders[key].label),cutSliders[key].input,cutSliders[key].out))),
   el('div',{class:'omakase-row omakase-checks'},el('label',{class:'omakase-check',title:'フラッシュ・反転・フラッシュ転換を使いません'},avoidFlash,' 強い点滅を避ける'),el('label',{class:'omakase-check'},cutBg,' 背景の絵も付ける'),el('label',{class:'omakase-check',title:'「文字を追加」で置いた自由文字にも、カット演出を付けます'},freeText,' 自由文字にも付ける')));
  const withBg=el('input',{type:'checkbox','aria-label':'背景も足す',checked:true}),withColor=el('input',{type:'checkbox','aria-label':'配色も変える',checked:true}),withSize=el('input',{type:'checkbox','aria-label':'大きさも変える',checked:true});
@@ -121,6 +124,7 @@ export function createOmakasePanel(controller){
    if(entry?.sizePct!=null){const pct=Math.round(Math.min(SIZE_PCT.max,Math.max(SIZE_PCT.min,entry.sizePct)));sizeSlider.value=pct;sizeOut.textContent=pct+'%';}
    if(p.lyrics.length){const o=Math.round((p.lyrics[0].opacity??1)*100/5)*5;opacitySlider.value=Math.min(100,Math.max(10,o));opacityOut.textContent=opacitySlider.value+'%';}}
   const cs=state.cut;
+  cutCreate.hidden=!!cs;cutHint.textContent=cs?'動かすと、いまの案の種のまま、その場で作り直します。':'いまは設定だけで、絵はまだ変わりません。「この設定で作る」を押すと、この設定で作ります。';
   if(cs)summary.replaceChildren(
    el('div',{},el('b',{},'雰囲気　'),cs.mood+'　／　'+cs.palette),
    el('div',{},el('b',{},'カット　'),`${cs.cuts}個（平均${cs.avgCut.toFixed(2)}秒${cs.recaps?`・再掲${cs.recaps}`:''}）`),

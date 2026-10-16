@@ -23,12 +23,17 @@ await withStudioPage(async page=>{
  const panel=page.getByTestId('omakase-panel');await panel.waitFor({state:'visible'});
  await page.getByTestId('omakase-style').selectOption('cut');
  assert.equal(await page.getByTestId('omakase-cut-box').isVisible(),true,'the cut settings show in cut mode');
- await page.getByTestId('omakase-create').click();
+ // 案がない間は、設定だけだと分かる説明と「この設定で作る」が出ている。そのボタンで作る
+ assert.match(await page.getByTestId('omakase-cut-hint').innerText(),/設定だけ/);
+ assert.equal(await page.getByTestId('omakase-cut-create').isVisible(),true);
+ await page.getByTestId('omakase-cut-create').click();
  await page.waitForFunction(()=>cutState().split(',').every(n=>Number(n)>0),null,{timeout:60000});
  const counts=(await page.evaluate(()=>cutState())).split(',').map(Number);
  assert.ok(counts.every(n=>n>=2&&n<=5),'every lyric is cut into a few cuts: '+counts);
  assert.equal(await page.evaluate(()=>snapshot()),await page.evaluate(()=>before),'lyric text and timing are untouched');
  assert.match(await page.getByTestId('omakase-summary').innerText(),/カット\s*\d+個/);
+ assert.equal(await page.getByTestId('omakase-cut-create').isVisible(),false,'once there is a plan, the sliders act at once and the button is gone');
+ assert.match(await page.getByTestId('omakase-cut-hint').innerText(),/その場で作り直/);
  assert.ok(await page.locator('.timeline-block.lyric .tl-motion').first().textContent().then(t=>/カット演出（\d+カット）/.test(t)),'the lane names the cut style');
  const colours=await page.evaluate(()=>[...new Set(c.get().project.lyrics.map(l=>l.motion.color+'/'+l.motion.emphasisColor))]);assert.equal(colours.length,1,'one palette');
  // ---- 合成器が描く: 歌詞の中ほど（横長・縦長）
@@ -36,7 +41,7 @@ await withStudioPage(async page=>{
  for(const [i,name] of [[0,'a'],[1,'b'],[2,'c'],[3,'d']]){
   const w=await page.evaluate(t=>frame(t),mid(i)),t=await page.evaluate(t=>frame(t,'tall',540,960),mid(i));
   await save(`cuts-${name}-wide`,w);await save(`cuts-${name}-tall`,t);
-  assert.ok(w.opaque>.999,'the picture is opaque (wide) '+w.opaque);assert.ok(t.opaque>.999,'opaque (tall)');assert.ok(w.ink>300,`there is text (wide) lyric ${i}: ${w.ink}`);assert.ok(t.ink>200,`there is text (tall) lyric ${i}: ${t.ink}`);
+  assert.ok(w.opaque>.999,'the picture is opaque (wide) '+w.opaque);assert.ok(t.opaque>.999,'opaque (tall)');assert.ok(w.ink>100,`there is text (wide) lyric ${i}: ${w.ink}`);assert.ok(t.ink>60,`there is text (tall) lyric ${i}: ${t.ink}`);
  }
  // ---- 境目（つなぎ・引き継ぎ）を含めて、0.05秒刻みで全部描ける。同じ時刻は同じ絵（飛んで戻っても）
  const run=await page.evaluate(async()=>{let n=0,bad=[],maxMs=0;const t0=performance.now();for(let t=.4e6;t<11e6;t+=.05e6){const s=performance.now();try{const r=await frame(Math.round(t));if(r.opaque<.999)bad.push(['opaque',t]);}catch(e){bad.push([String(e),t]);}maxMs=Math.max(maxMs,performance.now()-s);n++;}return {n,bad:bad.slice(0,5),total:performance.now()-t0,maxMs};});

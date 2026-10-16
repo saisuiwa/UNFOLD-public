@@ -62,5 +62,14 @@ await withStudioPage(async page=>{
   assert.ok(Math.abs(v.ratioLow-.2)<.1,`${world}: 20% → about a fifth (${v.ratioLow})`);
   assert.ok(Math.abs(v.zero-v.text)<.01,`${world}: 0% → only the text is left (${v.zero} vs ${v.text})`);
  }
+ // ---- 同じ種なら、どの部品の計画も、ブラウザの中で何度作っても同じ（前の案にきっちり戻れる）。乱数の比較関数で並べ替えると、Chrome では結果が揺れた
+ const det=await page.evaluate(async()=>{
+  const parts=await import('/studio/cuts/parts.js'),glyphs=await import('/studio/cuts/glyphs.js'),{WORLD}=await import('/studio/cuts/worlds.js'),{rng}=await import('/studio/omakase.js');
+  const regs={BG:parts.BG,CAMERA:parts.CAMERA,FX:parts.FX,TRANS:parts.TRANS,ENTER:glyphs.ENTER,HOLD:glyphs.HOLD,EXIT:glyphs.EXIT,TREAT:glyphs.TREAT,WORLD};
+  const cut={emphasisColor:'#ffb347',color:'#ffffff',text:'ほら、もう'},bad=[];
+  for(const [name,reg] of Object.entries(regs))for(const [key,d] of Object.entries(reg)){if(!d.plan)continue;
+   for(let k=0;k<12;k++){const set=new Set();for(let i=0;i<150;i++)set.add(JSON.stringify(d.plan(rng(`det:${key}:${k}`),cut)));if(set.size>1)bad.push(`${name}.${key} seed ${k}: ${set.size}`);}}
+  return bad;});
+ assert.deepEqual(det,[],'every part plans the same way for the same seed');
  console.log('PASS 透明な絵での画面効果・つなぎ: 全面を塗りつぶさない',JSON.stringify(Object.fromEntries(Object.entries(res.fx).map(([k,v])=>[k,v.worst]))));
 });

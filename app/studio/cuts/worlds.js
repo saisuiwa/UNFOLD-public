@@ -27,6 +27,8 @@ const sign=r=>r()<.5?-1:1;
 const pickW=(r,items,weights)=>{let x=r()*weights.reduce((a,b)=>a+b,0);for(let i=0;i<items.length;i++){x-=weights[i];if(x<=0)return items[i];}return items.at(-1);};
 const luma=hex=>{const n=parseInt(String(hex).slice(1,7),16)||0;return (.2126*(n>>16&255)+.7152*(n>>8&255)+.0722*(n&255))/255;};
 const contrast=hex=>luma(hex)>.55?'#14141c':'#ffffff';
+/** 乱数で並べ替える（Fisher-Yates。同じ乱数なら必ず同じ順） */
+const shuffle=(r,a)=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
 /** 世界の部品の色は、保存する値（P）に具体的な色を入れず「アクセント色」「アクセント色の淡い色」と書いておき、描く時に今の配色から決める（配色を変えれば、物の色も変わる） */
 const roleColor=(v,accent)=>v==='accent'?accent:v==='accentLight'?mixHex(accent,'#ffffff',.5):v;
 const rr=(c,x,y,w,h,r)=>{r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();};
@@ -126,7 +128,7 @@ export const WORLD={
   }},
 
  tape:{name:'テープ',tags:['pop','impact','graphic'],w:1,fits:n=>n<=24,
-  plan:(r,cut)=>({tilts:[0,1,2,3].map(()=>(r()*2.4-1.2)),cols:['accent','#f4efe2','accentLight','#e45a8c'].sort(()=>r()-.5)}),
+  plan:r=>({tilts:[0,1,2,3].map(()=>(r()*2.4-1.2)),cols:shuffle(r,['accent','#f4efe2','accentLight','#e45a8c'])}),   // 並べ替えは乱数の比較関数ではなく、決まった手順で（ブラウザの並べ替えは、比較が矛盾すると同じ種でも結果が変わることがあった）
   frame(P,{W,H,D,exitOK}){return {box:{cx:W/2,cy:H/2,w:W*.78,h:H*.5},delay:dly(D,exitOK,.5),maxWidth:.94};},
   arrange(item,P){for(const g of item.glyphs)g.color=contrast(roleColor(P.cols[g.line%P.cols.length],item.accent));},
   back(c,e,P,F,item){
