@@ -328,32 +328,79 @@ const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
  * 保存したカット演出のデータを、描けるカットに整える。読めない・壊れているなら null（その歌詞は普通の文字の描き方に戻る）。
  * 部品のキーが今の部品表にないもの（別の版で作られた等）は、「なし」にする。
  */
+// ---- 保存した部品の値（P）の検査 -------------------------------------------------------------------------------------------------------------
+// プロジェクトのファイルは人から受け取ることもある。P の値（背景の升目の大きさ・輪の数など）は描く繰り返しの回数を決めるので、そのまま信じない。
+// 各部品の plan() を何通りか動かして「その部品が作りうる値の形と範囲」を調べ（初回だけ、覚えておく）、保存された値をその範囲に収める。
+const SCHEMA_SAMPLES=1500,HEX=/^#[\da-f]{6}$/i;
+const SAMPLE_CUT={text:'ほら、もう一回ひろげよう',emphasisColor:'#ffb347',color:'#ffffff',recap:false,lineIndex:0,unitIndex:0};
+function shapeOf(values){
+ const defined=values.filter(v=>v!==undefined&&v!==null);
+ if(!defined.length||defined.length!==values.length)return {t:'x'};
+ if(defined.every(v=>typeof v==='number'&&Number.isFinite(v))){const min=Math.min(...defined),max=Math.max(...defined),int=defined.every(Number.isInteger),pad=int?0:Math.max(1e-9,(max-min)*.1);return {t:'n',min:min-pad,max:max+pad,int,def:defined[0]};}
+ if(defined.every(v=>typeof v==='string')){const hex=defined.some(v=>HEX.test(v));return {t:'s',set:[...new Set(defined.filter(v=>!HEX.test(v)))],hex,def:defined[0]};}
+ if(defined.every(v=>typeof v==='boolean'))return {t:'b',def:defined[0]};
+ if(defined.every(Array.isArray)){const lens=defined.map(v=>v.length);return {t:'a',min:Math.min(...lens),max:Math.max(...lens),el:shapeOf(defined.flat()),def:defined[0]};}
+ if(defined.every(v=>typeof v==='object')){const keys=Object.keys(defined[0]).filter(k=>defined.every(v=>k in v));return {t:'o',keys:Object.fromEntries(keys.map(k=>[k,shapeOf(defined.map(v=>v[k]))])),def:defined[0]};}
+ return {t:'x'};
+}
+function sanitize(v,shape){
+ switch(shape.t){
+  case 'n':return Number.isFinite(v)?Math.min(shape.max,Math.max(shape.min,shape.int?Math.round(v):v)):shape.def;
+  case 's':return typeof v==='string'&&(shape.set.includes(v)||(shape.hex&&HEX.test(v)))?v:shape.def;
+  case 'b':return typeof v==='boolean'?v:shape.def;
+  case 'a':return Array.isArray(v)&&v.length>=shape.min&&v.length<=shape.max?v.map(x=>sanitize(x,shape.el)):structuredClone(shape.def);
+  case 'o':{const o=obj(v);return Object.fromEntries(Object.entries(shape.keys).map(([k,sh])=>[k,sanitize(o[k],sh)]));}
+  default:return null;
+ }
+}
+const schemas=new Map();
+/** reg[key] の plan が作りうる値の形。plan がない部品は null（値は {} にする） */
+function schemaOf(group,reg,key){
+ const id=group+':'+key;
+ if(!schemas.has(id)){
+  const d=reg[key];let shape=null;
+  if(typeof d?.plan==='function'){
+   const samples=[];
+   for(let i=0;i<SCHEMA_SAMPLES;i++){try{samples.push(JSON.parse(JSON.stringify(d.plan(rng(`schema:${id}:${i}`),{...SAMPLE_CUT}))));}catch{}}
+   shape=samples.length?shapeOf(samples):null;
+  }
+  schemas.set(id,shape);
+ }
+ return schemas.get(id);
+}
+/** 保存された部品の値 P を、その部品が作りうる範囲に収める（部品がなければ null、plan のない部品は {}） */
+const cleanP=(group,reg,key,P)=>{if(!key)return null;const sh=schemaOf(group,reg,key);return sh&&sh.t==='o'?sanitize(P,sh):{};};
+export const MAX_CUTS_PER_LYRIC=48,MAX_CUT_CHARS=300,MAX_RUNS=80;
+
 const cleaned=new WeakMap();
 export function cleanCutData(d){
  if(d&&typeof d==='object'){if(!cleaned.has(d))cleaned.set(d,cleanCutDataUncached(d));return cleaned.get(d);}
  return null;
 }
 function cleanCutDataUncached(d){
- if(!d||d.v!==CUT_VERSION||!Array.isArray(d.cuts)||!d.cuts.length||!(d.dur>0))return null;
+ if(!d||d.v!==CUT_VERSION||!Array.isArray(d.cuts)||!d.cuts.length||d.cuts.length>MAX_CUTS_PER_LYRIC||!(d.dur>0)||d.dur>3600)return null;
  const cuts=[];let at=0;
  for(const c of d.cuts){
-  if(!c||typeof c.text!=='string'||!c.text.trim())return null;
+  if(!c||typeof c.text!=='string'||!c.text.trim()||c.text.length>MAX_CUT_CHARS)return null;
   const a=finite(c.a,NaN,0,d.dur),b=finite(c.b,NaN,0,d.dur);
   if(!(b>a)||a<at-1e-6)return null;
   at=b;
-  const key=(reg,k,def)=>reg&&Object.hasOwn(reg,k)?k:def;
-  const world=key(WORLD,c.world,null);
+  const key=(reg,k,def)=>reg&&typeof k==='string'&&Object.hasOwn(reg,k)?k:def;
+  const n=[...c.text.replace(/\s/g,'')].length;
+  let world=key(WORLD,c.world,null);if(world&&!WORLD[world].fits(n))world=null;   // その世界に置ける字数を超えるものは使わない
+  const bgPart=key(BG,c.bgPart,null),cam=key(CAMERA,c.cam,null),fx=key(FX,c.fx,null),trans=key(TRANS,c.trans,null);
+  const enter=key(ENTER,c.enter,'cut'),hold=key(HOLD,c.hold,'still'),exit=key(EXIT,c.exit,'cut'),treat=key(TREAT,c.treat,'none');
   cuts.push({
-   a,b,text:c.text,recap:!!c.recap,unitIndex:finite(c.unitIndex,cuts.length),moodId:key(Object.fromEntries(MOODS.map(m=>[m.id,1])),c.moodId,'pop'),
-   placeName:typeof c.placeName==='string'?c.placeName:'center',place:{rotation:finite(c.place?.rotation,0,-360,360),scale:finite(c.place?.scale,1,.3,2)},
-   fontScale:finite(c.fontScale,.12,.03,.5),runs:Array.isArray(c.runs)&&c.runs.length?c.runs.map(r=>({text:String(r.text??''),...(r.scale>0?{scale:finite(r.scale,1,.3,3)}:{}),...(r.emphasis?{emphasis:true}:{}),...(typeof r.color==='string'?{color:r.color}:{})})):[{text:c.text}],
-   bg:/^#[\da-f]{6}$/i.test(c.bg)?c.bg:BGS[0],seed:finite(c.seed,1,0,1e9)|0,
-   bgPart:key(BG,c.bgPart,null),bgP:obj(c.bgP),cam:key(CAMERA,c.cam,null),camP:obj(c.camP),fx:key(FX,c.fx,null),fxP:obj(c.fxP),
-   trans:key(TRANS,c.trans,null),transP:obj(c.transP),transDur:finite(c.transDur,0,0,2),
+   a,b,text:c.text,recap:!!c.recap,unitIndex:finite(c.unitIndex,cuts.length,0,1000),moodId:key(Object.fromEntries(MOODS.map(m=>[m.id,1])),c.moodId,'pop'),
+   placeName:typeof c.placeName==='string'&&c.placeName.length<20?c.placeName:'center',place:{rotation:finite(c.place?.rotation,0,-360,360),scale:finite(c.place?.scale,1,.3,2)},
+   fontScale:finite(c.fontScale,.12,.03,.5),runs:Array.isArray(c.runs)&&c.runs.length&&c.runs.length<=MAX_RUNS?c.runs.map(r=>({text:String(r?.text??''),...(r?.scale>0?{scale:finite(r.scale,1,.3,3)}:{}),...(r?.emphasis?{emphasis:true}:{}),...(typeof r?.color==='string'&&HEX.test(r.color)?{color:r.color}:{})})):[{text:c.text}],
+   bg:HEX.test(c.bg)?c.bg:BGS[0],seed:finite(c.seed,1,0,1e9)|0,
+   bgPart,bgP:bgPart?cleanP('bg',BG,bgPart,c.bgP):null,cam,camP:cam?cleanP('cam',CAMERA,cam,c.camP):null,fx,fxP:fx?cleanP('fx',FX,fx,c.fxP):null,
+   trans,transP:trans?cleanP('trans',TRANS,trans,c.transP):null,transDur:trans?finite(c.transDur,0,0,2):0,
    ghost:finite(c.ghost,0,0,2.5),ghostP:{dir:c.ghostP?.dir===-1?-1:1},
-   enter:key(ENTER,c.enter,'cut'),enterP:obj(c.enterP),hold:key(HOLD,c.hold,'still'),holdP:obj(c.holdP),exit:key(EXIT,c.exit,'cut'),exitP:obj(c.exitP),
-   treat:key(TREAT,c.treat,'none'),treatP:obj(c.treatP),gFont:key(Object.fromEntries(GLYPH_FONTS.map(f=>[f,1])),c.gFont,'gothic'),gVertical:!!c.gVertical,
-   world,worldP:world?obj(c.worldP):null,worldExit:!!c.worldExit,carry:!!c.carry,carryDur:finite(c.carryDur,0,0,1),dScale:c.dScale>0?finite(c.dScale,1,.5,2):undefined
+   enter,enterP:cleanP('enter',ENTER,enter,c.enterP)??{},hold,holdP:cleanP('hold',HOLD,hold,c.holdP)??{},exit,exitP:cleanP('exit',EXIT,exit,c.exitP)??{},
+   treat,treatP:cleanP('treat',TREAT,treat,c.treatP)??{},gFont:key(Object.fromEntries(GLYPH_FONTS.map(f=>[f,1])),c.gFont,'gothic'),gVertical:!!c.gVertical&&!world,
+   world,worldP:world?cleanP('world',WORLD,world,c.worldP):null,worldExit:!!c.worldExit,carry:!!c.carry,carryDur:finite(c.carryDur,0,0,1),dScale:c.dScale>0?finite(c.dScale,1,.5,2):undefined
   });
  }
  return {v:CUT_VERSION,text:d.text,sig:d.sig,dur:d.dur,seed:d.seed|0,cuts};
@@ -391,12 +438,12 @@ export function planCutsRaw(project,opts={}){
  const o={...CUT_DEFAULTS,...opts},seed=Number.isFinite(o.seed)?o.seed|0:1;
  const {lyrics,lines}=linesOf(project);
  const cuts=planCuts(lines,{mood:o.mood,density:o.density,recap:o.recap,wordSizes:o.wordSizes,sizePct:o.sizePct,seed});
+ const pal=o.palette||{color:'#ffffff',emphasisColor:'#ffc04d'};
+ for(const c of cuts){c.color=pal.color;c.emphasisColor=pal.emphasisColor;}   // 部品を選ぶ前に付ける（物の世界の計画が文字色を見るので）
  assignParts(cuts,{seed,bgMode:o.bgMode,camAmount:o.camAmount,fxAmount:o.fxAmount,transAmount:o.transAmount,ghostAmount:o.ghostAmount,avoidFlash:o.avoidFlash});
  assignGlyphParts(cuts,{seed,fontMode:o.fontMode,treatAmount:o.treatAmount,holdAmount:o.holdAmount});
  assignWorlds(cuts,{seed,worldAmount:o.worldAmount});
  assignCarry(cuts,{seed,carryAmount:o.carryAmount});
- const pal=o.palette||{color:'#ffffff',emphasisColor:'#ffc04d'};
- for(const c of cuts){c.color=pal.color;c.emphasisColor=pal.emphasisColor;}
  return {cuts,lyrics,seed,options:o};
 }
 /** 計画で使う書体（検査と手直しの前に、これを読み込んでおく） */

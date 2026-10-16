@@ -67,7 +67,7 @@ test('cleanCutData: broken or foreign data is dropped or repaired, never thrown;
  for(const bad of [null,undefined,1,'x',[],{},{v:2,cuts:[],dur:1},{...good,cuts:[]},{...good,dur:0},{...good,cuts:[{...good.cuts[0],text:''}]},{...good,cuts:[{...good.cuts[0],a:2,b:1}]},{...good,cuts:[good.cuts[1],good.cuts[0]]}])assert.equal(cleanCutData(bad),null,JSON.stringify(bad)?.slice(0,60));
  const weird={...good,cuts:good.cuts.map(c=>({...c,enter:'nope',exit:5,hold:'x',treat:{},bgPart:'zzz',cam:'q',fx:'q',trans:'q',world:'q',gFont:'comic',fontScale:99,bg:'red',ghost:'much',place:{rotation:'a',scale:-3},runs:'bad',transP:5,worldP:'x'}))};
  const c=cleanCutData(weird);assert.ok(c);
- for(const x of c.cuts){assert.equal(x.enter,'cut');assert.equal(x.hold,'still');assert.equal(x.exit,'cut');assert.equal(x.treat,'none');assert.equal(x.bgPart,null);assert.equal(x.cam,null);assert.equal(x.fx,null);assert.equal(x.trans,null);assert.equal(x.world,null);assert.equal(x.gFont,'gothic');assert.ok(x.fontScale<=.5);assert.match(x.bg,/^#[\da-f]{6}$/i);assert.equal(x.ghost,0);assert.ok(x.place.scale>=.3);assert.deepEqual(x.runs,[{text:x.text}]);assert.deepEqual(x.transP,{});}
+ for(const x of c.cuts){assert.equal(x.enter,'cut');assert.equal(x.hold,'still');assert.equal(x.exit,'cut');assert.equal(x.treat,'none');assert.equal(x.bgPart,null);assert.equal(x.cam,null);assert.equal(x.fx,null);assert.equal(x.trans,null);assert.equal(x.world,null);assert.equal(x.gFont,'gothic');assert.ok(x.fontScale<=.5);assert.match(x.bg,/^#[\da-f]{6}$/i);assert.equal(x.ghost,0);assert.ok(x.place.scale>=.3);assert.deepEqual(x.runs,[{text:x.text}]);assert.equal(x.transP,null);assert.equal(x.worldP,null);}
  // whatever survives can be turned into drawable cuts
  const l={...p.lyrics[0],cut:weird};l.cut.sig=motionSig(l);l.cut.text=l.text;
  assert.equal(cutActive(l),true);assert.ok(absoluteCuts(l).length>=1);
@@ -100,4 +100,51 @@ test('linesOf skips lyrics without text and keeps time order; fontsUsed / summar
  assert.ok(fontsUsed(raw.cuts).every(f=>['gothic','mincho','round','marker','dela','dot'].includes(f)));
  const s=summarizeCuts(raw.cuts);assert.equal(s.cuts,raw.cuts.length);assert.ok(s.avgCut>.4&&s.avgCut<1.6);
  assert.equal(CUT_DEFAULTS.ghostAmount,.2);
+});
+
+test('part values from a file are held to what each part can really make (no huge loops from a hostile project file)', () => {
+ const p=projectOf(),{data}=planOf(p),good=data.get('L1');
+ const hostile=(patch)=>{const d={...good,cuts:good.cuts.map(c=>({...c,...patch}))};return cleanCutData(d).cuts[0];};
+ // backgrounds: ring count / cell size / alpha are clamped to what plan() makes
+ const rays=hostile({bgPart:'rays',bgP:{n:1e9,cx:1e9,cy:-1e9,spin:'x',a:1e9}}).bgP;
+ assert.ok(rays.n>=8&&rays.n<=20,'rays n '+rays.n);assert.ok(rays.cx>=.3&&rays.cx<=.7);assert.ok(Number.isFinite(rays.spin));assert.ok(rays.a<=.2);
+ const grid=hostile({bgPart:'grid',bgP:{cell:1e-12,vx:1e9,vy:NaN,a:Infinity}}).bgP;
+ assert.ok(grid.cell>=.065&&grid.cell<=.125,'grid cell '+grid.cell);assert.ok(Number.isFinite(grid.vy));
+ const dots=hostile({bgPart:'dots',bgP:{cell:0,k:-5,a:2}}).bgP;assert.ok(dots.cell>=.05,'dots cell '+dots.cell);
+ const rings=hostile({bgPart:'rings',bgP:{n:-3}}).bgP;assert.ok(rings.n>=5&&rings.n<=9);
+ // effects / transitions: counts and sizes
+ assert.ok(hostile({fx:'slice',fxP:{n:1e9}}).fxP.n<=10);assert.ok(hostile({fx:'mosaic',fxP:{px:0}}).fxP.px>=13);assert.ok(hostile({fx:'tracking',fxP:{n:1e7}}).fxP.n<=6);
+ assert.ok(hostile({trans:'checker',transP:{n:1e9,seed:'a'},transDur:.3}).transP.n<=20);assert.ok(hostile({trans:'blinds',transP:{n:-1},transDur:.3}).transP.n>=6);
+ assert.equal(hostile({trans:'push',transP:{dir:'<script>'},transDur:.3}).transP.dir.length,1,'an enum value stays one of the known ones');
+ // worlds: the shape comes from the plan, colours must be #rrggbb, numbers stay in range; a world the text is too long for is dropped
+ const w=hostile({world:'ticket',worldP:{tilt:1e9,fill:'javascript:x',label:{},serial:-1e9},text:'短い',runs:[{text:'短い'}]}).worldP;
+ assert.ok(Math.abs(w.tilt)<8);assert.ok(['accent','ink','paper'].includes(w.fill));assert.equal(typeof w.label,'string');assert.ok(w.serial>=1&&w.serial<=1000000);
+ const wr=hostile({world:'tape',worldP:{tilts:'x',cols:['red','#zzzzzz',5]},text:'短い',runs:[{text:'短い'}]}).worldP;
+ assert.ok(Array.isArray(wr.tilts)&&wr.tilts.length===4&&wr.cols.length===4&&wr.cols.every(c=>/^(accent|accentLight|#[\da-f]{6})$/i.test(c)),JSON.stringify(wr));
+ assert.ok(hostile({world:'ransom',worldP:{seed:'x'},text:'短い',runs:[{text:'短い'}]}).worldP.seed>=0);
+ assert.equal(hostile({world:'sticker',worldP:{},text:'とても長い文字列をここに入れてみる試験',runs:[{text:'とても長い文字列をここに入れてみる試験'}]}).world,null,'sticker holds 8 characters at most');
+ // part values of a part with no plan, enter/exit/hold/treat values
+ assert.deepEqual(hostile({treat:'outline',treatP:{evil:1}}).treatP,{});
+ const sp=hostile({enter:'scatter',enterP:{k:1e12}}).enterP;assert.ok(sp.k>=2.2&&sp.k<=4);
+ // size caps: cut count, text length, runs
+ assert.equal(cleanCutData({...good,cuts:Array.from({length:60},(_,i)=>({...good.cuts[0],a:i,b:i+.5}))}),null);
+ assert.equal(cleanCutData({...good,dur:1e9}),null);
+ assert.equal(cleanCutData({...good,cuts:[{...good.cuts[0],text:'あ'.repeat(5000)}]}),null);
+ assert.deepEqual(hostile({runs:Array.from({length:500},()=>({text:'a'}))}).runs,[{text:good.cuts[0].text}]);
+ // honest plans pass through untouched in value (same numbers as planned)
+ const same=cleanCutData(good);
+ for(const [i,c] of good.cuts.entries())for(const k of ['bgP','camP','fxP','transP','enterP','exitP','holdP','worldP'])if(c[k]!=null&&c[k+'_x']===undefined&&(k!=='worldP'||c.world))assert.deepEqual(same.cuts[i][k],c[k],`cut ${i} ${k}`);
+});
+
+test('honest plans pass through the value check unchanged (over many seeds, every part used a lot)', () => {
+ let checked=0,changed=[];
+ for(let seed=1;seed<=60;seed++){
+  const {data}=planOf(projectOf(),{seed,camAmount:1,fxAmount:1,transAmount:1,worldAmount:1,carryAmount:1,treatAmount:1,holdAmount:1});
+  for(const [id,d] of data){
+   const clean=cleanCutData(d);
+   d.cuts.forEach((c,i)=>{for(const k of ['bgP','camP','fxP','transP','enterP','holdP','exitP','treatP','worldP']){if(c[k]==null)continue;checked++;if(JSON.stringify(clean.cuts[i][k])!==JSON.stringify(c[k]))changed.push(`${seed}/${id}/${i}/${k}: ${JSON.stringify(c[k])} -> ${JSON.stringify(clean.cuts[i][k])}`);}});
+  }
+ }
+ assert.ok(checked>1000,'checked '+checked);
+ assert.deepEqual(changed.slice(0,5),[],`${changed.length} values were changed`);
 });
