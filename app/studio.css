@@ -169,6 +169,7 @@
 .omakase-slider input[type=range]{width:100%;padding:0;min-height:0}
 .omakase-slider output{font:11px ui-monospace,monospace;text-align:right;color:var(--ink)}
 .omakase-summary{max-height:9.5em;overflow:auto}
+.to-omakase{justify-self:start;min-height:26px;padding:2px 9px;font-size:12px;color:var(--mint);background:transparent;margin-bottom:6px}
 .omakase-cut{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;min-width:0;padding:8px;border:1px solid var(--line);border-radius:6px;background:#131d20}.omakase-cut[hidden]{display:none}
 .omakase-cut .omakase-sliders{grid-template-columns:minmax(0,1fr)}.omakase-cut .omakase-slider{grid-template-columns:6.6em minmax(0,1fr) 3em}
 .timeline-tools .zoom-field{display:flex;align-items:center;gap:8px;margin:0 0 0 auto;width:auto}

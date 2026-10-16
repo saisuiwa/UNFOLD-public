@@ -87,6 +87,12 @@ await withStudioPage(async page=>{
  await page.waitForFunction(()=>c.get().project.lyrics.every(l=>!l.cut)&&c.get().project.lyrics.every(l=>l.motion.code?.source),null,{timeout:60000});
  assert.ok(await page.evaluate(()=>c.get().project.clips.some(x=>x.settings?.omakase)),'the おまかせ backgrounds are back');
  assert.deepEqual(errors,[],'no page errors: '+errors.join(' | '));
+ // (the lyric panel loads sample pictures that the test host does not serve, so the page errors are checked before it opens)
+ // ---- 歌詞を選んでいる時も、右のパネルの一番上のボタンで、おまかせのパネルに戻れる
+ await page.evaluate(()=>c.select({kind:'lyric',id:'L1'}));
+ await page.getByTestId('omakase-panel').waitFor({state:'hidden'});
+ await page.getByTestId('inspector-to-omakase').click();
+ await page.getByTestId('omakase-panel').waitFor({state:'visible'});assert.equal(await page.evaluate(()=>c.get().selection),null,'nothing is selected any more');
  await page.evaluate(()=>{c.dispose();_comp?.dispose();});
  console.log('PASS カット演出: おまかせ(カット割り)で全歌詞に計画、横長・縦長・境目を描く、案の行き来、設定、手で選ぶと普通に戻る、Undo、歌詞ごとに戻す');
 });
