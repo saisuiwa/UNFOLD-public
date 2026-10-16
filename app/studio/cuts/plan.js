@@ -371,6 +371,13 @@ function schemaOf(group,reg,key){
 /** 保存された部品の値 P を、その部品が作りうる範囲に収める（部品がなければ null、plan のない部品は {}） */
 const cleanP=(group,reg,key,P)=>{if(!key)return null;const sh=schemaOf(group,reg,key);return sh&&sh.t==='o'?sanitize(P,sh):{};};
 export const MAX_CUTS_PER_LYRIC=48,MAX_CUT_CHARS=300,MAX_RUNS=80;
+/** 語ごとの指定（runs）。つなげた文字が、カットの文字そのものと同じでなければ（描く文字を差し替えたり、長くしたりするものは）使わない */
+function cleanRuns(runs,text){
+ const plain=[{text}];
+ if(!Array.isArray(runs)||!runs.length||runs.length>MAX_RUNS)return plain;
+ const out=runs.map(r=>({text:String(r?.text??''),...(r?.scale>0?{scale:finite(r.scale,1,.3,3)}:{}),...(r?.emphasis?{emphasis:true}:{}),...(typeof r?.color==='string'&&HEX.test(r.color)?{color:r.color}:{})}));
+ return out.map(r=>r.text).join('')===text?out:plain;
+}
 
 const cleaned=new WeakMap();
 export function cleanCutData(d){
@@ -393,7 +400,7 @@ function cleanCutDataUncached(d){
   cuts.push({
    a,b,text:c.text,recap:!!c.recap,unitIndex:finite(c.unitIndex,cuts.length,0,1000),moodId:key(Object.fromEntries(MOODS.map(m=>[m.id,1])),c.moodId,'pop'),
    placeName:typeof c.placeName==='string'&&c.placeName.length<20?c.placeName:'center',place:{rotation:finite(c.place?.rotation,0,-360,360),scale:finite(c.place?.scale,1,.3,2)},
-   fontScale:finite(c.fontScale,.12,.03,.5),runs:Array.isArray(c.runs)&&c.runs.length&&c.runs.length<=MAX_RUNS?c.runs.map(r=>({text:String(r?.text??''),...(r?.scale>0?{scale:finite(r.scale,1,.3,3)}:{}),...(r?.emphasis?{emphasis:true}:{}),...(typeof r?.color==='string'&&HEX.test(r.color)?{color:r.color}:{})})):[{text:c.text}],
+   fontScale:finite(c.fontScale,.12,.03,.5),runs:cleanRuns(c.runs,c.text),
    bg:HEX.test(c.bg)?c.bg:BGS[0],seed:finite(c.seed,1,0,1e9)|0,
    bgPart,bgP:bgPart?cleanP('bg',BG,bgPart,c.bgP):null,cam,camP:cam?cleanP('cam',CAMERA,cam,c.camP):null,fx,fxP:fx?cleanP('fx',FX,fx,c.fxP):null,
    trans,transP:trans?cleanP('trans',TRANS,trans,c.transP):null,transDur:trans?finite(c.transDur,0,0,2):0,

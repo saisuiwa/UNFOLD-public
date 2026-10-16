@@ -131,6 +131,11 @@ test('part values from a file are held to what each part can really make (no hug
  assert.equal(cleanCutData({...good,dur:1e9}),null);
  assert.equal(cleanCutData({...good,cuts:[{...good.cuts[0],text:'あ'.repeat(5000)}]}),null);
  assert.deepEqual(hostile({runs:Array.from({length:500},()=>({text:'a'}))}).runs,[{text:good.cuts[0].text}]);
+ // runs that do not spell the cut's own text (a longer or different text to lay out) are not used
+ const own=good.cuts[0].text;
+ assert.deepEqual(hostile({runs:[{text:'あ'.repeat(100000)}]}).runs,[{text:own}]);
+ assert.deepEqual(hostile({runs:[{text:own},{text:'おまけ'}]}).runs,[{text:own}]);
+ assert.deepEqual(hostile({runs:[{text:own.slice(0,2),scale:99,color:'red'},{text:own.slice(2),emphasis:true}]}).runs,[{text:own.slice(0,2),scale:3},{text:own.slice(2),emphasis:true}],'a split into word runs is kept, with the scale held to a range and only #rrggbb colours');
  // honest plans pass through untouched in value (same numbers as planned)
  const same=cleanCutData(good);
  for(const [i,c] of good.cuts.entries())for(const k of ['bgP','camP','fxP','transP','enterP','exitP','holdP','worldP'])if(c[k]!=null&&c[k+'_x']===undefined&&(k!=='worldP'||c.world))assert.deepEqual(same.cuts[i][k],c[k],`cut ${i} ${k}`);
@@ -142,7 +147,7 @@ test('honest plans pass through the value check unchanged (over many seeds, ever
   const {data}=planOf(projectOf(),{seed,camAmount:1,fxAmount:1,transAmount:1,worldAmount:1,carryAmount:1,treatAmount:1,holdAmount:1});
   for(const [id,d] of data){
    const clean=cleanCutData(d);
-   d.cuts.forEach((c,i)=>{for(const k of ['bgP','camP','fxP','transP','enterP','holdP','exitP','treatP','worldP']){if(c[k]==null)continue;checked++;if(JSON.stringify(clean.cuts[i][k])!==JSON.stringify(c[k]))changed.push(`${seed}/${id}/${i}/${k}: ${JSON.stringify(c[k])} -> ${JSON.stringify(clean.cuts[i][k])}`);}});
+   d.cuts.forEach((c,i)=>{if(JSON.stringify(clean.cuts[i].runs)!==JSON.stringify(c.runs))changed.push(`${seed}/${id}/${i}/runs`);for(const k of ['bgP','camP','fxP','transP','enterP','holdP','exitP','treatP','worldP']){if(c[k]==null)continue;checked++;if(JSON.stringify(clean.cuts[i][k])!==JSON.stringify(c[k]))changed.push(`${seed}/${id}/${i}/${k}: ${JSON.stringify(c[k])} -> ${JSON.stringify(clean.cuts[i][k])}`);}});
   }
  }
  assert.ok(checked>1000,'checked '+checked);
