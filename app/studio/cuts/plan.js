@@ -276,7 +276,7 @@ export function assignGlyphParts(cuts,{seed=1,fontMode='cut',treatAmount=.45,hol
  *  - 文字数が世界の上限（fits）を超えるときは使わない（ステッカーは8字まで、吹き出しは14字まで、…）。縦書きのカットには使わない。
  *  - 0.6秒未満のカットは、物が出てくる時間が足りないので出にくい。直前と同じ世界は選ばない。
  *  - 世界は、次のカットがすぐ続かない時（行末・最後）だけ、自分で退場する（worldExit）。続く時は、そのまま切り替わる。
- *  - 物の上で読みにくい加工（蛍光ペン・下線・箱・中抜き・押し出し）は付けない（none に戻す）。
+ *  - 物の上で読みにくい加工（蛍光ペン・下線・箱・中抜き・押し出し・ぼけた字・ぼかし送り）は付けない（none に戻す）。
  */
 export function assignWorlds(cuts,{seed=1,worldAmount=.5}={}){
  const hist=[];
@@ -288,7 +288,7 @@ export function assignWorlds(cuts,{seed=1,worldAmount=.5}={}){
   if(worldAmount>0&&any&&!c.gVertical&&r()<worldAmount*(D<.6?.6:1))key=pickFrom(r,WORLD,{mood:c.moodId,history:hist,n:3,f:.25,extra:d=>d.fits(n)?1:0});else r();
   if(key)hist.push(key);
   c.world=key;c.worldP=key?WORLD[key].plan(rng(`wp:${seed}:${id}`),c):null;c.worldExit=!!key&&!touchingNext;
-  if(key){c.gVertical=false;if(['marker','underline','box','hollow','extrude'].includes(c.treat)){c.treat='none';c.treatP={};}}
+  if(key){c.gVertical=false;if(['marker','underline','box','hollow','extrude','soft','blurTrail'].includes(c.treat)){c.treat='none';c.treatP={};}}
  });
  return cuts;
 }
@@ -342,10 +342,11 @@ const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
 // 各部品の plan() を何通りか動かして「その部品が作りうる値の形と範囲」を調べ（初回だけ、覚えておく）、保存された値をその範囲に収める。
 const SCHEMA_SAMPLES=1500,HEX=/^#[\da-f]{6}$/i;
 const SAMPLE_CUT={text:'ほら、もう一回ひろげよう',emphasisColor:'#ffb347',color:'#ffffff',recap:false,lineIndex:0,unitIndex:0};
+// 数えるための整数（本数・升の数）は範囲ぴったり、広い範囲の整数（乱数の種・通し番号）は両端に余裕を持たせる
 function shapeOf(values){
  const defined=values.filter(v=>v!==undefined&&v!==null);
  if(!defined.length||defined.length!==values.length)return {t:'x'};
- if(defined.every(v=>typeof v==='number'&&Number.isFinite(v))){const min=Math.min(...defined),max=Math.max(...defined),int=defined.every(Number.isInteger),pad=int?0:Math.max(1e-9,(max-min)*.1);return {t:'n',min:min-pad,max:max+pad,int,def:defined[0]};}
+ if(defined.every(v=>typeof v==='number'&&Number.isFinite(v))){const min=Math.min(...defined),max=Math.max(...defined),int=defined.every(Number.isInteger),pad=int&&max-min<=50?0:Math.max(1e-9,(max-min)*.1);return {t:'n',min:min>=0?Math.max(0,min-pad):min-pad,max:max+pad,int,def:defined[0]};}
  if(defined.every(v=>typeof v==='string')){const hex=defined.some(v=>HEX.test(v));return {t:'s',set:[...new Set(defined.filter(v=>!HEX.test(v)))],hex,def:defined[0]};}
  if(defined.every(v=>typeof v==='boolean'))return {t:'b',def:defined[0]};
  if(defined.every(Array.isArray)){const lens=defined.map(v=>v.length);return {t:'a',min:Math.min(...lens),max:Math.max(...lens),el:shapeOf(defined.flat()),def:defined[0]};}
@@ -449,7 +450,7 @@ export function linesOf(project,{freeText=false}={}){
  return {lyrics:subjects,subjects,lines:subjects.map(l=>({text:String(l.text).replace(/\s*\n\s*/g,' ').trim(),start:l.startUs/1e6,end:l.endUs/1e6}))};
 }
 
-export const CUT_DEFAULTS={freeText:true,mood:MIX,density:.57,recap:'auto',wordSizes:true,sizePct:12,bgMode:'auto',camAmount:.6,fxAmount:.5,transAmount:.65,treatAmount:.45,holdAmount:.7,ghostAmount:.2,worldAmount:.55,carryAmount:.35,avoidFlash:false,fontMode:'cut',refine:true};
+export const CUT_DEFAULTS={freeText:true,mood:MIX,density:.57,recap:'auto',wordSizes:true,sizePct:12,bgMode:'auto',camAmount:.6,fxAmount:.5,transAmount:.65,treatAmount:.45,holdAmount:.7,ghostAmount:.2,worldAmount:.55,carryAmount:.35,avoidFlash:true,fontMode:'cut',refine:true};
 
 /**
  * 計画の前半（文字の大きさを測らなくてよい所まで）。返す cuts は、まだ検査と手直しの前。

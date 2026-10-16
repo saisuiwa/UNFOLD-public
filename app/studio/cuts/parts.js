@@ -93,36 +93,44 @@ export const CAMERA={
 
 // ---- 画面効果（できあがった1フレームへの後処理。カットの頭で鳴って減衰） --------------------------------------------------------------------------
 const grab=(c,e)=>{const s=e.tmp(0),x=s.getContext('2d');x.globalCompositeOperation='copy';x.drawImage(c.canvas,0,0);x.globalCompositeOperation='source-over';return s;};
+// 下に別の絵があって、この層が透明なとき（e.opaque===false）の画面効果の作り方。
+// 色を掛けて足し合わせる方法（multiply + lighter）や、全面に白を重ねる方法は、透明な所まで色や白で塗ってしまい、画面が真っ白になる。
+// そこで、文字や図形の形だけを塗った色のコピー（tintOf）を、ずらして重ねる。ずらした帯は、元の帯を消してから置く（hole）。
+const tintOf=(e,s,color)=>{const t=e.tmp(1),x=t.getContext('2d');x.globalCompositeOperation='copy';x.drawImage(s,0,0);x.globalCompositeOperation='source-in';x.fillStyle=color;x.fillRect(0,0,e.W,e.H);x.globalCompositeOperation='source-over';return t;};
+const fringe=(c,e,s,list)=>{c.clearRect(0,0,e.W,e.H);for(const [col,dx,dy,sc] of list){c.globalAlpha=.75;c.drawImage(tintOf(e,s,col),dx+e.W*(1-sc)/2,dy+e.H*(1-sc)/2,e.W*sc,e.H*sc);}c.globalAlpha=1;c.drawImage(s,0,0);};
+const hole=(c,e,x,y,w,h)=>{if(e.opaque===false)c.clearRect(x,y,w,h);};
 export const FX={
  chroma:{name:'色ズレの跳ね',tags:['glitch','pop','impact'],w:1.4,dur:.4,plan:r=>({s:.8+r()*.6,dir:sign(r)}),
   apply(c,e,P,k){const d=Math.max(1,e.W*.016*k*P.s),s=grab(c,e),t2=e.tmp(1),x=t2.getContext('2d');
+   if(e.opaque===false)return fringe(c,e,s,[['#ff2a2a',-d*P.dir,-d*.35,1],['#2a5aff',d*P.dir,d*.35,1]]);
    c.globalCompositeOperation='source-over';c.clearRect(0,0,e.W,e.H);c.globalCompositeOperation='lighter';
    for(const [col,dx,dy] of [['#ff0000',-d,-d*.35],['#00ff00',0,0],['#0000ff',d,d*.35]]){x.globalCompositeOperation='copy';x.drawImage(s,0,0);x.globalCompositeOperation='multiply';x.fillStyle=col;x.fillRect(0,0,e.W,e.H);c.drawImage(t2,dx*P.dir,dy);}
    c.globalCompositeOperation='source-over';}},
  shake:{name:'揺れ',tags:['impact','pop','glitch'],w:1,dur:.35,plan:r=>({s:.8+r()*.5}),
   apply(c,e,P,k){const s=grab(c,e);c.clearRect(0,0,e.W,e.H);c.drawImage(s,(hash(e.step,1)-.5)*2*k*e.W*.025*P.s,(hash(e.step,2)-.5)*2*k*e.H*.025*P.s);}},
  slice:{name:'スライスグリッチ',tags:['glitch','graphic','impact'],w:1.2,dur:.35,plan:r=>({n:5+Math.floor(r()*5)}),
-  apply(c,e,P,k){const s=grab(c,e);for(let i=0;i<P.n;i++){const y=hash(e.step,i,3)*e.H,h=e.H*(.03+.08*hash(e.step,i,4)),dx=(hash(e.step,i,5)-.5)*2*k*e.W*.12;c.drawImage(s,0,y,e.W,h,dx,y,e.W,h);}}},
+  apply(c,e,P,k){const s=grab(c,e);for(let i=0;i<P.n;i++){const y=hash(e.step,i,3)*e.H,h=e.H*(.03+.08*hash(e.step,i,4)),dx=(hash(e.step,i,5)-.5)*2*k*e.W*.12;hole(c,e,0,y,e.W,h);c.drawImage(s,0,y,e.W,h,dx,y,e.W,h);}}},
  flash:{name:'フラッシュ',tags:['pop','impact','emotional'],w:.9,dur:.28,strongFlash:true,plan:()=>({}),
-  apply(c,e,P,k){c.fillStyle='#ffffff';c.globalAlpha=clamp(k*.85);c.fillRect(0,0,e.W,e.H);c.globalAlpha=1;}},
+  apply(c,e,P,k){c.fillStyle='#ffffff';c.globalAlpha=clamp(k*.55);c.fillRect(0,0,e.W,e.H);c.globalAlpha=1;}},
  zoomblur:{name:'ズームブラー',tags:['impact','pop','emotional'],w:1,dur:.38,plan:r=>({s:.8+r()*.5}),
   apply(c,e,P,k){const s=grab(c,e);for(let i=1;i<=6;i++){const sc=1+i*.03*k*P.s;c.globalAlpha=.16*k;c.drawImage(s,e.W*(1-sc)/2,e.H*(1-sc)/2,e.W*sc,e.H*sc);}c.globalAlpha=1;}},
  mosaic:{name:'モザイク',tags:['glitch','graphic'],w:.8,dur:.3,plan:r=>({px:14+Math.floor(r()*18)}),
   apply(c,e,P,k){const px=lerp(1,P.px,k),w=Math.max(2,Math.ceil(e.W/px)),h=Math.max(2,Math.ceil(e.H/px)),s=grab(c,e),sm=e.tmp(1,w,h),x=sm.getContext('2d');
    x.imageSmoothingEnabled=true;x.globalCompositeOperation='copy';x.drawImage(s,0,0,w,h);x.globalCompositeOperation='source-over';
-   c.imageSmoothingEnabled=false;c.drawImage(sm,0,0,w,h,0,0,e.W,e.H);c.imageSmoothingEnabled=true;}},
+   hole(c,e,0,0,e.W,e.H);c.imageSmoothingEnabled=false;c.drawImage(sm,0,0,w,h,0,0,e.W,e.H);c.imageSmoothingEnabled=true;}},
  block:{name:'ブロックグリッチ',tags:['glitch','graphic','impact'],w:1,dur:.3,plan:r=>({n:4+Math.floor(r()*5),inv:r()<.4}),
   apply(c,e,P,k){const s=grab(c,e);
    for(let i=0;i<P.n;i++){
     const w=e.W*(.08+.22*hash(e.step,i,11)),h=e.H*(.04+.14*hash(e.step,i,12)),x=hash(e.step,i,13)*(e.W-w),y=hash(e.step,i,14)*(e.H-h);
     const dx=(hash(e.step,i,15)-.5)*2*k*e.W*.18,dy=(hash(e.step,i,16)-.5)*k*e.H*.1;
-    c.drawImage(s,x,y,w,h,x+dx,y+dy,w,h);
-    if(P.inv&&hash(e.step,i,17)<.5*k){c.save();c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(x+dx,y+dy,w,h);c.restore();}
+    hole(c,e,x,y,w,h);c.drawImage(s,x,y,w,h,x+dx,y+dy,w,h);
+    if(P.inv&&e.opaque!==false&&hash(e.step,i,17)<.5*k){c.save();c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(x+dx,y+dy,w,h);c.restore();}
    }}},
  invert:{name:'反転',tags:['glitch','impact','graphic'],w:.7,dur:.12,strongFlash:true,plan:()=>({}),
-  apply(c,e){c.save();c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);c.restore();}},
+  apply(c,e){c.save();if(e.opaque===false){c.globalCompositeOperation='source-atop';c.globalAlpha=.85;}else c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);c.restore();}},
  radial:{name:'放射色収差',tags:['glitch','pop','impact','emotional'],w:1.1,dur:.4,plan:r=>({s:.7+r()*.6}),
   apply(c,e,P,k){const s=grab(c,e),t2=e.tmp(1),x=t2.getContext('2d'),a=.014*k*P.s;
+   if(e.opaque===false)return fringe(c,e,s,[['#ff2a2a',0,0,1+a],['#2a5aff',0,0,1-a]]);
    c.globalCompositeOperation='source-over';c.clearRect(0,0,e.W,e.H);c.globalCompositeOperation='lighter';
    for(const [col,sc] of [['#ff0000',1+a],['#00ff00',1],['#0000ff',1-a]]){x.globalCompositeOperation='copy';x.drawImage(s,0,0);x.globalCompositeOperation='multiply';x.fillStyle=col;x.fillRect(0,0,e.W,e.H);c.drawImage(t2,e.W*(1-sc)/2,e.H*(1-sc)/2,e.W*sc,e.H*sc);}
    c.globalCompositeOperation='source-over';}},
@@ -130,7 +138,7 @@ export const FX={
   apply(c,e,P,k){const s=grab(c,e);for(let i=1;i<=P.n;i++){c.globalAlpha=.13*k*(1-i/(P.n+1));c.drawImage(s,P.dir*i*e.W*.012*k,0);}c.globalAlpha=1;}},
  tracking:{name:'VHSトラッキング',tags:['glitch','graphic','calm'],w:1,dur:.5,plan:r=>({n:3+Math.floor(r()*3)}),
   apply(c,e,P,k){const s=grab(c,e);
-   for(let i=0;i<P.n;i++){const y=((hash(e.step>>1,i,21)+e.t*.18*(i+1))%1)*e.H,h=e.H*(.015+.05*hash(i,7,22)),dx=(hash(e.step,i,23)-.5)*2*k*e.W*.06;c.drawImage(s,0,y,e.W,h,dx,y,e.W,h);}
+   for(let i=0;i<P.n;i++){const y=((hash(e.step>>1,i,21)+e.t*.18*(i+1))%1)*e.H,h=e.H*(.015+.05*hash(i,7,22)),dx=(hash(e.step,i,23)-.5)*2*k*e.W*.06;hole(c,e,0,y,e.W,h);c.drawImage(s,0,y,e.W,h,dx,y,e.W,h);}
    c.fillStyle=`rgba(0,0,0,${(.18*k).toFixed(3)})`;for(let y=0;y<e.H;y+=4)c.fillRect(0,y,e.W,2);}},
  bloom:{name:'ブルーム',tags:['emotional','calm','pop','glitch'],w:1.1,dur:.45,plan:r=>({s:.8+r()*.5}),
   apply(c,e,P,k){const s=grab(c,e),w=Math.max(8,Math.round(e.W/10)),h=Math.max(6,Math.round(e.H/10)),sm=e.tmp(1,w,h),x=sm.getContext('2d');
@@ -144,15 +152,17 @@ const dirInfo=(d,e)=>{const h=d==='L'||d==='R';return {h,sg:d==='L'||d==='U'?-1:
 const edgeBar=(c,e,p,x,y,w,h)=>{c.globalAlpha=Math.pow(bell(p),.6);c.fillStyle=e.accent;c.fillRect(x,y,w,h);c.globalAlpha=1;};
 export const TRANS={
  flash:{name:'フラッシュ転換',tags:['pop','impact','emotional','glitch'],w:1,dur:.3,strongFlash:true,plan:()=>({}),
-  draw(c,A,B,p,e){c.drawImage(p<.5?A:B,0,0);c.globalAlpha=Math.pow(bell(p),.7)*.95;c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);c.globalAlpha=1;}},
+  draw(c,A,B,p,e){c.drawImage(p<.5?A:B,0,0);c.globalAlpha=Math.pow(bell(p),.7)*.7;c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);c.globalAlpha=1;}},
  push:{name:'プッシュ',tags:['graphic','pop','calm','impact'],w:1.2,dur:.35,plan:dirP,
   draw(c,A,B,p,e,P){const {h,sg,L}=dirInfo(P.dir,e),off=Math.round(inOutCubic(p)*L)*sg;
    if(h){c.drawImage(A,off,0);c.drawImage(B,off-sg*e.W,0);edgeBar(c,e,p,(sg<0?e.W+off:off)-e.W*.003,0,e.W*.006,e.H);}
    else{c.drawImage(A,0,off);c.drawImage(B,0,off-sg*e.H);edgeBar(c,e,p,0,(sg<0?e.H+off:off)-e.H*.003,e.W,e.H*.006);}}},
  cover:{name:'カバー',tags:['calm','graphic','emotional'],w:1,dur:.35,plan:dirP,
   draw(c,A,B,p,e,P){const {h,sg,L}=dirInfo(P.dir,e),q=inOutCubic(p),bo=Math.round((1-q)*L)*-sg,ao=Math.round(q*L*.16)*sg;
-   if(h){c.drawImage(A,ao,0);c.fillStyle='#000';c.globalAlpha=.45*q;c.fillRect(0,0,e.W,e.H);c.globalAlpha=1;c.drawImage(B,bo,0);}
-   else{c.drawImage(A,0,ao);c.fillStyle='#000';c.globalAlpha=.45*q;c.fillRect(0,0,e.W,e.H);c.globalAlpha=1;c.drawImage(B,0,bo);}}},
+   const dim=()=>{if(e.opaque===false){c.globalAlpha=1-.45*q;return true;}c.globalAlpha=1;return false;};   // 透明な絵では、前の絵だけを暗くする（下の絵まで暗くしない）
+   const shade=()=>{c.fillStyle='#000';c.globalAlpha=.45*q;c.fillRect(0,0,e.W,e.H);c.globalAlpha=1;};
+   if(h){const t=dim();c.drawImage(A,ao,0);c.globalAlpha=1;if(!t)shade();c.drawImage(B,bo,0);}
+   else{const t=dim();c.drawImage(A,0,ao);c.globalAlpha=1;if(!t)shade();c.drawImage(B,0,bo);}}},
  uncover:{name:'アンカバー',tags:['calm','graphic','pop'],w:.9,dur:.35,plan:dirP,
   draw(c,A,B,p,e,P){const {h,sg,L}=dirInfo(P.dir,e),q=inOutCubic(p),ao=Math.round(q*L)*sg,bo=Math.round((1-q)*L*.16)*-sg;
    if(h){c.drawImage(B,bo,0);c.drawImage(A,ao,0);}else{c.drawImage(B,0,bo);c.drawImage(A,0,ao);}}},

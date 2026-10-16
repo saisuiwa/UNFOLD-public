@@ -46,6 +46,29 @@ await withStudioPage(async page=>{
  await writeFile('tools/out/studio/cuts-free-over-picture.png',Buffer.from(a.png,'base64'));
  assert.ok(a.corner[0]>160&&a.corner[1]<90&&a.corner[2]<90,'the red picture shows through the cut layer (transparent): '+a.corner);
  assert.ok(a.bright>40,'and there is text: '+a.bright);
+ // ---- a transparent frame never carries over the pictures before it: one compositor playing many frames in a row draws the same picture at a time as a fresh one
+ // (it used to pile up the translucent backgrounds and glows frame after frame, until the picture was washed out)
+ const seq=await page.evaluate(async([times,last])=>{
+  const {createCompositor}=await import('/studio/compositor.js'),{openStudioStore}=await import('/studio/store.js');
+  const store=await openStudioStore({dbName:'unfold-studio-cutsfree'}),project=c.get().project;
+  const grab=async(comp,t)=>{const f=await comp.render({projectUs:t,viewId:'wide',width:480,height:270,epoch:1});const cv=new OffscreenCanvas(480,270),x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(f.bitmap,0,0);f.close();return x.getImageData(0,0,480,270).data;};
+  const fresh=async t=>{const comp=createCompositor({assets:store});await comp.prepare(project);const d=await grab(comp,t);comp.dispose();return d;};
+  const diff=(a,b)=>{let n=0,max=0;for(let i=0;i<a.length;i+=4){const d=Math.abs(a[i]-b[i])+Math.abs(a[i+1]-b[i+1])+Math.abs(a[i+2]-b[i+2]);if(d>3){n++;max=Math.max(max,d);}}return {n,max};};
+  const comp=createCompositor({assets:store});await comp.prepare(project);
+  for(const t of times)await grab(comp,t);
+  const afterMany=await grab(comp,last),once=await fresh(last),twice=await fresh(last);comp.dispose();
+  return {manyVsFresh:diff(afterMany,once),freshVsFresh:diff(once,twice)};},[Array.from({length:40},(_,i)=>Math.round(1.2e6+i*.1e6)),freeMid]);
+ assert.deepEqual(seq.freshVsFresh,{n:0,max:0},'a fresh compositor draws a time the same way every time');
+ assert.deepEqual(seq.manyVsFresh,{n:0,max:0},'the same picture after 40 frames in a row as from a fresh compositor: '+JSON.stringify(seq.manyVsFresh));
+ // ---- no frame of the whole piece is washed out to white (the chroma / radial effects and the invert used to paint a transparent layer full white; with 「強い点滅を避ける」 on, nothing flashes)
+ const white=await page.evaluate(async()=>{
+  const {createCompositor}=await import('/studio/compositor.js'),{openStudioStore}=await import('/studio/store.js');
+  const store=await openStudioStore({dbName:'unfold-studio-cutsfree'}),comp=createCompositor({assets:store});await comp.prepare(c.get().project);
+  let max=0,at=0;const W=240,H=135;
+  for(let t=.4e6;t<11.8e6;t+=.1e6){const f=await comp.render({projectUs:Math.round(t),viewId:'wide',width:W,height:H,epoch:1});const cv=new OffscreenCanvas(W,H),x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(f.bitmap,0,0);f.close();
+   const d=x.getImageData(0,0,W,H).data;let n=0;for(let i=0;i<d.length;i+=4)if(d[i]>235&&d[i+1]>235&&d[i+2]>235)n++;const share=n/(W*H);if(share>max){max=share;at=t;}}
+  comp.dispose();return {max,at};});
+ assert.ok(white.max<.7,'no near-white frame: the whitest frame is '+Math.round(white.max*100)+'% white at '+white.at/1e6+' s');
  const lyricMid=6.2e6+1e6;
  const b=await render(lyricMid);assert.ok(b.corner[0]>160&&b.corner[1]<90,'lyrics too: the picture shows through: '+b.corner);
  await writeFile('tools/out/studio/cuts-lyric-over-picture.png',Buffer.from(b.png,'base64'));

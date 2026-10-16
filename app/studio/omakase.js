@@ -47,6 +47,8 @@ export const COLOR_FAMILIES=[
 ];
 export const familyOf=id=>COLOR_FAMILIES.find(f=>f.id===id);
 export const BG_OPACITY=.55;
+/** an おまかせ background does not stay longer than this (microseconds) */
+export const MAX_BG_US=9e6;
 // Sizes are a fraction of the shorter side of the picture. The slider 「文字の大きさの目安」 sets the average (percent); the mood and a little jitter vary it per line.
 // Longer lines are capped (fitCap) so they still fit: the layout wraps lines, and every bundled text motion was checked to stay inside the frame at rest
 // in wide and tall at exactly these caps, for lyrics of 7 to 35 characters.
@@ -188,11 +190,17 @@ export function planOmakase(project,{mood=MOOD_AUTO,family=FAMILY_AUTO,sizePct=S
  const rt=rng('text:'+seeds.text),recent=[],lines=[];
  const extraByKey=new Map(extras.map(e=>[e.key,e])),everyKey=[...chosen.text,...extras.map(e=>e.key).filter(k=>!chosen.text.includes(k))];
  for(const l of lyrics){let pool=everyKey.filter(k=>!recent.includes(k));if(!pool.length)pool=everyKey;const key=pool[Math.floor(rt()*pool.length)];recent.push(key);if(recent.length>2)recent.shift();const e=extraByKey.get(key);lines.push({id:l.id,key,...(e?.from==='saved'?{extra:{name:e.name,...(e.code?{code:e.code}:{recipe:e.recipe})}}:{})});}
- // a background for every stretch of 3-5 lines; the stretches follow each other without a gap
+ // a background for every stretch of 2-3 lines (and never longer than MAX_BG_US: a long stretch is cut into equal parts, each with its own background);
+ // the stretches follow each other without a gap
  const rb=rng('bg:'+seeds.bg),blocks=[];let previous='';
  const pickBg=()=>{let pool=chosen.bg.filter(k=>k!==previous);if(!pool.length)pool=chosen.bg;const key=pool[Math.floor(rb()*pool.length)];previous=key;return key;};
- if(!lyrics.length)blocks.push({startUs:0,endUs:project.durationUs,key:pickBg()});
- else{let i=0;while(i<lyrics.length){const size=3+Math.floor(rb()*3),from=i,to=Math.min(lyrics.length,i+size);i=to;blocks.push({startUs:blocks.length?lyrics[from].startUs:0,endUs:to>=lyrics.length?project.durationUs:lyrics[to].startUs,key:pickBg()});}}
+ const pushBlocks=(startUs,endUs)=>{const n=Math.max(1,Math.ceil((endUs-startUs)/MAX_BG_US));for(let k=0;k<n;k++)blocks.push({startUs:k?Math.round(startUs+(endUs-startUs)*k/n):startUs,endUs:k===n-1?endUs:Math.round(startUs+(endUs-startUs)*(k+1)/n),key:pickBg()});};
+ if(!lyrics.length)pushBlocks(0,project.durationUs);
+ else{let i=0;while(i<lyrics.length){
+  const from=i,start=blocks.length?lyrics[from].startUs:0,endOf=to=>to>=lyrics.length?project.durationUs:lyrics[to].startUs;
+  let to=Math.min(lyrics.length,i+2+Math.floor(rb()*2));
+  while(to-from>1&&endOf(to)-start>MAX_BG_US)to--;   // a stretch of several lines that would run long gets fewer lines
+  i=to;pushBlocks(start,endOf(to));}}
  // a size for every lyric: the slider's average scaled by the mood, a little more or less per line, now and then a line that is made big; long lines are capped so they fit
  const rs=rng('size:'+(seeds.size??seeds.text)),sizes=lyrics.map(l=>{
   const n=charCount(l.text),target=Math.min(SIZE_PCT.max,Math.max(SIZE_PCT.min,Number(sizePct)||SIZE_PCT.default))/100;

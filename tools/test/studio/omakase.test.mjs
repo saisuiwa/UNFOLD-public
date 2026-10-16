@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {MOODS,COLOR_FAMILIES,FAMILY_AUTO,SIZE_MIN,SIZE_MAX,SIZE_PCT,fitCap,uniformSizes,opacityCommands,familyOf,planOmakase,omakaseCommands,motionOf,newSeeds,describePlan,BG_OPACITY,mergeMotion} from '../../../app/studio/omakase.js';
+import {MOODS,COLOR_FAMILIES,FAMILY_AUTO,SIZE_MIN,SIZE_MAX,SIZE_PCT,fitCap,uniformSizes,opacityCommands,familyOf,planOmakase,omakaseCommands,motionOf,newSeeds,describePlan,BG_OPACITY,mergeMotion,MAX_BG_US} from '../../../app/studio/omakase.js';
 import {createProject,assertProject} from '../../../app/studio/model.js';
 import {applyCommand} from '../../../app/studio/commands.js';
 
@@ -38,12 +38,14 @@ test('the plan is deterministic, follows its mood, and never repeats a motion wi
  assert.deepEqual(c.palette,a.palette,'and the palette');
 });
 
-test('backgrounds follow each other without a gap, cover the whole song, and change at each stretch', () => {
+test('backgrounds follow each other without a gap, cover the whole song, change at each stretch and never stay longer than 9 s', () => {
  const p=project(14),plan=planOmakase(p,{mood:'graphic',seeds:SEEDS});
  assert.equal(plan.blocks[0].startUs,0);assert.equal(plan.blocks.at(-1).endUs,p.durationUs);
  for(let i=1;i<plan.blocks.length;i++){assert.equal(plan.blocks[i].startUs,plan.blocks[i-1].endUs);assert.notEqual(plan.blocks[i].key,plan.blocks[i-1].key);}
  const empty=createProject({durationUs:20e6}),only=planOmakase(empty,{mood:'calm',seeds:SEEDS});
- assert.equal(only.lines.length,0);assert.deepEqual([only.blocks[0].startUs,only.blocks[0].endUs],[0,20e6]);
+ assert.equal(only.lines.length,0);assert.equal(only.blocks[0].startUs,0);assert.equal(only.blocks.at(-1).endUs,20e6);
+ for(let i=1;i<only.blocks.length;i++)assert.equal(only.blocks[i].startUs,only.blocks[i-1].endUs);
+ assert.ok(only.blocks.every(b=>b.endUs-b.startUs<=MAX_BG_US+1),'a background never stays longer than the cap: '+only.blocks.map(b=>b.endUs-b.startUs));assert.equal(only.blocks.length,3,'20 s is cut into three parts of at most 9 s');
 });
 
 test('"おまかせ" mood picks one of the moods from its seed', () => {
@@ -342,4 +344,18 @@ test('a plan uses the extra motions too, keeps them when replayed, and its comma
  // without extras nothing changes from before
  const plain=planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:3}});
  assert.ok(plain.lines.every(l=>!l.extra&&MOODS.find(m=>m.id==='pop').text.includes(l.key)));
+});
+
+test('backgrounds are short: a song of 2-3 lines per background, and even a long instrumental part is cut so that no background runs longer than 9 s', () => {
+ const p=project(24);   // a line every 5 s, 120 s
+ for(let i=12;i<24;i++){p.lyrics[i].startUs+=45e6;p.lyrics[i].endUs+=45e6;}   // a 45 s instrumental in the middle
+ p.durationUs+=45e6;
+ for(const seed of [1,2,3,4,5,6]){
+  const plan=planOmakase(p,{mood:'pop',seeds:{...SEEDS,bg:seed}}),lens=plan.blocks.map(b=>b.endUs-b.startUs);
+  assert.equal(plan.blocks[0].startUs,0);assert.equal(plan.blocks.at(-1).endUs,p.durationUs);
+  for(let i=1;i<plan.blocks.length;i++){assert.equal(plan.blocks[i].startUs,plan.blocks[i-1].endUs);assert.notEqual(plan.blocks[i].key,plan.blocks[i-1].key);}
+  assert.ok(Math.max(...lens)<=MAX_BG_US+1,`seed ${seed}: longest ${Math.max(...lens)/1e6} s`);
+  assert.ok(lens.reduce((a,b)=>a+b,0)/lens.length<=9e6,'and on average they are not long');
+  assert.ok(plan.blocks.length>=14,`seed ${seed}: ${plan.blocks.length} backgrounds for 165 s`);
+ }
 });

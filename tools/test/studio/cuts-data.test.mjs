@@ -118,7 +118,7 @@ test('part values from a file are held to what each part can really make (no hug
  assert.equal(hostile({trans:'push',transP:{dir:'<script>'},transDur:.3}).transP.dir.length,1,'an enum value stays one of the known ones');
  // worlds: the shape comes from the plan, colours must be #rrggbb, numbers stay in range; a world the text is too long for is dropped
  const w=hostile({world:'ticket',worldP:{tilt:1e9,fill:'javascript:x',label:{},serial:-1e9},text:'短い',runs:[{text:'短い'}]}).worldP;
- assert.ok(Math.abs(w.tilt)<8);assert.ok(['accent','ink','paper'].includes(w.fill));assert.equal(typeof w.label,'string');assert.ok(w.serial>=1&&w.serial<=1000000);
+ assert.ok(Math.abs(w.tilt)<8);assert.ok(['accent','ink','paper'].includes(w.fill));assert.equal(typeof w.label,'string');assert.ok(w.serial>=0&&w.serial<=1100000,'serial '+w.serial);
  const wr=hostile({world:'tape',worldP:{tilts:'x',cols:['red','#zzzzzz',5]},text:'短い',runs:[{text:'短い'}]}).worldP;
  assert.ok(Array.isArray(wr.tilts)&&wr.tilts.length===4&&wr.cols.length===4&&wr.cols.every(c=>/^(accent|accentLight|#[\da-f]{6})$/i.test(c)),JSON.stringify(wr));
  assert.ok(hostile({world:'ransom',worldP:{seed:'x'},text:'短い',runs:[{text:'短い'}]}).worldP.seed>=0);

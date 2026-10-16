@@ -8,7 +8,7 @@ export const resetCtx=reset;
 
 export function envFor(cut,t,S){
  const lt=t-cut.start,dur=cut.end-cut.start;
- return {W:S.W,H:S.H,t,lt,dur,p:clamp(lt/dur),fg:cut.color,accent:cut.emphasisColor,bg:cut.bg,step:Math.floor(t*24),tmp:S.tmp};
+ return {W:S.W,H:S.H,opaque:S.opaque,t,lt,dur,p:clamp(lt/dur),fg:cut.color,accent:cut.emphasisColor,bg:cut.bg,step:Math.floor(t*24),tmp:S.tmp};
 }
 
 // ---- 常時ゴースト（時間遅れの色収差）----------------------------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ function drawGhosts(ctx,ghosts,S){
 /** 背景 + （カメラを通した）文字。bmp は null でもよい（背景だけ）。cut.place は置き場所 {x,y,scale,rotation}。ghosts: [{bmp,color,dx,dy,tinted}] */
 export function drawCutFrame(ctx,cut,t,bmp,S,ghosts=null){
  const {W,H}=S,e=envFor(cut,t,S);
- reset(ctx);if(S.opaque!==false){ctx.fillStyle=cut.bg;ctx.fillRect(0,0,W,H);}
+ reset(ctx);if(S.opaque!==false){ctx.fillStyle=cut.bg;ctx.fillRect(0,0,W,H);}else ctx.clearRect(0,0,W,H);   // 透明な絵は、前のコマの絵が残らないよう、毎回まっさらにする
  if(cut.bgPart&&BG[cut.bgPart]){ctx.save();BG[cut.bgPart].draw(ctx,e,cut.bgP);ctx.restore();}
  if(!bmp)return;
  ctx.save();
@@ -58,11 +58,11 @@ export function drawCutFrame(ctx,cut,t,bmp,S,ghosts=null){
 /** できあがった絵 X を出力へ。引き継ぎ・つなぎ（A→X）と、カット頭の画面効果をここで掛ける。 */
 export function finishFrame(out,{cut,t,X,A,carry},S){
  const {W,H}=S;
- reset(out);
+ reset(out);out.clearRect(0,0,W,H);
  const lt=t-cut.start;
  if(carry&&A&&lt<carry.dur){drawCarry(out,A,X,Math.max(0,lt)/carry.dur,carry.fromBox,carry.toBox,S);reset(out);}
  else if(cut.trans&&A&&TRANS[cut.trans]&&lt<cut.transDur){
-  out.save();TRANS[cut.trans].draw(out,A,X,Math.max(0,lt)/cut.transDur,{W,H,accent:cut.emphasisColor,fg:cut.color},cut.transP);out.restore();reset(out);
+  out.save();TRANS[cut.trans].draw(out,A,X,Math.max(0,lt)/cut.transDur,{W,H,opaque:S.opaque,accent:cut.emphasisColor,fg:cut.color},cut.transP);out.restore();reset(out);
  }else out.drawImage(X,0,0);
  if(cut.fx&&FX[cut.fx]){
   const F=FX[cut.fx];

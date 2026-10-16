@@ -4,6 +4,17 @@ import {lyricStyleName,sceneSummary,chipsFor,isEffectClip,isBackgroundClip,clipT
 const SUB=26;
 export function mountTimeline(root,controller){let version='',zoom=1,state,drag=false,focusedSceneId=null,projectId=null,revealed=null;root.tabIndex=0;root.setAttribute('aria-label','タイムライン');
  const run=fn=>action(controller,fn)(),b=(t,f)=>button(controller,t,f);
+// 削除。歌詞・曲は「位置固定」中だと消せない（かんたん表示では固定を外すボタンが隠れている）ので、そのとき確かめて、固定はそのままで、選んだものだけを消す（1回で元に戻せる）
+const deleteSelected=async()=>{
+ try{await controller.editSelected('delete');}
+ catch(e){
+  const sel=controller.get().selection;
+  if(e?.code!=='TRACK_LOCKED'||!sel||!['lyric','audio'].includes(sel.kind))throw e;
+  const track=sel.kind==='lyric'?'lyrics':'music',what=sel.kind==='lyric'?'歌詞':'曲';
+  if(!confirm(what+'の位置が固定されています。固定したまま、選んだ'+what+'だけを削除しますか？'))return;
+  await controller.dispatch({type:'batch',commands:[{type:'setLock',track,locked:false},{type:sel.kind==='lyric'?'deleteLyric':'deleteAudio',id:sel.id},{type:'setLock',track,locked:true}]});
+ }
+};
  // 拡大 is a slider: the timeline follows the thumb while it is dragged and keeps the middle of the visible part where it was
  const zoomInput=el('input',{type:'range',min:1,max:8,step:.5,value:1,'aria-label':'拡大','data-testid':'timeline-zoom'}),zoomOut=el('output',{},'×1'),zoomField=el('label',{class:'field zoom-field'},el('span',{},'拡大'),zoomInput,zoomOut);
  const panInput=el('input',{type:'range',min:0,max:1000,step:1,value:0,'aria-label':'移動','data-testid':'timeline-pan',disabled:true}),panOut=el('output',{},'0%'),panField=el('label',{class:'field zoom-field pan-field'},el('span',{},'移動'),panInput,panOut),zoomBox=el('div',{class:'zoom-box'},zoomField,panField);
@@ -11,14 +22,14 @@ export function mountTimeline(root,controller){let version='',zoom=1,state,drag=
  // 移動: the same as scrolling the timeline sideways (only useful when it is zoomed in); it follows the scrolling and the zoom
  function syncPan(){const room=Math.max(0,tracks.scrollWidth-scroller.clientWidth);panInput.disabled=room<2;const f=room<2?0:scroller.scrollLeft/room;panInput.value=String(Math.round(f*1000));panOut.textContent=Math.round(f*100)+'%';}
  panInput.addEventListener('input',()=>{const room=Math.max(0,tracks.scrollWidth-scroller.clientWidth);scroller.scrollLeft=Number(panInput.value)/1000*room;panOut.textContent=Math.round(Number(panInput.value)/10)+'%';});
- const toolbar=el('div',{class:'timeline-tools'},b('シーンを追加',()=>controller.addScene()),b('再生位置で分割',()=>controller.editSelected('split')),b('配置を複製',()=>controller.editSelected('duplicate')),b('選択を削除',()=>controller.editSelected('delete')),zoomBox);const waveCache=new Map();const scroller=el('div',{class:'timeline-scroll'}),tracks=el('div',{class:'timeline-tracks'}),chips=el('div',{class:'timeline-chips','data-testid':'timeline-chips','aria-live':'polite'});for(const x of toolbar.querySelectorAll('button'))if(['シーンを追加','再生位置で分割','配置を複製'].includes(x.textContent))x.dataset.advanced='';
+ const toolbar=el('div',{class:'timeline-tools'},b('シーンを追加',()=>controller.addScene()),b('再生位置で分割',()=>controller.editSelected('split')),b('配置を複製',()=>controller.editSelected('duplicate')),b('選択を削除',deleteSelected),zoomBox);const waveCache=new Map();const scroller=el('div',{class:'timeline-scroll'}),tracks=el('div',{class:'timeline-tracks'}),chips=el('div',{class:'timeline-chips','data-testid':'timeline-chips','aria-live':'polite'});for(const x of toolbar.querySelectorAll('button'))if(['シーンを追加','再生位置で分割','配置を複製'].includes(x.textContent))x.dataset.advanced='';
  scroller.append(tracks);root.append(toolbar,scroller,chips);scroller.addEventListener('scroll',syncPan);
  // click or drag on the ruler or an empty stretch of a lane to move the playhead (the preview follows)
  let seeking=false,seekBusy=false;const seekTo=e=>{const rect=tracks.getBoundingClientRect(),head=parseFloat(getComputedStyle(tracks).getPropertyValue('--lane-head'))||76,frac=Math.min(1,Math.max(0,(e.clientX-rect.left-head)/Math.max(1,rect.width-head)));if(seekBusy||!state)return;seekBusy=true;controller.seek(Math.round(frac*state.project.durationUs)).catch(()=>{}).finally(()=>{seekBusy=false;});};
  tracks.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('.timeline-block,.lane-label,button,.selected-scene-heading'))return;if(!e.target.closest('.time-ruler,.lane-rail'))return;seeking=true;tracks.setPointerCapture?.(e.pointerId);seekTo(e);});
  tracks.addEventListener('pointermove',e=>{if(seeking)seekTo(e);});
  const stopSeek=()=>{seeking=false;};tracks.addEventListener('pointerup',stopSeek);tracks.addEventListener('pointercancel',stopSeek);
- root.addEventListener('keydown',e=>{if(!['Delete','Backspace'].includes(e.key)||e.target.closest('input,textarea,select,[contenteditable]'))return;e.preventDefault();run(()=>controller.editSelected('delete'));});
+ root.addEventListener('keydown',e=>{if(!['Delete','Backspace'].includes(e.key)||e.target.closest('input,textarea,select,[contenteditable]'))return;e.preventDefault();run(deleteSelected);});
  // one block on a rail: select, move and trim (the same gestures for every lane)
  function block(kind,item,start,end,label,{rail,locked=false,testid,content,top=4,height=30,cls=kind,title}={}){
   const node=b(label,()=>controller.select({kind,id:item.id},{show:true}));node.className='timeline-block '+cls+(locked?' locked':'');if(content)node.replaceChildren(...content);if(title)node.title=title;
