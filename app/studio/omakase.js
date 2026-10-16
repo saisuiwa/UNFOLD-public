@@ -229,7 +229,7 @@ export function omakaseCommands(project,plan,{parts={text:true,bg:true,color:tru
     else{patch.code=entry.extra?.code||{version:1,source:motionOf(entry.key).source};patch.recipe=null;}
    }
    if(parts.color){patch.color=plan.palette.color;patch.emphasisColor=plan.palette.emphasisColor;}
-   if(Object.keys(patch).length)commands.push({type:'setLyricAppearance',id:l.id,patch:{motion:mergeMotion(l.motion,patch)}});
+   if(Object.keys(patch).length)commands.push({type:'setLyricAppearance',id:l.id,patch:{motion:mergeMotion(l.motion,patch),...(parts.text&&l.cut?{cut:null}:{})}});   // 動きを選び直したら、カット演出はやめる
   }
  }
  if(parts.size){

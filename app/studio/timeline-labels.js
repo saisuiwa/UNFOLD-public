@@ -4,6 +4,7 @@ import {WORKSHOP_EXAMPLES} from '../workshop-examples.js';
 import {TEXT_MOTIONS} from '../lyric-motion.js?v=28';
 import {BUILTIN_MOTIONS,LAYOUTS,ENTRANCES} from '../lyric-recipe.js';
 import {BUILTIN_METHODS} from '../method-registry.js';
+import {cutActive} from './cuts/plan.js';
 
 const sourceNames=new Map();
 for(const item of [...CODE_MOTION_PRESETS,...WORKSHOP_EXAMPLES])if(typeof item.source==='string'&&item.name&&!sourceNames.has(item.source))sourceNames.set(item.source,item.name);
@@ -19,6 +20,8 @@ export function lyricMotionName(motion){
  if(layout){const builtin=BUILTIN_MOTIONS.find(m=>m.motion?.recipe?.layout===layout);return builtin?builtin.name:(LAYOUTS[layout]||ENTRANCES[motion.recipe.enter]||'レシピ');}
  return TEXT_MOTIONS[motion?.preset||'float']?.label||'ふわっと';
 }
+/** 歌詞の「文字の動き」の名前。カット演出がついていれば、そう言う */
+export const lyricStyleName=lyric=>cutActive(lyric)?`カット演出（${lyric.cut.cuts.length}カット）`:lyricMotionName(lyric.motion);
 export const unfoldLabels=(project,clip)=>(project.unfolds?.[clip.unfoldId]?.state?.transitions||[]).map(t=>methodLabel(t.method)+' / '+shapeLabel(t.shape));
 export const isEffectClip=c=>c.kind==='p5'||c.kind==='text';
 // a background effect draws no text: a text clip whose body is only code
@@ -50,7 +53,7 @@ export function chipsFor(project,selection){
  const find=(list,id)=>list.find(x=>x.id===selection.id);
  if(selection.kind==='lyric'){
   const l=find(project.lyrics);if(!l)return [];
-  const out=[chip('motion','文字の動き',lyricMotionName(l.motion))];
+  const out=[chip('motion','文字の動き',lyricStyleName(l))];
   const near=overlapping(project,l.startUs,l.endUs);
   for(const c of near.filter(isBackgroundClip))out.push(chip('bg','背景',clipTitle(c)));
   for(const c of near.filter(c=>isEffectClip(c)&&!isBackgroundClip(c)))out.push(chip('fx','演出',clipTitle(c)));

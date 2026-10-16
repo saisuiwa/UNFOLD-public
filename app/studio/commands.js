@@ -25,7 +25,7 @@ function execute(p,c){
  case 'setDuration':p.durationUs=c.durationUs;break;
  case 'setLock':if(!['music','lyrics'].includes(c.track)||typeof c.locked!=='boolean')fail('INVALID_LOCK');p.locks[c.track]=c.locked;break;
  case 'setLyricText':{const l=findById(p.lyrics,c.id);l.text=c.text;l.runs=clone(c.runs);break;}
- case 'setLyricAppearance':patch(findById(p.lyrics,c.id),c.patch,['motion','opacity']);break;
+ case 'setLyricAppearance':{const l=findById(p.lyrics,c.id);patch(l,c.patch,['motion','opacity','cut']);if(l.cut==null)delete l.cut;break;}
  case 'setLyricTiming':{if(p.locks.lyrics)fail('TRACK_LOCKED');const l=findById(p.lyrics,c.id);l.startUs=c.startUs;l.endUs=c.endUs;if(c.timingSource)l.timingSource=c.timingSource;break;}
  case 'deleteLyric':{if(p.locks.lyrics)fail('TRACK_LOCKED');findById(p.lyrics,c.id);p.lyrics=p.lyrics.filter(l=>l.id!==c.id);for(const v of Object.values(p.views))delete v.layout[c.id];break;}
  case 'replaceLyrics':{if(p.locks.lyrics)fail('TRACK_LOCKED');for(const v of Object.values(p.views)){for(const l of p.lyrics)delete v.layout[l.id];for(const l of c.lyrics)v.layout[l.id]=newLayout();}p.lyrics=clone(c.lyrics);break;}

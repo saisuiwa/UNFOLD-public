@@ -1,5 +1,5 @@
 import {el,button,field,action} from './dom.js';import {displayTime} from './controller.js';
-import {lyricMotionName,sceneSummary,chipsFor,isEffectClip,isBackgroundClip,clipTitle,absRange} from './timeline-labels.js';
+import {lyricStyleName,sceneSummary,chipsFor,isEffectClip,isBackgroundClip,clipTitle,absRange} from './timeline-labels.js';
 // Four fixed lanes like the sequence editor so the whole song reads in a few rows: 歌詞 first (the lane used most), then 画像 / 演出 / 音声; the layers of the selected scene sit below.
 const SUB=26;
 export function mountTimeline(root,controller){let version='',zoom=1,state,drag=false,focusedSceneId=null,projectId=null,revealed=null;root.tabIndex=0;root.setAttribute('aria-label','タイムライン');
@@ -46,7 +46,7 @@ export function mountTimeline(root,controller){let version='',zoom=1,state,drag=
    version=key;tracks.style.width=Math.max(700,900*zoom)+'px';const ruler=el('div',{class:'time-ruler'},el('span',{},'秒'));
    for(let i=0;i<=10;i++)ruler.append(el('span',{},(p.durationUs/1e6*i/10).toFixed(1)));tracks.replaceChildren(ruler);
    // 歌詞: every line with the name of its text motion
-   {const {l,rail}=lane('歌詞','lane-lyrics',50);for(const lyric of p.lyrics){const provisional=lyric.timingSource==='provisional',motion=lyricMotionName(lyric.motion);
+   {const {l,rail}=lane('歌詞','lane-lyrics',50);for(const lyric of p.lyrics){const provisional=lyric.timingSource==='provisional',motion=lyricStyleName(lyric);
      block('lyric',lyric,lyric.startUs,lyric.endUs,(provisional?'仮タイミング ':'歌詞 ')+lyric.text,{rail,locked:p.locks.lyrics,testid:'lyric-row',height:42,content:[el('span',{class:'tl-main'},(provisional?'仮 ':'')+lyric.text.replaceAll('\n',' ')),el('span',{class:'tl-sub tl-motion'},motion)],title:lyric.text+'\n文字の動き：'+motion});}
     tracks.append(l);}
    // 画像: the scenes, each saying what it holds
