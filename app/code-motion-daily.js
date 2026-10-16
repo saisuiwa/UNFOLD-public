@@ -7963,5 +7963,18 @@ return {update(t){
  const flash=on?1:0;
  label.fillOpacity=flash;label.outlineOpacity=flash;
  label.scale.setScalar(1+(on&&a<1?.05*(1-a):0));
+}};`},
+ {key:'ripple-sway',name:'水面にゆらいで止まる',desc:'水面に映ったように、ゆらゆら揺れながら現れて、静かに止まります。',added:'2026-10-16',poster:.2,source:`// 水面に映ったように、上下に揺れて少し傾きながら現れ、だんだん揺れが収まって止まる。退場はまた揺れながら消える
+const {createText,text,width,height,duration}=api;
+const label=createText(text,{maxWidth:width*.8,textAlign:'center',lineHeight:1.25,outlineWidth:'2%',outlineColor:'#101819'});
+const clamp=x=>Math.max(0,Math.min(1,x));
+const enter=Math.min(.9,duration*.32),exit=Math.min(.5,duration*.18);
+return {update(t){
+ const a=clamp(t/enter),b=clamp((duration-t)/exit),calm=a*b;
+ const wobble=(1-calm)*(1-calm);                                    // 揺れの大きさ（止まるほど小さい）
+ label.position.set(Math.sin(t*5)*width*.015*wobble,Math.sin(t*9)*height*.05*wobble,0);
+ label.rotation.z=Math.sin(t*7+1)*.14*wobble;
+ const fade=clamp(t/(enter*.45))*b;
+ label.fillOpacity=fade;label.outlineOpacity=fade;
 }};`}
 ];
