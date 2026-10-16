@@ -6,7 +6,7 @@ import {el,button} from './dom.js';
 import {createMotionLibrary} from '../lyric-library.js';
 import {approveStudioCode,isStudioCodeApproved} from './code-trust.js';
 import {MOODS,MOOD_AUTO,COLOR_FAMILIES,FAMILY_AUTO,LAYOUT_SPREAD,LAYOUT_CENTER,SIZE_PCT,newSeeds,planOmakase,omakaseCommands,opacityCommands,uniformSizes,describePlan,extraMotions} from './omakase.js';
-import {makeCutPlan,cutCommands} from './cuts/apply.js';
+import {makeCutPlan,cutCommands,removeCutCommands} from './cuts/apply.js';
 import {CUT_DEFAULTS,summarizeCuts} from './cuts/plan.js';
 import {ensureCutFonts,measureChar} from './cuts/layer.js';
 
@@ -20,11 +20,11 @@ export function createOmakasePanel(controller){
  // カット割りの細かい設定（0〜100%）。変えると、いまの案の種のまま、その場で作り直す
  const CUT_SLIDERS=[['density','カットの細かさ',CUT_DEFAULTS.density],['camAmount','カメラ',CUT_DEFAULTS.camAmount],['fxAmount','画面効果',CUT_DEFAULTS.fxAmount],['transAmount','つなぎ',CUT_DEFAULTS.transAmount],['treatAmount','文字の加工',CUT_DEFAULTS.treatAmount],['worldAmount','物の世界',CUT_DEFAULTS.worldAmount],['carryAmount','物の引き継ぎ',CUT_DEFAULTS.carryAmount],['ghostAmount','ゴースト（色ずれ）',CUT_DEFAULTS.ghostAmount]];
  const cutSliders=Object.fromEntries(CUT_SLIDERS.map(([key,label,value])=>{const input=el('input',{type:'range',min:0,max:100,step:1,value:Math.round(value*100),'aria-label':label+'（%）','data-testid':'omakase-cut-'+key}),out=el('output',{},Math.round(value*100)+'%');input.addEventListener('input',()=>{out.textContent=input.value+'%';});return [key,{input,out,label}];}));
- const avoidFlash=el('input',{type:'checkbox','aria-label':'強い点滅を避ける','data-testid':'omakase-cut-avoidFlash'}),cutBg=el('input',{type:'checkbox','aria-label':'背景の絵も付ける',checked:true,'data-testid':'omakase-cut-bg'});
- const cutOptions=()=>({...Object.fromEntries(CUT_SLIDERS.map(([key])=>[key,Number(cutSliders[key].input.value)/100])),avoidFlash:avoidFlash.checked,bgMode:cutBg.checked?'auto':'none'});
+ const freeText=el('input',{type:'checkbox','aria-label':'自由文字にも付ける',checked:true,'data-testid':'omakase-cut-free'}),avoidFlash=el('input',{type:'checkbox','aria-label':'強い点滅を避ける','data-testid':'omakase-cut-avoidFlash'}),cutBg=el('input',{type:'checkbox','aria-label':'背景の絵も付ける',checked:true,'data-testid':'omakase-cut-bg'});
+ const cutOptions=()=>({...Object.fromEntries(CUT_SLIDERS.map(([key])=>[key,Number(cutSliders[key].input.value)/100])),avoidFlash:avoidFlash.checked,bgMode:cutBg.checked?'auto':'none',freeText:freeText.checked});
  const cutBox=el('div',{class:'omakase-cut','data-testid':'omakase-cut-box',hidden:true},
   el('div',{class:'omakase-sliders'},...CUT_SLIDERS.map(([key])=>el('label',{class:'omakase-slider'},el('span',{},cutSliders[key].label),cutSliders[key].input,cutSliders[key].out))),
-  el('div',{class:'omakase-row omakase-checks'},el('label',{class:'omakase-check',title:'フラッシュ・反転・フラッシュ転換を使いません'},avoidFlash,' 強い点滅を避ける'),el('label',{class:'omakase-check'},cutBg,' 背景の絵も付ける')));
+  el('div',{class:'omakase-row omakase-checks'},el('label',{class:'omakase-check',title:'フラッシュ・反転・フラッシュ転換を使いません'},avoidFlash,' 強い点滅を避ける'),el('label',{class:'omakase-check'},cutBg,' 背景の絵も付ける'),el('label',{class:'omakase-check',title:'「文字を追加」で置いた自由文字にも、カット演出を付けます'},freeText,' 自由文字にも付ける')));
  const withBg=el('input',{type:'checkbox','aria-label':'背景も足す',checked:true}),withColor=el('input',{type:'checkbox','aria-label':'配色も変える',checked:true}),withSize=el('input',{type:'checkbox','aria-label':'大きさも変える',checked:true});
  const withSaved=el('input',{type:'checkbox','aria-label':'保存した動き・新しい動きも使う',checked:true});
  const counter=el('span',{class:'omakase-counter'},'');
@@ -51,7 +51,10 @@ export function createOmakasePanel(controller){
   const p=project();
   if(!p.lyrics.length&&!entry.parts.bg)throw new Error('歌詞がありません。シーケンスで歌詞を入れてから送ってください。');
   const plan=planOmakase(p,{mood:entry.mood,family:entry.family,sizePct:entry.sizePct,layout:entry.layout,seeds:entry.seeds,extras:entry.extras||[]});
-  const command=omakaseCommands(p,plan,{parts:entry.parts});
+  let command=omakaseCommands(p,plan,{parts:entry.parts});
+  // カット割りで付けた自由文字のカット演出は、ここで外す（歌詞のぶんは omakaseCommands が、動きを選び直す時に外す）
+  const clipCuts=removeCutCommands(p)?.commands.filter(x=>x.type==='setClipContent');
+  if(clipCuts?.length)command={type:'batch',commands:[...(command?.commands||[]),...clipCuts]};
   if(!command)throw new Error('変える所がありません。');
   await controller.dispatch(command);
   state.plan=plan;
@@ -108,13 +111,13 @@ export function createOmakasePanel(controller){
  styleSel.addEventListener('change',()=>{cutBox.hidden=styleSel.value!=='cut';const entry=state.history[state.index];if(entry&&state.plan)run(()=>{entry.style=styleSel.value;entry.cut=cutOptions();return apply(entry);});else render();});
  const recut=()=>{const entry=state.history[state.index];if(entry?.style==='cut')run(()=>{entry.cut=cutOptions();return applyCut(entry);});};
  for(const {input} of Object.values(cutSliders))input.addEventListener('change',recut);
- avoidFlash.addEventListener('change',recut);cutBg.addEventListener('change',recut);
+ avoidFlash.addEventListener('change',recut);cutBg.addEventListener('change',recut);freeText.addEventListener('change',recut);
  function render(){
   sync();const d=state.plan?describePlan(state.plan):null;
   counter.textContent=state.history.length?`${state.index+1} / ${state.history.length}`:'';
   {const p=project(),entry=state.history[state.index];
    // the size slider keeps its own value (default 12 %) and shows the plan on screen when walking through plans; the opacity slider shows the first lyric's
-   if(entry){styleSel.value=entry.style||'line';cutBox.hidden=styleSel.value!=='cut';if(entry.cut)for(const [key,{input,out}] of Object.entries(cutSliders))if(entry.cut[key]!=null){input.value=Math.round(entry.cut[key]*100);out.textContent=input.value+'%';}if(entry.cut){avoidFlash.checked=!!entry.cut.avoidFlash;cutBg.checked=entry.cut.bgMode!=='none';}}
+   if(entry){styleSel.value=entry.style||'line';cutBox.hidden=styleSel.value!=='cut';if(entry.cut)for(const [key,{input,out}] of Object.entries(cutSliders))if(entry.cut[key]!=null){input.value=Math.round(entry.cut[key]*100);out.textContent=input.value+'%';}if(entry.cut){avoidFlash.checked=!!entry.cut.avoidFlash;cutBg.checked=entry.cut.bgMode!=='none';freeText.checked=entry.cut.freeText!==false;}}
    if(entry?.sizePct!=null){const pct=Math.round(Math.min(SIZE_PCT.max,Math.max(SIZE_PCT.min,entry.sizePct)));sizeSlider.value=pct;sizeOut.textContent=pct+'%';}
    if(p.lyrics.length){const o=Math.round((p.lyrics[0].opacity??1)*100/5)*5;opacitySlider.value=Math.min(100,Math.max(10,o));opacityOut.textContent=opacitySlider.value+'%';}}
   const cs=state.cut;

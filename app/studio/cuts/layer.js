@@ -5,7 +5,7 @@ import {drawCutFrame,finishFrame,ghostPasses,ghostOffset,resetCtx} from './compo
 import {renderText} from './glyphs.js';
 import {renderWorld,worldBox} from './worlds.js';
 import {buildAnyItem} from './items.js';
-import {absoluteCuts,fontsUsed,cleanCutData,cutActive} from './plan.js';
+import {absoluteCuts,fontsUsed,cleanCutData,cutActive,cutOf,spanOf} from './plan.js';
 import {layerFrame} from '../image-layer.js';
 import {checkAbort} from '../file.js';
 import {StudioError} from '../model.js';
@@ -29,7 +29,7 @@ export function ensureCutFonts(keys,{signal}={}){
 export function warmCutFonts(project){
  if(typeof document==='undefined'||typeof FontFace==='undefined')return;
  const keys=new Set();
- for(const l of project.lyrics||[]){const d=l.cut&&cleanCutData(l.cut);if(d&&cutActive(l))for(const c of d.cuts)keys.add(c.gFont||'gothic');}
+ for(const x of [...(project.lyrics||[]),...(project.clips||[])]){const d=cutOf(x)&&cleanCutData(cutOf(x));if(d&&cutActive(x))for(const c of d.cuts)keys.add(c.gFont||'gothic');}
  if(keys.size)ensureCutFonts([...keys]).catch(()=>{});
 }
 let measureCtx=null;
@@ -41,7 +41,7 @@ const cpu=c=>c.getContext('2d',{willReadFrequently:true});   // 1度描いたき
 const gpu=c=>c.getContext('2d');                              // 毎フレーム描き直すもの（影やぼかしが速い）
 export function createCutEngine(){
  const pool=new Map(),items=new Map(),prevFrames=new Map();
- const S={W:0,H:0,tmp:null,canvas:null};
+ const S={W:0,H:0,opaque:true,tmp:null,canvas:null};
  S.canvas=(key,w=S.W,h=S.H)=>{let c=pool.get(key);if(!c){c=new OffscreenCanvas(w,h);pool.set(key,c);}if(c.width!==w||c.height!==h){c.width=w;c.height=h;}return c;};
  S.tmp=(slot,w=S.W,h=S.H)=>S.canvas('tmp'+slot,w,h);
  const layerCtx=()=>{const c=cpu(S.canvas('layer'));resetCtx(c);c.clearRect(0,0,S.W,S.H);return c;};
@@ -53,6 +53,8 @@ export function createCutEngine(){
  const engine={
   /** 画面の大きさが変わったら、測り直しと前の絵の作り直し（保存したキャンバスは、大きさだけ変えて使い回す） */
   setSize(W,H){if(S.W===W&&S.H===H)return;S.W=W;S.H=H;items.clear();prevFrames.clear();},
+  /** 下に別の絵（画像・動画・UNFOLD・ほかのクリップ）があるときは false: 背景色を塗らず、下の絵が透けて見える。変わったら前の絵は作り直す */
+  setOpaque(opaque){if(S.opaque===opaque)return;S.opaque=opaque;prevFrames.clear();},
   itemOf(cut){
    let it=items.get(cut.id);
    if(!it){it=buildAnyItem(cut,{W:S.W,H:S.H,measure:measureChar});items.set(cut.id,it);}
@@ -108,15 +110,22 @@ export function createCutEngine(){
 /** 部品を全部外した、いちばん素朴なカット（部品の表と食い違うデータで描けなかった時の代わり） */
 const plainCut=c=>({...c,bgPart:null,cam:null,fx:null,trans:null,transDur:0,ghost:0,world:null,worldP:null,carry:false,carryDur:0,enter:'cut',enterP:{},hold:'still',holdP:{},exit:'cut',exitP:{},treat:'none',treatP:{},gVertical:false});
 
+/** この時刻に、このカット演出より下（ほかのクリップ）に見える絵があるか。あれば、カット演出は透明な絵にする */
+const hasUnderlay=(project,tUs,selfId)=>{
+ const scene=project.scenes.find(s=>s.startUs<=tUs&&tUs<s.endUs);
+ return !!scene&&project.clips.some(c=>c.id!==selfId&&c.sceneId===scene.id&&c.opacity!==0&&tUs>=scene.originUs+c.startUs&&tUs<scene.originUs+c.endUs);
+};
+
 export function createCutLayer(){
- let clip,cuts=[],first=0,engine,dead=false;
+ let clip,project,cuts=[],first=0,engine,dead=false;
  return {
-  async prepare(c,project,assets,signal){
-   clip=c;
-   const mine=absoluteCuts(c);if(!mine)throw new StudioError('INVALID_CUT');
-   // 前の歌詞のカットが、この歌詞の頭とほぼ隙間なく続くなら、その最後のカットが「前のカット」（つなぎ・引き継ぎの前の絵）
-   const sorted=[...project.lyrics].sort((a,b)=>a.startUs-b.startUs),before=sorted[sorted.findIndex(l=>l.id===c.id)-1];
-   const prev=before&&Math.abs(c.startUs-before.endUs)<=60000?absoluteCuts(before)?.at(-1):null;
+  async prepare(c,p,assets,signal){
+   clip=c;project=p;
+   const mine=absoluteCuts(c,{span:spanOf(p,c)});if(!mine)throw new StudioError('INVALID_CUT');
+   // 歌詞は、前の歌詞のカットがこの歌詞の頭とほぼ隙間なく続くなら、その最後のカットが「前のカット」（つなぎ・引き継ぎの前の絵）
+   let prev=null;
+   if(!c.sceneId){const sorted=[...p.lyrics].sort((a,b)=>a.startUs-b.startUs),before=sorted[sorted.findIndex(l=>l.id===c.id)-1];
+    prev=before&&Math.abs(c.startUs-before.endUs)<=60000?absoluteCuts(before)?.at(-1)||null:null;}
    cuts=prev?[prev,...mine]:mine;first=prev?1:0;
    await ensureCutFonts(fontsUsed(cuts),{signal});
    checkAbort(signal);if(dead)throw new StudioError('LAYER_DISPOSED');
@@ -124,7 +133,7 @@ export function createCutLayer(){
   },
   async render(r){
    checkAbort(r.signal);if(dead)throw new StudioError('LAYER_DISPOSED');
-   const t=r.projectUs/1e6;engine.setSize(r.width,r.height);
+   const t=r.projectUs/1e6;engine.setSize(r.width,r.height);engine.setOpaque(!hasUnderlay(project,r.projectUs,clip.id));
    let idx=cuts.findIndex((c,i)=>i>=first&&t>=c.start&&t<c.end);
    if(idx<0)idx=t<cuts[first].start?first:cuts.length-1;
    let out;

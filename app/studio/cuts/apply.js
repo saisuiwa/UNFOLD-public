@@ -1,6 +1,6 @@
 // カット演出を STUDIO のプロジェクトに入れるコマンド（1回で元に戻せる1まとまり）と、計画を作る一連の流れ。
 // 歌詞の文字・時刻・曲・ほかのクリップは変えない。歌詞ごとに lyric.cut（plan.js）と、配色（motion.color / emphasisColor）を入れるだけ。
-import {planCutsRaw,finishCutPlan,fontsUsed,motionSig,CUT_VERSION,MIX} from './plan.js';
+import {planCutsRaw,finishCutPlan,fontsUsed,motionSig,isFreeText,CUT_VERSION,MIX} from './plan.js';
 import {buildAnyItem} from './items.js';
 import {mergeMotion,uniformSizes,MOOD_AUTO} from '../omakase.js';
 
@@ -17,7 +17,7 @@ export async function makeCutPlan(project,{mood=MOOD_AUTO,seed=1,sizePct=12,pale
 }
 
 /**
- * 結果 → コマンド。clearBg: おまかせで足した背景のクリップを消す（カット演出の絵は不透明で、背景も自分で描くので、重ねても見えない）。
+ * 結果 → コマンド（歌詞は setLyricAppearance、自由文字は setClipContent）。clearBg: おまかせで足した背景のクリップを消す（カット演出の絵は不透明で、背景も自分で描くので、重ねても見えない）。
  * size: 文字の大きさのスライダーの値（%）を、全歌詞の配置の大きさにも入れる（スライダーの表示と合わせるため。カット演出の文字の大きさは、計画が決める）。
  */
 export function cutCommands(project,result,{palette,sizePct=12,clearBg=true}={}){
@@ -30,14 +30,24 @@ export function cutCommands(project,result,{palette,sizePct=12,clearBg=true}={})
   patch.cut=data?{...data,sig:motionSig({motion})}:null;
   commands.push({type:'setLyricAppearance',id:l.id,patch});
  }
+ // 自由文字（文字のクリップ）: 計画に入ったものに入れ、入っていない（今回は付けない）ものについている古い計画は外す
+ for(const c of project.clips){
+  const data=isFreeText(c)?result.data.get(c.id):null,had=c.settings?.cut!=null;
+  if(!data&&!had)continue;
+  const settings={...c.settings},patch={settings};
+  if(data){const motion=palette?mergeMotion(c.motion,{color:palette.color,emphasisColor:palette.emphasisColor}):c.motion;if(palette)patch.motion=motion;settings.cut={...data,sig:motionSig({motion})};}
+  else delete settings.cut;
+  commands.push({type:'setClipContent',id:c.id,patch});
+ }
  for(const s of uniformSizes(project,sizePct))for(const viewId of Object.keys(project.views))if(project.views[viewId].layout[s.id])commands.push({type:'setLayout',id:s.id,viewId,patch:{fontScale:s.fontScale}});
  if(clearBg)for(const c of project.clips)if(c.settings?.omakase)commands.push({type:'deleteClip',id:c.id});
  return commands.length?{type:'batch',commands}:null;
 }
 
-/** カット演出をやめる（全部の歌詞から外す）。やめると、歌詞はもとの動きの描き方に戻る */
+/** カット演出をやめる（全部の歌詞と自由文字から外す）。やめると、もとの動きの描き方に戻る */
 export function removeCutCommands(project){
- const commands=project.lyrics.filter(l=>l.cut).map(l=>({type:'setLyricAppearance',id:l.id,patch:{cut:null}}));
+ const commands=[...project.lyrics.filter(l=>l.cut).map(l=>({type:'setLyricAppearance',id:l.id,patch:{cut:null}})),
+  ...project.clips.filter(c=>c.settings?.cut!=null).map(c=>{const settings={...c.settings};delete settings.cut;return {type:'setClipContent',id:c.id,patch:{settings}};})];
  return commands.length?{type:'batch',commands}:null;
 }
 export {CUT_VERSION};

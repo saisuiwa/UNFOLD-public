@@ -1,5 +1,5 @@
 // カット演出の1フレームを組み立てる。背景 → （カメラを通した）文字 → つなぎ/引き継ぎ → 画面効果。
-// 画面の大きさと作業用キャンバスは S = {W,H,tmp(slot,w,h),canvas(key,w,h)} で受け取る（横長・縦長・どの解像度でも同じ作り）。ctx は 2D コンテキスト（OffscreenCanvas でも普通の canvas でもよい）。
+// 画面の大きさと作業用キャンバスは S = {W,H,opaque,tmp(slot,w,h),canvas(key,w,h)} で受け取る（opaque=false なら、背景色を塗らず、下の絵が透けて見える）（横長・縦長・どの解像度でも同じ作り）。ctx は 2D コンテキスト（OffscreenCanvas でも普通の canvas でもよい）。
 import {BG,CAMERA,FX,TRANS,DEG} from './parts.js';
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
@@ -39,7 +39,7 @@ function drawGhosts(ctx,ghosts,S){
 /** 背景 + （カメラを通した）文字。bmp は null でもよい（背景だけ）。cut.place は置き場所 {x,y,scale,rotation}。ghosts: [{bmp,color,dx,dy,tinted}] */
 export function drawCutFrame(ctx,cut,t,bmp,S,ghosts=null){
  const {W,H}=S,e=envFor(cut,t,S);
- reset(ctx);ctx.fillStyle=cut.bg;ctx.fillRect(0,0,W,H);
+ reset(ctx);if(S.opaque!==false){ctx.fillStyle=cut.bg;ctx.fillRect(0,0,W,H);}
  if(cut.bgPart&&BG[cut.bgPart]){ctx.save();BG[cut.bgPart].draw(ctx,e,cut.bgP);ctx.restore();}
  if(!bmp)return;
  ctx.save();
@@ -84,7 +84,7 @@ function boxTransform(c,box,u,W,H){
  */
 export function drawCarry(out,A,B,p,fromBox,toBox,S){
  const {W,H}=S,q=.5-.5*Math.cos(Math.PI*clamp(p));   // 始まりがゆっくりすぎない緩急
- out.save();out.fillStyle='#000';out.fillRect(0,0,W,H);
+ out.save();if(S.opaque!==false){out.fillStyle='#000';out.fillRect(0,0,W,H);}
  out.save();boxTransform(out,toBox,1-q,W,H);out.drawImage(B,0,0);out.restore();
  const a=1-smooth((q-.38)/.24);
  if(a>0){out.save();boxTransform(out,fromBox,q,W,H);out.globalAlpha=a;out.drawImage(A,0,0);out.restore();}

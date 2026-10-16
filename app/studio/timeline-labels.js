@@ -27,6 +27,7 @@ export const isEffectClip=c=>c.kind==='p5'||c.kind==='text';
 // a background effect draws no text: a text clip whose body is only code
 export const isBackgroundClip=c=>c.kind==='text'&&!!c.motion?.code&&!String(c.text||'').trim();
 export function clipTitle(c){
+ if(c.kind==='text'&&cutActive(c))return 'カット演出：'+String(c.text).split('\n')[0].slice(0,8);
  if(c.kind==='text'&&c.motion?.code){const n=codeName(c.motion.code);if(n&&isBackgroundClip(c))return n;if(n)return n+(c.text?'：'+String(c.text).split('\n')[0].slice(0,8):'');}
  return c.name||c.kind;
 }

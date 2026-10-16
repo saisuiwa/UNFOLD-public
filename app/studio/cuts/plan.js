@@ -316,10 +316,19 @@ export {GROUP_NAMES,GLYPH_GROUP_NAMES,timingsOf,worldChoices};
 /** 歌詞の動き（コード・レシピ）の目印。カット演出を付けた後に、手で別の動きを選んだら変わるので、そこでカット演出をやめて普通の文字の描き方に戻る */
 export const motionSig=lyric=>JSON.stringify([lyric?.motion?.code?.source??null,lyric?.motion?.recipe??null]);
 /** この歌詞は、カット演出で描くか（文字が変わっていない・別の動きに変えられていない・データが読める） */
-export function cutActive(lyric){
- const d=lyric?.cut;
- return !!d&&d.v===CUT_VERSION&&Array.isArray(d.cuts)&&d.cuts.length>0&&d.dur>0&&d.text===lyric.text&&d.sig===motionSig(lyric)&&!!cleanCutData(d);
+export function cutActive(x){
+ const d=cutOf(x);
+ return !!d&&d.v===CUT_VERSION&&Array.isArray(d.cuts)&&d.cuts.length>0&&d.dur>0&&d.text===x.text&&d.sig===motionSig(x)&&!!cleanCutData(d);
 }
+/** カット演出のデータの置き場: 歌詞は lyric.cut、自由文字（文字のクリップ）は clip.settings.cut */
+export const cutOf=x=>x?.cut??x?.settings?.cut;
+/** 歌詞・自由文字が、プロジェクトの時間のどこにあるか（クリップはシーンの原点からの時刻） */
+export function spanOf(project,x){
+ if(x.sceneId){const s=project.scenes.find(s=>s.id===x.sceneId);if(s)return {startUs:s.originUs+x.startUs,endUs:s.originUs+x.endUs};}
+ return {startUs:x.startUs,endUs:x.endUs};
+}
+/** 自由文字: 文字のあるテキストのクリップ（おまかせの背景・文字のない演出は除く） */
+export const isFreeText=c=>c?.kind==='text'&&!!String(c.text||'').trim()&&!c.settings?.omakase;
 
 const DROP=new Set(['id','lineIndex','start','end','color','emphasisColor','paletteName']);
 const finite=(x,def,lo=-Infinity,hi=Infinity)=>Number.isFinite(x)?clamp(x,lo,hi):def;
@@ -414,28 +423,33 @@ function cleanCutDataUncached(d){
 }
 
 /**
- * 歌詞のカット演出を、プロジェクトの時刻（秒）つきのカットにする。歌詞の長さが変わっていたら、カットの境目も同じ割合で伸び縮みする。
- * colors: {color,emphasisColor}（歌詞の動きの色。なければ白と金）。id は `${歌詞のid}:${番号}`。
+ * 歌詞（や自由文字）のカット演出を、プロジェクトの時刻（秒）つきのカットにする。長さが変わっていたら、カットの境目も同じ割合で伸び縮みする。
+ * span: {startUs,endUs}（プロジェクトの時間での位置。歌詞は省いてよい。自由文字は spanOf で）。colors: {color,emphasisColor}（動きの色。なければ白と金）。id は `${id}:${番号}`。
  */
-export function absoluteCuts(lyric,{color,emphasisColor}={}){
+export function absoluteCuts(lyric,{color,emphasisColor,span}={}){
  if(!cutActive(lyric))return null;
- const d=cleanCutData(lyric.cut),L0=lyric.startUs/1e6,dur=(lyric.endUs-lyric.startUs)/1e6,k=dur/d.dur;
+ const sp=span||{startUs:lyric.startUs,endUs:lyric.endUs};
+ const d=cleanCutData(cutOf(lyric)),L0=sp.startUs/1e6,dur=(sp.endUs-sp.startUs)/1e6,k=dur/d.dur;
  const col=/^#[\da-f]{6}$/i.test(color||lyric.motion?.color)?(color||lyric.motion.color):'#ffffff',acc=/^#[\da-f]{6}$/i.test(emphasisColor||lyric.motion?.emphasisColor)?(emphasisColor||lyric.motion.emphasisColor):'#ffc04d';
  return d.cuts.map((c,i)=>{
-  const start=L0+c.a*k,end=i===d.cuts.length-1?lyric.endUs/1e6:L0+c.b*k,len=end-start;
+  const start=L0+c.a*k,end=i===d.cuts.length-1?sp.endUs/1e6:L0+c.b*k,len=end-start;
   return {...c,id:`${lyric.id}:${i}`,start,end,color:col,emphasisColor:acc,transDur:Math.min(c.transDur,.45*len),carryDur:Math.min(c.carryDur,.5*len)};
  });
 }
 
 /**
- * プロジェクトの歌詞（開始が早い順）→ 行。文字のない歌詞は飛ばす。lyrics は元の歌詞の並びで返す（index が行番号に当たる）。
+ * プロジェクトの歌詞（と、freeText なら自由文字）→ 行（開始が早い順）。文字のないものは飛ばす。
+ * lyrics（= subjects）は {id,kind:'lyric'|'clip',text,motion,startUs,endUs}。index が行番号に当たる。
  */
-export function linesOf(project){
- const lyrics=[...project.lyrics].filter(l=>String(l.text||'').trim()&&l.endUs>l.startUs).sort((a,b)=>a.startUs-b.startUs);
- return {lyrics,lines:lyrics.map(l=>({text:String(l.text).replace(/\s*\n\s*/g,' ').trim(),start:l.startUs/1e6,end:l.endUs/1e6}))};
+export function linesOf(project,{freeText=false}={}){
+ const subjects=[];
+ for(const l of project.lyrics)if(String(l.text||'').trim()&&l.endUs>l.startUs)subjects.push({id:l.id,kind:'lyric',text:l.text,motion:l.motion,startUs:l.startUs,endUs:l.endUs});
+ if(freeText)for(const c of project.clips||[])if(isFreeText(c)){const sp=spanOf(project,c);if(sp.endUs>sp.startUs)subjects.push({id:c.id,kind:'clip',text:c.text,motion:c.motion,...sp});}
+ subjects.sort((a,b)=>a.startUs-b.startUs);
+ return {lyrics:subjects,subjects,lines:subjects.map(l=>({text:String(l.text).replace(/\s*\n\s*/g,' ').trim(),start:l.startUs/1e6,end:l.endUs/1e6}))};
 }
 
-export const CUT_DEFAULTS={mood:MIX,density:.57,recap:'auto',wordSizes:true,sizePct:12,bgMode:'auto',camAmount:.6,fxAmount:.5,transAmount:.65,treatAmount:.45,holdAmount:.7,ghostAmount:.2,worldAmount:.55,carryAmount:.35,avoidFlash:false,fontMode:'cut',refine:true};
+export const CUT_DEFAULTS={freeText:true,mood:MIX,density:.57,recap:'auto',wordSizes:true,sizePct:12,bgMode:'auto',camAmount:.6,fxAmount:.5,transAmount:.65,treatAmount:.45,holdAmount:.7,ghostAmount:.2,worldAmount:.55,carryAmount:.35,avoidFlash:false,fontMode:'cut',refine:true};
 
 /**
  * 計画の前半（文字の大きさを測らなくてよい所まで）。返す cuts は、まだ検査と手直しの前。
@@ -443,7 +457,7 @@ export const CUT_DEFAULTS={mood:MIX,density:.57,recap:'auto',wordSizes:true,size
  */
 export function planCutsRaw(project,opts={}){
  const o={...CUT_DEFAULTS,...opts},seed=Number.isFinite(o.seed)?o.seed|0:1;
- const {lyrics,lines}=linesOf(project);
+ const {lyrics,lines}=linesOf(project,{freeText:o.freeText});
  const cuts=planCuts(lines,{mood:o.mood,density:o.density,recap:o.recap,wordSizes:o.wordSizes,sizePct:o.sizePct,seed});
  const pal=o.palette||{color:'#ffffff',emphasisColor:'#ffc04d'};
  for(const c of cuts){c.color=pal.color;c.emphasisColor=pal.emphasisColor;}   // 部品を選ぶ前に付ける（物の世界の計画が文字色を見るので）

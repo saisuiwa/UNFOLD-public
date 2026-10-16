@@ -96,11 +96,11 @@ const grab=(c,e)=>{const s=e.tmp(0),x=s.getContext('2d');x.globalCompositeOperat
 export const FX={
  chroma:{name:'色ズレの跳ね',tags:['glitch','pop','impact'],w:1.4,dur:.4,plan:r=>({s:.8+r()*.6,dir:sign(r)}),
   apply(c,e,P,k){const d=Math.max(1,e.W*.016*k*P.s),s=grab(c,e),t2=e.tmp(1),x=t2.getContext('2d');
-   c.globalCompositeOperation='source-over';c.fillStyle='#000';c.fillRect(0,0,e.W,e.H);c.globalCompositeOperation='lighter';
+   c.globalCompositeOperation='source-over';c.clearRect(0,0,e.W,e.H);c.globalCompositeOperation='lighter';
    for(const [col,dx,dy] of [['#ff0000',-d,-d*.35],['#00ff00',0,0],['#0000ff',d,d*.35]]){x.globalCompositeOperation='copy';x.drawImage(s,0,0);x.globalCompositeOperation='multiply';x.fillStyle=col;x.fillRect(0,0,e.W,e.H);c.drawImage(t2,dx*P.dir,dy);}
    c.globalCompositeOperation='source-over';}},
  shake:{name:'揺れ',tags:['impact','pop','glitch'],w:1,dur:.35,plan:r=>({s:.8+r()*.5}),
-  apply(c,e,P,k){const s=grab(c,e);c.fillStyle='#000';c.fillRect(0,0,e.W,e.H);c.drawImage(s,(hash(e.step,1)-.5)*2*k*e.W*.025*P.s,(hash(e.step,2)-.5)*2*k*e.H*.025*P.s);}},
+  apply(c,e,P,k){const s=grab(c,e);c.clearRect(0,0,e.W,e.H);c.drawImage(s,(hash(e.step,1)-.5)*2*k*e.W*.025*P.s,(hash(e.step,2)-.5)*2*k*e.H*.025*P.s);}},
  slice:{name:'スライスグリッチ',tags:['glitch','graphic','impact'],w:1.2,dur:.35,plan:r=>({n:5+Math.floor(r()*5)}),
   apply(c,e,P,k){const s=grab(c,e);for(let i=0;i<P.n;i++){const y=hash(e.step,i,3)*e.H,h=e.H*(.03+.08*hash(e.step,i,4)),dx=(hash(e.step,i,5)-.5)*2*k*e.W*.12;c.drawImage(s,0,y,e.W,h,dx,y,e.W,h);}}},
  flash:{name:'フラッシュ',tags:['pop','impact','emotional'],w:.9,dur:.28,strongFlash:true,plan:()=>({}),
@@ -123,7 +123,7 @@ export const FX={
   apply(c,e){c.save();c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);c.restore();}},
  radial:{name:'放射色収差',tags:['glitch','pop','impact','emotional'],w:1.1,dur:.4,plan:r=>({s:.7+r()*.6}),
   apply(c,e,P,k){const s=grab(c,e),t2=e.tmp(1),x=t2.getContext('2d'),a=.014*k*P.s;
-   c.globalCompositeOperation='source-over';c.fillStyle='#000';c.fillRect(0,0,e.W,e.H);c.globalCompositeOperation='lighter';
+   c.globalCompositeOperation='source-over';c.clearRect(0,0,e.W,e.H);c.globalCompositeOperation='lighter';
    for(const [col,sc] of [['#ff0000',1+a],['#00ff00',1],['#0000ff',1-a]]){x.globalCompositeOperation='copy';x.drawImage(s,0,0);x.globalCompositeOperation='multiply';x.fillStyle=col;x.fillRect(0,0,e.W,e.H);c.drawImage(t2,e.W*(1-sc)/2,e.H*(1-sc)/2,e.W*sc,e.H*sc);}
    c.globalCompositeOperation='source-over';}},
  smear:{name:'横スミア',tags:['glitch','pop','impact'],w:.9,dur:.35,plan:r=>({dir:sign(r),n:7}),
