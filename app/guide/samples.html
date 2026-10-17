@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル134個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル142個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=3">
 </head>
 <body>
@@ -27,15 +27,103 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>134個</b>、最後に増えたのは 10/16）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>142個</b>、最後に増えたのは 10/17）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>134</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>142</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="cutpart" aria-pressed="false">カット割りの部品（STUDIO）<small>8</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-enter-centerOut.mp4" role="button" tabindex="0" aria-label="真ん中から広がるの動きを再生">
+        <img src="./samples/cut-enter-centerOut.jpg" alt="真ん中から広がるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>真ん中から広がる<span class="new">NEW</span><small>CENTEROUT</small></h3>
+        <p>全部の字が行の真ん中に重なって現れ、元の位置へ広がります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（登場）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/17 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-enter-flipIn.mp4" role="button" tabindex="0" aria-label="パタパタめくれるの動きを再生">
+        <img src="./samples/cut-enter-flipIn.jpg" alt="パタパタめくれるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>パタパタめくれる<span class="new">NEW</span><small>FLIPIN</small></h3>
+        <p>駅の案内板のように、字が1つずつ上から下へめくれて現れます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（登場）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/17 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-exit-gatherOut.mp4" role="button" tabindex="0" aria-label="真ん中へ吸い込まれるの動きを再生">
+        <img src="./samples/cut-exit-gatherOut.jpg" alt="真ん中へ吸い込まれるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>真ん中へ吸い込まれる<span class="new">NEW</span><small>GATHEROUT</small></h3>
+        <p>字が行の真ん中へ寄りながら小さくなって、吸い込まれるように消えます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（退場）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/17 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-exit-riseAway.mp4" role="button" tabindex="0" aria-label="ふわっと昇って消えるの動きを再生">
+        <img src="./samples/cut-exit-riseAway.jpg" alt="ふわっと昇って消えるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>ふわっと昇って消える<span class="new">NEW</span><small>RISEAWAY</small></h3>
+        <p>字が少しずつ時間をずらして上へ昇り、ゆれながら薄くなって消えます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（退場）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/17 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-hold-wordPulse.mp4" role="button" tabindex="0" aria-label="語ごとに脈打つの動きを再生">
+        <img src="./samples/cut-hold-wordPulse.jpg" alt="語ごとに脈打つの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>語ごとに脈打つ<span class="new">NEW</span><small>WORDPULSE</small></h3>
+        <p>語ごとに順番に、心臓の鼓動のように小さく大きくなります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（保持）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/17 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-confetti.mp4" role="button" tabindex="0" aria-label="紙吹雪の動きを再生">
+        <img src="./samples/cut-bg-confetti.jpg" alt="紙吹雪の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>紙吹雪<span class="new">NEW</span><small>CONFETTI</small></h3>
+        <p>色の小さな紙が、ひらひらと回りながら上から降ってきます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/17 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-cam-orbit.mp4" role="button" tabindex="0" aria-label="円を描いて回るの動きを再生">
+        <img src="./samples/cut-cam-orbit.jpg" alt="円を描いて回るの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>円を描いて回る<span class="new">NEW</span><small>ORBIT</small></h3>
+        <p>文字全体が、小さな円を描くように画面の中をゆっくり回ります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（カメラ）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/17 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-trans-zoomThrough.mp4" role="button" tabindex="0" aria-label="ズームで抜けるの動きを再生">
+        <img src="./samples/cut-trans-zoomThrough.jpg" alt="ズームで抜けるの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>ズームで抜ける<span class="new">NEW</span><small>ZOOMTHROUGH</small></h3>
+        <p>前の絵が手前へ大きく抜けていき、その奥から次の絵が近づいてきます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（つなぎ）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/17 追加</span>
+      </div>
+    </article>
     <article class="method" data-cat="method">
       <div class="shot" data-clip="./samples/method-wiper-sweep.mp4" role="button" tabindex="0" aria-label="ワイパーで払われるの動きを再生">
         <img src="./samples/method-wiper-sweep.jpg" alt="ワイパーで払われるの途中の絵" loading="lazy" width="480" height="270">
@@ -188,7 +276,7 @@ return {update(t){
         <img src="./samples/method-checker-shift.jpg" alt="市松が上下にずれるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">市</i>市松が上下にずれる<span class="new">NEW</span><small>CHECKER-SHIFT</small></h3>
+        <h3><i aria-hidden="true">市</i>市松が上下にずれる<small>CHECKER-SHIFT</small></h3>
         <p>市松模様のマスが縮みながら、交互に上と下へずれて崩れていきます。</p>
         <details><summary>コードを見る</summary><pre><code>// 絵を12×12のマスに分け、市松模様の片方は上へ、もう片方は下へ、縮みながらずらす
 vec3 userMethod(vec2 p, float amount) {
@@ -213,7 +301,7 @@ vec3 userMethod(vec2 p, float amount) {
         <img src="./samples/image-melt-drip.jpg" alt="とろけて垂れるタイルの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">垂</i>とろけて垂れるタイル<span class="new">NEW</span><small>MELT-DRIP</small></h3>
+        <h3><i aria-hidden="true">垂</i>とろけて垂れるタイル<small>MELT-DRIP</small></h3>
         <p>タイルが列ごとに速さを変えて、縦に伸びながら下へ垂れていきます。</p>
         <p class="how">メソッド工房の「画像・立体・物理」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// タイルが列ごとに別の速さで、縦に伸びながら下へ垂れる。強さ(amount)が戻ると元の位置へ帰る
 const {createImageTiles,size,random,smooth}=api;
@@ -239,7 +327,7 @@ return {update(frame){
         <img src="./samples/codetext-focus-in.jpg" alt="ピントが合っていくの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>ピントが合っていく<span class="new">NEW</span><small>FOCUS-IN</small></h3>
+        <h3><i aria-hidden="true">文</i>ピントが合っていく<small>FOCUS-IN</small></h3>
         <p>ぼやけて広がった分身が、中心に寄ってピントが合うように現れます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 周りに散ったうすい分身が中心へ寄って、ピントが合う。退場はもう一度ぼやけて消える
 const {createText,text,width,duration}=api;
@@ -263,7 +351,7 @@ return {update(t){
         <img src="./samples/codetext-tate-columns.jpg" alt="縦書きが右から並ぶの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>縦書きが右から並ぶ<span class="new">NEW</span><small>TATE-COLUMNS</small></h3>
+        <h3><i aria-hidden="true">文</i>縦書きが右から並ぶ<small>TATE-COLUMNS</small></h3>
         <p>文字が1つずつ上から落ちて、縦書きの列が右から左へ積み上がります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 縦書きの列が右から左へ。文字が1つずつ上から落ちて積まれ、長い歌詞は複数列になる。大きい語は大きく、助詞は小さく積む
 const {THREE,scene,createText,text,runs,width,height,fontSize,duration,random,bpm,accent}=api;
@@ -486,7 +574,7 @@ return {update,dispose(){disposeAll()}};</code></pre><button class="btn small" t
         <img src="./samples/codetext-stair-words.jpg" alt="左上から階段に並ぶ語の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>左上から階段に並ぶ語<span class="new">NEW</span><small>STAIR-WORDS</small></h3>
+        <h3><i aria-hidden="true">文</i>左上から階段に並ぶ語<small>STAIR-WORDS</small></h3>
         <p>語が左上から右下へ階段のようにずれて、語ごとに大きさを変えて並びます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語が左上から右下へ階段状に並び、意味のある語は大きく、助詞は小さく置かれる。行ごとに下線と印が付く
 const {THREE,scene,createText,text,runs,width,height,fontSize,duration,random,bpm,accent}=api;
@@ -665,7 +753,7 @@ return {update,dispose(){disposeAll()}};</code></pre><button class="btn small" t
         <img src="./samples/codetext-corner-words.jpg" alt="四隅に語を置くの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>四隅に語を置く<span class="new">NEW</span><small>CORNER-WORDS</small></h3>
+        <h3><i aria-hidden="true">文</i>四隅に語を置く<small>CORNER-WORDS</small></h3>
         <p>語が画面の四隅に寄って大小で置かれ、角印と余白が文字を引き立てます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語が画面の四隅（左上→右上→右下→左下）に寄って大小で置かれ、余白を残す。四隅に角印が付く
 const {THREE,scene,createText,text,runs,width,height,fontSize,duration,random,bpm,accent}=api;
@@ -890,7 +978,7 @@ return {update,dispose(){disposeAll()}};</code></pre><button class="btn small" t
         <img src="./samples/codetext-cross-vertical.jpg" alt="縦と横が交差するの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>縦と横が交差する<span class="new">NEW</span><small>CROSS-VERTICAL</small></h3>
+        <h3><i aria-hidden="true">文</i>縦と横が交差する<small>CROSS-VERTICAL</small></h3>
         <p>ひとつの語は縦書きで端に落ち、残りは横書きで並んで、罫線が交差します。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 1語は縦書きで左端か右端に落ち、残りは横書きで並ぶ。縦と横の罫線が交差して向きの対比を作る
 const {THREE,scene,createText,text,runs,width,height,fontSize,duration,random,bpm,accent}=api;
@@ -1103,7 +1191,7 @@ return {update,dispose(){disposeAll()}};</code></pre><button class="btn small" t
         <img src="./samples/codetext-size-beat.jpg" alt="大小が拍で跳ねるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>大小が拍で跳ねる<span class="new">NEW</span><small>SIZE-BEAT</small></h3>
+        <h3><i aria-hidden="true">文</i>大小が拍で跳ねる<small>SIZE-BEAT</small></h3>
         <p>大きい語と小さい語が1本の基準線に並び、拍に合わせて交互に跳ねます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 1本の基準線の上で語が大・小と交互に並び、BPMの拍に合わせて交互に跳ねる。足元に影と基準線
 const {THREE,scene,createText,text,runs,width,height,fontSize,duration,random,bpm,accent}=api;
@@ -1292,7 +1380,7 @@ return {update,dispose(){disposeAll()}};</code></pre><button class="btn small" t
         <img src="./samples/codetext-slant-flow.jpg" alt="斜めに流れる行の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>斜めに流れる行<span class="new">NEW</span><small>SLANT-FLOW</small></h3>
+        <h3><i aria-hidden="true">文</i>斜めに流れる行<small>SLANT-FLOW</small></h3>
         <p>約12度に傾いた行を語が大小まじりで流れ込み、行ごとに向きを変えます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 約-12度に傾いた帯の上を、語が大小まじりで行ごとに逆向きに流れ込んで並ぶ。帯と罫線が付く
 const {THREE,scene,createText,text,runs,width,height,fontSize,duration,random,bpm,accent}=api;
@@ -1475,7 +1563,7 @@ return {update,dispose(){disposeAll()}};</code></pre><button class="btn small" t
         <img src="./samples/codetext-sticky-notes.jpg" alt="付箋に書くの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>付箋に書く<span class="new">NEW</span><small>STICKY-NOTES</small></h3>
+        <h3><i aria-hidden="true">文</i>付箋に書く<small>STICKY-NOTES</small></h3>
         <p>語ごとに色違いの付箋へ文字を書いて、ぺたっと貼ります。退場は上の糊から剥がれて落ちます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// @fonts
 // 語ごとに色違いの付箋（黄・桃・水色…）に文字を書いて、少し傾けてぺたっと貼る。退場は上の糊を軸に振れて剥がれ落ちる。
@@ -1740,7 +1828,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-label-writer.jpg" alt="ラベルライターで打つの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>ラベルライターで打つ<span class="new">NEW</span><small>LABEL-WRITER</small></h3>
+        <h3><i aria-hidden="true">文</i>ラベルライターで打つ<small>LABEL-WRITER</small></h3>
         <p>語ごとに色の違うラベルのテープへ、文字をジ・ジ・ジーと刻むように印字します。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// @fonts
 // 語ごとに色の違うラベルライターのテープに、文字を「ジ・ジ・ジー」と刻むように左から印字して並べる。退場は左から巻き取られて消える。
@@ -2009,7 +2097,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-stamp-ink.jpg" alt="スタンプでドンの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>スタンプでドン<span class="new">NEW</span><small>STAMP-INK</small></h3>
+        <h3><i aria-hidden="true">文</i>スタンプでドン<small>STAMP-INK</small></h3>
         <p>語ごとに色違いの二重枠の印を、上からドンと押し当てます。少し沈んで、インクがかすれます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// @fonts
 // 語ごとに色違いの二重枠の印を、上からドンと押し当てる。少し沈み、インクがかすれてムラになる。
@@ -2292,7 +2380,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-marker-highlight.jpg" alt="蛍光ペンで線を引くの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>蛍光ペンで線を引く<span class="new">NEW</span><small>MARKER-HIGHLIGHT</small></h3>
+        <h3><i aria-hidden="true">文</i>蛍光ペンで線を引く<small>MARKER-HIGHLIGHT</small></h3>
         <p>語の後ろへ蛍光ペンの帯を左から引いて塗ります。強調語は別の色で二度塗りします。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// @fonts
 // 語の後ろに蛍光ペンの帯を左から引いて、塗られた文字は濃い色に変わる。強調語は別の色で二度塗り。ペンが語から語へ移っていく。
@@ -2625,7 +2713,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-ticket-stub.jpg" alt="チケットの半券の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>チケットの半券<span class="new">NEW</span><small>TICKET-STUB</small></h3>
+        <h3><i aria-hidden="true">文</i>チケットの半券<small>TICKET-STUB</small></h3>
         <p>切手やチケット、ちぎれた半券の紙に文字をのせて、語ごとにぽんと並べます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// @fonts
 // 語ごとに切手・チケット・ちぎれた半券の紙に文字をのせて、下からぽんと出して並べる。パンチ穴や消印の飾り付き。
@@ -2944,7 +3032,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-sticker-stick.jpg" alt="ぺたっと貼るステッカーの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>ぺたっと貼るステッカー<span class="new">NEW</span><small>STICKER-STICK</small></h3>
+        <h3><i aria-hidden="true">文</i>ぺたっと貼るステッカー<small>STICKER-STICK</small></h3>
         <p>語ごとに縁と影のあるステッカーになって、上からペタッと貼られて少し跳ねます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとに白いダイカットの縁と影を持つステッカーになって、上からペタッと貼られる。色・大きさ・傾き・めくれた角・きらっと光る筋が語ごとに違う
 const MAXWORDS=9;
@@ -3188,7 +3276,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-bubble-pop.jpg" alt="ぽこぽこ膨らむ吹き出しの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>ぽこぽこ膨らむ吹き出し<span class="new">NEW</span><small>BUBBLE-POP</small></h3>
+        <h3><i aria-hidden="true">文</i>ぽこぽこ膨らむ吹き出し<small>BUBBLE-POP</small></h3>
         <p>語ごとに大きさの違う吹き出しが、しっぽの先からぽこぽこ膨らんで現れます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとに吹き出し（まる・角丸・もくもく雲・とげとげ）になって、しっぽの先からぽこぽこ膨らんで現れる。大小・色・しっぽの向きが語ごとに違い、膨らんだ後は息をするように揺れる
 const MAXWORDS=8;
@@ -3434,7 +3522,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-handdrawn-mark.jpg" alt="手描きの丸囲みと下線の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>手描きの丸囲みと下線<span class="new">NEW</span><small>HANDDRAWN-MARK</small></h3>
+        <h3><i aria-hidden="true">文</i>手描きの丸囲みと下線<small>HANDDRAWN-MARK</small></h3>
         <p>語のまわりに手描きの丸や下線が、一筆書きのようにシュッと伸びて描かれます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとに手描きの印が一筆書きで伸びる。強調語は丸で囲み、そのほかは下線・波線・二重線・蛍光ペンの帯。線は手描きらしく細かく震え、語の大きさと傾きも語ごとに違う
 const MAXWORDS=8;
@@ -3672,7 +3760,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-chalk-board.jpg" alt="黒板にチョークで書くの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>黒板にチョークで書く<span class="new">NEW</span><small>CHALK-BOARD</small></h3>
+        <h3><i aria-hidden="true">文</i>黒板にチョークで書く<small>CHALK-BOARD</small></h3>
         <p>黒板に語ごとのチョーク文字と下線が書かれ、かすれや粉が時刻とともに揺らぎます。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 黒板に、語ごとにチョークで書いた文字と下線・星の落書きが現れる。文字は震えるかすれと粉で、チョークの粉っぽさは時刻から決める。黒板は枠とチョーク受けつきで、縁の線が一周して描かれる
 const MAXWORDS=8;
@@ -3937,7 +4025,7 @@ return {update,dispose};</code></pre><button class="btn small" type="button" dat
         <img src="./samples/codetext-patch-badge.jpg" alt="くるっと回るワッペンの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">文</i>くるっと回るワッペン<span class="new">NEW</span><small>PATCH-BADGE</small></h3>
+        <h3><i aria-hidden="true">文</i>くるっと回るワッペン<small>PATCH-BADGE</small></h3>
         <p>語ごとに縫い目つきのワッペンになり、コインのように返ったり回ったりして止まります。</p>
         <p class="how">メソッド工房の「文字モーション」のサンプルから選びます。</p><details><summary>コードを見る</summary><pre><code>// 語ごとに縁取りと縫い目のあるワッペンになって、くるっと回って止まる。丸・波打つ縁・六角・角丸が混ざり、回り方（コインのように返る／くるくる回る）も語ごとに違う
 const MAXWORDS=8;

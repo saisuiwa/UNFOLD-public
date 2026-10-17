@@ -7,6 +7,8 @@
 //   つなぎ  draw(ctx, A, B, p, e, P)     前カットの最後の絵 A と今カットの絵 B を p(0→1) で合成
 // 共通: name（日本語名）, tags（合うムード）, w（出やすさ）, plan(rnd) → P（保存して再現できる値）
 // e = {W,H,t,lt,dur,p,fg,accent,bg,step,tmp(slot,w,h)}   rnd = 0..1 の乱数関数
+import {addDailyParts} from './kit.js';
+import {DAILY_CUT_PARTS} from './daily-parts.js';
 export const TAU=Math.PI*2,DEG=Math.PI/180;
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,u)=>a+(b-a)*u;
@@ -190,6 +192,8 @@ export const TRANS={
 };
 
 /** グループ名 → [キー, 部品] の並び（画面の選択肢と、選び方の候補に使う） */
+// 毎日のルーティンで足した部品（daily-parts.js）を、表の末尾につなぐ
+addDailyParts({bg:BG,cam:CAMERA,fx:FX,trans:TRANS},DAILY_CUT_PARTS);
 export const GROUPS={bg:BG,cam:CAMERA,fx:FX,trans:TRANS};
 export const GROUP_NAMES={bg:'背景',cam:'カメラ',fx:'画面効果',trans:'つなぎ'};
 export const partName=(group,key)=>GROUPS[group]?.[key]?.name||'なし';

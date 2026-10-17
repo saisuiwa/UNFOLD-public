@@ -1,11 +1,12 @@
 // The check that stands between a day's new samples and Git. It prints PASS / FAIL for each step and exits 1 if anything failed.
 //   node tools/verify_daily.mjs                       everything, for all samples (a few minutes)
 //   node tools/verify_daily.mjs --expect-new=2026-10-08
-//        the daily run: the samples added on that day (Japan time) must be exactly one GLSL method, one JavaScript image method and one text code motion;
+//        the daily run: the samples added on that day (Japan time) must be exactly one GLSL method, one JavaScript image method and at least
+//        DAILY_CUT_PARTS_MIN parts of STUDIO's カット割り (since 2026-10-18; no new text code motion or effect);
 //        the GPU check and the preview check then look at the samples added on that day or later (the older ones were checked on their day)
 //   --base=REF   what the ?v= numbers are compared with (default origin/main)
-// Steps: unit tests - the GLSL samples on the GPU (the editor's three checks, warnings count as failures) - the image methods and the text code motions in the app's own runtimes
-//        - previews (files, size, video format, decodes)
+// Steps: unit tests (tools/test and tools/test/studio) - the GLSL samples on the GPU (the editor's three checks, warnings count as failures) - the image methods and the text code motions in the app's own runtimes
+//        - the cut parts in STUDIO's cut engine (drawn, readable, a veil over a picture) - previews (files, size, video format, decodes)
 //        - generated pages are up to date - every page opens without errors - the samples page works - the editor lists the samples
 //        - the method workshop lists and runs the new samples - the lyric panel lists the text motions - changed modules got a new ?v= - the daily log mentions every new sample.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -16,7 +17,7 @@ import { TEXT_MOTIONS } from '../app/lyric-motion.js';
 import { versionedImport, versionedImportGrep } from './lib/module-version.mjs';
 import { launchBrowser } from './lib/browser.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
-import { DAILY_GROUPS, MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
+import { CUT_PARTS_FROM, DAILY_GROUPS, DAILY_CUT_PARTS_MIN, MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
 
 const REPO = fileURLToPath(new URL('../', import.meta.url));
 const FIRST_BATCH = '2026-10-04';                                   // the samples that were there before the daily routine (same as in build_guide_samples.mjs)
@@ -44,8 +45,8 @@ const recent = expectNew ? items.filter(i => i.added >= expectNew) : items;     
 
 // ---- 1. unit tests
 await step('unit tests', () => {
-  const dir = join(REPO, 'tools/test');
-  const files = readdirSync(dir).filter(f => f.endsWith('.test.mjs')).map(f => join('tools/test', f));
+  // the STUDIO tests are run too: they check every part of the カット割り (the daily cut parts included) for its shape, its plan and its values
+  const files = ['tools/test', 'tools/test/studio'].flatMap(dir => readdirSync(join(REPO, dir)).filter(f => f.endsWith('.test.mjs')).map(f => join(dir, f)));
   // tap: the counts below are read from its "# pass N" lines; newer Node versions print another format (ℹ pass N) when no reporter is named
   const run = spawnSync('node', ['--test', '--test-reporter=tap', ...files], { cwd: REPO, encoding: 'utf8', maxBuffer: 1 << 26 });
   const count = key => Number((new RegExp(`^# ${key} (\\d+)`, 'm').exec(run.stdout) || [])[1] ?? NaN);
@@ -56,10 +57,16 @@ await step('unit tests', () => {
 
 // ---- 2. the quota of the day
 if (expectNew) {
-  await step(`exactly one new GLSL method, image method and text code motion on ${expectNew}`, () => {
+  // from 2026-10-18 the routine makes cut parts instead of a text code motion (the author, 2026-10-17); a day before that keeps the old quota
+  const cutRule = expectNew >= CUT_PARTS_FROM;
+  await step(cutRule ? `one new GLSL method, one image method and at least ${DAILY_CUT_PARTS_MIN} cut parts on ${expectNew}` : `exactly one new GLSL method, image method and text code motion on ${expectNew}`, () => {
     const added = items.filter(i => i.added === expectNew);
-    const counts = Object.fromEntries(DAILY_GROUPS.map(g => [g, added.filter(i => i.group === g).length]));
-    need(DAILY_GROUPS.every(g => counts[g] === 1), `added on ${expectNew}: ${DAILY_GROUPS.map(g => `${g} ${counts[g]}`).join(', ')} (each must be 1)`);
+    const counts = Object.fromEntries([...DAILY_GROUPS, 'codetext', 'effect'].map(g => [g, added.filter(i => i.group === g).length]));
+    need(counts.method === 1 && counts.image === 1, `added on ${expectNew}: method ${counts.method}, image ${counts.image} (each must be 1)`);
+    if (cutRule) {
+      need(counts.cutpart >= DAILY_CUT_PARTS_MIN, `added on ${expectNew}: ${counts.cutpart} cut parts (at least ${DAILY_CUT_PARTS_MIN})`);
+      need(counts.codetext === 0 && counts.effect === 0, `added on ${expectNew}: codetext ${counts.codetext}, effect ${counts.effect} (from ${CUT_PARTS_FROM} the routine makes cut parts instead)`);
+    } else need(counts.codetext === 1, `added on ${expectNew}: codetext ${counts.codetext} (must be 1 before ${CUT_PARTS_FROM})`);
     need(!items.some(i => i.added > expectNew), `something is dated after ${expectNew}: ${items.filter(i => i.added > expectNew).map(i => i.id).join(', ')}`);
     return added.filter(i => DAILY_GROUPS.includes(i.group)).map(i => i.id).join(', ');
   });
@@ -213,6 +220,31 @@ try {
       }
       if (new Set([at(.45), at(.9), mid].map(f => f.hash)).size < 2) problems.push(`${item.id}: the picture does not change while the line comes in`);
       if (gone.pixels > mid.pixels * .05) problems.push(`${item.id}: still ${gone.pixels} pixels of text after the line has ended (it must fade out by its duration)`);
+    }
+    for (const p of page.problems) problems.push(`page: ${p}`);
+    await page.close();
+    need(!problems.length, problems.join('\n'));
+  });
+
+  const cutParts = recent.filter(i => i.group === 'cutpart');
+  await step(`cut parts draw in STUDIO's cut engine, move, stay readable and stay a veil over a picture (${cutParts.length})`, async () => {
+    const page = await newPage();
+    await page.goto(`${server.url}/__tools/preview/cut-part.html`);
+    await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
+    const problems = [], times = [0, .35, .45, .6, .9, 1.5, 2.0, 2.6, 3.0, 3.2, 3.4];
+    for (const item of cutParts) {
+      let frames, veil;
+      try {
+        frames = await page.evaluate(({ axis, key, text, times }) => window.previewCutPart.run(axis, key, { text, times }), { axis: item.axis, key: item.key, text: item.name, times });
+        veil = await page.evaluate(({ axis, key }) => window.previewCutPart.transparent(axis, key), { axis: item.axis, key: item.key });
+      } catch (error) { problems.push(`${item.id}: ${String(error.message).split('\n')[0]}`); continue; }
+      const at = t => frames.find(f => f.time === t);
+      if (frames.some(f => f.ms > 2000)) problems.push(`${item.id}: a frame took ${Math.round(Math.max(...frames.map(f => f.ms)))} ms (limit 2000)`);
+      for (const t of [1.5, 2.0]) if (at(t).light < 400) problems.push(`${item.id}: the words are not readable at ${t} s (${at(t).light} light pixels)`);
+      if (new Set(frames.filter(f => f.time > 0 && f.time < 3.3).map(f => f.hash)).size < 3) problems.push(`${item.id}: the picture hardly changes during the cut`);
+      if (veil && item.axis === 'bg' && veil.maxA > 130) problems.push(`${item.id}: over a picture the background is not a veil (alpha up to ${veil.maxA}, limit 130)`);
+      if (veil && item.axis === 'fx' && (veil.solid > .55 || veil.corner > 30)) problems.push(`${item.id}: over a picture the effect paints too much (${Math.round(veil.solid * 100)}% solid, corner alpha ${veil.corner})`);
+      if (veil && item.axis === 'trans' && veil.solid > .7) problems.push(`${item.id}: over a picture the transition paints ${Math.round(veil.solid * 100)}% of it`);
     }
     for (const p of page.problems) problems.push(`page: ${p}`);
     await page.close();

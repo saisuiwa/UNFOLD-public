@@ -9,6 +9,8 @@
 //   inDur(D,n,P) / outDur(D,n,P) は、登場・退場にかける秒数（カットの長さ D から決める。短いカットでは短い）。
 //   加工（TREAT）は、字の描き方（縁取り・影・押し出し・光）と、行の後ろに敷く図形（蛍光ペン・下線・箱）を返す。
 // E = {size,W,H,r(i,k),nWords,n,bbox,lt,D,seed}
+import {addDailyParts} from './kit.js';
+import {DAILY_CUT_PARTS} from './daily-parts.js';
 export const DEG=Math.PI/180,TAU=Math.PI*2;
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,u)=>a+(b-a)*u;
@@ -129,6 +131,8 @@ export const TREAT={
   style:(P,c)=>({shadow:{dx:.05,dy:.06,blur:.3,color:luma(c.bg)<.5?rgbaOf(c.accent,.6):'rgba(0,0,0,.55)'}})},
  blurTrail:{name:'ぼかし送り',tags:['pop','glitch','emotional','impact'],w:.9,style:()=>({trail:{n:5,dx:-.075,dy:0,a:.5}})}
 };
+// 毎日のルーティンで足した部品（daily-parts.js）を、表の末尾につなぐ
+addDailyParts({enter:ENTER,hold:HOLD,exit:EXIT,treat:TREAT},DAILY_CUT_PARTS);
 export const GLYPH_GROUPS={enter:ENTER,hold:HOLD,exit:EXIT,treat:TREAT};
 export const GLYPH_GROUP_NAMES={enter:'登場',hold:'保持',exit:'退場',treat:'加工'};
 

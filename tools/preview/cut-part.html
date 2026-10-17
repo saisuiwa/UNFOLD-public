@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><title>preview: cut part</title>
+<!-- A page for the preview maker and the daily check: one part of STUDIO's カット割り (app/studio/cuts/), drawn by the app's own cut engine.
+     The words are the part's own name; the other axes stay plain (instant in / out, no background, no camera) so the part is what you see. -->
+<body style="margin:0;background:#141722"><canvas id="c" width="480" height="270"></canvas>
+<script type="module">
+import {createCutEngine,ensureCutFonts} from '/studio/cuts/layer.js';
+import {GLYPH_GROUPS} from '/studio/cuts/glyphs.js';
+import {GROUPS} from '/studio/cuts/parts.js';
+import {WORLD} from '/studio/cuts/worlds.js';
+import {rng} from '/studio/omakase.js';
+
+const W=480,H=270,out=document.getElementById('c'),g=out.getContext('2d',{willReadFrequently:true});
+const TABLES={...GLYPH_GROUPS,...GROUPS,world:WORLD};
+const FIELD={enter:['enter','enterP'],hold:['hold','holdP'],exit:['exit','exitP'],treat:['treat','treatP'],bg:['bgPart','bgP'],cam:['cam','camP'],fx:['fx','fxP'],trans:['trans','transP'],world:['world','worldP']};
+const CLIP={start:.3,end:3.3,duration:3.6};
+const base=(id,text,start,end)=>({id,lineIndex:0,unitIndex:Number(id.slice(-1))||0,start,end,text,recap:false,moodId:'pop',placeName:'center',place:{rotation:0,scale:1},fontScale:.2,
+ runs:[{text,emphasis:false,scale:1,id:'r'}],bg:'#141722',seed:7,color:'#ffffff',emphasisColor:'#ffc04d',bgPart:null,bgP:null,cam:null,camP:null,trans:null,transP:null,transDur:0,fx:null,fxP:null,
+ ghost:0,ghostP:{dir:1},enter:'cut',enterP:{},hold:'still',holdP:{},exit:'cut',exitP:{},treat:'none',treatP:{},gFont:'gothic',gVertical:false,world:null,worldP:null,worldExit:false,worldA:1,carry:false,carryDur:0});
+// the moment the still picture is taken (seconds after the clip's line starts), when the part does not say: in the middle of what the part does
+function posterOf(axis,key,text){
+ const part=TABLES[axis]?.[key],D=CLIP.end-CLIP.start,n=[...text].length,P=part?.plan?part.plan(rng(`preview:${axis}:${key}`)):{};
+ if(axis==='enter')return Math.max(.03,(part?.inDur?.(D,n,P)??.3)*.45);
+ if(axis==='exit')return D-Math.max(.03,(part?.outDur?.(D,n,P)??.3)*.5);
+ if(axis==='trans')return D/2+Math.min(part?.dur||.4,.45*D/2)*.45;
+ if(axis==='fx')return Math.min(.3,(part?.dur||.35)*.3);
+ return {hold:1.5,treat:1.5,bg:1.5,cam:2.2,world:1.2}[axis]??1.2;
+}
+
+function cutsFor(axis,key,text){
+ const part=TABLES[axis]?.[key];if(!part)throw new Error(`no ${axis} part "${key}"`);
+ const [k,kp]=FIELD[axis],P=part.plan?part.plan(rng(`preview:${axis}:${key}`)):{};
+ if(axis==='trans'){   // two cuts: the first half of the name, then the second half, joined by the part
+  const t=[...text],half=t.length>=4?Math.ceil(t.length/2):t.length,A=t.slice(0,half).join(''),B=t.length>=4?t.slice(half).join(''):text,mid=(CLIP.start+CLIP.end)/2;
+  const a=base('p0',A,CLIP.start,mid),b=base('p1',B,mid,CLIP.end);b.trans=key;b.transP=P;b.transDur=Math.min(part.dur||.4,.45*(mid-CLIP.start));return [a,b];
+ }
+ const c=base('p0',text,CLIP.start,CLIP.end);c[k]=key;c[kp]=P;
+ if(axis==='world'){c.worldExit=true;}
+ if(axis==='exit'){c.enter='cut';}
+ return [c];
+}
+
+window.previewCutPart={
+ CLIP,poster:(axis,key,text)=>posterOf(axis,key,text),
+ // Draws the clip. times: seconds; keep: also return a picture per time. Reports how much light text there is and whether the picture differs from the empty background.
+ async run(axis,key,{text='きみと、はじまる',times=[0,.45,.9,1.5,2.0,2.8,3.4],keep=false,quality=.92}={}){
+  await ensureCutFonts(['gothic']);
+  const cuts=cutsFor(axis,key,text),engine=createCutEngine(),frames=[];engine.setSize(W,H);engine.setOpaque(true);
+  try{
+   for(const time of times){
+    const started=performance.now();
+    let idx=cuts.findIndex(c=>time>=c.start&&time<c.end);
+    g.fillStyle='#141722';g.fillRect(0,0,W,H);
+    if(idx>=0)g.drawImage(engine.draw(cuts,idx,time),0,0);
+    const d=g.getImageData(0,0,W,H).data;let light=0,changed=0,h=2166136261;
+    for(let i=0;i<d.length;i+=4){const s=d[i]+d[i+1]+d[i+2];if(s>560)light++;if(Math.abs(d[i]-20)+Math.abs(d[i+1]-23)+Math.abs(d[i+2]-34)>24)changed++;if((i&63)===0)h=Math.imul(h^(d[i]^d[i+1]<<8^d[i+2]<<16),16777619);}
+    frames.push({time,light,changed,hash:h>>>0,ms:performance.now()-started,...(keep?{url:out.toDataURL('image/jpeg',quality)}:{})});
+   }
+  }finally{engine.dispose();}
+  return frames;
+ }
+};
+// Over a picture, the cut layer is transparent: a background must stay a veil, an effect and a transition must not paint the whole picture
+// (the same rules as tools/test/studio/cuts-fx-browser.mjs). Returns the worst share of solid pixels / alpha, or null when the axis has no such rule.
+window.previewCutPart.transparent=(axis,key)=>{
+ const part=TABLES[axis]?.[key];if(!part||!['bg','fx','trans'].includes(axis))return null;
+ const w=320,h=180,pool=new Map(),tmp=(slot,a=w,b=h)=>{let c=pool.get(slot+':'+a+'x'+b);if(!c){c=new OffscreenCanvas(a,b);pool.set(slot+':'+a+'x'+b,c);}return c;};
+ const env=(t=1.2)=>({W:w,H:h,opaque:false,t,lt:.05,dur:1,p:.05,fg:'#ffffff',accent:'#b69cff',bg:'#101018',step:28,tmp});
+ const shape=x=>{x.clearRect(0,0,w,h);x.fillStyle='#ffffff';x.fillRect(110,60,100,60);x.fillStyle='rgba(180,150,255,.2)';x.beginPath();x.arc(60,90,30,0,7);x.fill();};
+ const stat=x=>{const d=x.getImageData(0,0,w,h).data;let solid=0,maxA=0;for(let i=3;i<d.length;i+=4){if(d[i]>128)solid++;if(d[i]>maxA)maxA=d[i];}return {solid:solid/(w*h),corner:d[3],maxA};};
+ let solid=0,corner=0,maxA=0;
+ for(const seed of ['a','b','c'])for(const k of [1,.5,.1]){
+  const P=part.plan?part.plan(rng(`transparent:${key}:${seed}`)):{},cv=new OffscreenCanvas(w,h),x=cv.getContext('2d',{willReadFrequently:true});
+  if(axis==='bg'){x.save();part.draw(x,{...env(.2+k*3),lt:.2+k*3,dur:4,p:.3},P);x.restore();}
+  else if(axis==='fx'){shape(x);part.apply(x,env(),P,k);}
+  else{const A=new OffscreenCanvas(w,h),B=new OffscreenCanvas(w,h);shape(A.getContext('2d'));shape(B.getContext('2d'));x.save();part.draw(x,A,B,1-k*.9,env(),P);x.restore();}
+  const s=stat(x);solid=Math.max(solid,s.solid);corner=Math.max(corner,s.corner);maxA=Math.max(maxA,s.maxA);
+ }
+ return {solid:+solid.toFixed(3),corner,maxA};
+};
+window.previewReady=true;
+</script>

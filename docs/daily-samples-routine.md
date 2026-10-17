@@ -1,21 +1,23 @@
 # 毎日のサンプル追加ルーティン（手順書）
 
-毎日1回、次の **3つを1つずつ** 追加して、検証が全部通ったときだけ `main` に入れます。メソッド工房（`/workshop.html`）のサンプルブロックと同じ3種類です。
+毎日1回、次を追加して、検証が全部通ったときだけ `main` に入れます。
 
-| 作者の呼び方 | 工房での名前 | どこに足すか | プレビューのid |
-|---|---|---|---|
-| メソッド | 画像の崩れ方（GLSL） | `app/method-samples.js` の `SAMPLES`（`category: 'method'`） | `method-<key>` |
-| グラフィックモーション | 画像・立体・物理（JavaScript） | `app/image-method-daily.js` の `DAILY_IMAGE_METHODS` | `image-<key>` |
-| テキストモーション | 文字モーション（コード） | `app/code-motion-daily.js` の `DAILY_CODE_MOTIONS` | `codetext-<key>` |
-| エフェクト（文字の後ろや周りの装飾） | メソッド工房の「エフェクト」タブ・サンプル集の「エフェクト」の棚 | 同じ `DAILY_CODE_MOTIONS` の項目に `shelf:'effect'` を付ける | `effect-<key>` |
+| 作者の呼び方 | 何か | どこに足すか | 1日の数 | プレビューのid |
+|---|---|---|---|---|
+| メソッド | 画像の崩れ方（GLSL）。工房のサンプル | `app/method-samples.js` の `SAMPLES`（`category: 'method'`） | 1 | `method-<key>` |
+| グラフィックモーション | 画像・立体・物理（JavaScript）。工房のサンプル | `app/image-method-daily.js` の `DAILY_IMAGE_METHODS` | 1 | `image-<key>` |
+| カット割りの部品 | STUDIO のおまかせ「✂ カット割り」が組み合わせる部品（登場・保持・退場・加工・背景・カメラ・画面効果・つなぎ・物の世界） | `app/studio/cuts/daily-parts.js` の `DAILY_CUT_PARTS` | **約8（6〜12）**（2026-10-18 から。ゲートが日付で切り替わる） | `cut-<軸>-<key>` |
 
-この割り当ては 2026-10-07 に作者に確認して決めました（Macで作られたメソッド工房・モーション集に合わせる）。以前の GLSL の `category: 'graphic'` と、かんたん設定の文字の動き（`TEXT_MOTIONS`）は**そのまま残しますが、新しくは足しません**。
+**2026-10-17 の変更（テキストモーションの見直し）**：作者は、UNFOLD の文字の動きが 参考ツール のようなリリックビデオらしさにならない理由を見直していました。結論は「1本の中にレイアウト・登場・保持・退場・装飾が全部入った**丸ごとのスクリプト**（`code-motion-daily.js` のテキストモーション）ではなく、**小さな部品をカットごとに掛け合わせる**」です（記録：`docs/lyric-cuts-2026-10-17.md`）。その仕組み（STUDIO のカット割り）が 2026-10-17 に公開されたので、作者の指示「**当面はカット割の部品を大量に作成していきたい**」により、2026-10-18 から**テキストモーション（`DAILY_CODE_MOTIONS`）とエフェクト（`shelf:'effect'`）は足さず**、代わりにカット割りの部品を毎日たくさん足します。部品の数は掛け算で効く（部品が増えるほど、おまかせの組み合わせが一気に増える）ので、数を優先します。今の部品は103個＋毎日の分（参考ツール は約860個）。
+
+以前の GLSL の `category: 'graphic'`、かんたん設定の文字の動き（`TEXT_MOTIONS`）、テキストモーションとエフェクト（`DAILY_CODE_MOTIONS`）は**そのまま残しますが、新しくは足しません**。
 
 公開サイト（Cloudflare）は**自動では変わりません**。作者が手動でアップロードします（`docs/公開手順_Cloudflare.md`）。ルーティンがするのは「`main` に検証済みのソースを足す」ところまでです。
 
 ## 0. 許可の範囲
 
 作者（2026-10-07）から：「毎日3つ（各1つ）。`main` にプッシュする前に確認して、壊れていなければプッシュしてよい。16:30頃（日本時間）。」
+作者（2026-10-17）から：「当面はカット割の部品を大量に作成していきたい」。→ メソッド1・グラフィックモーション1・カット割りの部品 約8（6〜12）。プッシュの許可（ゲートが全部 PASS なら `main` へ）はそのまま。
 
 - `node tools/verify_daily.mjs --expect-new=<今日>` が **全部 PASS** したときだけ `main` にプッシュしてよい。
 - 落ちたまま、またはゲートを緩めて通した状態では、`main` にプッシュしない（下の「失敗したとき」）。
@@ -37,9 +39,15 @@ node -e "import('./tools/lib/samples-catalog.mjs').then(m=>console.table(m.catal
 node -e "Promise.all([import('./app/image-method-presets.js'),import('./app/code-motion-presets.js')]).then(([a,b])=>{console.log(a.IMAGE_METHOD_PRESETS.map(p=>p.name));console.log(b.CODE_MOTION_PRESETS.map(p=>p.name))})"
 ```
 
-2つ目はMacで作られたものも含む、工房に出る全部の名前です（名前の重複はテストが落とします）。**標準の37種類**（2026-10-12に8種類を足して29→37）の崩れ方は `tools/build_guide_methods.py` の先頭の表にあるので、GLSLでは同じ動きを避けてください。`docs/daily-samples-log.md` も読んで、過去の日と同じ発想を繰り返さないでください。
+2つ目はMacで作られたものも含む、工房に出る全部の名前です（名前の重複はテストが落とします）。
 
-## 2. 3つを作る
+カット割りの部品の、軸ごとの数と名前（**少ない軸から**足す。同じ動きを作らない）：
+
+```sh
+node -e "Promise.all(['glyphs','parts','worlds'].map(f=>import('./app/studio/cuts/'+f+'.js'))).then(([g,p,w])=>{const t={...g.GLYPH_GROUPS,...p.GROUPS,world:w.WORLD};for(const [a,o] of Object.entries(t))console.log(a,Object.keys(o).length,Object.values(o).map(x=>x.name).join(' / '))})"
+```**標準の37種類**（2026-10-12に8種類を足して29→37）の崩れ方は `tools/build_guide_methods.py` の先頭の表にあるので、GLSLでは同じ動きを避けてください。`docs/daily-samples-log.md` も読んで、過去の日と同じ発想を繰り返さないでください。
+
+## 2. 作る
 
 ### ① メソッド（GLSL）
 
@@ -89,7 +97,141 @@ return {update(frame){
 - 上限：物体1024個・文字メッシュ150個・コード32000文字。タイルは `columns` 12〜14が目安（重いと工房のプレビューが遅くなる）。
 - ゲートの基準：実行でエラーが出ない／1.8秒の時点で元の絵と**2000画素以上**違う／クリップ中に5種類以上の違う絵／1フレーム5秒以内。
 
-### ③ テキストモーション（文字のコードモーション）
+### ③ カット割りの部品（2026-10-18 から。テキストモーションの代わり）
+
+`app/studio/cuts/daily-parts.js` の `DAILY_CUT_PARTS` の**末尾**に、その日の日付のコメント（`// ---- <今日>`）を付けて、**約8個（最低6・最大12）**足します。足した部品は、手で作った部品の表（`glyphs.js` の登場・保持・退場・加工、`parts.js` の背景・カメラ・画面効果・つなぎ、`worlds.js` の物の世界）の末尾に**自動でつながり**、STUDIO のおまかせ「✂ カット割り」が、ほかの部品と同じように雰囲気（`tags`）と出やすさ（`w`）で選びます。サンプル集の「カット割りの部品」の棚にも出ます。
+
+**触ってよいのは `daily-parts.js` だけ**です（`kit.js` の道具は使うだけ。`glyphs.js` `parts.js` `worlds.js` `compose.js` `layer.js` `plan.js` などカット割りの本体は変えない）。
+
+#### どの軸を、いくつ
+- 1日に**4つ以上の軸**にまたがるように。上の「軸ごとの数」で**少ない軸から**埋める（目安：登場・退場・保持・つなぎ・背景・カメラを多めに、画面効果は1日1〜2個、加工は今ある見た目の組み合わせなので1日1個まで、物の世界は週に1個まで）。
+- 既存の部品（手で作ったもの・過去の日の分）と**同じ動き・同じ名前は作らない**。名前が違っても、動きが同じなら作り直す。
+- 参考ツール の考え方（字ごと・語ごとの時間差、短いカット（0.5〜1.5秒）でも成り立つ、カットの頭で強く・終わりで静か）を参考に、**自分で考えて自分の式で書く**（他の作品のコードは写さない）。
+
+#### 1つの部品の形
+```js
+ {axis:'enter',key:'centerOut',name:'真ん中から広がる',desc:'全部の字が行の真ん中に重なって現れ、元の位置へ広がります。',added:'<今日>',
+  tags:['pop','graphic','impact','emotional'],w:1,fast:true,inDur:D=>clamp(D*.32,.15,.4),plan:r=>({k:.6+r()*.4}),
+  glyph(g,i,n,p,E,P){const e=inOutCubic(p),mid=(E.bbox.x0+E.bbox.x1)/2,s=lerp(.6,1,outBack(p,1.4));return {dx:(mid-g.cx)*(1-e)*P.k,sx:s,sy:s,a:clamp(p*3)};}},
+```
+- `axis`：`enter` `hold` `exit` `treat` `bg` `cam` `fx` `trans` `world` のどれか。
+- `key`：英字で始まる英数字（camelCase、例 `riseAway`）。**同じ軸の部品と重ならない**（重なると表につながらず、テストが落とす）。
+- `name`：日本語2〜12文字（同じ軸に同じ名前がない）。**プレビューでは、この名前が、この部品で動く**（「真ん中から広がる」は、その言葉が真ん中から広がる）。
+- `desc`：10〜60文字で「。」で終わる1文。`added`：今日。`tags`：合う雰囲気（`calm` `pop` `glitch` `graphic` `emotional` `impact` から1つ以上）。`w`：出やすさ 0.8〜1.4（ふつうは 1）。
+- `poster`（省略できる）：サンプル集の静止画を撮る時刻（行が始まって何秒後か、0.05〜3.0）。省略すると、部品が動いている真ん中（登場なら登場の半ば、退場なら退場の半ば、つなぎなら切り替わりの半ば）を自動で選ぶ。
+- 道具は `kit.js` から import 済み：`clamp` `lerp` `fract` `smooth` `bell` `outCubic` `inCubic` `inOutCubic` `outExpo` `outBack` `bounceOut` `spring` `hash` `sign` `pickW` `local`（字ごとの時間差）`rgba` `mixHex` `luma` `contrast` `TAU` `DEG`。足りなければ、ファイルの先頭の import に足す。
+
+#### 軸ごとの形（手で作った部品が手本：`glyphs.js` / `parts.js` / `worlds.js` の同じ軸を読む）
+| 軸 | 形 | 決まり（テストとゲートが見る） |
+|---|---|---|
+| 登場 `enter` | `inDur(D,n,P)`→秒、`plan(r)`→P、`glyph(g,i,n,p,E,P)`→`{dx,dy,sx,sy,rot,a,blur,hide}` か `item(it,p,E,P)` | `p` は登場の間 0→1。**p=1 で字は元どおり**（ずれ・回転・ぼけ 0、大きさ・不透明度 1）。まだ出ない字は `{hide:true}`。登場の長さは `clamp(D*.3,.13,.4)` くらい（短いカットで長すぎない）。短いカット（0.7秒未満）でも成り立つなら `fast:true`、長いカットが要るなら `minDur`、字数が多いと崩れるなら `maxChars` |
+| 退場 `exit` | `outDur(D,n,P)`、`plan`、`glyph` か `item` | `p` は退場の間 0→1。**p=0 で元どおり**、p=1 で見えない |
+| 保持 `hold` | `plan`、`glyph(g,i,n,p,E,P)` | 読んでいる間の小さな動き：ずれは字の大きさの20%まで、回転6度まで、大きさ0.9〜1.1、ぼけ8%まで。**ずれ・回転・ぼけのどれかで必ず動く**（大きさだけの変化は「動いていない」と判定される）。`E.lt`（カットの中の時刻）から直接決める |
+| 加工 `treat` | `style(P,c)`→`{stroke,fill,shadow,extrude,textColor,deco,blur,trail}` | 字の描き方の組み合わせ（新しい描き方は作れない）。`deco` は `'marker'` `'underline'` `'box'` だけ。`c.color` `c.accent` `c.bg` で色を決める（暗い背景でも見える色に） |
+| 背景 `bg` | `plan`、`draw(ctx,e,P)` | `e.t`（曲の時刻）から描く。**半透明で**（不透明度0.5まで。下に絵がある時は絵が透けて見えること）。`e.W` `e.H` を使って横長・縦長どちらでも |
+| カメラ `cam` | `plan`、`get(e,P)`→`{s,x,y,rot}` | 文字の層全体の変形。`e.p`（カットの進み 0→1）で。拡大は1.0〜1.1、ずれは画面の3%まで、回転5度まで。大きく動くものは `strong:true` |
+| 画面効果 `fx` | `dur`（0.2〜0.45秒）、`plan`、`apply(ctx,e,P,k)` | カットの頭で、強さ `k` が 1→0 に減る後処理。**`e.opaque===false`（下に絵がある時）は、透明な所を塗らない**（白や色で全面を塗ると画面が真っ白になる）。点滅するものは `strongFlash:true`（「強い点滅を避ける」で外れる） |
+| つなぎ `trans` | `dur`（0.3〜0.5秒）、`plan`、`draw(ctx,A,B,p,e,P)` | 前の絵 `A` と今の絵 `B` を `p`（0→1）で合成。p=0 で A、p=1 で B だけ。まず全面を絵で覆ってから重ねる（途中で穴を開けない）。下に絵がある時、画面の70%以上を塗りつぶさない |
+| 物の世界 `world` | `worlds.js` の形（`fits` `frame` `plan` `back` `front` `textColor` `box` …） | 形が大きいので週に1個まで。既存の世界を1つ丸ごと読んでから |
+
+- 共通：**同じ時刻なら同じ絵**（`Math.random` `Date.now` は使わない。乱数は `plan(r)` の `r` か `hash`）。`plan` は JSON にできる値（数・文字・真偽・それらの配列と object）だけを返し、同じ `r` なら同じ値。値は STUDIO の作品ファイルに保存され、読み込む時に `plan` が出せる範囲に収められる（だから、`plan` の外の値に頼らない）。
+- `g`（字）：`cx` `cy` `w` `size` `word`（語の番号）`line`、`wcx` `wcy`（語の真ん中）。`E`：`size` `W` `H` `r(i,k)`（字ごとの決まった乱数）`nWords` `n` `bbox`（行の外接矩形 `x0` `x1` `y0` `y1`）`lt` `D` `seed`。`e`（背景・カメラ・画面効果・つなぎ）：`W` `H` `t` `lt` `dur` `p` `fg` `accent` `bg` `opaque` `tmp(slot,w,h)`（作業用のキャンバス）。
+
+#### 書いたら
+```sh
+node --test tools/test/studio/*.test.mjs        # 形・名前・決まり・計画が選ぶか・保存した値が変わらないか（毎日の部品のテスト cuts-daily と、軸ごとのテスト）
+```
+落ちたら、メッセージを読んで部品を直す（テストを変えない）。「60の計画で一度も選ばれない」と言われたら、`tags` を広げる・`w` を上げる・`minDur` `maxChars` を緩める。
+
+#### ゲートの基準（プレビューと同じ、3秒の1行・480×270・名前が言葉）
+1.5秒と2.0秒の絵で言葉が読める（明るい画素が400以上）／カットの間に絵が3通り以上に変わる／1コマ2秒以内／背景は下に絵がある時に不透明度130/255まで、画面効果は塗りつぶしが55%まで・隅が透明のまま、つなぎは塗りつぶしが70%まで。
+
+### 変更した部品の `?v=`
+
+GLSL（`method-samples.js`）を変えたときは、ブラウザに古い版を使わせないために、読み込む側の `?v=` を上げます。**玉突きでHTMLまで**自動で上がります。
+
+```sh
+node tools/bump_module_version.mjs app/method-samples.js
+```
+
+②の `image-method-daily.js` と③の `daily-parts.js` は、番号なしで読み込まれる（Mac側のプリセット・STUDIO のカット割り）ので、`?v=` の操作は要りません（ブラウザは毎回確認します）。上げ忘れがあれば、ゲートが見つけます。
+
+## 3. プレビューとページ
+
+```sh
+node tools/make_sample_previews.mjs          # 足りないプレビュー（JPGとMP4）だけ作る
+node tools/build_guide_samples.mjs           # app/guide/samples.html を作り直す
+```
+
+できた `app/guide/samples/*.jpg` を **Read で開いて見てください**（全部。部品は8枚前後あるので、`magick a.jpg b.jpg … +append` で横に並べて1枚にして見るとよい）。
+
+- 何かが映っていて、動きの特徴が分かる（真っ黒・真っ白・ほぼ元のまま・ほぼ空、は作り直し）。
+- 文字は読める。
+- カット割りの部品は、**その部品の動きの途中**が写っている（止まった文字だけ・何も変わっていない絵なら、`poster` を動きの途中の時刻にするか、動きの配分を見直す。例：一瞬で終わる動きは静止画で伝わらない）。
+
+見た目がよくなければ、コードや `poster` を直して `node tools/make_sample_previews.mjs --force --only=<id>`。コードを変えたら、ページも作り直す（`build_guide_samples.mjs`。ゲートが「ページが最新か」を見ます）。
+
+## 4. ログ
+
+`docs/daily-samples-log.md` の表の**一番上**に、その日の分を全部足します（メソッド1行・グラフィックモーション1行・部品1つにつき1行。種類は `method` / `image` / `cutpart`、`id` はバッククォートで囲む：`method-…` / `image-…` / `cut-<軸>-<key>`）。最後の列には、工夫したところ、うまくいかなかったこと、次に作れそうなことを一言。
+
+## 5. 検証（これが通らないと進めない）
+
+```sh
+node tools/verify_daily.mjs --expect-new=<今日>
+```
+
+見るもの：単体テスト（`tools/test` と `tools/test/studio`。欄・形式・「同じ時刻は同じ絵」を壊す語、カット割りの全部の部品の形・計画・保存した値）／今日の分が GLSL 1・画像メソッド 1・カット割りの部品 6以上（テキストモーションとエフェクトは0）／カット割りの部品が STUDIO の本物のエンジンで描け、動き、読め、下に絵がある時に塗りつぶさない／プレビューのファイル・大きさ・形式／ページが最新／全ページ（工房・モーション集を含む）がエラーなく開く／GLSLがエディタと同じ3つの検査を通る／画像メソッドと文字コードが本物の実行環境で上の基準を満たす／サンプル集のカードとホバー／エディタのプリセット一覧と歌詞パネルの選択肢／`?v=` の上げ忘れ／ログ。
+
+落ちたら、メッセージの指示どおりに直して、もう一度。**ゲートや単体テストを緩める・スキップするのは禁止**。1日に直して試すのは3回まで。
+
+## 6. `main` に入れる
+
+ゲートが全部 PASS したら：
+
+```sh
+git add -A app docs tools
+git status --short                                   # 意図したファイルだけか見る（app/guide/samples/ のプレビュー、samples.html、ログ、method-samples.js・image-method-daily.js・studio/cuts/daily-parts.js、GLSLを変えたときの ?v= のhtml）
+git commit -m "Add daily samples <今日>: <メソッドの名前>, <グラフィックモーションの名前>, カット割りの部品 <N>個"    # 末尾にセッションの署名行を付ける
+git fetch origin main
+git rebase origin/main                               # 自分の作業ブランチなので rebase してよい
+node tools/verify_daily.mjs --expect-new=<今日>        # main が進んでいたらもう一度（進んでいなければ省略可）
+git push origin HEAD:main
+```
+
+ほかの人（Mac の作者）が先に `main` を更新していて衝突したら、`SAMPLES`／`DAILY_*`（`DAILY_CUT_PARTS` も）の末尾・ログ・`?v=` が重なることが多いので、両方を残して番号は大きい方+1に直し、`node tools/build_guide_samples.mjs` を作り直してからゲートをやり直します。Macのファイル（プリセット本体、画像メソッドの実行環境、工房など）の衝突は、**自分で決めずに**失敗として報告します。
+
+## 失敗したとき
+
+- **`main` にはプッシュしません。**
+- 作業を `daily-samples/failed-<今日>` ブランチにプッシュして（`git push origin HEAD:daily-samples/failed-<今日>`）、落ちたステップのメッセージ、原因の見立て、次にやりたいことを最後の報告に書く。
+- 3回直しても通らないサンプルは諦めて、通る別のサンプルに替えてよい（その場合、失敗した案はログの「工夫・気づき」に残す）。
+
+## してはいけないこと
+
+- 既存サンプルの `key`・名前・動きを変える、サンプルを消す（保存済みの `.unfold` や自作メソッドが壊れる）。
+- Macで作られたファイルを変える：`image-method-presets.js` `image-surface-presets.js` `code-motion-presets.js`、画像メソッド・コードモーションの実行環境（`*-runtime.js` `*-worker*`）、工房、モーション集、それらのテスト。`archive/` も。
+- カット割りの本体を変える：`app/studio/cuts/` のうち `daily-parts.js` 以外（`kit.js` `glyphs.js` `parts.js` `worlds.js` `compose.js` `layer.js` `plan.js` `audit.js` `items.js` `apply.js`）と、STUDIO のほかのファイル、`tools/test/studio/` のテスト。部品が足りない道具や描き方を必要とする時は、作らずにログの「次に作れそうなこと」に書く。
+- 公開（Cloudflareへのアップロード）をする。
+- 今日の分以外の `added` の日付を書き換える。メソッドとグラフィックモーションを1日に2つ以上、部品を1日に13個以上足す。`graphic`（GLSL）・`TEXT_MOTIONS`・`DAILY_CODE_MOTIONS`（テキストモーション・エフェクト）に新しく足す。
+- 認証情報やトークンをコードやログに書く。
+
+## この環境で分かっていること
+
+- クラウドのChromiumは**H.264を再生できません**（MP4のホバー再生は、WebMに差し替えて動作を確認済み。MP4自体は ffmpeg で全部デコードできる）。ふつうのChrome・Edge・Safari・Firefoxでは再生できます。
+- 日本語フォントは IPAゴシック（かんたん設定の文字の動きの極太の書体とは少し見た目が違います）。コードモーションの書体は同梱（`app/vendor/motion-fonts/`）で、そのまま使えます。Google Fonts には届きません。
+- WebGLはソフトウェア描画（SwiftShader）。GLSLの「重すぎる」判定は実機GPUより遅く出ることがあります。重いと言われたら、ループや `sin` の数を減らす。画像メソッド（物理演算のWASM込み）は1フレーム約0.1秒で動きます。
+- 画像メソッドのプレビューは約6秒のクリップを20fpsで5.75秒分（116コマ）、文字とカット割りの部品は3.6秒を24fps。部品のプレビューは1つ数秒（`tools/preview/cut-part.html` が STUDIO のカット割りのエンジンで描く。ほかの軸は動かない設定で、部品だけが見える）。MP4は600KBまで。
+- カット割りの書体は同梱の `app/vendor/motion-fonts/`（プレビューはゴシック）。
+- `tools/make_sample_previews.mjs` は Chromium（Playwright）と ffmpeg（libx264）が必要です。`TMPDIR` が長いパスだとChromiumが起動しないので、ブラウザ側だけ `/tmp` を使うようにしてあります。
+
+## 参考：2026-10-17 までのテキストモーションの作り方
+
+新しくは作りませんが、作者が「テキストモーションも再開」と言った時のために、以前の ③ の手順を残します（`DAILY_GROUPS` と `verify_daily.mjs` の数の決まりも戻すこと）。
+
+<details><summary>以前の ③ テキストモーション</summary>
+
+#### ③ テキストモーション（文字のコードモーション）
 
 `app/code-motion-daily.js` の `DAILY_CODE_MOTIONS` の**末尾**に1つ足します（Macの `code-motion-presets.js` は触りません）。工房の「文字モーション」とコードモーションのエディタのサンプルに出ます。
 
@@ -125,78 +267,4 @@ return {update(t){
 - **語ごとに動くキネティック系**は、語に区切って（`Intl.Segmenter`）、語の登場を歌詞の長さの1/4までに散らし、3秒の行なら約1.2秒でそろうようにします（ゲートは1.5・2.0秒の絵で読めること・端に触れないことを見ます）。
 - **エフェクトの棚に入れるもの**：文字の動きそのものではなく、文字の後ろや周りに重ねる装飾（シェーダー、キーキャップの枠など）。`shelf:'effect'` を付けると、サンプル集で「エフェクト」の棚に出ます。ゲートの基準（画面の半分以下・端に触れない・終了後に消える）は文字モーションと同じです。
 
-### 変更した部品の `?v=`
-
-GLSL（`method-samples.js`）を変えたときは、ブラウザに古い版を使わせないために、読み込む側の `?v=` を上げます。**玉突きでHTMLまで**自動で上がります。
-
-```sh
-node tools/bump_module_version.mjs app/method-samples.js
-```
-
-②③の `image-method-daily.js` / `code-motion-daily.js` は、Mac側のプリセットが番号なしで読み込むので、`?v=` の操作は要りません（ブラウザは毎回確認します）。上げ忘れがあれば、ゲートが見つけます。
-
-## 3. プレビューとページ
-
-```sh
-node tools/make_sample_previews.mjs          # 足りないプレビュー（JPGとMP4）だけ作る
-node tools/build_guide_samples.mjs           # app/guide/samples.html を作り直す
-```
-
-できた `app/guide/samples/*.jpg` を **Read で開いて見てください**（3つとも）。
-
-- 何かが映っていて、動きの特徴が分かる（真っ黒・真っ白・ほぼ元のまま・ほぼ空、は作り直し）。
-- 文字は読める。
-
-見た目がよくなければ、コードや `poster` を直して `node tools/make_sample_previews.mjs --force --only=<id>`。コードを変えたら、ページも作り直す（`build_guide_samples.mjs`。ゲートが「ページが最新か」を見ます）。
-
-## 4. ログ
-
-`docs/daily-samples-log.md` の表の**一番上**に3行足します（`id` はバッククォートで囲む。`method-…` / `image-…` / `codetext-…`）。最後の列には、工夫したところ、うまくいかなかったこと、次に作れそうなことを一言。
-
-## 5. 検証（これが通らないと進めない）
-
-```sh
-node tools/verify_daily.mjs --expect-new=<今日>
-```
-
-見るもの：単体テスト（欄・形式・「同じ時刻は同じ絵」を壊す語）／今日の分がちょうど GLSL 1・画像メソッド 1・文字コード 1／プレビューのファイル・大きさ・形式／ページが最新／全ページ（工房・モーション集を含む）がエラーなく開く／GLSLがエディタと同じ3つの検査を通る／画像メソッドと文字コードが本物の実行環境で上の基準を満たす／サンプル集のカードとホバー／エディタのプリセット一覧と歌詞パネルの選択肢／`?v=` の上げ忘れ／ログ。
-
-落ちたら、メッセージの指示どおりに直して、もう一度。**ゲートや単体テストを緩める・スキップするのは禁止**。1日に直して試すのは3回まで。
-
-## 6. `main` に入れる
-
-ゲートが全部 PASS したら：
-
-```sh
-git add -A app docs tools
-git status --short                                   # 意図したファイルだけか見る（app/guide/samples/ の6ファイル、samples.html、ログ、3つの追加先、GLSLを変えたときの ?v= のhtml）
-git commit -m "Add daily samples <今日>: <3つの名前>"    # 末尾にセッションの署名行を付ける
-git fetch origin main
-git rebase origin/main                               # 自分の作業ブランチなので rebase してよい
-node tools/verify_daily.mjs --expect-new=<今日>        # main が進んでいたらもう一度（進んでいなければ省略可）
-git push origin HEAD:main
-```
-
-ほかの人（Mac の作者）が先に `main` を更新していて衝突したら、`SAMPLES`／`DAILY_*` の末尾・ログ・`?v=` が重なることが多いので、両方を残して番号は大きい方+1に直し、`node tools/build_guide_samples.mjs` を作り直してからゲートをやり直します。Macのファイル（プリセット本体、画像メソッドの実行環境、工房など）の衝突は、**自分で決めずに**失敗として報告します。
-
-## 失敗したとき
-
-- **`main` にはプッシュしません。**
-- 作業を `daily-samples/failed-<今日>` ブランチにプッシュして（`git push origin HEAD:daily-samples/failed-<今日>`）、落ちたステップのメッセージ、原因の見立て、次にやりたいことを最後の報告に書く。
-- 3回直しても通らないサンプルは諦めて、通る別のサンプルに替えてよい（その場合、失敗した案はログの「工夫・気づき」に残す）。
-
-## してはいけないこと
-
-- 既存サンプルの `key`・名前・動きを変える、サンプルを消す（保存済みの `.unfold` や自作メソッドが壊れる）。
-- Macで作られたファイルを変える：`image-method-presets.js` `image-surface-presets.js` `code-motion-presets.js`、画像メソッド・コードモーションの実行環境（`*-runtime.js` `*-worker*`）、工房、モーション集、それらのテスト。`archive/` も。
-- 公開（Cloudflareへのアップロード）をする。
-- 今日の分以外の `added` の日付を書き換える。1日に3つより多く足す。`graphic`（GLSL）と `TEXT_MOTIONS` に新しく足す。
-- 認証情報やトークンをコードやログに書く。
-
-## この環境で分かっていること
-
-- クラウドのChromiumは**H.264を再生できません**（MP4のホバー再生は、WebMに差し替えて動作を確認済み。MP4自体は ffmpeg で全部デコードできる）。ふつうのChrome・Edge・Safari・Firefoxでは再生できます。
-- 日本語フォントは IPAゴシック（かんたん設定の文字の動きの極太の書体とは少し見た目が違います）。コードモーションの書体は同梱（`app/vendor/motion-fonts/`）で、そのまま使えます。Google Fonts には届きません。
-- WebGLはソフトウェア描画（SwiftShader）。GLSLの「重すぎる」判定は実機GPUより遅く出ることがあります。重いと言われたら、ループや `sin` の数を減らす。画像メソッド（物理演算のWASM込み）は1フレーム約0.1秒で動きます。
-- 画像メソッドのプレビューは約6秒のクリップを20fpsで5.75秒分（116コマ）、文字は3.6秒を24fps。1つ作るのに数十秒かかります。MP4は600KBまで。
-- `tools/make_sample_previews.mjs` は Chromium（Playwright）と ffmpeg（libx264）が必要です。`TMPDIR` が長いパスだとChromiumが起動しないので、ブラウザ側だけ `/tmp` を使うようにしてあります。
+</details>

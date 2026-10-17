@@ -6,9 +6,10 @@
 //   --crf=N   the video quality (higher = smaller file, default 33)
 // Needs: Chromium (through Playwright) and ffmpeg with libx264.
 // What draws each kind: method / graphic -> the editor's preview; image -> the image method runtime (physics, surface effects); codetext / effect -> the code motion runtime; text -> the lyric overlay.
+//   cutpart -> STUDIO's cut engine (tools/preview/cut-part.html): the part's name drawn with only that part, the other axes plain.
 //   The words in the preview of a text motion are the sample's own name ("とろけてたれる" melts), so the motion is understood at a glance; an effect keeps a neutral lyric because it decorates any text.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { launchBrowser } from './lib/browser.mjs';
@@ -41,7 +42,7 @@ try {
     const problems = [];
     page.on('pageerror', e => problems.push(String(e).slice(0, 200)));
     try {
-      const isText = item.group === 'text', page_ = { text: 'text', codetext: 'code-text', effect: 'code-text', image: 'image' }[item.group] || 'method';
+      const isText = item.group === 'text', page_ = { text: 'text', codetext: 'code-text', effect: 'code-text', image: 'image', cutpart: 'cut-part' }[item.group] || 'method';
       await page.goto(`${server.url}/__tools/preview/${page_}.html`);
       await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
       let shots, poster, fps = FPS;
@@ -49,6 +50,12 @@ try {
         const times = Array.from({ length: Math.round(TEXT.duration * FPS) }, (_, i) => i / FPS), at = TEXT.start + (item.poster ?? TEXT.poster);
         const words = item.group === 'codetext' ? item.name : TEXT.text;
         const run = (opts) => page.evaluate(({ source, opts }) => window.previewCodeText.run(source, opts), { source: item.source, opts: { text: words, start: TEXT.start, end: TEXT.end, keep: true, ...opts } });
+        shots = (await run({ times })).map(f => f.url);
+        poster = (await run({ times: [at], quality: .88 }))[0].url;
+      } else if (item.group === 'cutpart') {
+        const clip = await page.evaluate(() => window.previewCutPart.CLIP), times = Array.from({ length: Math.round(clip.duration * FPS) }, (_, i) => i / FPS);
+        const at = clip.start + (item.poster ?? await page.evaluate(({ axis, key, text }) => window.previewCutPart.poster(axis, key, text), { axis: item.axis, key: item.key, text: item.name }));
+        const run = opts => page.evaluate(({ axis, key, opts }) => window.previewCutPart.run(axis, key, opts), { axis: item.axis, key: item.key, opts: { text: item.name, keep: true, ...opts } });
         shots = (await run({ times })).map(f => f.url);
         poster = (await run({ times: [at], quality: .88 }))[0].url;
       } else if (item.group === 'image') {
@@ -80,8 +87,8 @@ try {
       execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', String(fps), '-i', join(dir, 'f%03d.jpg'), '-vf', 'scale=in_range=pc:out_range=tv',   // JPEG frames are full range; newer ffmpeg keeps that range and ffprobe then reports yuvj420p, which the gate rejects
         '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf),
         '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', join(dir, 'out.mp4')]);
-      renameSync(join(dir, 'poster.jpg'), files.jpg);
-      renameSync(join(dir, 'out.mp4'), files.mp4);
+      copyFileSync(join(dir, 'poster.jpg'), files.jpg);   // copy, not rename: the work folder can be on another disk than the repository
+      copyFileSync(join(dir, 'out.mp4'), files.mp4);
       const jpg = sizeOf(files.jpg), mp4 = sizeOf(files.mp4);
       const over = [jpg > MAX_BYTES.jpg && `jpg ${jpg} > ${MAX_BYTES.jpg}`, mp4 > MAX_BYTES.mp4 && `mp4 ${mp4} > ${MAX_BYTES.mp4}`].filter(Boolean);
       if (over.length) throw new Error(`too big (${over.join(', ')})`);

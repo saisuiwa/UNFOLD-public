@@ -14,6 +14,8 @@
 // e = {W,H,t,lt,D,inW,outW,pIn,pOut,fg,accent,bg}   pIn: 物の入り 0→1、pOut: 物の出 0→1（exitOK のカットだけ）
 import {renderText,buildItem,DEG,TAU} from './glyphs.js';
 import {rgba,mixHex} from './parts.js';
+import {addDailyParts} from './kit.js';
+import {DAILY_CUT_PARTS} from './daily-parts.js';
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,u)=>a+(b-a)*u;
@@ -254,6 +256,8 @@ export const WORLD={
    c.font=`${Math.max(10,ch*.032)}px ui-monospace,Menlo,monospace`;c.fillStyle='rgba(20,20,28,.6)';c.textAlign='right';c.textBaseline='middle';c.fillText("'26.10.16",x+cw-pad,py+ph+(ch-ph-pad)/2);
   }}
 };
+// 毎日のルーティンで足した物の世界（daily-parts.js）を、表の末尾につなぐ
+addDailyParts({world:WORLD},DAILY_CUT_PARTS);
 export const WORLD_NAMES=Object.fromEntries(Object.entries(WORLD).map(([k,v])=>[k,v.name]));
 export const worldChoices=()=>Object.keys(WORLD).map(key=>({key,name:WORLD[key].name}));
 

@@ -62,8 +62,8 @@ test('effects: decorations are marked shelf:"effect", listed in their own group,
   assert.equal(list.length, DAILY_CODE_MOTIONS.length + list.filter(i => i.group !== 'codetext' && i.group !== 'effect').length, 'every daily code motion is listed exactly once');
 });
 
-test('the daily groups are the three the routine adds one each of; ids are unique across the catalog', () => {
-  assert.deepEqual(DAILY_GROUPS, ['method', 'image', 'codetext']);
+test('the daily groups are what the routine adds (one method, one image method, many cut parts since 2026-10-18); ids are unique across the catalog', () => {
+  assert.deepEqual(DAILY_GROUPS, ['method', 'image', 'cutpart']);
   const ids = catalog().map(i => i.id);
   assert.equal(new Set(ids).size, ids.length);
   for (const item of catalog()) assert.ok(item.name && item.desc && isDay(item.added), item.id);
