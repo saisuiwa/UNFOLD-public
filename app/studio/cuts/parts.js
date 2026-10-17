@@ -154,6 +154,13 @@ const grab=(c,e)=>{const s=e.tmp(0),x=s.getContext('2d');x.globalCompositeOperat
 const tintOf=(e,s,color)=>{const t=e.tmp(1),x=t.getContext('2d');x.globalCompositeOperation='copy';x.drawImage(s,0,0);x.globalCompositeOperation='source-in';x.fillStyle=color;x.fillRect(0,0,e.W,e.H);x.globalCompositeOperation='source-over';return t;};
 const fringe=(c,e,s,list)=>{c.clearRect(0,0,e.W,e.H);for(const [col,dx,dy,sc] of list){c.globalAlpha=.75;c.drawImage(tintOf(e,s,col),dx+e.W*(1-sc)/2,dy+e.H*(1-sc)/2,e.W*sc,e.H*sc);}c.globalAlpha=1;c.drawImage(s,0,0);};
 const hole=(c,e,x,y,w,h)=>{if(e.opaque===false)c.clearRect(x,y,w,h);};
+/** 色を反転する（今の clip の中だけ）。下に絵がある時（s = 反転前の絵の写し）は、描いてある所の色だけを反転し、透明な所は透明のまま
+ *  （前は白を 85% 重ねていた。画面いっぱいの板（抜き文字）があると、絵全体がほぼ白になったので、2026-10-18 に本当の反転にした） */
+function invertIn(c,e,s){
+ c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);
+ if(s){c.globalCompositeOperation='destination-in';c.drawImage(s,0,0);}
+ c.globalCompositeOperation='source-over';
+}
 export const FX={
  chroma:{name:'色ズレの跳ね',tags:['glitch','pop','impact'],w:1.4,dur:.4,plan:r=>({s:.8+r()*.6,dir:sign(r)}),
   apply(c,e,P,k){const d=Math.max(1,e.W*.016*k*P.s),s=grab(c,e),t2=e.tmp(1),x=t2.getContext('2d');
@@ -184,10 +191,10 @@ export const FX={
  circleInvert:{name:'円の中だけ反転',tags:['graphic','impact','glitch'],w:.8,dur:.5,strongFlash:true,plan:r=>({cx:.5+(r()-.5)*.3,cy:.5+(r()-.5)*.3}),
   // 広がる輪の中だけ白黒（色）を反転する。輪の内側のふちも追いかけて広がるので、最後は何も残らない（2026-10-17）
   apply(c,e,P,k){const u=1-clamp(k),R=Math.hypot(e.W,e.H)*.62,ro=outCubic(u*1.15)*R,ri=Math.max(0,(u-.35)/.65)**2*R;if(ro<=ri+.5)return;
-   c.save();c.beginPath();c.arc(e.W*P.cx,e.H*P.cy,ro,0,TAU);if(ri>.5)c.arc(e.W*P.cx,e.H*P.cy,ri,0,TAU,true);c.clip('evenodd');
-   if(e.opaque===false){c.globalCompositeOperation='source-atop';c.globalAlpha=.85;}else c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);c.restore();}},
+   const s=e.opaque===false?grab(c,e):null;
+   c.save();c.beginPath();c.arc(e.W*P.cx,e.H*P.cy,ro,0,TAU);if(ri>.5)c.arc(e.W*P.cx,e.H*P.cy,ri,0,TAU,true);c.clip('evenodd');invertIn(c,e,s);c.restore();}},
  invert:{name:'反転',tags:['glitch','impact','graphic'],w:.7,dur:.12,strongFlash:true,plan:()=>({}),
-  apply(c,e){c.save();if(e.opaque===false){c.globalCompositeOperation='source-atop';c.globalAlpha=.85;}else c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);c.restore();}},
+  apply(c,e){const s=e.opaque===false?grab(c,e):null;c.save();invertIn(c,e,s);c.restore();}},
  radial:{name:'放射色収差',tags:['glitch','pop','impact','emotional'],w:1.1,dur:.4,plan:r=>({s:.7+r()*.6}),
   apply(c,e,P,k){const s=grab(c,e),t2=e.tmp(1),x=t2.getContext('2d'),a=.014*k*P.s;
    if(e.opaque===false)return fringe(c,e,s,[['#ff2a2a',0,0,1+a],['#2a5aff',0,0,1-a]]);

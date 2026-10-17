@@ -27,6 +27,9 @@ const sign=r=>r()<.5?-1:1;
 /** 字 i の、登場の間の進み具合。spread は先頭と最後の字のずれ（登場全体に対する割合） */
 const local=(p,i,n,spread)=>clamp((p-(n>1?i/(n-1)*spread:0))/Math.max(.05,1-spread));
 const ALL=['calm','pop','glitch','graphic','emotional','impact'];
+/** 字 g が、文字全体の中心から長い向き（横組みなら横・縦組みなら縦）にどれだけ離れているか（-1..1）と、その向き。字間を動かす部品が使う */
+function along(g,E){const b=E.bbox,w=b.x1-b.x0,h=b.y1-b.y0,horiz=w>=h,half=Math.max(1,(horiz?w:h)/2);return {u:horiz?(g.cx-(b.x0+b.x1)/2)/half:(g.cy-(b.y0+b.y1)/2)/half,horiz};}
+const spread=(g,E,d)=>{const {u,horiz}=along(g,E);return horiz?{dx:u*d}:{dy:u*d};};
 
 // ---- 登場（短いカット向け。fast=短くても成り立つ） --------------------------------------------------------------------------------------------
 export const ENTER={
@@ -62,7 +65,15 @@ export const ENTER={
   item(it,p,E){const e=outCubic(p),k=1-e;it.blur=k*E.size*.35;it.sx*=1+.35*k;it.sy*=1+.35*k;it.a*=Math.pow(clamp(p*1.5),.8);}},
  glitch:{name:'ずれながら現れる',tags:['glitch','graphic','impact'],w:1,fast:true,inDur:D=>clamp(D*.28,.13,.34),plan:()=>({}),
   glyph(g,i,n,p,E){const q=local(p,i,n,.3);if(q<=0)return {hide:true};const f=Math.floor(p*14);
-   return {dx:(E.r(i,f)-.5)*E.size*1.2*(1-q),a:q<.5?(E.r(i,Math.floor(p*20))<.5?1:0):1};}}
+   return {dx:(E.r(i,f)-.5)*E.size*1.2*(1-q),a:q<.5?(E.r(i,Math.floor(p*20))<.5?1:0):1};}},
+ // ---- 字間（2026-10-17）: 字の形は変えず、文字全体の中心からの距離だけを動かす
+ trackIn:{name:'字間が縮んで弾む',tags:['impact','graphic','pop'],w:1,fast:true,inDur:D=>clamp(D*.36,.18,.48),plan:r=>({k:3+r()*2.5,dip:.1+r()*.05}),
+  // 画面の外まで広がった字間が一気に縮み、少しだけ詰まりすぎてから戻る（m は字間の倍率。詰まりすぎは 1 割5分まで）
+  glyph(g,i,n,p,E,P){const half=Math.max(E.size,(E.bbox.x1-E.bbox.x0)/2,(E.bbox.y1-E.bbox.y0)/2),m=1+P.k*(1-outExpo(clamp(p*1.25)))-P.dip*Math.sin(Math.PI*clamp((p-.42)/.58));
+   return {...spread(g,E,half*(m-1)),a:clamp(p*4)};}},
+ // ---- 斜めの切れ目（2026-10-17）: 字を斜めの線で上下に分け、切れ目の向こうからそれぞれ逆向きにせり出す（renderText の it.split）
+ splitIn:{name:'斜めの切れ目からせり出す',tags:['impact','graphic','glitch'],w:.9,fast:true,inDur:D=>clamp(D*.32,.16,.42),plan:r=>({ang:sign(r)*(28+r()*22),line:r()<.7}),
+  item(it,p,E,P){const e=outExpo(p),h=(E.bbox.y1-E.bbox.y0)+E.size*.4;it.split={ang:P.ang*DEG,n:h*(1-e),t:0,dy:0,line:P.line?clamp(1.4-p*1.6):0};}}
 };
 
 // ---- 保持（読んでいる間の小さな動き。強さ p はいつも小さく） -----------------------------------------------------------------------------------
@@ -82,7 +93,12 @@ export const HOLD={
  focusPull:{name:'ピント送り',tags:['emotional','calm','pop','graphic'],w:1,plan:r=>({sp:.8+r()*.8,ph:r()*3}),
   glyph:(g,i,n,p,E,P)=>{const f=((E.lt*P.sp*3+P.ph)%(n+3))-1.5;return {blur:E.size*.075*p*clamp(Math.abs(i-f)/2.5)};}},
  softBreath:{name:'ピンぼけ呼吸',tags:['emotional','calm','glitch'],w:.9,plan:r=>({ph:r()*TAU}),
-  item(it,p,E,P){it.blur=Math.max(it.blur,(.5+.5*Math.sin(E.lt*2.2+P.ph))*E.size*.05*p);}}
+  item(it,p,E,P){it.blur=Math.max(it.blur,(.5+.5*Math.sin(E.lt*2.2+P.ph))*E.size*.05*p);}},
+ // 字間（2026-10-17）。端の字でも動きは字の大きさの1割4分まで（読める範囲は1割5分）
+ trackBreathe:{name:'字間が息をする',tags:['calm','emotional'],w:.9,plan:r=>({ph:r()*TAU,sp:1.2+r()*.8}),
+  glyph:(g,i,n,p,E,P)=>spread(g,E,Math.sin(E.lt*P.sp+P.ph)*E.size*.14*p)},
+ trackOpen:{name:'字間が広がり続ける',tags:['calm','emotional','graphic'],w:.9,plan:r=>({k:.12+r()*.02}),
+  glyph:(g,i,n,p,E,P)=>spread(g,E,clamp(E.lt/Math.max(.3,E.D))*E.size*P.k*p)}
 };
 
 // ---- 退場（カットの最後の短い間。途中のカットでは cut が出やすい） -------------------------------------------------------------------------------
@@ -108,7 +124,10 @@ export const EXIT={
  blurEach:{name:'字ごとボケ',tags:['emotional','calm','pop','glitch'],w:1,outDur:D=>clamp(D*.26,.14,.34),plan:()=>({}),
   glyph(g,i,n,p,E){const q=local(p,i,n,.5);return {blur:inCubic(q)*E.size*.3,a:1-clamp(q*1.1)};}},
  glitchOut:{name:'ずれて消える',tags:['glitch','graphic','impact'],w:1,outDur:D=>clamp(D*.22,.12,.3),plan:()=>({}),
-  glyph(g,i,n,p,E){const f=Math.floor(p*14);return {dx:(E.r(i,f)-.5)*E.size*1.4*p,a:p>.5&&E.r(i,Math.floor(p*20))<p?0:1-p*.5};}}
+  glyph(g,i,n,p,E){const f=Math.floor(p*14);return {dx:(E.r(i,f)-.5)*E.size*1.4*p,a:p>.5&&E.r(i,Math.floor(p*20))<p?0:1-p*.5};}},
+ // 斜めの切れ目（2026-10-17）: 一太刀で斜めに切れ、上と下が切れ目に沿って逆へずれてから、落ちて消える
+ splitDrop:{name:'斜めに切れてずれ落ちる',tags:['impact','graphic','glitch'],w:.9,outDur:D=>clamp(D*.26,.14,.36),plan:r=>({ang:sign(r)*(18+r()*24)}),
+  item(it,p,E,P){const h=(E.bbox.y1-E.bbox.y0)+E.size*.4;it.split={ang:P.ang*DEG,n:0,t:outCubic(clamp(p*2.2))*E.size*.35,dy:inCubic(clamp((p-.3)/.7))*h*1.6,line:clamp(1-p*3)};it.a*=1-inCubic(clamp((p-.45)/.55));}}
 };
 
 // ---- 加工（字の描き方と、行の後ろに敷く図形） -------------------------------------------------------------------------------------------------
@@ -251,7 +270,7 @@ export function stateAt(item,lt){
  const pIn=inDur>0?clamp(lt/inDur):1,pOut=outDur>0?clamp((lt-(D-outDur))/outDur):0,amt=clamp((lt-inDur*.85)/.25)*(1-pOut);
  const E={size:item.size,W:item.W,H:item.H,r:(i,k)=>hash(i,k,item.seed%977),nWords:item.nWords,n,bbox:item.bbox,lt,D,seed:item.seed};
  const en=ENTER[item.enter],ho=HOLD[item.hold],ex=EXIT[item.exit];
- const it={blur:0,sx:1,sy:1,a:1,clip:null,bar:null,pIn,pOut};
+ const it={blur:0,sx:1,sy:1,a:1,clip:null,bar:null,split:null,pIn,pOut};
  if(en&&pIn<1)en.item?.(it,pIn,E,item.enterP);
  if(ho&&amt>0)ho.item?.(it,amt,E,item.holdP);
  if(ex&&pOut>0)ex.item?.(it,pOut,E,item.exitP);
@@ -267,7 +286,7 @@ export function stateAt(item,lt){
 /** 読める状態か: 全部の字が見えていて、ほぼ元の位置・大きさ・濃さ */
 export function readableAt(item,lt){
  const {glyphs,it}=stateAt(item,lt),s=item.size;
- if(it.blur>s*.06||it.clip||it.sx<.85||it.sx>1.2||it.sy<.85||it.sy>1.2||it.a<.9)return false;
+ if(it.blur>s*.06||it.clip||(it.split&&(it.split.n>s*.05||it.split.t>s*.05||it.split.dy>s*.05))||it.sx<.85||it.sx>1.2||it.sy<.85||it.sy>1.2||it.a<.9)return false;
  return glyphs.every(g=>!g.hide&&(g.blur||0)<=s*.08&&g.a>=.9&&Math.abs(g.dx)<s*.15&&Math.abs(g.dy)<s*.15&&g.sx>.8&&g.sx<1.25&&g.sy>.8&&g.sy<1.25&&Math.abs(g.rot)<12);
 }
 /** カットのうち、読める状態にある時間の割合（0.04秒きざみ） */
@@ -328,10 +347,17 @@ export function renderText(ctx,item,lt,{layer,tint}={}){
  c.translate(cx,cy);c.scale(it.sx,it.sy);c.translate(-cx,-cy);
  if(it.clip){c.beginPath();c.rect(it.clip.x0,-1e5,it.clip.x1-it.clip.x0,2e5);c.clip();}
  if(!tint)decoDraw(c,item,it);
- for(let i=0;i<glyphs.length;i++){
-  const s=glyphs[i];if(s.hide||s.a<=0)continue;
-  glyphDraw(c,item,item.glyphs[i],s,it,tint);
- }
+ const drawAll=()=>{for(let i=0;i<glyphs.length;i++){const s=glyphs[i];if(s.hide||s.a<=0)continue;glyphDraw(c,item,item.glyphs[i],s,it,tint);}};
+ if(it.split){
+  // 斜めの切れ目: 文字の中心を通る角度 ang の線で、上と下を別々に切り抜いて描く。n は切れ目から離す量（切れ目の向こうに隠れる向き）、t は切れ目に沿って逆へずらす量、dy は下へ落とす量
+  const S=it.split;
+  for(const side of [-1,1]){
+   c.save();c.translate(cx,cy+S.dy);c.rotate(S.ang);
+   c.beginPath();c.rect(-1e5,side<0?-1e5:0,2e5,1e5);c.clip();
+   c.translate(side*S.t,-side*S.n);c.rotate(-S.ang);c.translate(-cx,-cy);drawAll();c.restore();
+  }
+  if(S.line>0&&!tint){const L=(item.bbox.x1-item.bbox.x0)/2+item.size*.6;c.save();c.translate(cx,cy+S.dy);c.rotate(S.ang);c.globalAlpha=clamp(S.line)*it.a;c.fillStyle=item.accent;c.fillRect(-L,-Math.max(.75,item.size*.008),L*2,Math.max(1.5,item.size*.016));c.restore();}
+ }else drawAll();
  c.restore();
  if(it.bar&&it.pIn<1){ctx.fillStyle=item.accent;ctx.globalAlpha=.9;ctx.fillRect(it.bar.x-Math.max(3,item.size*.04),item.bbox.y0-item.size*.1,Math.max(6,item.size*.08),item.bbox.y1-item.bbox.y0+item.size*.2);ctx.globalAlpha=1;}
  if(useLayer){ctx.save();ctx.filter=`blur(${it.blur.toFixed(1)}px)`;ctx.drawImage(c.canvas,0,0);ctx.restore();}
