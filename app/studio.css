@@ -188,3 +188,18 @@
 .unfold-dialog .dialog-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.unfold-dialog .dialog-actions button{margin:0}
 .saved-list{display:grid;gap:8px;margin-top:6px}.unfold-dialog .saved-item{margin:0;display:grid;gap:3px;text-align:left;padding:10px 12px;border-radius:9px;line-height:1.4}.saved-item strong{font-size:14px;color:#e8f4ef}.saved-item.current{opacity:.7;border-style:dashed}
 .back-prev{background:#3a3220;border-color:#c99a3d;color:#ffd98a}.back-prev:hover{background:#4a3f26}
+/* この歌詞を編集 → 動き の一番上: この歌詞の演出（歌詞ごとの動き / カット割り） */
+.studio-lyric-edit .lq-cut{border:1px solid #5b4a7e;border-radius:8px;padding:8px 10px;margin:0 0 10px;background:#1c1a2b}
+.studio-lyric-edit .lq-cut.on{border-color:#b69cff;background:#241f3a}
+.studio-lyric-edit .lq-cut-head{display:flex;align-items:baseline;gap:8px}.studio-lyric-edit .lq-cut-head strong{font-size:12px;color:#cdb8ff}
+.studio-lyric-edit .lq-cut-state{margin:0;font-size:12px;color:#e6dcff}
+.studio-lyric-edit .lq-cut .lq-row button{flex:1 1 auto;min-height:30px;font-size:12px}
+.studio-lyric-edit .lq-cut .lq-row button.primary{background:#b69cff;border-color:#b69cff;color:#1c1530}
+.studio-lyric-edit .lq-cut-note{margin:4px 0 0;font-size:11px}
+/* おまかせ: 演出のしかた（ボタン2つ） */
+.omakase-style-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:4px 0 10px}.omakase-style-switch .omakase-label{grid-column:1/-1}
+.omakase-style-switch .style-choice{display:grid;gap:2px;text-align:left;padding:8px 10px;border-radius:8px;min-height:52px;line-height:1.3}
+.omakase-style-switch .style-choice small{font-size:11px;color:#9fb3ae}.omakase-style-switch .style-choice strong{font-size:13px}
+.omakase-style-switch .style-choice[aria-pressed=true]{border-color:#9be6c4;background:#1e3a33;box-shadow:inset 0 0 0 1px #9be6c4}
+.omakase-style-switch .style-choice[data-style=cut][aria-pressed=true]{border-color:#b69cff;background:#2a2342;box-shadow:inset 0 0 0 1px #b69cff}
+.omakase-style-switch .style-choice[aria-pressed=true] small{color:#d6e6e1}

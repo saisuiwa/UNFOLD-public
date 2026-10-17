@@ -17,6 +17,9 @@ export function createOmakasePanel(controller){
  const family=el('select',{'aria-label':'配色の系統','data-testid':'omakase-family'},el('option',{value:FAMILY_AUTO},'雰囲気におまかせ'),...COLOR_FAMILIES.map(f=>el('option',{value:f.id},f.name)));
  const layoutSel=el('select',{'aria-label':'配置と語の大小','data-testid':'omakase-layout'},el('option',{value:LAYOUT_SPREAD},'ばらけさせる（位置・語の大小）'),el('option',{value:LAYOUT_CENTER},'真ん中に揃える'));
  const styleSel=el('select',{'aria-label':'演出のしかた','data-testid':'omakase-style'},el('option',{value:'line'},'歌詞ごとに1つの動き'),el('option',{value:'cut'},'カット割り（短く切って、部品を重ねる）'));
+ // 演出のしかたは、見えるボタン2つで選ぶ（中身は styleSel のまま。プルダウンの中では、カット割りがあることに気づけなかった）
+ const styleBtns=[['line','歌詞ごとに1つの動き','1行に1つの動き'],['cut','✂ カット割り','短く切って、部品を重ねる']].map(([value,label,sub])=>{const b=el('button',{type:'button',class:'style-choice','data-style':value,'data-testid':'omakase-style-'+value,'aria-pressed':String(value==='line')},el('strong',{},label),el('small',{},sub));b.addEventListener('click',()=>{if(styleSel.value===value)return;styleSel.value=value;styleSel.dispatchEvent(new Event('change'));});return b;});
+ const syncStyle=()=>{for(const b of styleBtns)b.setAttribute('aria-pressed',String(b.dataset.style===styleSel.value));};
  // カット割りの細かい設定（0〜100%）。変えると、いまの案の種のまま、その場で作り直す
  const CUT_SLIDERS=[['density','カットの細かさ',CUT_DEFAULTS.density],['camAmount','カメラ',CUT_DEFAULTS.camAmount],['fxAmount','画面効果',CUT_DEFAULTS.fxAmount],['transAmount','つなぎ',CUT_DEFAULTS.transAmount],['treatAmount','文字の加工',CUT_DEFAULTS.treatAmount],['worldAmount','物の世界',CUT_DEFAULTS.worldAmount,'文字の下に敷く物（窓・チケット・吹き出し・フィルム…）が出る回数。0%で出ません'],['worldOpacity','物の濃さ',CUT_DEFAULTS.worldOpacity,'物の濃さ。下げると、物が透けて、後ろの絵が見えます（文字は薄くなりません）'],['carryAmount','物の引き継ぎ',CUT_DEFAULTS.carryAmount],['ghostAmount','ゴースト（色ずれ）',CUT_DEFAULTS.ghostAmount]];
  const cutSliders=Object.fromEntries(CUT_SLIDERS.map(([key,label,value,tip])=>{const input=el('input',{type:'range',min:0,max:100,step:1,value:Math.round(value*100),'aria-label':label+'（%）','data-testid':'omakase-cut-'+key}),out=el('output',{},Math.round(value*100)+'%');input.addEventListener('input',()=>{out.textContent=input.value+'%';});return [key,{input,out,label,tip}];}));
@@ -111,7 +114,7 @@ export function createOmakasePanel(controller){
  // choosing a colour family re-rolls the colours at once when there is a plan on screen
  family.addEventListener('change',()=>{if(state.plan)run(()=>only('color'));});
  // 演出のしかたを変えると、いまの案を、そのしかたで作り直す。カット割りの設定を変えても、いまの案の種のまま、その場で作り直す
- styleSel.addEventListener('change',()=>{cutBox.hidden=styleSel.value!=='cut';const entry=state.history[state.index];if(entry&&state.plan)run(()=>{entry.style=styleSel.value;entry.cut=cutOptions();return apply(entry);});else render();});
+ styleSel.addEventListener('change',()=>{syncStyle();cutBox.hidden=styleSel.value!=='cut';const entry=state.history[state.index];if(entry&&state.plan)run(()=>{entry.style=styleSel.value;entry.cut=cutOptions();return apply(entry);});else render();});
  const recut=()=>{const entry=state.history[state.index];if(entry?.style==='cut')run(()=>{entry.cut=cutOptions();return applyCut(entry);});};
  for(const {input} of Object.values(cutSliders))input.addEventListener('change',recut);
  avoidFlash.addEventListener('change',recut);cutBg.addEventListener('change',recut);freeText.addEventListener('change',recut);
@@ -120,7 +123,7 @@ export function createOmakasePanel(controller){
   counter.textContent=state.history.length?`${state.index+1} / ${state.history.length}`:'';
   {const p=project(),entry=state.history[state.index];
    // the size slider keeps its own value (default 12 %) and shows the plan on screen when walking through plans; the opacity slider shows the first lyric's
-   if(entry){styleSel.value=entry.style||'line';cutBox.hidden=styleSel.value!=='cut';if(entry.cut)for(const [key,{input,out}] of Object.entries(cutSliders))if(entry.cut[key]!=null){input.value=Math.round(entry.cut[key]*100);out.textContent=input.value+'%';}if(entry.cut){avoidFlash.checked=!!entry.cut.avoidFlash;cutBg.checked=entry.cut.bgMode!=='none';freeText.checked=entry.cut.freeText!==false;}}
+   if(entry){styleSel.value=entry.style||'line';syncStyle();cutBox.hidden=styleSel.value!=='cut';if(entry.cut)for(const [key,{input,out}] of Object.entries(cutSliders))if(entry.cut[key]!=null){input.value=Math.round(entry.cut[key]*100);out.textContent=input.value+'%';}if(entry.cut){avoidFlash.checked=!!entry.cut.avoidFlash;cutBg.checked=entry.cut.bgMode!=='none';freeText.checked=entry.cut.freeText!==false;}}
    if(entry?.sizePct!=null){const pct=Math.round(Math.min(SIZE_PCT.max,Math.max(SIZE_PCT.min,entry.sizePct)));sizeSlider.value=pct;sizeOut.textContent=pct+'%';}
    if(p.lyrics.length){const o=Math.round((p.lyrics[0].opacity??1)*100/5)*5;opacitySlider.value=Math.min(100,Math.max(10,o));opacityOut.textContent=opacitySlider.value+'%';}}
   const cs=state.cut;
@@ -138,8 +141,8 @@ export function createOmakasePanel(controller){
  }
  const element=el('section',{class:'omakase','aria-label':'おまかせ','data-testid':'omakase-panel'},
   el('h2',{title:'歌詞の動き・背景・配色をまとめて決めます。歌詞の文字と時刻、曲、UNFOLD作品は変わりません。'},'おまかせ ',el('small',{},'動き・背景・配色をまとめて決める')),
+  el('div',{class:'omakase-style-switch',role:'group','aria-label':'演出のしかた'},el('span',{class:'omakase-label'},'演出のしかた'),...styleBtns),
   button(controller,'おまかせで作る',create,{class:'primary wide','data-testid':'omakase-create'}),
-  el('label',{class:'omakase-mood'},el('span',{},'演出'),styleSel),
   el('label',{class:'omakase-mood'},el('span',{},'雰囲気'),mood),
   el('label',{class:'omakase-mood'},el('span',{},'配色の系統'),family),
   el('label',{class:'omakase-mood'},el('span',{},'文字の配置'),layoutSel),

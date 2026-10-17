@@ -21,7 +21,7 @@ await withStudioPage(async page=>{
  const save=async(name,r)=>writeFile('tools/out/studio/'+name+'.png',Buffer.from(r.png,'base64'));
  // ---- 演出を「カット割り」にして、おまかせで作る
  const panel=page.getByTestId('omakase-panel');await panel.waitFor({state:'visible'});
- await page.getByTestId('omakase-style').selectOption('cut');
+ await page.getByTestId('omakase-style-cut').click();
  assert.equal(await page.getByTestId('omakase-cut-box').isVisible(),true,'the cut settings show in cut mode');
  // 案がない間は、設定だけだと分かる説明と「この設定で作る」が出ている。そのボタンで作る
  assert.match(await page.getByTestId('omakase-cut-hint').innerText(),/設定だけ/);
@@ -88,7 +88,7 @@ await withStudioPage(async page=>{
  await page.evaluate(()=>c.undo());await page.waitForTimeout(300);
  const back=await page.evaluate(t=>frame(t),mid(0));assert.equal(back.png,withCut.png,'Undo brings the cut picture back exactly');
  // ---- 演出を「歌詞ごと」に戻す: カット演出は外れ、背景のクリップが戻る
- await page.getByTestId('omakase-style').selectOption('line');
+ await page.getByTestId('omakase-style-line').click();
  await page.waitForFunction(()=>c.get().project.lyrics.every(l=>!l.cut)&&c.get().project.lyrics.every(l=>l.motion.code?.source),null,{timeout:60000});
  assert.ok(await page.evaluate(()=>c.get().project.clips.some(x=>x.settings?.omakase)),'the おまかせ backgrounds are back');
  assert.deepEqual(errors,[],'no page errors: '+errors.join(' | '));

@@ -50,4 +50,15 @@ export function removeCutCommands(project){
   ...project.clips.filter(c=>c.settings?.cut!=null).map(c=>{const settings={...c.settings};delete settings.cut;return {type:'setClipContent',id:c.id,patch:{settings}};})];
  return commands.length?{type:'batch',commands}:null;
 }
+/**
+ * 1つの歌詞だけのカット演出（「この歌詞を編集」の「この歌詞をカット割りにする」）。ほかの歌詞・自由文字・背景のクリップには触らない。
+ * 色はその歌詞の今の色のまま。返すのは、その歌詞の setLyricAppearance（1回で元に戻せる）と、カットの数。
+ */
+export async function lyricCutCommand(project,lyricId,{seed=1,cut={},ensureFonts=async()=>{},measure}={}){
+ const l=project.lyrics.find(x=>x.id===lyricId);if(!l||!String(l.text||'').trim())return null;
+ const palette={color:l.motion?.color||'#ffffff',emphasisColor:l.motion?.emphasisColor||'#ffc04d'};
+ const result=await makeCutPlan({...project,lyrics:[l],clips:[]},{seed,palette,cut:{...cut,freeText:false},ensureFonts,measure});
+ const data=result.data.get(l.id);if(!data)return null;
+ return {command:{type:'setLyricAppearance',id:l.id,patch:{cut:{...data,sig:motionSig({motion:l.motion})}}},cuts:data.cuts.length};
+}
 export {CUT_VERSION};

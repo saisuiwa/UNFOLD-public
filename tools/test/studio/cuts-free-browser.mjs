@@ -21,7 +21,7 @@ await withStudioPage(async page=>{
  assert.ok(info.free,'a free text clip was added: '+JSON.stringify(info));
  // ---- cut mode, with 自由文字にも付ける (on by default)
  await page.evaluate(()=>c.select(null));   // the おまかせ panel shows when nothing is selected
- await page.getByTestId('omakase-style').selectOption('cut');
+ await page.getByTestId('omakase-style-cut').click();
  assert.equal(await page.getByTestId('omakase-cut-free').isChecked(),true);
  await page.getByTestId('omakase-create').click();
  await page.waitForFunction(()=>freeClip()?.settings?.cut&&c.get().project.lyrics.every(l=>l.cut),null,{timeout:60000});
@@ -85,7 +85,7 @@ await withStudioPage(async page=>{
  await page.getByTestId('omakase-cut-free').check();
  await page.waitForFunction(()=>freeClip().settings?.cut,null,{timeout:60000});
  // ---- back to 歌詞ごと: everything is taken off (the lyrics get their motions, the free text its own look again)
- await page.getByTestId('omakase-style').selectOption('line');
+ await page.getByTestId('omakase-style-line').click();
  await page.waitForFunction(()=>!freeClip().settings?.cut&&c.get().project.lyrics.every(l=>!l.cut),null,{timeout:60000});
  assert.equal(await page.evaluate(()=>freeClip().text),'光をつなぐ','the text itself is untouched');
  // ---- Undo brings the plans back in one step

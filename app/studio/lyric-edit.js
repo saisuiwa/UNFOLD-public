@@ -10,6 +10,9 @@ import {DAILY_CODE_MOTIONS} from '../code-motion-daily.js';
 import {createMotionLibrary} from '../lyric-library.js';
 import {approveStudioCode,isStudioCodeApproved} from './code-trust.js';
 import {el} from './dom.js';
+import {lyricCutCommand} from './cuts/apply.js';
+import {cutActive} from './cuts/plan.js';
+import {ensureCutFonts,measureChar} from './cuts/layer.js';
 
 // Code the panel is about to run: the workshop's own bundled motions are trusted; anything else (a motion from the saved library, code typed or pasted
 // into the editor) is asked about once, exactly like opening a piece that carries code. Declining stops the change.
@@ -114,7 +117,18 @@ export function createLyricEdit(controller){
  let savedItems=[];
  saved.onchange=()=>{const item=savedItems.find(i=>i.id===saved.value);saved.value='';if(item)apply({code:item.motion.code||null,recipe:item.motion.recipe||null,speed:item.motion.speed}).then(()=>{status.textContent='「'+item.name+'」を反映しました。';}).catch(e=>{status.textContent=e.message;});};
  function refreshSaved(){try{savedItems=createMotionLibrary().list();}catch{savedItems=[];}saved.replaceChildren(new Option('選ぶ',''),...savedItems.map(i=>new Option(i.name,i.id)));savedLabel.hidden=!savedItems.length;}
+ // カット割り: この歌詞だけ、短いカットに切って部品を重ねる演出にする（全部まとめては、おまかせの「カット割り」）。動きの札を選ぶと、普通の動きに戻る
+ const cutState=el('p',{class:'lq-cut-state','data-testid':'lyric-cut-state'}),cutStatus=el('p',{class:'hint',role:'status'});
+ const cutAct=(fn,done)=>()=>{cutStatus.textContent='作っています…';Promise.resolve().then(fn).then(()=>{cutStatus.textContent=done;refreshCut();}).catch(e=>{cutStatus.textContent=e.message||String(e);});};
+ const makeCut=async()=>{const id=selectedId(),p=state().project;if(!id)return;const made=await lyricCutCommand(p,id,{seed:1+Math.floor(Math.random()*1e9),ensureFonts:ensureCutFonts,measure:measureChar});if(!made)throw new Error('この歌詞には文字がありません。');await controller.dispatch(made.command);await play(id);};
+ const cutMake=el('button',{type:'button',class:'primary','data-testid':'lyric-cut-make',onclick:cutAct(makeCut,'カット割りにしました。')},'✂ この歌詞をカット割りにする');
+ const cutAgain=el('button',{type:'button','data-testid':'lyric-cut-again',onclick:cutAct(makeCut,'別の案にしました。')},'別の案');
+ const cutOff=el('button',{type:'button','data-testid':'lyric-cut-off',onclick:cutAct(async()=>{const id=selectedId();if(id)await controller.dispatch({type:'setLyricAppearance',id,patch:{cut:null}});},'普通の動きに戻しました。')},'普通の動きに戻す');
+ const cutBox=el('div',{class:'lq-cut','data-testid':'lyric-cut-box'},el('div',{class:'lq-cut-head'},el('strong',{},'演出'),cutState),el('div',{class:'lq-row'},cutMake,cutAgain,cutOff),
+  el('p',{class:'hint lq-cut-note'},'カット割り：短いカットに切って、背景・カメラ・文字の部品を重ねます。全部の歌詞をまとめて変える時は、右上の「おまかせ」の「カット割り」。'),cutStatus);
+ function refreshCut(){const l=find(selectedId());const on=!!l&&cutActive(l);cutState.textContent=on?`カット割り（${l.cut.cuts.length}カット）`:'歌詞ごとの動き';cutBox.classList.toggle('on',on);cutMake.hidden=on;cutAgain.hidden=!on;cutOff.hidden=!on;}
  const motionPanel=el('section',{class:'lq-code-motions','aria-label':'動き'},
+  cutBox,
   el('label',{class:'lq-size'},el('span',{},'文字の大きさ'),size,sizeValue),
   el('label',{class:'lq-scope'},scopeAll,' 全歌詞に適用（大きさ・動き）'),
   savedLabel,group('文字の動き',texts,'codetext',true),group('文字つきのエフェクト',effects,'effect',false),status);
@@ -125,6 +139,6 @@ export function createLyricEdit(controller){
  const documentOf=()=>{const s=state(),key=s.project.id+':'+s.editVersion;if(cache.key!==key)cache={key,document:{events:s.project.lyrics.map(eventOf)}};return cache.document;};
  const quick=createLyricQuick({getState:()=>{const s=state();return {document:documentOf(),selectedId:s.selection?.kind==='lyric'?s.selection.id:null,legacy:false,recording:false};},onAction,onMore:()=>{},motionPanel,wordSize:true});
  const element=el('div',{class:'studio-lyric-edit'},quick.element);
- function refresh(){quick.refresh();const s=state(),id=selectedId();if(!id)return;const layout=s.project.views[s.viewId]?.layout[id];if(layout){size.value=layout.fontScale;sizeValue.textContent=Math.round(layout.fontScale*1000)/10+'%';}}
+ function refresh(){quick.refresh();const s=state(),id=selectedId();if(!id)return;refreshCut();const layout=s.project.views[s.viewId]?.layout[id];if(layout){size.value=layout.fontScale;sizeValue.textContent=Math.round(layout.fontScale*1000)/10+'%';}}
  return {element,refresh,dispose(){quick.dispose();}};
 }
