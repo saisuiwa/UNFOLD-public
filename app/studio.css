@@ -167,6 +167,7 @@
 .omakase-sliders{display:grid;gap:6px;margin-top:2px}
 .omakase-slider{display:grid;grid-template-columns:7.2em minmax(0,1fr) 3.2em;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
 .omakase-slider input[type=range]{width:100%;padding:0;min-height:0}
+.omakase-slider .omakase-sub{display:block;font-size:10px;line-height:1.2;opacity:.75}
 .omakase-slider output{font:11px ui-monospace,monospace;text-align:right;color:var(--ink)}
 .omakase-summary{max-height:9.5em;overflow:auto}
 .to-omakase{justify-self:start;min-height:26px;padding:2px 9px;font-size:12px;color:var(--mint);background:transparent;margin-bottom:6px}

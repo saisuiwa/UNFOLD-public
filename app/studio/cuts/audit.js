@@ -1,5 +1,5 @@
 // カット演出の計画の検査と手直し。各軸を別々に選んだ後で、「組み合わせたときの破綻」を見つけて直す。
-// 参考ツールの planner が、選ぶ時点の重みと互換ルールで防いでいるものに加えて、選び終えた計画全体を見て直す（重ね過ぎ・文字が小さい・読めない…）。
+// 計画（plan.js）が、選ぶ時点の重みと互換ルールで防いでいるものに加えて、選び終えた計画全体を見て直す（重ね過ぎ・文字が小さい・読めない…）。
 // 純粋な関数（DOM なし）。文字アイテムは itemOf(cut) で受け取る（ブラウザでは実際の書体で測ったもの、テストでは偽の測りで）。
 import {CAMERA} from './parts.js';
 import {ENTER,readableShare} from './glyphs.js';
@@ -60,10 +60,10 @@ export function refinePlan(cuts,{itemOf,invalidate=()=>{},locked=new Set(),seed=
   rows.forEach((row,i)=>{
    const c=cuts[i];if(locked.has(c.id))return;
    for(const {code} of row.issues){
-    if(code==='cam-hold'){c.hold='still';c.holdP={};note(c,code,'保持を静止に');changed=true;}
-    else if(code==='cam-world'){if(drop.cam(c)){note(c,code,'カメラを外した');changed=true;}}
-    else if(code==='dup-world'){if(drop.world(c)){invalidate(c);note(c,code,'2回目の世界を外した');changed=true;}}
-    else if(code==='carry-fx'){if(drop.fx(c)){note(c,code,'画面効果を外した');changed=true;}}
+    if(code==='cam-hold'){c.hold='still';c.holdP={};note(c,code,'STAYを静止に');changed=true;}
+    else if(code==='cam-world'){if(drop.cam(c)){note(c,code,'CAMを外した');changed=true;}}
+    else if(code==='dup-world'){if(drop.world(c)){invalidate(c);note(c,code,'2回目のSTAGEを外した');changed=true;}}
+    else if(code==='carry-fx'){if(drop.fx(c)){note(c,code,'FXを外した');changed=true;}}
     else if(code==='ghost-soft'){c.ghost=GHOST_SOFT_MAX;note(c,code,'ゴーストを弱めた');changed=true;}
     else if(code==='recap-busy'){
      let did=drop.fx(c);
@@ -86,9 +86,9 @@ export function refinePlan(cuts,{itemOf,invalidate=()=>{},locked=new Set(),seed=
      }
     }
     else if(code==='unreadable'){
-     if(c.exit!=='cut'){c.exit='cut';c.exitP={};invalidate(c);note(c,code,'退場をなしに');changed=true;}
-     else if(SLOW_ENTER.includes(c.enter)||BUSY_ENTER.includes(c.enter)){setEnter(c,'pop',seed);invalidate(c);note(c,code,'登場をポップに');changed=true;}
-     else if(c.enter!=='cut'){setEnter(c,'cut',seed);invalidate(c);note(c,code,'登場をなしに');changed=true;}
+     if(c.exit!=='cut'){c.exit='cut';c.exitP={};invalidate(c);note(c,code,'OUTをなしに');changed=true;}
+     else if(SLOW_ENTER.includes(c.enter)||BUSY_ENTER.includes(c.enter)){setEnter(c,'pop',seed);invalidate(c);note(c,code,'INをポップに');changed=true;}
+     else if(c.enter!=='cut'){setEnter(c,'cut',seed);invalidate(c);note(c,code,'INをなしに');changed=true;}
     }
    }
   });

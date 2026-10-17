@@ -28,8 +28,9 @@ export const luma=hex=>{const [r,g,b]=hexRgb(hex);return (.2126*r+.7152*g+.0722*
 export const contrast=hex=>luma(hex)>.55?'#101018':'#ffffff';
 /** 雰囲気のタグ（部品の tags に使う） */
 export const MOODS=['calm','pop','glitch','graphic','emotional','impact'];
-/** 部品の軸（daily-parts.js の axis）と、その日本語名 */
-export const AXES={enter:'登場',hold:'保持',exit:'退場',treat:'加工',bg:'背景',cam:'カメラ',fx:'画面効果',trans:'つなぎ',world:'物の世界',deco:'装飾'};
+/** 部品の軸（daily-parts.js の axis）と、画面に出す名前（2026-10-17 作者が決めた英語の名前）。AXIS_HINTS は添える日本語 */
+export const AXES={enter:'IN',hold:'STAY',exit:'OUT',treat:'STYLE',bg:'BG',cam:'CAM',fx:'FX',trans:'TRANS',world:'STAGE',deco:'DECO'};
+export const AXIS_HINTS={enter:'登場',hold:'保持',exit:'退場',treat:'字の描き方',bg:'背景',cam:'カメラ',fx:'画面効果',trans:'つなぎ',world:'文字を載せる台',deco:'飾り'};
 
 /**
  * 毎日の部品を、軸ごとの表の末尾に足す（glyphs.js / parts.js / worlds.js が、自分の表について呼ぶ）。

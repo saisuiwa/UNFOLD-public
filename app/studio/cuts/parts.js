@@ -195,5 +195,5 @@ export const TRANS={
 // 毎日のルーティンで足した部品（daily-parts.js）を、表の末尾につなぐ
 addDailyParts({bg:BG,cam:CAMERA,fx:FX,trans:TRANS},DAILY_CUT_PARTS);
 export const GROUPS={bg:BG,cam:CAMERA,fx:FX,trans:TRANS};
-export const GROUP_NAMES={bg:'背景',cam:'カメラ',fx:'画面効果',trans:'つなぎ'};
+export const GROUP_NAMES={bg:'BG',cam:'CAM',fx:'FX',trans:'TRANS'};
 export const partName=(group,key)=>GROUPS[group]?.[key]?.name||'なし';

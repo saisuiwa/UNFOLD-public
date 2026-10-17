@@ -1,5 +1,5 @@
 // おまかせ: choose a motion for every lyric, a background for each stretch of lines and a palette, from per-mood allow-lists
-// (the idea of 参考ツール's moods; the motions are UNFOLD's own). Everything is derived from seeds, so a plan can be replayed (前の案) and one part re-rolled (ここだけ変える).
+// (moods as lyric videos commonly use them; the motions are UNFOLD's own). Everything is derived from seeds, so a plan can be replayed (前の案) and one part re-rolled (ここだけ変える).
 // Pure functions: no DOM, no controller.
 import {cleanMotion} from '../lyric-motion.js?v=28';
 import {DAILY_CODE_MOTIONS} from '../code-motion-daily.js';
@@ -16,7 +16,7 @@ export const MOODS=[
 ];
 export const MOOD_AUTO='auto';
 
-// 配色の系統: the colour families the panel offers (the idea of picking a colour scheme as in 参考ツール; the colours are UNFOLD's own).
+// 配色の系統: the colour families the panel offers (picking a colour scheme, as lyric video tools commonly do; the colours are UNFOLD's own).
 // Every palette is a text colour and the colour of an emphasised word; green is kept out on purpose (it used to dominate).
 export const FAMILY_AUTO='auto';
 export const COLOR_FAMILIES=[
@@ -71,7 +71,7 @@ export const newSeeds=(random=Math.random)=>({mood:Math.floor(random()*1e9),text
 // ---- 配置と語ごとの大小 (where a line sits in the picture, and how big each word is) --------------------------------------------------------------
 // The text motions draw their line around the middle of the picture; the lyric's layout (x, y, scale, rotation) moves that whole drawing, so a line can
 // sit in a corner, at an edge, be tilted or turned sideways. The drawing is scaled down a little (and kept inside a margin) so it never leaves the picture.
-// The word sizes are runs' `scale` (word-size.js): content words big, particles small, as 参考ツール does.
+// The word sizes are runs' `scale` (word-size.js): content words big, particles small, as lyric videos commonly do.
 export const LAYOUT_SPREAD='spread',LAYOUT_CENTER='center';
 const PLACES={center:[.5,.5],'top-left':[.3,.3],'top-right':[.7,.3],'bottom-left':[.3,.7],'bottom-right':[.7,.7],top:[.5,.24],bottom:[.5,.76],left:[.27,.5],right:[.73,.5]};
 // per mood: how often each place is used, how far lines are tilted (degrees), how often a short line is turned sideways, how strong the word sizes are

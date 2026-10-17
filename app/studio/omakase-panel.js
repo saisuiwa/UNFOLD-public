@@ -21,15 +21,16 @@ export function createOmakasePanel(controller){
  const styleBtns=[['line','歌詞ごとに1つの動き','1行に1つの動き'],['cut','✂ カット割り','短く切って、部品を重ねる']].map(([value,label,sub])=>{const b=el('button',{type:'button',class:'style-choice','data-style':value,'data-testid':'omakase-style-'+value,'aria-pressed':String(value==='line')},el('strong',{},label),el('small',{},sub));b.addEventListener('click',()=>{if(styleSel.value===value)return;styleSel.value=value;styleSel.dispatchEvent(new Event('change'));});return b;});
  const syncStyle=()=>{for(const b of styleBtns)b.setAttribute('aria-pressed',String(b.dataset.style===styleSel.value));};
  // カット割りの細かい設定（0〜100%）。変えると、いまの案の種のまま、その場で作り直す
- const CUT_SLIDERS=[['density','カットの細かさ',CUT_DEFAULTS.density],['camAmount','カメラ',CUT_DEFAULTS.camAmount],['fxAmount','画面効果',CUT_DEFAULTS.fxAmount],['transAmount','つなぎ',CUT_DEFAULTS.transAmount],['treatAmount','文字の加工',CUT_DEFAULTS.treatAmount],['worldAmount','物の世界',CUT_DEFAULTS.worldAmount,'文字の下に敷く物（窓・チケット・吹き出し・フィルム…）が出る回数。0%で出ません'],['worldOpacity','物の濃さ',CUT_DEFAULTS.worldOpacity,'物の濃さ。下げると、物が透けて、後ろの絵が見えます（文字は薄くなりません）'],['decoAmount','装飾',CUT_DEFAULTS.decoAmount,'文字のまわりに付く飾り（手描きの丸囲み・キラキラ・矢印・効果線…）が出る回数。0%で出ません'],['carryAmount','物の引き継ぎ',CUT_DEFAULTS.carryAmount],['ghostAmount','ゴースト（色ずれ）',CUT_DEFAULTS.ghostAmount]];
- const cutSliders=Object.fromEntries(CUT_SLIDERS.map(([key,label,value,tip])=>{const input=el('input',{type:'range',min:0,max:100,step:1,value:Math.round(value*100),'aria-label':label+'（%）','data-testid':'omakase-cut-'+key}),out=el('output',{},Math.round(value*100)+'%');input.addEventListener('input',()=>{out.textContent=input.value+'%';});return [key,{input,out,label,tip}];}));
+ // カット割りの軸は英語の名前（IN STAY OUT STYLE DECO BG CAM FX TRANS STAGE。cuts/kit.js の AXES）、横に日本語を小さく添える
+ const CUT_SLIDERS=[['density','カットの細かさ',CUT_DEFAULTS.density],['camAmount','CAM',CUT_DEFAULTS.camAmount,'文字の層全体の動き（寄る・引く・傾く・揺れる）が付く回数','カメラ'],['fxAmount','FX',CUT_DEFAULTS.fxAmount,'カットの頭の画面効果（色ずれ・グリッチ・ブラー…）が付く回数','画面効果'],['transAmount','TRANS',CUT_DEFAULTS.transAmount,'カットとカットをつなぐ切り替え（ワイプ・アイリス…）が付く回数','つなぎ'],['treatAmount','STYLE',CUT_DEFAULTS.treatAmount,'字の描き方（縁取り・中抜き・影・蛍光ペン…）が付く回数','字の描き方'],['worldAmount','STAGE',CUT_DEFAULTS.worldAmount,'文字の下に敷く台（窓・チケット・吹き出し・フィルム…）が出る回数。0%で出ません','文字を載せる台'],['worldOpacity','STAGEの濃さ',CUT_DEFAULTS.worldOpacity,'台の濃さ。下げると、台が透けて、後ろの絵が見えます（文字は薄くなりません）'],['decoAmount','DECO',CUT_DEFAULTS.decoAmount,'文字のまわりに付く飾り（手描きの丸囲み・キラキラ・矢印・効果線…）が出る回数。0%で出ません','飾り'],['carryAmount','STAGEの引き継ぎ',CUT_DEFAULTS.carryAmount,'前のカットの台が寄って、次のカットの台に入れ替わる回数'],['ghostAmount','ゴースト（色ずれ）',CUT_DEFAULTS.ghostAmount]];
+ const cutSliders=Object.fromEntries(CUT_SLIDERS.map(([key,label,value,tip,sub])=>{const input=el('input',{type:'range',min:0,max:100,step:1,value:Math.round(value*100),'aria-label':label+(sub?`（${sub}）`:'')+'（%）','data-testid':'omakase-cut-'+key}),out=el('output',{},Math.round(value*100)+'%');input.addEventListener('input',()=>{out.textContent=input.value+'%';});return [key,{input,out,label,tip,sub}];}));
  const freeText=el('input',{type:'checkbox','aria-label':'自由文字にも付ける',checked:true,'data-testid':'omakase-cut-free'}),avoidFlash=el('input',{type:'checkbox','aria-label':'強い点滅を避ける',checked:true,'data-testid':'omakase-cut-avoidFlash'}),cutBg=el('input',{type:'checkbox','aria-label':'背景の絵も付ける',checked:true,'data-testid':'omakase-cut-bg'});
  const cutOptions=()=>({...Object.fromEntries(CUT_SLIDERS.map(([key])=>[key,Number(cutSliders[key].input.value)/100])),avoidFlash:avoidFlash.checked,bgMode:cutBg.checked?'auto':'none',freeText:freeText.checked});
  // まだカット割りの案を作っていない間は、スライダーを動かしても絵は変わらない（設定だけ）。そのことと、ここから作れることを、枠の一番上に出す
  const cutHint=el('p',{class:'hint','data-testid':'omakase-cut-hint'}),cutCreate=button(controller,'この設定で作る',()=>create(),{class:'primary','data-testid':'omakase-cut-create'});
  const cutBox=el('div',{class:'omakase-cut','data-testid':'omakase-cut-box',hidden:true},
   cutHint,cutCreate,
-  el('div',{class:'omakase-sliders'},...CUT_SLIDERS.map(([key])=>el('label',{class:'omakase-slider',...(cutSliders[key].tip?{title:cutSliders[key].tip}:{})},el('span',{},cutSliders[key].label),cutSliders[key].input,cutSliders[key].out))),
+  el('div',{class:'omakase-sliders'},...CUT_SLIDERS.map(([key])=>el('label',{class:'omakase-slider',...(cutSliders[key].tip?{title:cutSliders[key].tip}:{})},el('span',{},cutSliders[key].label,cutSliders[key].sub?el('small',{class:'omakase-sub'},' '+cutSliders[key].sub):null),cutSliders[key].input,cutSliders[key].out))),
   el('div',{class:'omakase-row omakase-checks'},el('label',{class:'omakase-check',title:'フラッシュ・反転・フラッシュ転換を使いません'},avoidFlash,' 強い点滅を避ける'),el('label',{class:'omakase-check'},cutBg,' 背景の絵も付ける'),el('label',{class:'omakase-check',title:'「文字を追加」で置いた自由文字にも、カット演出を付けます'},freeText,' 自由文字にも付ける')));
  const withBg=el('input',{type:'checkbox','aria-label':'背景も足す',checked:true}),withColor=el('input',{type:'checkbox','aria-label':'配色も変える',checked:true}),withSize=el('input',{type:'checkbox','aria-label':'大きさも変える',checked:true});
  const withSaved=el('input',{type:'checkbox','aria-label':'保存した動き・新しい動きも使う',checked:true});
@@ -131,9 +132,9 @@ export function createOmakasePanel(controller){
   if(cs)summary.replaceChildren(
    el('div',{},el('b',{},'雰囲気　'),cs.mood+'　／　'+cs.palette),
    el('div',{},el('b',{},'カット　'),`${cs.cuts}個（平均${cs.avgCut.toFixed(2)}秒${cs.recaps?`・再掲${cs.recaps}`:''}）`),
-   el('div',{},el('b',{},'物の世界　'),cs.worlds.join('、')||'なし'),el('div',{},el('b',{},'カメラ　'),cs.cameras.join('、')||'なし'),
-   el('div',{},el('b',{},'画面効果　'),cs.effects.join('、')||'なし'),el('div',{},el('b',{},'つなぎ　'),(cs.transitions.join('、')||'なし')+(cs.carries?`　／　引き継ぎ ${cs.carries}回`:'')),
-   el('div',{},el('b',{},'背景の絵　'),cs.backgrounds.join('、')||'なし'),...(cs.fixes?[el('div',{class:'hint'},`重なりすぎ・小さすぎを ${cs.fixes} 件、自動で直しました`)]:[]));
+   el('div',{},el('b',{},'STAGE　'),cs.worlds.join('、')||'なし'),el('div',{},el('b',{},'DECO　'),(cs.decos||[]).join('、')||'なし'),el('div',{},el('b',{},'CAM　'),cs.cameras.join('、')||'なし'),
+   el('div',{},el('b',{},'FX　'),cs.effects.join('、')||'なし'),el('div',{},el('b',{},'TRANS　'),(cs.transitions.join('、')||'なし')+(cs.carries?`　／　引き継ぎ ${cs.carries}回`:'')),
+   el('div',{},el('b',{},'BG　'),cs.backgrounds.join('、')||'なし'),...(cs.fixes?[el('div',{class:'hint'},`重なりすぎ・小さすぎを ${cs.fixes} 件、自動で直しました`)]:[]));
   else summary.replaceChildren(...(d?[
    el('div',{},el('b',{},'雰囲気　'),d.mood+'　／　'+d.palette),
    el('div',{},el('b',{},'動き　'),d.motions.join('、')),

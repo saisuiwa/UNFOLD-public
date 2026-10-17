@@ -48,7 +48,7 @@ const chip=(kind,label,value)=>({kind,label,value});
 const KIND_LABEL={image:'画像',video:'動画',text:'装飾文字',p5:'演出',unfold:'UNFOLD'};
 // one chip per clip: a background says 背景, an effect 演出, a decorative text 装飾文字, an UNFOLD its first transition
 const clipChip=(project,c)=>chip(isBackgroundClip(c)?'bg':c.kind==='unfold'?'unfold':isEffectClip(c)?'fx':'media',isBackgroundClip(c)?'背景':KIND_LABEL[c.kind]||c.kind,c.kind==='unfold'?(unfoldLabels(project,c)[0]||c.name||'UNFOLD'):clipTitle(c));
-/** What is inside the selected item, as small labelled chips (the 参考ツール-style "いまの案"). */
+/** What is inside the selected item, as small labelled chips (like the "いまの案" summary). */
 export function chipsFor(project,selection){
  if(!selection)return [];
  const find=(list,id)=>list.find(x=>x.id===selection.id);

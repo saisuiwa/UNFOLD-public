@@ -122,13 +122,12 @@ SYLTの時刻単位がミリ秒なら直接変換。MPEGフレーム単位なら
 
 ## 今回含めないもの
 
-歌声の自動文字起こし／歌声への完全自動アラインメント、参考ツール全演出の移植、外部AI/API連携、語単位のカラオケ色塗り、FLAC等の全タグ対応、スマートフォンの書き出し保証。今回の音楽・歌詞処理に外部送信は不要。
+歌声の自動文字起こし／歌声への完全自動アラインメント、参考ツールの全演出の移植、外部AI/API連携、語単位のカラオケ色塗り、FLAC等の全タグ対応、スマートフォンの書き出し保証。今回の音楽・歌詞処理に外部送信は不要。
 
 ## 確認した根拠
 
 - 現行 `app/sequence.html` のpane-lyric、`sequence.js` のloadAudio・buildLyricMV・renderAt・exportVideo・snapshot/restore・stateForSave。
 - `app/project.js` の保存構造、`app/lyric-mv.js` のparseTimings・layoutLyricMV。
-- （参考にしたツールのページ） ：実画面の歌詞・曲／かんたんモードを確認。
 - https://id3.org/id3v2.3.0 ：USLT/SYLTの仕様。
 - https://mutagen.readthedocs.io/en/latest/api/mp4.html ：M4A/MP4歌詞メタデータ。
 

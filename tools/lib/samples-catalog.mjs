@@ -13,7 +13,7 @@ import { TEXT_MOTIONS } from '../../app/lyric-motion.js';
 import { DAILY_IMAGE_METHODS } from '../../app/image-method-daily.js';
 import { DAILY_CODE_MOTIONS } from '../../app/code-motion-daily.js';
 import { DAILY_CUT_PARTS } from '../../app/studio/cuts/daily-parts.js';
-import { AXES } from '../../app/studio/cuts/kit.js';
+import { AXES, AXIS_HINTS } from '../../app/studio/cuts/kit.js';
 
 export const PREVIEW_DIR = fileURLToPath(new URL('../../app/guide/samples/', import.meta.url));
 export const GROUPS = [...SAMPLE_GROUPS, ['image', '画像・立体・物理（JavaScript）'], ['codetext', '文字モーション（コード）'], ['effect', 'エフェクト（文字の後ろや周りの装飾）'], ['cutpart', 'カット割りの部品（STUDIO）'], ['text', '文字の動き（かんたん設定）']];
@@ -21,6 +21,7 @@ export const DAILY_GROUPS = ['method', 'image', 'cutpart'];                     
 export const CUT_PARTS_FROM = '2026-10-18';                                                   // the first day of the cut part quota (before it: one codetext a day)
 export const DAILY_CUT_PARTS_MIN = 6;                                                          // the fewest cut parts a day (the routine aims at about 8)
 export const AXIS_NAMES = AXES;
+export const AXIS_HINT_NAMES = AXIS_HINTS;
 // the size limits the previews must stay under (they go into Git, so a few a day must not pile up)
 export const MAX_BYTES = { jpg: 80 * 1024, mp4: 600 * 1024 };
 

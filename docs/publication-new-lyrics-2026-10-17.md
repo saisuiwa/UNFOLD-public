@@ -12,7 +12,7 @@
 - 配布物・照合記録：`releases/unfold-new-lyrics-2026-10-17/`（`DRY-RUN.md`、`dry-run-list.json`、`manifest.json`、`published-delivery.json`、`deploy.log`）。このフォルダは Git 管理外。
 
 ### 変わったこと
-1. STUDIO のカット割りの見本の文（部品の検査に使う `plan.js` の `SAMPLE_CUT`）を、参考ツール のサンプルの文から、オリジナルの歌詞に差し替え。
+1. STUDIO のカット割りの見本の文（部品の検査に使う `plan.js` の `SAMPLE_CUT`）を、参考にしたツールのサンプルの文から、オリジナルの歌詞に差し替え。
 2. 使い方のページの STUDIO の写真5枚（`guide/manual/studio-0`〜`4.jpg`）を、新しい歌詞で撮り直し。公開サイトの、ほかの文字のファイルにも古い見本の歌詞は残っていない。
 3. まだ公開していなかった、カット割りの部品8個（`studio/cuts/daily-parts.js`・`kit.js` と、`glyphs.js`・`parts.js`・`worlds.js` の小さな受け口）と、サンプル集のプレビュー16個・`guide/samples.html`。
 

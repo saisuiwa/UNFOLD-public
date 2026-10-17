@@ -4,7 +4,7 @@
 //   node tools/build_guide_samples.mjs --check   write nothing; exit 1 if the page on disk is not what the samples say (the daily check uses this)
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { AXIS_NAMES, GROUPS, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
+import { AXIS_NAMES, AXIS_HINT_NAMES, GROUPS, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
 
 const OUT = fileURLToPath(new URL('../app/guide/samples.html', import.meta.url));
 const esc = text => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -25,7 +25,7 @@ const card = item => {
       </div>`
     : '<div class="shot none">プレビュー準備中</div>';
   const code = item.source ? `<details><summary>コードを見る</summary><pre><code>${esc(item.source)}</code></pre><button class="btn small" type="button" data-copy>コードをコピー</button></details>` : '';
-  const way = { image: 'メソッド工房の「画像・立体・物理」のサンプルから選びます。', codetext: 'メソッド工房の「文字モーション」のサンプルから選びます。', effect: 'メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。', text: `歌詞の行の「動き」で「${esc(item.name)}」を選びます。`, cutpart: `STUDIOのおまかせ「✂ カット割り」の部品（${esc(AXIS_NAMES[item.axis] || item.axis)}）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。` }[item.group];
+  const way = { image: 'メソッド工房の「画像・立体・物理」のサンプルから選びます。', codetext: 'メソッド工房の「文字モーション」のサンプルから選びます。', effect: 'メソッド工房の「エフェクト」のサンプルから選びます（文字の後ろや周りに重なる装飾です）。', text: `歌詞の行の「動き」で「${esc(item.name)}」を選びます。`, cutpart: `STUDIOのおまかせ「✂ カット割り」の部品（${esc(AXIS_NAMES[item.axis] || item.axis)}${AXIS_HINT_NAMES[item.axis] ? '・' + esc(AXIS_HINT_NAMES[item.axis]) : ''}）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。` }[item.group];
   const how = (way ? `<p class="how">${way}</p>` : '') + code;
   return `    <article class="method" data-cat="${item.group}">
       ${media}

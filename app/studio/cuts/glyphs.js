@@ -1,7 +1,7 @@
 // カット演出の文字エンジン: 字ごとの登場・保持・退場・加工の部品と、それを動かす小さな「文字アイテム」。短いカット（0.5〜1.5秒）向け。
 // 既存のコードモーション（Worker で描いたビットマップ）とは別に、文字を1字ずつ Canvas2D で描く。DOM には触らない（node でテストできる。描く関数は ctx を受け取る）。
 //
-// 文字アイテムの契約（参考ツール の charFns と同じ考え方を、純関数で書き直したもの）:
+// 文字アイテムの契約（字ごとの変形を返す関数を、純関数で書いたもの）:
 //   登場/保持/退場の部品は、アイテムの「字ごとの変形」を返すだけ。どのレイアウトにも掛けられる。
 //     glyph(g, i, n, p, E, P) → {dx,dy,sx,sy,rot,a,blur,hide}   足し算・掛け算（blur は最大）で合成される。blur は px。i は見える字の番号、n は見える字の数
 //     item(it, p, E, P)       → アイテム全体の {blur,sx,sy,a,clip,bar} を書き換える（ワイプ・ブラー・伸縮など）
@@ -134,7 +134,7 @@ export const TREAT={
 // 毎日のルーティンで足した部品（daily-parts.js）を、表の末尾につなぐ
 addDailyParts({enter:ENTER,hold:HOLD,exit:EXIT,treat:TREAT},DAILY_CUT_PARTS);
 export const GLYPH_GROUPS={enter:ENTER,hold:HOLD,exit:EXIT,treat:TREAT};
-export const GLYPH_GROUP_NAMES={enter:'登場',hold:'保持',exit:'退場',treat:'加工'};
+export const GLYPH_GROUP_NAMES={enter:'IN',hold:'STAY',exit:'OUT',treat:'STYLE'};
 
 // ---- 配置（折り返し・縦書き）。measure(ch,fontKey,px) は呼ぶ側が渡す（ブラウザでは Canvas の measureText） --------------------------------------------
 const KINSOKU_START=new Set([...'、。，．,.!?！？）」』】〕〉》］｝ー〜～…‥っゃゅょぁぃぅぇぉッャュョァィゥェォ']);
