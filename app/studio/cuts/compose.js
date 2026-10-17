@@ -1,6 +1,7 @@
 // カット演出の1フレームを組み立てる。背景 → （カメラを通した）文字 → つなぎ/引き継ぎ → 画面効果。
 // 画面の大きさと作業用キャンバスは S = {W,H,opaque,tmp(slot,w,h),canvas(key,w,h)} で受け取る（opaque=false なら、背景色を塗らず、下の絵が透けて見える）（横長・縦長・どの解像度でも同じ作り）。ctx は 2D コンテキスト（OffscreenCanvas でも普通の canvas でもよい）。
 import {BG,CAMERA,FX,TRANS,DEG} from './parts.js';
+import {WORLD,worldEnv} from './worlds.js';
 
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const reset=c=>{c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;c.globalCompositeOperation='source-over';c.filter='none';c.imageSmoothingEnabled=true;};
@@ -42,7 +43,17 @@ export function drawCutFrame(ctx,cut,t,bmp,S,ghosts=null){
  reset(ctx);if(S.opaque!==false){ctx.fillStyle=cut.bg;ctx.fillRect(0,0,W,H);}else ctx.clearRect(0,0,W,H);   // 透明な絵は、前のコマの絵が残らないよう、毎回まっさらにする
  if(cut.bgPart&&BG[cut.bgPart]){ctx.save();BG[cut.bgPart].draw(ctx,e,cut.bgP);ctx.restore();}
  if(!bmp)return;
+ const Wd=cut.world&&WORLD[cut.world];
+ if(Wd?.knockout){drawKnockout(ctx,cut,t,e,bmp,S,Wd);return;}
  ctx.save();
+ toText(ctx,cut,e,S);
+ if(ghosts?.length)drawGhosts(ctx,ghosts,S);
+ ctx.drawImage(bmp,-W/2,-H/2);
+ ctx.restore();
+}
+/** カメラと置き場所を ctx に掛ける（この後 drawImage(文字, -W/2, -H/2) で文字が置かれる位置になる） */
+function toText(ctx,cut,e,S){
+ const {W,H}=S;
  if(cut.cam&&CAMERA[cut.cam]){
   const cm=CAMERA[cut.cam].get(e,cut.camP)||{};
   ctx.translate(W/2+(cm.x||0),H/2+(cm.y||0));if(cm.rot)ctx.rotate(cm.rot*DEG);const s=cm.s??1;ctx.scale(s,s);ctx.translate(-W/2,-H/2);
@@ -50,9 +61,19 @@ export function drawCutFrame(ctx,cut,t,bmp,S,ghosts=null){
  }
  const p=cut.place;
  ctx.translate(W*p.x,H*p.y);ctx.rotate(p.rotation*Math.PI/180);ctx.scale(p.scale,p.scale);
- if(ghosts?.length)drawGhosts(ctx,ghosts,S);
- ctx.drawImage(bmp,-W/2,-H/2);
- ctx.restore();
+}
+// 抜き文字（worlds.js の knockout の部品）: 絵全体に板を描き、字の形の穴を開ける。穴からは、ここまでに描いた背景（または下の絵）が見える。
+// 板がまだ来ていない所では、文字はふつうの文字として見える（板が来ると、字が穴に変わる）。ゴーストは付けない（穴の中に色が入るため）。
+function drawKnockout(ctx,cut,t,e,bmp,S,Wd){
+ const {W,H}=S,p=cut.place,we={...worldEnv(cut,t-cut.start,W,H),cx:W*p.x,cy:H*p.y};
+ const T=S.tmp(3).getContext('2d'),K=S.tmp(4).getContext('2d'),M=S.tmp(5).getContext('2d');
+ for(const x of [T,K,M]){reset(x);x.clearRect(0,0,W,H);}
+ T.save();toText(T,cut,e,S);T.drawImage(bmp,-W/2,-H/2);T.restore();reset(T);          // 文字（カメラ・置き場所を通した、絵全体の座標）
+ K.save();Wd.plate(K,we,cut.worldP,{mask:false});K.restore();reset(K);                // 板の見た目
+ M.save();Wd.plate(M,we,cut.worldP,{mask:true});M.restore();reset(M);                 // 板の形
+ K.globalCompositeOperation='destination-out';K.drawImage(T.canvas,0,0);reset(K);      // 板に字の形の穴
+ T.globalCompositeOperation='destination-out';T.drawImage(M.canvas,0,0);reset(T);      // 板の下になった文字は消す（穴になる）
+ ctx.drawImage(T.canvas,0,0);ctx.globalAlpha=clamp(cut.worldA??1);ctx.drawImage(K.canvas,0,0);reset(ctx);
 }
 
 /** できあがった絵 X を出力へ。引き継ぎ・つなぎ（A→X）と、カット頭の画面効果をここで掛ける。 */

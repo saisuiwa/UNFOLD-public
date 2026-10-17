@@ -103,3 +103,24 @@ test('字幕帯: a short lyric stays on one line at a readable size, and the ban
   assert.ok(box.w<F.bar.w,text+': shorter than the full-width band');
  }
 });
+
+test('抜き文字（knockout）: the plate covers the picture when in, is gone before it comes, and the plan gives it no glyph styling, no ghost and a heavy face', () => {
+ const KO=Object.entries(WORLD).filter(([,d])=>d.knockout);
+ assert.ok(KO.length>=4);
+ const rec=()=>{const calls=[];return new Proxy({calls},{get(t,k){if(k in t)return t[k];return (...a)=>{calls.push(k);};},set(t,k,v){t[k]=v;return true;}});};
+ for(const [k,d] of KO){
+  assert.equal(typeof d.plate,'function',k);
+  const P=d.plan(rng('ko:'+k));
+  const env=(pIn,pOut)=>({W,H,lt:.5,pIn,pOut,cx:W/2,cy:H/2,fg:'#ffffff',accent:'#ff6fae',bg:'#14121f'});
+  for(const mask of [true,false]){
+   const before=rec();d.plate(before,env(0,0),P,{mask});assert.ok(!before.calls.some(c=>['fill','fillRect'].includes(c)),`${k}: drawn before it comes in`);
+   const full=rec();d.plate(full,env(1,0),P,{mask});assert.ok(full.calls.some(c=>['fill','fillRect'].includes(c)),`${k}: nothing drawn when in`);
+  }
+ }
+ let seen=0;
+ for(let seed=1;seed<=60;seed++)for(const c of planFor(seed,{worldAmount:1})){
+  if(!WORLD[c.world]?.knockout)continue;seen++;
+  assert.equal(c.treat,'none');assert.equal(c.ghost||0,0);assert.ok(['gothic','dela','round'].includes(c.gFont),c.gFont);
+ }
+ assert.ok(seen>0,'no knockout in 60 plans');
+});

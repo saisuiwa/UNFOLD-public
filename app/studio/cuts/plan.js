@@ -278,6 +278,7 @@ export function assignGlyphParts(cuts,{seed=1,fontMode='cut',treatAmount=.45,hol
  *  - 0.6秒未満のカットは、物が出てくる時間が足りないので出にくい。直前と同じ世界は選ばない。
  *  - 世界は、次のカットがすぐ続かない時（行末・最後）だけ、自分で退場する（worldExit）。続く時は、そのまま切り替わる。
  *  - 世界の物の濃さ（worldOpacity 0..1）は、世界のあるカットに worldA として入れる（文字は薄くならない）。
+ *  - 抜き文字（knockout の世界）は、字の加工と色ずれを付けず、細い書体（明朝・マーカー・ドット）は太いゴシックに替える。
  *  - 物の上で読みにくい加工（蛍光ペン・下線・箱・中抜き・押し出し・ぼけた字・ぼかし送り）は付けない（none に戻す）。
  */
 export function assignWorlds(cuts,{seed=1,worldAmount=.5,worldOpacity=1}={}){
@@ -291,6 +292,7 @@ export function assignWorlds(cuts,{seed=1,worldAmount=.5,worldOpacity=1}={}){
   if(key)hist.push(key);
   c.world=key;c.worldP=key?WORLD[key].plan(rng(`wp:${seed}:${id}`),c):null;c.worldExit=!!key&&!touchingNext;c.worldA=key?Math.round(clamp(worldOpacity,0,1)*100)/100:undefined;
   if(key){c.gVertical=false;if(['marker','underline','box','hollow','extrude','soft','blurTrail'].includes(c.treat)){c.treat='none';c.treatP={};}}
+  if(key&&WORLD[key].knockout){c.treat='none';c.treatP={};c.ghost=0;if(!['gothic','dela','round'].includes(c.gFont))c.gFont='dela';}   // 抜き文字: 穴の形を変える加工と色ずれは付けず、太い書体で
  });
  return cuts;
 }
@@ -426,7 +428,7 @@ function cleanCutDataUncached(d){
   const n=[...c.text.replace(/\s/g,'')].length;
   let world=key(WORLD,c.world,null);if(world&&!WORLD[world].fits(n))world=null;   // その世界に置ける字数を超えるものは使わない
   const bgPart=key(BG,c.bgPart,null),cam=key(CAMERA,c.cam,null),fx=key(FX,c.fx,null),trans=key(TRANS,c.trans,null),deco=world?null:key(DECO,c.deco,null);
-  const enter=key(ENTER,c.enter,'cut'),hold=key(HOLD,c.hold,'still'),exit=key(EXIT,c.exit,'cut'),treat=key(TREAT,c.treat,'none');
+  const enter=key(ENTER,c.enter,'cut'),hold=key(HOLD,c.hold,'still'),exit=key(EXIT,c.exit,'cut'),treat=world&&WORLD[world].knockout?'none':key(TREAT,c.treat,'none');   // 抜き文字には字の加工を付けない
   cuts.push({
    a,b,text:c.text,recap:!!c.recap,unitIndex:finite(c.unitIndex,cuts.length,0,1000),moodId:key(Object.fromEntries(MOODS.map(m=>[m.id,1])),c.moodId,'pop'),
    placeName:typeof c.placeName==='string'&&c.placeName.length<20?c.placeName:'center',place:{rotation:finite(c.place?.rotation,0,-360,360),scale:finite(c.place?.scale,1,.3,2)},

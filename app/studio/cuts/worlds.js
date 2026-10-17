@@ -41,6 +41,18 @@ const dly=(D,exitOK,k)=>worldTimes(D,exitOK).inW*k;
 const telopW=(F,item,W)=>{const full=F.bar.w,right=item?.bbox?F.box.cx-F.box.w/2+item.bbox.x1:NaN;return Number.isFinite(right)?clamp(right+W*.07-W*.03,full*.36,full):full;};
 const FONTS=['gothic','mincho','round','marker','dela','dot'];
 
+// ---- 抜き文字（ノックアウト）の共通部分 --------------------------------------------------------------------------------------------------------
+const KO_SCALE=1.35;
+/** 文字の箱は、大きくする前の大きさで組む（xform で KO_SCALE 倍にしても絵からはみ出さない） */
+function knockoutFrame(P,{W,H,D,exitOK}){return {box:{cx:W/2,cy:H/2,w:W*.62,h:H*.46},delay:dly(D,exitOK,.15),maxWidth:.98};}
+function knockoutScale(c,e){c.translate(e.W/2,e.H/2);c.scale(KO_SCALE,KO_SCALE);c.translate(-e.W/2,-e.H/2);}
+const knockoutBox=(P,F,it,W,H)=>({cx:W/2,cy:H/2,w:W,h:H,rot:0});   // 台は絵全体（引き継ぎは画面いっぱいの板どうしで重なる）
+/** 板の色。穴から見える地（背景色）と明るさが近いと字が読めないので、差が小さい時は紙か墨に替える */
+function plateColor(fill,e){
+ const col=fill==='accent'?e.accent:fill==='ink'?'#121218':'#f2ecdc';
+ return Math.abs(luma(col)-luma(e.bg))<.4?(luma(e.bg)>.5?'#121218':'#f2ecdc'):col;
+}
+
 export const WORLD={
  ticket:{name:'チケット',tags:['pop','graphic'],w:1.1,fits:n=>n<=16,
   box:(P,F,it,W,H)=>({cx:W/2,cy:H/2,w:F.g.tw,h:F.g.th,rot:P.tilt}),
@@ -178,7 +190,7 @@ export const WORLD={
  ransom:{name:'切り抜き文字',tags:['impact','pop','glitch'],w:.9,fits:n=>n<=12,
   plan:r=>({seed:Math.floor(r()*1e6)}),
   pairs:[['#faf9f4','#141316'],['#ece8dc','#141316'],['#141316','#faf9f4'],['#e45a8c','#faf9f4'],['#f4d632','#141316'],['#60b6ba','#141316']],
-  frame(P,{W,H,D,exitOK}){return {box:{cx:W/2,cy:H/2,w:W*.84,h:H*.5},delay:dly(D,exitOK,.3),maxWidth:.95};},
+  frame(P,{W,H,D,exitOK}){return {box:{cx:W/2,cy:H/2,w:W*.84,h:H*.5},delay:dly(D,exitOK,.25),maxWidth:.95};},   // 待ちは .25（.3 だと、ワイプで出入りする短いカットで読める時間が3割を切った）
   arrange(item,P){item.glyphs.forEach((g,i)=>{const pr=this.pairs[Math.floor(hash(P.seed,i)*this.pairs.length)];g.color=pr[1];g.plate=pr[0];g.rot0=(hash(P.seed,i,2)-.5)*12;g.fontKey=FONTS[Math.floor(hash(P.seed,i,3)*FONTS.length)];});},
   back(c,e,P,F,item){
    const ox=F.box.cx-F.box.w/2,oy=F.box.cy-F.box.h/2,n=item.glyphs.length;
@@ -255,6 +267,42 @@ export const WORLD={
    c.restore();
    c.font=`${Math.max(10,ch*.032)}px ui-monospace,Menlo,monospace`;c.fillStyle='rgba(20,20,28,.6)';c.textAlign='right';c.textBaseline='middle';c.fillText("'26.10.16",x+cw-pad,py+ph+(ch-ph-pad)/2);
   }}
+,
+
+ // ---- 抜き文字（ノックアウト）: 画面いっぱいの板に、字の形の穴が開く。穴から後ろの絵（背景・下に置いた写真や映像）が見える。
+ // 板は compose.js（drawKnockout）が絵全体に描く。文字のキャンバスに描くと、カメラや置き場所の傾きで板の端が見えてしまうため。
+ // ここで決めるのは、文字の箱（少し小さめに組んで xform で大きくする。穴は大きいほど読める）と、板の形 plate(c,e,P,{mask})。
+ //   plate: 絵全体の座標で描く。e は worldEnv に cx,cy（文字の中心）を足したもの。mask のときは形だけを不透明に（板の下の文字を消すのに使う）
+ knockout:{name:'抜き文字・板',tags:['impact','graphic','pop'],w:.8,fits:n=>n<=10,knockout:true,
+  plan:r=>({fill:pickW(r,['accent','ink','paper'],[1.5,1,1]),dir:Math.floor(r()*8),edge:r()<.6}),
+  frame:knockoutFrame,xform:knockoutScale,box:knockoutBox,
+  plate(c,e,P,{mask}){const a=P.dir*Math.PI/4,L=Math.abs(e.W*Math.cos(a))+Math.abs(e.H*Math.sin(a)),D=Math.hypot(e.W,e.H),hi=-L/2+L*outCubic(e.pIn),lo=-L/2+L*inCubic(e.pOut);if(hi<=lo)return;
+   const col=plateColor(P.fill,e),lw=Math.max(3,e.W*.006);
+   c.translate(e.W/2,e.H/2);c.rotate(a);c.fillStyle=mask?'#000':col;c.fillRect(lo,-D,hi-lo,D*2);
+   if(!mask&&P.edge&&e.pIn<1){c.fillStyle=rgba(col===e.accent?'#ffffff':e.accent,.9);c.fillRect(hi-lw,-D,lw,D*2);}}},
+ knockoutIris:{name:'抜き文字・幕',tags:['emotional','impact','calm'],w:.8,fits:n=>n<=10,knockout:true,
+  plan:r=>({fill:pickW(r,['ink','accent','paper'],[1.5,1,.8]),ring:r()<.6}),
+  frame:knockoutFrame,xform:knockoutScale,box:knockoutBox,
+  plate(c,e,P,{mask}){const R=Math.hypot(e.W,e.H),rad=R*(1-outCubic(e.pIn))+R*inCubic(e.pOut);if(rad>=R*.999)return;
+   c.beginPath();c.rect(0,0,e.W,e.H);if(rad>.5)c.arc(e.cx,e.cy,rad,0,TAU,true);c.fillStyle=mask?'#000':plateColor(P.fill,e);c.fill('evenodd');
+   if(!mask&&P.ring&&rad>.5){c.beginPath();c.arc(e.cx,e.cy,rad,0,TAU);c.strokeStyle=rgba(e.accent,.8);c.lineWidth=Math.max(2,e.H*.006);c.stroke();}}},
+ knockoutBands:{name:'抜き文字・帯',tags:['graphic','pop','glitch'],w:.8,fits:n=>n<=10,knockout:true,
+  plan:r=>({fill:pickW(r,['accent','ink','paper'],[1.4,1,.8]),n:4+Math.floor(r()*4),from:sign(r)}),
+  frame:knockoutFrame,xform:knockoutScale,box:knockoutBox,
+  plate(c,e,P,{mask}){const col=plateColor(P.fill,e),h=e.H/P.n;
+   // 帯 i は左右交互から入って、同じ向きへ抜ける。覆う範囲は [a,b]
+   for(let i=0;i<P.n;i++){const k=i/Math.max(1,P.n-1)*.5,u=outCubic(clamp(e.pIn*1.5-k)),v=inCubic(clamp(e.pOut*1.5-k)),fromLeft=(i%2?-1:1)*P.from>0;if(u<=v)continue;
+    const a=fromLeft?e.W*v:e.W-e.W*u,b=fromLeft?e.W*u:e.W-e.W*v;
+    c.fillStyle=mask?'#000':i%2?mixHex(col,luma(col)>.5?'#000000':'#ffffff',.1):col;c.fillRect(a,i*h-.5,b-a,h+1);}}},
+ knockoutFrost:{name:'すりガラスの抜き文字',tags:['calm','emotional','graphic'],w:.8,fits:n=>n<=10,knockout:true,
+  plan:r=>({seed:Math.floor(r()*1000),dir:sign(r)}),
+  frame:knockoutFrame,xform:knockoutScale,box:knockoutBox,
+  plate(c,e,P,{mask}){const a=outCubic(e.pIn)*(1-inCubic(e.pOut));if(a<=0)return;
+   if(mask){c.globalAlpha=a;c.fillStyle='#000';c.fillRect(0,0,e.W,e.H);return;}
+   const dark=luma(e.bg)>.6;c.globalAlpha=a;c.fillStyle=dark?'rgba(20,20,28,0.55)':'rgba(255,255,255,0.6)';c.fillRect(0,0,e.W,e.H);c.fillStyle=rgba(e.accent,.08);c.fillRect(0,0,e.W,e.H);
+   c.fillStyle=dark?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.18)';for(let i=0;i<90;i++){const g=Math.max(1,e.H*.004*(.5+hash(P.seed,i,3)));c.fillRect(hash(P.seed,i,1)*e.W,hash(P.seed,i,2)*e.H,g,g);}
+   const span=e.W+e.H,pos=fract(e.lt*.18+hash(P.seed,9))*span*1.4-span*.2,x=P.dir>0?pos:e.W-pos;
+   c.fillStyle='rgba(255,255,255,0.14)';c.beginPath();c.moveTo(x,0);c.lineTo(x+P.dir*e.W*.12,0);c.lineTo(x+P.dir*e.W*.12-P.dir*e.H*.5,e.H);c.lineTo(x-P.dir*e.H*.5,e.H);c.closePath();c.fill();}}
 };
 // 毎日のルーティンで足した物の世界（daily-parts.js）を、表の末尾につなぐ
 addDailyParts({world:WORLD},DAILY_CUT_PARTS);
