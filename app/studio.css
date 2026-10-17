@@ -203,3 +203,7 @@
 .omakase-style-switch .style-choice[aria-pressed=true]{border-color:#9be6c4;background:#1e3a33;box-shadow:inset 0 0 0 1px #9be6c4}
 .omakase-style-switch .style-choice[data-style=cut][aria-pressed=true]{border-color:#b69cff;background:#2a2342;box-shadow:inset 0 0 0 1px #b69cff}
 .omakase-style-switch .style-choice[aria-pressed=true] small{color:#d6e6e1}
+/* ショートの窓: 上のバーの「ショート」から開く。開いたままタイムラインや再生も使える（モーダルではない） */
+.short-pop{position:fixed;top:58px;right:16px;width:min(360px,calc(100vw - 32px));max-height:calc(100vh - 90px);overflow:auto;z-index:40;background:#172427;border:1px solid #6d8f84;border-radius:12px;padding:12px 14px;box-shadow:0 18px 40px #0009}
+.short-pop[hidden]{display:none}.short-pop .short-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.short-pop h2{margin:0;font-size:16px}.short-pop h2 small{font-size:11px;color:#9fb3ae;font-weight:400}
+.short-pop .short-editor{margin-top:8px;padding-top:10px}.short-pop .short-here{justify-self:start;min-height:26px;padding:2px 10px;font-size:11px}

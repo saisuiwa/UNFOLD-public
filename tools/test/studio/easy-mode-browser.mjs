@@ -20,7 +20,7 @@ await withStudioPage(async page=>{
  for(const name of KEPT_IN_EASY)assert.ok(await visible(name),'still there in かんたん: '+name);
  for(const name of FOLDED_IN_EASY)assert.equal(await visible(name),false,'folded away in かんたん: '+name);
  assert.equal(await page.locator('.lock-controls').isVisible(),false,'the lock buttons are folded away');
- assert.equal(await page.locator('.short-details').isVisible(),false,'the shorts are folded away');
+ assert.equal(await page.getByTestId('short-panel').isVisible(),false,'the shorts window starts closed');assert.equal(await page.getByTestId('short-open').isVisible(),true,'the shorts button is in the top bar');
  assert.equal(await page.locator('.easy-only').isVisible(),true,'the hint about where the song and lyrics come from');
  // a lyric: the lyric panel and the text stay, the timing and layout numbers fold away
  await page.evaluate(()=>c.select({kind:'lyric',id:'L0'}));
