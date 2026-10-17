@@ -9,7 +9,7 @@ export const resetCtx=reset;
 
 export function envFor(cut,t,S){
  const lt=t-cut.start,dur=cut.end-cut.start;
- return {W:S.W,H:S.H,opaque:S.opaque,t,lt,dur,p:clamp(lt/dur),fg:cut.color,accent:cut.emphasisColor,bg:cut.bg,step:Math.floor(t*24),tmp:S.tmp};
+ return {W:S.W,H:S.H,opaque:S.opaque,t,lt,dur,p:clamp(lt/dur),fg:cut.color,accent:cut.emphasisColor,bg:cut.bg,text:cut.text,step:Math.floor(t*24),tmp:S.tmp};   // text: 文字を流す背景が使う
 }
 
 // ---- 常時ゴースト（時間遅れの色収差）----------------------------------------------------------------------------------------------------------

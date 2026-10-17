@@ -34,9 +34,9 @@ await withStudioPage(async page=>{
   const p=c.get().project,store=await openStudioStore({dbName:'unfold-studio-cutsfree'});
   const comp=createCompositor({assets:store});await comp.prepare(p);
   const f=await comp.render({projectUs:us,viewId,width:w,height:h,epoch:1});const cv=new OffscreenCanvas(w,h),x=cv.getContext('2d');x.drawImage(f.bitmap,0,0);f.close();
-  const px=(a,b)=>Array.from(x.getImageData(a,b,1,1).data),d=x.getImageData(0,0,w,h).data;let bright=0;for(let i=0;i<d.length;i+=4)if(d[i]+d[i+1]+d[i+2]>450)bright++;
+  const px=(a,b)=>Array.from(x.getImageData(a,b,1,1).data),d=x.getImageData(0,0,w,h).data;let bright=0,red=0;for(let i=0;i<d.length;i+=4){if(d[i]+d[i+1]+d[i+2]>450)bright++;if(d[i]>160&&d[i+1]<90&&d[i+2]<90)red++;}
   const blob=await cv.convertToBlob({type:'image/png'}),buf=new Uint8Array(await blob.arrayBuffer());let s='';for(const b of buf)s+=String.fromCharCode(b);
-  comp.dispose();return {corner:px(3,3),mid:px(w>>1,h>>1),bright,png:btoa(s)};},[us,viewId,w,h]);
+  comp.dispose();return {corner:px(3,3),mid:px(w>>1,h>>1),bright,red,png:btoa(s)};},[us,viewId,w,h]);
  // moments inside the free text clip and before the first lyric (6 s), so that only the free text is on screen; the text can be hidden for an instant while it enters, so take the moment with the most text
  const window_=await page.evaluate(()=>{const f=freeClip(),s=c.get().project.scenes.find(x=>x.id===f.sceneId),from=s.originUs+f.startUs,to=Math.min(s.originUs+f.endUs,5.8e6);return {from,to};});
  assert.ok(window_.from>=1e6&&window_.to>window_.from+.5e6,'room before the lyrics: '+JSON.stringify(window_));
@@ -44,8 +44,14 @@ await withStudioPage(async page=>{
  for(const u of [.15,.3,.45,.6,.75,.9]){const t=Math.round(window_.from+(window_.to-window_.from)*u),r=await render(t);if(r.bright>best){best=r.bright;freeMid=t;}}
  const a=await render(freeMid);
  await writeFile('tools/out/studio/cuts-free-over-picture.png',Buffer.from(a.png,'base64'));
- assert.ok(a.corner[0]>160&&a.corner[1]<90&&a.corner[2]<90,'the red picture shows through the cut layer (transparent): '+a.corner);
- assert.ok(a.bright>40,'and there is text: '+a.bright);
+ // 抜き文字（knockout の STAGE）のカットが画面にある時だけは、板が絵全体を覆い、下の赤い絵は字の形からだけ見える（計画の種は毎回変わる）
+ const knockoutAt=us=>page.evaluate(async us=>{const {WORLD}=await import('/studio/cuts/worlds.js'),p=c.get().project;
+  const items=[...p.lyrics.map(l=>({at:l.startUs,d:l.cut})),...p.clips.filter(k=>k.settings?.cut).map(k=>({at:k.startUs,d:k.settings.cut}))];
+  return items.some(({at,d})=>{const lt=(us-at)/1e6,k=d?.cuts?.find(x=>lt>=x.a&&lt<x.b);return !!(k&&WORLD[k.world]?.knockout);});},us);
+ const knockout=await knockoutAt(freeMid);
+ if(knockout){assert.ok(!(a.corner[0]>160&&a.corner[1]<90&&a.corner[2]<90),'a knockout plate covers the corner: '+a.corner);assert.ok(a.red>200,'and the red picture shows through the letters: '+a.red);}
+ else{assert.ok(a.corner[0]>160&&a.corner[1]<90&&a.corner[2]<90,'the red picture shows through the cut layer (transparent): '+a.corner);
+  assert.ok(a.bright>40,'and there is text: '+a.bright);}
  // ---- a transparent frame never carries over the pictures before it: one compositor playing many frames in a row draws the same picture at a time as a fresh one
  // (it used to pile up the translucent backgrounds and glows frame after frame, until the picture was washed out)
  const seq=await page.evaluate(async([times,last])=>{
@@ -70,12 +76,14 @@ await withStudioPage(async page=>{
   comp.dispose();return {max,at};});
  assert.ok(white.max<.7,'no near-white frame: the whitest frame is '+Math.round(white.max*100)+'% white at '+white.at/1e6+' s');
  const lyricMid=6.2e6+1e6;
- const b=await render(lyricMid);assert.ok(b.corner[0]>160&&b.corner[1]<90,'lyrics too: the picture shows through: '+b.corner);
+ const b=await render(lyricMid);
+ if(await knockoutAt(lyricMid))assert.ok(b.red>200,'lyrics too (a knockout plate): the picture shows through the letters: '+b.red);
+ else assert.ok(b.corner[0]>160&&b.corner[1]<90,'lyrics too: the picture shows through: '+b.corner);
  await writeFile('tools/out/studio/cuts-lyric-over-picture.png',Buffer.from(b.png,'base64'));
  // ---- take the picture away: nothing under the cut layer any more, so it paints its own dark background
  await page.evaluate(async()=>{const img=c.get().project.clips.find(k=>k.kind==='image');await c.dispatch({type:'deleteClip',id:img.id});});
  const d=await render(freeMid);
- assert.ok(d.corner[0]<110&&d.corner[3]===255,'with nothing under it, a dark opaque background: '+d.corner);await writeFile('tools/out/studio/cuts-free-alone.png',Buffer.from(d.png,'base64'));
+ assert.ok((knockout||d.corner[0]<110)&&d.corner[3]===255,'with nothing under it, an opaque picture (a dark background, or a knockout plate): '+d.corner);await writeFile('tools/out/studio/cuts-free-alone.png',Buffer.from(d.png,'base64'));
  // ---- the same on the tall view
  const t=await render(freeMid,'tall',270,480);assert.ok(t.bright>20,'tall view draws too: '+t.bright);
  // ---- 自由文字にも付ける off: the clip's plan goes, the lyrics keep theirs

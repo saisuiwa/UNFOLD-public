@@ -6,7 +6,7 @@
 //   画面効果 apply(ctx, e, P, k)          できあがった1フレームへの後処理。k は 1→0 に減っていく強さ
 //   つなぎ  draw(ctx, A, B, p, e, P)     前カットの最後の絵 A と今カットの絵 B を p(0→1) で合成
 // 共通: name（日本語名）, tags（合うムード）, w（出やすさ）, plan(rnd) → P（保存して再現できる値）
-// e = {W,H,t,lt,dur,p,fg,accent,bg,step,tmp(slot,w,h)}   rnd = 0..1 の乱数関数
+// e = {W,H,t,lt,dur,p,fg,accent,bg,text,step,tmp(slot,w,h)}   rnd = 0..1 の乱数関数（text はそのカットの歌詞）
 import {addDailyParts} from './kit.js';
 import {DAILY_CUT_PARTS} from './daily-parts.js';
 export const TAU=Math.PI*2,DEG=Math.PI/180;
@@ -68,7 +68,59 @@ export const BG={
   plan:r=>({ph:[r()*TAU,r()*TAU,r()*TAU],a:.2+r()*.1}),
   draw(c,e,P){const R=e.H*.85,cols=[rgba(e.accent,P.a),rgba(e.fg,P.a*.45),rgba(mixHex(e.accent,e.fg,.5),P.a*.7)];
    cols.forEach((col,i)=>{const x=e.W*(.5+.32*Math.sin(e.t*(.35+i*.11)+P.ph[i])),y=e.H*(.5+.3*Math.cos(e.t*(.28+i*.09)+P.ph[(i+1)%3])),g=c.createRadialGradient(x,y,0,x,y,R);
-    g.addColorStop(0,col);g.addColorStop(1,rgba(e.accent,0));c.fillStyle=g;c.fillRect(0,0,e.W,e.H);});}}
+    g.addColorStop(0,col);g.addColorStop(1,rgba(e.accent,0));c.fillStyle=g;c.fillRect(0,0,e.W,e.H);});}},
+ // ---- 光や自然の背景（2026-10-17）。どれも薄く重ねる（下に写真や映像があっても、塗りつぶさない。重なった所でも不透明度は 130/255 以下）
+ rain:{name:'雨',tags:['emotional','calm'],w:.9,
+  plan:r=>({n:60+Math.floor(r()*40),ang:sign(r)*(6+r()*12),v:1.1+r()*.6,drops:5+Math.floor(r()*5),seed:Math.floor(r()*1000)}),
+  draw(c,e,P){const L=e.H*.09,sk=Math.tan(P.ang*DEG);c.strokeStyle=rgba(e.fg,.18);c.lineWidth=Math.max(1,e.H/700);c.beginPath();
+   for(let i=0;i<P.n;i++){const x0=hash(P.seed,i,1)*(e.W+e.H*.3)-e.H*.15,y=fract(hash(P.seed,i,2)+e.t*P.v*(.7+.6*hash(P.seed,i,3)))*(e.H+L)-L,x=x0+y*sk;c.moveTo(x,y);c.lineTo(x+L*sk,y+L);}
+   c.stroke();
+   for(let i=0;i<P.drops;i++){const x=hash(P.seed,i,7)*e.W,y=fract(hash(P.seed,i,8)+e.t*.06*(.5+hash(P.seed,i,9)))*e.H*1.1-e.H*.05,r=e.H*(.006+.008*hash(P.seed,i,10));
+    c.fillStyle=rgba('#ffffff',.06);c.fillRect(x-r*.35,y-r*9,r*.7,r*9);c.fillStyle=rgba('#ffffff',.24);c.beginPath();c.arc(x,y,r,0,TAU);c.fill();}}},
+ petals:{name:'花びら',tags:['emotional','pop','calm'],w:.9,
+  plan:r=>({n:22+Math.floor(r()*12),dir:sign(r),v:.05+r()*.04,seed:Math.floor(r()*1000)}),
+  // 全部の花びらを1つの形にまとめて1回で塗る（重なった所が濃くならない）
+  draw(c,e,P){const col=mixHex(e.accent,'#ffc4d6',.6),s0=e.H*.032;c.beginPath();
+   for(let i=0;i<P.n;i++){const u=fract(hash(P.seed,i,1)+e.t*P.v*(.7+.6*hash(P.seed,i,2))),x=P.dir>0?u*(e.W*1.2)-e.W*.1:e.W*1.1-u*e.W*1.2,y=hash(P.seed,i,3)*e.H+Math.sin(e.t*1.3+i)*e.H*.05+u*e.H*.25-e.H*.12,s=s0*(.6+.8*hash(P.seed,i,4));
+    c.save();c.translate(x,y);c.rotate(e.t*(1+hash(P.seed,i,5))*sign(()=>hash(P.seed,i,6))+i);c.scale(1,.45+.45*Math.abs(Math.sin(e.t*2+i)));
+    c.moveTo(0,-s);c.quadraticCurveTo(s,-s*.2,0,s);c.quadraticCurveTo(-s,-s*.2,0,-s);c.closePath();c.restore();}
+   c.fillStyle=rgba(col,.42);c.fill();}},
+ embers:{name:'火の粉',tags:['impact','emotional'],w:.8,
+  plan:r=>({n:40+Math.floor(r()*20),v:.12+r()*.08,seed:Math.floor(r()*1000)}),
+  draw(c,e,P){const g=c.createLinearGradient(0,e.H,0,e.H*.45);g.addColorStop(0,rgba('#ff5a1f',.18));g.addColorStop(1,rgba('#ff5a1f',0));c.fillStyle=g;c.fillRect(0,e.H*.45,e.W,e.H*.55);
+   for(let i=0;i<P.n;i++){const u=fract(hash(P.seed,i,1)+e.t*P.v*(.6+.8*hash(P.seed,i,2))),x=hash(P.seed,i,3)*e.W+Math.sin(e.t*2+i*1.7)*e.H*.03*(1+u),y=e.H*(1.05-u*1.1),r=e.H*(.0025+.004*hash(P.seed,i,4))*(1-u*.6),a=(1-u)*(.5+.5*Math.sin(e.t*9+i));
+    if(a<=.02)continue;c.fillStyle=rgba(i%3?'#ffb347':'#ff6a2a',clamp(a*.34));c.beginPath();c.arc(x,y,Math.max(.6,r),0,TAU);c.fill();}}},
+ lightLeak:{name:'光漏れ',tags:['emotional','calm'],w:.9,
+  plan:r=>({side:Math.floor(r()*4),ph:r()*TAU,a:.26+r()*.1}),
+  draw(c,e,P){const pts=[[0,0],[1,0],[1,1],[0,1]],[ax,ay]=pts[P.side],[bx,by]=pts[(P.side+2)%4];
+   [[ax,ay,'#ffb03a',1],[bx,by,'#ff5b2e',.6]].forEach(([u,v,col,k],i)=>{const br=.75+.25*Math.sin(e.t*.6+P.ph+i*2),R=e.H*(.9+.25*i)*br,x=e.W*u,y=e.H*v,g=c.createRadialGradient(x,y,0,x,y,R);
+    g.addColorStop(0,rgba(col,P.a*k*br));g.addColorStop(.55,rgba(col,P.a*k*.35*br));g.addColorStop(1,rgba(col,0));c.fillStyle=g;c.fillRect(0,0,e.W,e.H);});}},
+ aurora:{name:'オーロラ',tags:['calm','emotional'],w:.8,
+  plan:r=>({n:3,ph:r()*TAU,v:.15+r()*.15}),
+  draw(c,e,P){const step=Math.max(4,e.W/120);
+   for(let k=0;k<P.n;k++){const g=c.createLinearGradient(0,e.H*.08,0,e.H*.72);g.addColorStop(0,rgba(k%2?'#8b5cf6':'#34d399',0));g.addColorStop(.35,rgba(k%2?'#8b5cf6':'#34d399',.16));g.addColorStop(1,rgba('#8b5cf6',0));c.fillStyle=g;
+    c.beginPath();for(let x=0;x<=e.W+step;x+=step){const y=e.H*(.18+.06*k+.07*Math.sin(x/e.W*TAU*(1+k*.4)+e.t*P.v*(1+k*.3)+P.ph+k));x===0?c.moveTo(x,y):c.lineTo(x,y);}
+    for(let x=e.W+step;x>=0;x-=step){const y=e.H*(.55+.06*k+.05*Math.sin(x/e.W*TAU*(1.3+k*.3)-e.t*P.v+P.ph*2+k));c.lineTo(x,y);}c.closePath();c.fill();}}},
+ backlight:{name:'逆光の光条',tags:['emotional','graphic','calm'],w:.9,
+  plan:r=>({x:.2+r()*.6,y:.15+r()*.3,v:sign(r)*(.01+r()*.015)}),
+  draw(c,e,P){const x=e.W*(P.x+P.v*e.t%.4),y=e.H*P.y,R=e.H*.9,g=c.createRadialGradient(x,y,0,x,y,R);g.addColorStop(0,rgba('#ffb35c',.26));g.addColorStop(.4,rgba('#ff7a4a',.12));g.addColorStop(1,rgba('#ff7a4a',0));c.fillStyle=g;c.fillRect(0,0,e.W,e.H);
+   for(const [h,a] of [[e.H*.012,.2],[e.H*.045,.08]]){const s=c.createLinearGradient(0,0,e.W,0);s.addColorStop(0,rgba('#7fd6ff',0));s.addColorStop(clamp(x/e.W),rgba('#7fd6ff',a));s.addColorStop(1,rgba('#7fd6ff',0));c.fillStyle=s;c.fillRect(0,y-h/2,e.W,h);}}},
+ // ---- 後ろを流れる文字の背景（2026-10-17）。e.text はそのカットの歌詞（compose.js の envFor）
+ bigText:{name:'流れる大きな文字',tags:['graphic','pop','impact'],w:.8,
+  plan:r=>({rows:1+Math.floor(r()*2),v:sign(r)*(.04+r()*.04),a:.12+r()*.06}),
+  draw(c,e,P){const txt=String(e.text||'LYRIC').replace(/\s+/g,' ').trim()+'  ',s=e.H*(P.rows>1?.36:.5);c.font=`900 ${s}px "U-dela","U-gothic",sans-serif`;c.textBaseline='middle';
+   const tw=Math.max(e.H*.5,Number(c.measureText(txt).width)||0);c.strokeStyle=rgba(e.fg,P.a);c.lineWidth=Math.max(1,e.H/360);
+   for(let k=0;k<P.rows;k++){const dir=k%2?-1:1,off=fract(e.t*P.v*dir)*tw,y=P.rows>1?e.H*(.3+.4*k):e.H*.5;for(let x=-off-tw;x<e.W+tw;x+=tw)c.strokeText(txt,x,y);}}},
+ codeRain:{name:'降る文字の列',tags:['glitch','graphic'],w:.7,
+  plan:r=>({cols:28+Math.floor(r()*16),v:.5+r()*.4,seed:Math.floor(r()*1000)}),
+  draw(c,e,P){const cw=e.W/P.cols,s=cw*.8,len=12,CH='アイウエオカキクケコサシスセソ0123456789ABCDEFｦｱｳｴｵ';c.font=`${s}px ui-monospace,Menlo,monospace`;c.textAlign='center';c.textBaseline='top';
+   for(let i=0;i<P.cols;i++){const sp=.6+.8*hash(P.seed,i,1),head=fract(hash(P.seed,i,2)+e.t*P.v*sp*.25)*(e.H+len*s)-len*s*.2,x=(i+.5)*cw;
+    for(let j=0;j<len;j++){const y=head-j*s;if(y<-s||y>e.H)continue;const ch=CH[Math.floor(hash(P.seed+Math.floor(e.t*8+j),i,j)*CH.length)];c.fillStyle=j===0?rgba('#e6ffe9',.42):rgba(mixHex(e.accent,'#3bff8a',.6),.28*(1-j/len));c.fillText(ch,x,y);}}}},
+ textWall:{name:'文字の壁',tags:['graphic','calm','glitch'],w:.7,
+  plan:r=>({rows:7+Math.floor(r()*5),v:.03+r()*.03,a:.09+r()*.05}),
+  draw(c,e,P){const txt=String(e.text||'LYRIC').replace(/\s+/g,' ').trim()+' · ',h=e.H/P.rows,s=h*.62;c.font=`700 ${s}px "U-gothic",sans-serif`;c.textBaseline='middle';
+   const tw=Math.max(h,Number(c.measureText(txt).width)||0);c.fillStyle=rgba(e.fg,P.a);
+   for(let k=0;k<P.rows;k++){const dir=k%2?-1:1,off=fract(e.t*P.v*dir*(1+k*.13)+k*.37)*tw,y=(k+.5)*h;for(let x=-off-tw;x<e.W+tw;x+=tw)c.fillText(txt,x,y);}}}
 };
 
 // ---- カメラ（文字レイヤー全体の変形） ----------------------------------------------------------------------------------------------------------
@@ -129,6 +181,11 @@ export const FX={
     hole(c,e,x,y,w,h);c.drawImage(s,x,y,w,h,x+dx,y+dy,w,h);
     if(P.inv&&e.opaque!==false&&hash(e.step,i,17)<.5*k){c.save();c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(x+dx,y+dy,w,h);c.restore();}
    }}},
+ circleInvert:{name:'円の中だけ反転',tags:['graphic','impact','glitch'],w:.8,dur:.5,strongFlash:true,plan:r=>({cx:.5+(r()-.5)*.3,cy:.5+(r()-.5)*.3}),
+  // 広がる輪の中だけ白黒（色）を反転する。輪の内側のふちも追いかけて広がるので、最後は何も残らない（2026-10-17）
+  apply(c,e,P,k){const u=1-clamp(k),R=Math.hypot(e.W,e.H)*.62,ro=outCubic(u*1.15)*R,ri=Math.max(0,(u-.35)/.65)**2*R;if(ro<=ri+.5)return;
+   c.save();c.beginPath();c.arc(e.W*P.cx,e.H*P.cy,ro,0,TAU);if(ri>.5)c.arc(e.W*P.cx,e.H*P.cy,ri,0,TAU,true);c.clip('evenodd');
+   if(e.opaque===false){c.globalCompositeOperation='source-atop';c.globalAlpha=.85;}else c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);c.restore();}},
  invert:{name:'反転',tags:['glitch','impact','graphic'],w:.7,dur:.12,strongFlash:true,plan:()=>({}),
   apply(c,e){c.save();if(e.opaque===false){c.globalCompositeOperation='source-atop';c.globalAlpha=.85;}else c.globalCompositeOperation='difference';c.fillStyle='#ffffff';c.fillRect(0,0,e.W,e.H);c.restore();}},
  radial:{name:'放射色収差',tags:['glitch','pop','impact','emotional'],w:1.1,dur:.4,plan:r=>({s:.7+r()*.6}),
