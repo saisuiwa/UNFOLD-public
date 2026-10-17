@@ -63,7 +63,7 @@ export function createPreview(canvas, { vertexShader, fragmentShader }) {
     uTime: { value: 0 }, uDraw: { value: 1 }, uThrough: { value: 0 }, uFade: { value: 1 }, uGlass: { value: 0 }, uShape: { value: 0 }, uPreset: { value: 0 }, uConceal: { value: 0 },
   };
   addRenderUniforms(uniforms);
-  const makeMaterial = source => new THREE.ShaderMaterial({ defaultAttributeValues: { color: [1, 1, 1], uv: [0, 0], uv1: [0, 0], tcell: [0, 0, 0] }, uniforms, vertexShader: source, fragmentShader, side: THREE.DoubleSide, transparent: true });
+  const makeMaterial = source => new THREE.ShaderMaterial({ defaultAttributeValues: { color: [1, 1, 1], uv: [0, 0], uv1: [0, 0], tcell: [0, 0, 0], modelColor: [0, 0, 0, 0] }, uniforms, vertexShader: source, fragmentShader, side: THREE.DoubleSide, transparent: true });
   let material = makeMaterial(vertexShader), mesh = null, texture = null;
 
   function draw() { renderer.render(scene, syncPerspective(camera, perspective, look.enabled ? look.perspective : 0)); }

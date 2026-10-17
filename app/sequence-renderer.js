@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {smooth,vertexShader,particleFragment} from './motion.js';
+import {smooth,vertexShader,particleFragment} from './motion.js?v=29';
 import {presetNames,presetTargets} from './shape-presets.js';
 import {applyTiles,tilesAcross} from './tile-size.js';
 import {particleParts} from './model-layout.js';
@@ -13,7 +13,8 @@ import {imageTarget} from './image-method-target.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import {BUILTIN_IDS as METHOD_IDS} from './method-registry.js';
 import {assembleVertex} from './custom-method.js';
-import {importModel} from './model-import.js';
+import {importModel} from './model-import.js?v=12';
+import {isColourShape,fillsFrame,loadColourShape} from './colour-shapes.js?v=1';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves as curves,warpTime} from './sequence-core.js';
 import {StudioError} from './studio/model.js';
 import {checkAbort} from './studio/file.js';
@@ -50,7 +51,7 @@ const defaults = {
   audioBuffer: null, audioOwner: null, audioName: '', withAudio: true, phase: 0, link: false, selection: null,
   fx: { blur: 0, bloom: 0, neon: 0, neonColor: '', glass: 0, chroma: 0, glitch: 0, scan: 0, grain: 0, vignette: 0, bokeh: 0 },
   cam: { persp: 0, kenburns: 0, handheld: 0, tilt: 0, orbit: 0 },
-  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0, detail: 1, tiles: .5, depth: 1, fill: true, silSens: 0.5,
+  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0, detail: 1, modelColor: 0, tiles: .5, depth: 1, fill: true, silSens: 0.5,
   playing: false, t: 0, audio: null, recording: false,
 };
 export function drawSequenceVisual(ctx,sec) {
@@ -88,7 +89,7 @@ export function drawSequenceVisual(ctx,sec) {
   if (mesh.geometry !== geo) mesh.geometry = geo;
   setMaterialTextures(seq.slides[L.i], tr ? seq.slides[L.i + 1] : null);
   const isText = isFlatShape(tr);
-  const isPreset = tr && (presetNames.includes(tr.shape) || savedModels.has(tr.shape) || isText);
+  const isPreset = tr && (presetNames.includes(tr.shape) || savedModels.has(tr.shape) || isColourShape(tr.shape) || isText);
   u.uTime.value = sec;
   u.uThrough.value = through && L.u >= .5 ? 1 : 0;
   u.uFade.value = through ? smooth(0, .045, Math.abs(L.u - .5)) : reveal ? 1 - smooth(.72, .98, L.u) : 1;
@@ -96,7 +97,7 @@ export function drawSequenceVisual(ctx,sec) {
   backdrop.visible = reveal;
   if (reveal) backdrop.material.map = slideTexture(seq.slides[L.i + 1]);
   u.uDraw.value = !tr ? 1 : L.u < .5 ? 1 - smooth(.06, .44, L.u) : smooth(.56, .94, L.u);
-  u.uDistort.value = c.distort; u.uForm.value = c.form; u.uStrength.value = seq.strength; u.uDepth.value = seq.depth;
+  u.uDistort.value = c.distort; u.uForm.value = c.form; if (u.uModelColor) u.uModelColor.value = seq.modelColor ?? 0; u.uStrength.value = seq.strength; u.uDepth.value = seq.depth;
   // custom methods have their own shader: swap it in (uniforms are shared, so `u` stays valid)
   const firstJS=isImageMethodKey(tr?.method),secondJS=isImageMethodKey(tr?.method2);
   const pick = imageCode?variants.pick(firstJS?(secondJS?'':tr?.method2):tr?.method):variants.pick(tr ? tr.method : '', tr?.method2 || '');
@@ -122,7 +123,7 @@ export function drawSequenceVisual(ctx,sec) {
   // while torn up / 3D the camera goes to the zoom the two "引き" sliders ask for: 0% = frame-filling, 100% = 1×
   const fullZoom = Math.max((camera.right - camera.left) / planeW, (camera.top - camera.bottom) / planeH);
   const flatZoom = seq.fill ? fullZoom : 1;
-  const pull = seq.pullback * (1 - c.form) + seq.formPullback * c.form;   // hands over to the 3D setting as the solid forms
+  const pull = seq.pullback * (1 - c.form) + (tr && fillsFrame(tr.shape) ? 0 : seq.formPullback) * c.form;   // a scene that fills the frame is not pulled back   // hands over to the 3D setting as the solid forms
   const loose = reveal ? 0 : Math.max(c.distort, c.form);   // a reveal keeps the frame still so the next picture sits exactly in place
   camera.zoom = flatZoom + (1 + (fullZoom - 1) * (1 - pull) - flatZoom) * loose + seq.push * c.form + 0.06 * beatKick;
   // camera work: slow Ken Burns drift per picture (or a picture's own camera), handheld wobble, a lazy tilt
@@ -209,6 +210,7 @@ function customGeometry(data) {
   g.setAttribute('cell', new THREE.BufferAttribute(data.cell, 2));
   g.setAttribute('part', new THREE.BufferAttribute(particleParts(data, seq.detail), 4));
   g.setAttribute('targetPosition', new THREE.BufferAttribute(data.target, 3));
+  if (data.color) g.setAttribute('modelColor', new THREE.BufferAttribute(data.color, 4));   // a GLB's own colours (mixed in by seq.modelColor)
   g.userData.layout = data;
   applyTiles(THREE, g, tilesAcross(seq.tiles));
   return g;
@@ -254,7 +256,7 @@ function perspective(reveal) {
   return perspCam;
 }
 
- async function safeEnsure(tr){const key=shapeKey(tr);if(geoCache.has(key))return;if(seq.modelAssets?.[tr.shape]){const blob=await assets.get(seq.modelAssets[tr.shape]);if(!blob)throw new StudioError('MISSING_ASSET');const model=await importModel(await blob.arrayBuffer(),{ordered:tr.orderedPicture===true});if(dead)throw new StudioError('LAYER_DISPOSED');geoCache.set(key,customGeometry(model));savedModels.set(tr.shape,true);}else if(key in BUILTIN_IDS||presetNames.includes(key))geoCache.set(key,gridGeometry(presetTargets(key)));else throw new StudioError('UNSUPPORTED_SHAPE');}
+ async function safeEnsure(tr){const key=shapeKey(tr);if(geoCache.has(key))return;if(seq.modelAssets?.[tr.shape]){const blob=await assets.get(seq.modelAssets[tr.shape]);if(!blob)throw new StudioError('MISSING_ASSET');const model=await importModel(await blob.arrayBuffer(),{ordered:tr.orderedPicture===true,colors:true});if(dead)throw new StudioError('LAYER_DISPOSED');geoCache.set(key,customGeometry(model));savedModels.set(tr.shape,true);}else if(isColourShape(tr.shape)){const model=await loadColourShape(tr.shape,{ordered:tr.orderedPicture===true});if(dead)throw new StudioError('LAYER_DISPOSED');geoCache.set(key,customGeometry(model));}else if(key in BUILTIN_IDS||presetNames.includes(key))geoCache.set(key,gridGeometry(presetTargets(key)));else throw new StudioError('UNSUPPORTED_SHAPE');}
  const context=()=>({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt});
  const renderAt=sec=>drawSequenceVisual(context(),sec);
  return {async prepare(snapshot,signal){const state=snapshot.state||snapshot;seq={...structuredClone(defaults),...structuredClone(state.settings||{}),slides:structuredClone(state.slides||[]),transitions:structuredClone(state.transitions||[]),methods:structuredClone(state.methods||[]),modelAssets:state.modelAssets||{},fontAssets:state.fontAssets||{}};seq.cam={...defaults.cam,...seq.cam};seq.fx={...defaults.fx,...seq.fx};seq.renderLook=cleanRenderLook(seq.renderLook);
@@ -263,9 +265,9 @@ function perspective(reveal) {
  checkAbort(signal);if(dead)throw new StudioError('LAYER_DISPOSED');renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.outputColorSpace=THREE.SRGBColorSpace;sceneBlur=new SceneBlur(renderer);scene=new THREE.Scene();camera=new THREE.OrthographicCamera(-4.8,4.8,2.7,-2.7,.1,100);camera.position.z=10;perspCam=new THREE.PerspectiveCamera(30,16/9,.1,200);const blank=makeTexture(document.createElement('canvas'));
   const uniforms = { uImage: { value: blank }, uImageB: { value: blank }, uSwap: { value: 0 }, uSize: { value: new THREE.Vector2(planeW, planeH) },
     uDistort: { value: 0 }, uForm: { value: 0 }, uStrength: { value: .8 }, uDepth: { value: 1 }, uSeed: { value: 28 }, uMethod: { value: 0 },
-    uMethod2: { value: 0 }, uMethodMix: { value: 0 }, uProject: { value: 0 }, uTime: { value: 0 }, uDraw: { value: 1 }, uThrough: { value: 0 }, uFade: { value: 1 }, uGlass: { value: 0 }, uShape: { value: 0 }, uPreset: { value: 0 }, uConceal: { value: 0 } };
+    uMethod2: { value: 0 }, uMethodMix: { value: 0 }, uProject: { value: 0 }, uTime: { value: 0 }, uDraw: { value: 1 }, uThrough: { value: 0 }, uFade: { value: 1 }, uGlass: { value: 0 }, uShape: { value: 0 }, uPreset: { value: 0 }, uConceal: { value: 0 }, uModelColor: { value: 0 } };
 
- function material(a='',b=''){const key=a+'|'+b;if(materials.has(key))return materials.get(key);const codes=[a,b].map(id=>{if(!id||Object.hasOwn(METHOD_IDS,id)||isImageMethodKey(id))return '';const record=method(id);if(!record||record.status!=='ok'||!(record.vertex||record.source))throw new StudioError('UNTRUSTED_CODE');return record.vertex||record.source;});const m=new THREE.ShaderMaterial({defaultAttributeValues:{color:[1,1,1],uv:[0,0],uv1:[0,0],tcell:[0,0,0]},uniforms,vertexShader:assembleVertex(vertexShader,{a:codes[0],b:codes[1]}).source,fragmentShader,side:THREE.DoubleSide,transparent:true});materials.set(key,m);return m;}
+ function material(a='',b=''){const key=a+'|'+b;if(materials.has(key))return materials.get(key);const codes=[a,b].map(id=>{if(!id||Object.hasOwn(METHOD_IDS,id)||isImageMethodKey(id))return '';const record=method(id);if(!record||record.status!=='ok'||!(record.vertex||record.source))throw new StudioError('UNTRUSTED_CODE');return record.vertex||record.source;});const m=new THREE.ShaderMaterial({defaultAttributeValues:{color:[1,1,1],uv:[0,0],uv1:[0,0],tcell:[0,0,0],modelColor:[0,0,0,0]},uniforms,vertexShader:assembleVertex(vertexShader,{a:codes[0],b:codes[1]}).source,fragmentShader,side:THREE.DoubleSide,transparent:true});materials.set(key,m);return m;}
  variants={pick(a='',b=''){return {material:material(a,b),uMethod:METHOD_IDS[a]??(a&&!isImageMethodKey(a)?100:0),uMethod2:METHOD_IDS[b]??(b&&!isImageMethodKey(b)?101:0),used:[]};}};
  geoCache.set('sphere',gridGeometry(presetTargets('sphere')));for(const tr of seq.transitions){await safeEnsure(tr);checkAbort(signal);if(dead)throw new StudioError('LAYER_DISPOSED');}mesh=new THREE.Mesh(geoCache.get('sphere'),material());mesh.frustumCulled=false;scene.add(mesh);backdrop=new THREE.Mesh(new THREE.PlaneGeometry(planeW,planeH),new THREE.MeshBasicMaterial({map:blank,depthWrite:false}));backdrop.position.z=-4;backdrop.renderOrder=-1;backdrop.visible=false;scene.add(backdrop);
  },async render({timeUs,width,height,signal}){checkAbort(signal);if(dead)throw new StudioError('LAYER_DISPOSED');renderer.setSize(width,height,false);renderAt(timeUs/1e6);for(let i=0;i<imageInputs.length;i++)if(imageInputs[i])await imageLayerAt(i).prepare(imageInputs[i]);checkAbort(signal);renderAt(timeUs/1e6);const bitmap=await createImageBitmap(renderer.domElement);if(dead||signal?.aborted){bitmap.close();checkAbort(signal);throw new StudioError('LAYER_DISPOSED');}return layerFrame(bitmap);},dispose(){if(dead)return;dead=true;imageLayers.forEach(x=>x.dispose());images.forEach(x=>x.close());seq?.slides.forEach(s=>s.texture?.dispose());geoCache.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());backdrop?.geometry.dispose();backdrop?.material.map?.dispose();backdrop?.material.dispose();sceneBlur?.dispose?.();renderer?.dispose();renderer?.forceContextLoss();}};

@@ -186,6 +186,9 @@
   .shape-grid button.added:hover { border-color:#5fa9c9; }
   .shape-grid button.added[aria-pressed=true] { border-color:var(--added); color:var(--added); background:#1d3440; }
   .shape-grid button img { width:22px; height:22px; object-fit:contain; }
+  /* colour shapes (colour-shapes.js): icon and name in the shape's own colours */
+  .shape-grid button b.colour-name { font-weight:700; }
+  .colour-name{background:var(--colour-grad);-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent}
   .saved-model img { width:28px; height:28px; object-fit:contain; flex:none; }
   .panel-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:10px; }
   .eyebrow { font-size:10px; letter-spacing:.18em; color:var(--dim); font-weight:700; }
@@ -289,6 +292,7 @@
     <div class="row" data-phase="form"><label><span class="phase-dot form"></span>立体化中の引き</label><input id="seq-form-pullback" type="range" min="0" max="100" value="100" title="0%で立体になっても画面いっぱいのまま。100%で今までどおり小さく引く"></div>
     <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>粒の細かさ（GLB・文字）</label><input id="seq-detail" type="range" min="0" max="100" value="100" title="銀河・塵・雪など粒で崩すときの粒の大きさ。0%でプリセットと同じ、100%でモデルの面そのまま"></div>
     <div class="row" data-phase="chaos"><p class="hint" id="seq-detail-note" aria-live="polite" style="margin:0 0 6px;line-height:1.6"></p></div>
+    <div class="row" data-phase="form"><label><span class="phase-dot form"></span>GLBの色（写真と混ぜる）</label><input id="seq-model-color" type="range" min="0" max="100" value="100" title="GLBのテクスチャ・基本色を、立体になるにつれて写真と混ぜる。0%で写真だけ、100%でGLBの色だけ。色のないGLBや立体文字には効きません"></div>
     <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>タイルの細かさ</label><input id="seq-tiles" type="range" min="0" max="100" value="50" title="ばらばら・砕ける・とける・シュレッダー・モザイク・星とハート・ブラインド・タイル反転・グリッチのタイルの大きさ。真ん中が今まで（16×16）。左に動かすと大きなタイルで荒々しく、右は細かく"></div>
     <div class="row" data-phase="chaos"><p class="hint" id="seq-tiles-note" aria-live="polite" style="margin:0 0 6px;line-height:1.6"></p></div>
     <div class="row" data-phase="form"><label><span class="phase-dot form"></span>プッシュイン</label><input id="seq-push" type="range" min="0" max="60" value="25"></div>
@@ -333,7 +337,7 @@
 <section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
 </main>
 <div id="seq-notice"></div>
-<script type="module" src="./sequence.js?v=110"></script>
+<script type="module" src="./sequence.js?v=115"></script>
 <script type="module" src="./panel-resize.js?v=1"></script>
 </body>
 </html>

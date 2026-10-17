@@ -8,16 +8,17 @@ import { createShotControls } from './shot-motion-controls.js?v=3';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
 import * as THREE from './vendor/three.module.min.js';
-import {motionAt,exportRange,smooth,vertexShader,fragmentShader} from './motion.js?v=27';
+import {motionAt,exportRange,smooth,vertexShader,fragmentShader} from './motion.js?v=29';
 import {presetNames,presetTargets} from './shape-presets.js?v=6';
-import {importModel} from './model-import.js?v=9';
+import {importModel} from './model-import.js?v=12';
 import {listModels,getModel,saveModel,deleteModel,updateModel} from './model-library.js?v=4';
+import {COLOUR_SHAPES,isColourShape,fillsFrame,loadColourShape,paintColourLabel} from './colour-shapes.js?v=1';
 import {ALL,UNGROUPED,groupOf,groupSelect,inGroup,loadActive,renderTabs,saveActive,validActive,wantsTabs} from './model-groups.js?v=1';
-import {modelThumb,fillMissingThumbs} from './model-thumb.js?v=1';
-import {particleParts} from './model-layout.js?v=10';
-import {createTextShape,validateText} from './text-shape.js?v=9';
-import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from './mask-shape.js?v=5';
-import {effectsAt,SceneBlur} from './effects.js?v=30';
+import {modelThumb,fillMissingThumbs} from './model-thumb.js?v=2';
+import {particleParts} from './model-layout.js?v=13';
+import {createTextShape,validateText} from './text-shape.js?v=10';
+import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from './mask-shape.js?v=6';
+import {effectsAt,SceneBlur} from './effects.js?v=31';
 import {BUILTIN_KEYS,getCustom,listCustom,onRegistryChange,registerCustom,resolveKey,setCustomStatus,unregisterCustom} from './method-registry.js';
 import {createPersistence,openStore} from './method-library.js';
 import {registerBundledImageMethods} from './bundled-image-methods.js';
@@ -36,10 +37,10 @@ function getImageLayer(){return imageLayer??=createImageMethodLayer(renderer,{on
 async function prepareImageFrame(){render();if(imageInput)await getImageLayer().prepare(imageInput);render()}
 const MAX_SAVED_MODELS=100;   // GLBs kept in this browser (shared with the sequence page)
 let activeGroup=loadActive('unfold-glb-tab');   // the GLB tab in use (the same one the sequence page remembers)
-const customShapes=new Map(),savedModels=new Map();let customSerial=0,importing=false;
+const customShapes=new Map(),colourShapes=new Map(),savedModels=new Map();let customSerial=0,importing=false;
 const $=id=>document.getElementById(id);
 const loadShot=()=>{try{return cleanShot(JSON.parse(localStorage.getItem('unfold-single-shot')||'null'))}catch{return cleanShot()}};
-const state={imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+const state={imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
@@ -56,10 +57,10 @@ function makeSample(){
  return c;
 }
 function geometryFor(w,h){
- const custom=customShapes.get(state.shape);
+ const custom=shapeOf(state.shape);
  if(custom){const data=custom.data,g=new THREE.BufferGeometry(),positions=new Float32Array(data.target.length);
   for(let i=0;i<data.uv.length/2;i++){positions[i*3]=(data.uv[i*2]-.5)*w;positions[i*3+1]=(data.uv[i*2+1]-.5)*h}
-  g.setAttribute('position',new THREE.BufferAttribute(positions,3));g.setAttribute('uv',new THREE.BufferAttribute(data.uv,2));g.setAttribute('cell',new THREE.BufferAttribute(data.cell,2));g.setAttribute('part',new THREE.BufferAttribute(particleParts(data,state.detail),4));g.setAttribute('targetPosition',new THREE.BufferAttribute(data.target,3));applyTiles(THREE,g,tilesAcross(state.tiles));return g;
+  g.setAttribute('position',new THREE.BufferAttribute(positions,3));g.setAttribute('uv',new THREE.BufferAttribute(data.uv,2));g.setAttribute('cell',new THREE.BufferAttribute(data.cell,2));g.setAttribute('part',new THREE.BufferAttribute(particleParts(data,state.detail),4));g.setAttribute('targetPosition',new THREE.BufferAttribute(data.target,3));if(data.color)g.setAttribute('modelColor',new THREE.BufferAttribute(data.color,4));applyTiles(THREE,g,tilesAcross(state.tiles));return g;
  }
 
  const positions=[],uvs=[],cells=[],parts=[];const tiles=16,sub=5;
@@ -73,7 +74,7 @@ function setSource(canvas,name){
  sourceCanvas=canvas;texture?.dispose();texture=new THREE.CanvasTexture(canvas);texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=false;texture.colorSpace=THREE.SRGBColorSpace;
  const aspect=canvas.width/canvas.height;const h=Math.min(3.65,5.25/aspect),w=h*aspect;
  if(mesh){mesh.geometry.dispose();mesh.material.dispose();scene.remove(mesh)}
- const uniforms={uImage:{value:texture},uSize:{value:new THREE.Vector2(w,h)},uDistort:{value:0},uForm:{value:0},uStrength:{value:.75},uDepth:{value:1},uSeed:{value:28},uMethod:{value:0},uMethod2:{value:0},uMethodMix:{value:0},uProject:{value:0},uTime:{value:0},uDraw:{value:1},uThrough:{value:0},uFade:{value:1},uGlass:{value:0},uShape:{value:0},uPreset:{value:0},uConceal:{value:0}};
+ const uniforms={uImage:{value:texture},uSize:{value:new THREE.Vector2(w,h)},uDistort:{value:0},uForm:{value:0},uStrength:{value:.75},uDepth:{value:1},uSeed:{value:28},uMethod:{value:0},uMethod2:{value:0},uMethodMix:{value:0},uProject:{value:0},uTime:{value:0},uDraw:{value:1},uThrough:{value:0},uFade:{value:1},uGlass:{value:0},uShape:{value:0},uPreset:{value:0},uConceal:{value:0},uModelColor:{value:state.modelColor}};
  mesh=new THREE.Mesh(geometryFor(w,h),(variants?.dispose(),variants=createVariants({renderer,vertexShader,fragmentShader,uniforms,onReady:()=>render()}),variants.base));mesh.frustumCulled=false;scene.add(mesh);
  const thumb=document.createElement('canvas');thumb.width=140;thumb.height=Math.round(140/aspect);thumb.getContext('2d').drawImage(canvas,0,0,thumb.width,thumb.height);$('thumbnail').src=thumb.toDataURL();$('image-name').textContent=name;
  $('image-size').textContent=`${canvas.width} × ${canvas.height} · クリックして変更`;render();
@@ -85,11 +86,11 @@ function resize(){
 function setCamera(aspect){const height=Math.max(5.4,6.8/aspect);camera.left=-height*aspect/2;camera.right=height*aspect/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix()}
 function render(){
  if(!mesh)return;const imageCode=isImageMethodKey(state.method),m=motionAt(state.t),u=mesh.material.uniforms;if(imageCode&&!state.imageSolid)m.form=0;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
- u.uDistort.value=imageCode?0:m.distort;u.uForm.value=m.form;u.uStrength.value=state.strength;u.uDepth.value=state.depth;u.uSeed.value=state.seed;u.uMethod.value=pick.uMethod;u.uMethod2.value=pick.uMethod2;u.uShape.value=shapeIds[state.shape]??0;
- u.uPreset.value=(presetNames.includes(state.shape)||customShapes.has(state.shape))?1:0;u.uProject.value=customShapes.get(state.shape)?.kind==='text'?1:0;u.uConceal.value=!imageCode&&state.mystery?smooth(.08,.24,state.t)*(1-smooth(.80,.94,state.t)):0;
+ u.uDistort.value=imageCode?0:m.distort;u.uForm.value=m.form;u.uStrength.value=state.strength;u.uDepth.value=state.depth;u.uModelColor.value=state.modelColor;u.uSeed.value=state.seed;u.uMethod.value=pick.uMethod;u.uMethod2.value=pick.uMethod2;u.uShape.value=shapeIds[state.shape]??0;
+ u.uPreset.value=(presetNames.includes(state.shape)||shapeOf(state.shape))?1:0;u.uProject.value=shapeOf(state.shape)?.kind==='text'?1:0;u.uConceal.value=!imageCode&&state.mystery?smooth(.08,.24,state.t)*(1-smooth(.80,.94,state.t)):0;
  // All camera motion fades out with deformation, guaranteeing a flat identical final image.
  const preset=u.uPreset.value===1,orientation=imageCode&&!state.imageSolid?m.distort:m.form;
- const isText=customShapes.get(state.shape)?.kind==='text';
+ const isText=shapeOf(state.shape)?.kind==='text';
  const base=preset?(state.shape==='pegasus'?-.30:.20):.42;
  mesh.rotation.set(((preset?-.06:-.18)+state.viewX)*orientation,isText?(.12+state.viewY)*orientation:(base+state.viewY)*orientation+m.turn-(preset?motionAt(.56).turn*m.form:0),0);renderer.setClearColor(state.bg,1);
  const spin=rotationAt(state.shot.rotation,state.t,'single');
@@ -98,7 +99,7 @@ function render(){
  const imageSize=u.uSize.value,frameW=camera.right-camera.left,frameH=camera.top-camera.bottom;
  const fillZoom=Math.max(frameW/imageSize.x,frameH/imageSize.y);
  // how far the camera eases out while the picture is torn up, handing over to the 3D-solid setting as it forms (0 = stays filling the frame)
- const flat=1-(m.distort*state.pullback*(1-m.form)+m.form*state.formPullback);
+ const flat=1-(m.distort*state.pullback*(1-m.form)+m.form*(fillsFrame(state.shape)?0:state.formPullback));
  camera.zoom=(1+(fillZoom-1)*flat)*fx.zoom;camera.position.x=fx.x;camera.position.y=fx.y;camera.rotation.z=fx.roll;camera.updateProjectionMatrix();
  const move=blendCameraMove({x:camera.position.x,y:camera.position.y,zoom:camera.zoom,roll:camera.rotation.z},state.shot.camera,state.t,{width:imageSize.x,height:imageSize.y,zoom:1+(fillZoom-1)*flat});
  camera.zoom=move.zoom;camera.position.x=move.x;camera.position.y=move.y;camera.rotation.z=move.roll;camera.updateProjectionMatrix();
@@ -125,7 +126,7 @@ function showInspectorPane(name){
  document.querySelector('.inspector').scrollTop=0;
 }
 // the grain and tile sliders only reach some methods (and, for grain, some shapes): say so beside them
-function updateSliderNotes(){const g=$('particle-detail-note'),t=$('tile-size-note');if(g)g.textContent=grainSingleNote({method:state.method,shapeHasGrain:customShapes.has(state.shape)}).text;if(t)t.textContent=tileSingleNote({method:state.method},state.tiles).text}
+function updateSliderNotes(){const g=$('particle-detail-note'),t=$('tile-size-note');if(g)g.textContent=grainSingleNote({method:state.method,shapeHasGrain:!!shapeOf(state.shape)}).text;if(t)t.textContent=tileSingleNote({method:state.method},state.tiles).text}
 function syncImageControls(){
  const code=isImageMethodKey(state.method);document.querySelector('#pane-shape .form-section').hidden=false;
  let toggle=$('image-solid');if(!toggle){const label=document.createElement('label');label.id='image-solid-control';label.className='range-label';toggle=document.createElement('input');toggle.id='image-solid';toggle.type='checkbox';toggle.onchange=()=>{state.imageSolid=toggle.checked;syncImageControls();render()};label.append(toggle,' 立体化する');document.querySelector('#pane-shape .form-section').prepend(label)}toggle.checked=state.imageSolid;$('image-solid-control').hidden=!code;
@@ -142,7 +143,7 @@ function setChoice(container,key,value){
  if(key==='shape'){
   const {x:w,y:h}=mesh.material.uniforms.uSize.value;const old=mesh.geometry;mesh.geometry=geometryFor(w,h);old.dispose();
   $('remove-model').hidden=!customShapes.has(value);updateGroupBox();
-  const custom=customShapes.get(value);$('model-info').textContent=custom?`${custom.name} · ${custom.data.originalTriangles.toLocaleString()}面 · 形状のみ使用`: 'GLBや立体文字を追加すると、ここから選べます。';
+  const custom=shapeOf(value);$('model-info').textContent=custom?`${custom.name} · ${custom.data.originalTriangles.toLocaleString()}面 · ${custom.kind==='colour'?'色つきの標準の形':custom.data.color?'形と色を使用':'形状のみ使用'}`: 'GLBや立体文字を追加すると、ここから選べます。';
  }
  document.querySelectorAll(key==='shape'?'[data-shape]':`#${container} button:not(.tile-gear):not(.add-method)`).forEach(b=>b.setAttribute('aria-pressed',b.dataset[key]===value));updateSliderNotes();render();
 }
@@ -179,6 +180,7 @@ function updateGroupBox(){
 }
 function setShapeThumb(id,thumb){const b=[...$('imported-shapes').children].find(b=>b.dataset.shape===id);if(b)b.firstChild.replaceWith(shapeTileIcon(thumb))}
 function thumbFor(data){try{return modelThumb(data.target)}catch(e){console.warn('thumbnail:',e);return ''}}
+const shapeOf=id=>customShapes.get(id)??colourShapes.get(id);
 function addCustomShape(name,data,kind='model',id=`custom-${++customSerial}`){
  customShapes.set(id,{name,data,kind});addShapeButton(id,name,savedModels.get(id)?.thumb||thumbFor(data),kind);
  state.viewX=state.viewY=0;state.t=.56;state.previewRange=false;setChoice('shapes','shape',id);
@@ -194,7 +196,7 @@ async function chooseImportedShape(id){
  const meta=savedModels.get(id);if(!meta)return;
  if(importing)return;importing=true;$('model-status').textContent=`${meta.name} を読み込み中…`;
  try{const saved=await getModel(id);if(!saved)throw new Error('保存したGLBが見つかりません。');
-  const data=await importModel(saved.buffer);addCustomShape(meta.name,data,'model',id);
+  const data=await importModel(saved.buffer,{colors:true});addCustomShape(meta.name,data,'model',id);
   $('model-status').textContent='保存したGLBを読み込みました。';
  }catch(e){notice(e.message||'保存したGLBを読み込めませんでした。');$('model-status').textContent='読み込みに失敗しました。';}
  finally{importing=false}
@@ -219,13 +221,13 @@ async function addSilhouette(){
 async function loadModel(file){
  if(!file||importing||state.recording)return;
  if(!file.name.toLowerCase().endsWith('.glb')){notice('GLB形式の3Dモデルを選んでね。');return}
- if(file.size>50*1024*1024){notice('50 MB以下のGLBを選んでね。');return}
+ if(file.size>100*1024*1024){notice('100 MB以下のGLBを選んでね。');return}
  if(savedModels.size>=MAX_SAVED_MODELS){notice(`保存できるGLBは${MAX_SAVED_MODELS}個までです。使わない形を削除してね。`);return}
  importing=true;state.playing=false;const disabled=[];
  document.querySelectorAll('button,input,select').forEach(el=>{disabled.push([el,el.disabled]);el.disabled=true});
  $('model-status').textContent='モデルの形を読み込み中…';
  try{
-  const buffer=await file.arrayBuffer(),data=await importModel(buffer),name=file.name.replace(/\.glb$/i,'');
+  const buffer=await file.arrayBuffer(),data=await importModel(buffer,{colors:true}),name=file.name.replace(/\.glb$/i,'');
   let meta;try{const tab=validActive([...savedModels.values()],activeGroup);meta=await saveModel(name,buffer,data.originalTriangles,thumbFor(data),tab===ALL||tab===UNGROUPED?'':tab);savedModels.set(meta.id,meta)}
   catch(e){console.warn('GLB save:',e);notice('形は追加できたけど、ブラウザへの保存に失敗しました。空き容量やプライベートモードを確認してね。')}
   addCustomShape(name,data,'model',meta?.id);
@@ -283,7 +285,7 @@ function wireControls(){
  renderControls=createRenderControls({value:state.renderLook,onChange:value=>{if(state.recording)return;state.renderLook=value;render()}});$('pane-effects').prepend(renderControls.element);
  safety=createSafety({notify:notice});
  const methodTrial=createTrial({vertexShader,fragmentShader});
- methodEditor=createImageMethodEditor({vertexShader,fragmentShader,notify:notice,safety,trial:methodTrial,onExportFile:record=>downloadMethodFile([record],{notify:notice}),getRenderLook:()=>state.renderLook,onApplyRenderLook:value=>{if(state.recording)return;state.renderLook=cleanRenderLook(value);renderControls.setValue(state.renderLook);render()},getPreviewImage:()=>sourceCanvas,getPreviewTarget:()=>imageTarget(mesh.geometry,{shape:state.shape,preset:presetNames.includes(state.shape)||customShapes.has(state.shape),project:customShapes.get(state.shape)?.kind==='text'})});
+ methodEditor=createImageMethodEditor({vertexShader,fragmentShader,notify:notice,safety,trial:methodTrial,onExportFile:record=>downloadMethodFile([record],{notify:notice}),getRenderLook:()=>state.renderLook,onApplyRenderLook:value=>{if(state.recording)return;state.renderLook=cleanRenderLook(value);renderControls.setValue(state.renderLook);render()},getPreviewImage:()=>sourceCanvas,getPreviewTarget:()=>imageTarget(mesh.geometry,{shape:state.shape,preset:presetNames.includes(state.shape)||!!shapeOf(state.shape),project:shapeOf(state.shape)?.kind==='text'})});
  methodEnabler=createEnabler({compile:source=>compileUserMethod(renderer,{vertexShader,fragmentShader,source}),trial:source=>methodTrial.run(source),safety,notify:notice});
  renderMethodTiles();
  onRegistryChange(()=>{if(!isImageMethodKey(state.method))state.method=resolveKey(state.method);syncImageControls();renderMethodTiles();updateSliderNotes();render()});
@@ -295,10 +297,19 @@ function wireControls(){
  addEventListener('pagehide',()=>safety.pageHide());
  // grain size of added shapes in the particle methods: only the grouping of faces changes, never the solid itself
  $('particle-detail').addEventListener('input',e=>{state.detail=Number(e.target.value)/100;$('particle-detail-value').textContent=e.target.value+'%';
-  const custom=customShapes.get(state.shape);if(custom)mesh.geometry.setAttribute('part',new THREE.BufferAttribute(particleParts(custom.data,state.detail),4));render()});
+  const custom=shapeOf(state.shape);if(custom)mesh.geometry.setAttribute('part',new THREE.BufferAttribute(particleParts(custom.data,state.detail),4));render()});
+ $('model-color').addEventListener('input',e=>{state.modelColor=Number(e.target.value)/100;$('model-color-value').textContent=e.target.value+'%';render()});
  updateSliderNotes();
  $('tile-size').addEventListener('input',e=>{state.tiles=Number(e.target.value)/100;const n=tilesAcross(state.tiles);$('tile-size-value').textContent=`${n}×${n}${n===16?'・標準':''}`;applyTiles(THREE,mesh.geometry,n);updateSliderNotes();render()});
- $('shapes').addEventListener('click',e=>{const b=e.target.closest('[data-shape]');if(b)setChoice('shapes','shape',b.dataset.shape)});
+ // the colour shapes join the built-in ones (their names in their own colours); each GLB is read the first time it is picked
+ for(const c of COLOUR_SHAPES){const b=document.createElement('button'),ic=document.createElement('span'),nm=document.createElement('b');b.dataset.shape=c.id;b.setAttribute('aria-pressed','false');b.className='colour-shape';b.title=`${c.name}（色つき）`;
+  ic.textContent=c.icon;nm.textContent=c.name;paintColourLabel(ic,c.id);paintColourLabel(nm,c.id);b.append(ic,nm);$('shapes').append(b)}
+ $('shapes').addEventListener('click',async e=>{const b=e.target.closest('[data-shape]');if(!b)return;const id=b.dataset.shape;
+  if(isColourShape(id)&&!colourShapes.has(id)){if(importing)return;importing=true;b.disabled=true;$('model-status').textContent=`${b.title} を読み込み中…`;
+   try{const data=await loadColourShape(id);colourShapes.set(id,{name:COLOUR_SHAPES.find(c=>c.id===id).name,data,kind:'colour'});$('model-status').textContent='色つきの形を読み込みました。'}
+   catch(e){console.error(e);notice(e.message||'形を読み込めませんでした。');return}finally{importing=false;b.disabled=false}
+   state.viewX=state.viewY=0;state.t=.56;state.previewRange=false;}
+  setChoice('shapes','shape',id)});
  for(const [id,key] of [['intensity','strength'],['pullback','pullback'],['form-pullback','formPullback'],['depth','depth']])$(id).addEventListener('input',e=>{state[key]=Number(e.target.value)/100;$(id+'-value').textContent=e.target.value+'%';render()});
  $('randomize').onclick=()=>{state.seed=Math.floor(Math.random()*999);$('seed-label').textContent='SEED '+String(state.seed).padStart(3,'0');render()};
  $('duration').onchange=e=>{state.duration=Number(e.target.value);shotControls.setValue(state.shot);updateRange();render()};

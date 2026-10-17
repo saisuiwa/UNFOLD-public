@@ -2,12 +2,15 @@
 export const MAX_MODEL_TRIANGLES=1000000;
 // opts.ordered: lay the picture on by position (tile rows from the bottom up, left to right in each row) instead of in the order the triangles come in,
 // so the model shows the picture the way a printed texture would. Off (the default) = as before.
+// opts.colors: the model's own linear rgb for each corner (9 per triangle, like input). It is carried through the splits and returned as `color`
+// (rgba per corner, a = 2: a geometry without the attribute reads 0 or 1 there, so only 2 means "this corner has the model's colour").
 export function modelLayout(input,opts={}){
+ const colors=opts.colors?.length===input.length?opts.colors:null;
  if(!input.length||input.length%9)throw new Error('三角形の形状を読み取れませんでした。');
  const triangles=[];const lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];
  for(let i=0;i<input.length;i+=9){const t=Array.from(input.slice(i,i+9));
   if(t.some(v=>!Number.isFinite(v)))throw new Error('モデルの座標が不正です。');
-  for(let j=0;j<9;j++){lo[j%3]=Math.min(lo[j%3],t[j]);hi[j%3]=Math.max(hi[j%3],t[j])}triangles.push(t);
+  for(let j=0;j<9;j++){lo[j%3]=Math.min(lo[j%3],t[j]);hi[j%3]=Math.max(hi[j%3],t[j])}if(colors)for(let j=i;j<i+9;j++)t.push(Number.isFinite(colors[j])?Math.max(0,colors[j]):1);triangles.push(t);
  }
  if(triangles.length>MAX_MODEL_TRIANGLES)throw new Error('三角形100万枚以下に軽量化したGLBを選んでね。');
  const extent=Math.max(...hi.map((v,i)=>v-lo[i]));
@@ -23,27 +26,29 @@ export function modelLayout(input,opts={}){
  triangles.forEach(push);
  while(heap.length<targetCount){const t=pop(),v=[t.slice(0,3),t.slice(3,6),t.slice(6,9)];
   const edge=[0,1,2].map(i=>v[i].reduce((s,x,k)=>s+(x-v[(i+1)%3][k])**2,0));let i=edge.indexOf(Math.max(...edge)),a=v[i],b=v[(i+1)%3],c=v[(i+2)%3],m=a.map((x,k)=>(x+b[k])/2);
-  push([...a,...m,...c]);push([...m,...b,...c]);
+  if(t.length>9){const w=[t.slice(9,12),t.slice(12,15),t.slice(15,18)],ca=w[i],cb=w[(i+1)%3],cc=w[(i+2)%3],cm=ca.map((x,k)=>(x+cb[k])/2);
+   push([...a,...m,...c,...ca,...cm,...cc]);push([...m,...b,...c,...cm,...cb,...cc]);}
+  else{push([...a,...m,...c]);push([...m,...b,...c]);}
  }
  let order=heap.map(n=>n.t);
  if(opts.ordered){   // equal numbers of triangles in 16 bands from the bottom (by height), each band left to right
   const keyed=order.map(t=>({t,x:(t[0]+t[3]+t[6])/3,y:(t[1]+t[4]+t[7])/3})).sort((a,b)=>a.y-b.y),band=targetCount/16;
   order=[];for(let r=0;r<16;r++)for(const q of keyed.slice(r*band,(r+1)*band).sort((a,b)=>a.x-b.x))order.push(q.t);
  }
- const target=new Float32Array(targetCount*9),uv=new Float32Array(targetCount*6),cell=new Float32Array(targetCount*6),part=new Float32Array(targetCount*12);
+ const target=new Float32Array(targetCount*9),color=colors?new Float32Array(targetCount*12):null,uv=new Float32Array(targetCount*6),cell=new Float32Array(targetCount*6),part=new Float32Array(targetCount*12);
  const quads=targetCount/512,rows=Math.max(1,Math.round(Math.sqrt(quads)));
  let k=0;
  for(let tile=0;tile<256;tile++){let pending=quads;
   for(let row=0;row<rows;row++){const cols=Math.ceil(pending/(rows-row));pending-=cols;
    for(let col=0;col<cols;col++)for(const corners of [[[0,0],[1,0],[0,1]],[[1,0],[1,1],[0,1]]]){
-    target.set(order[k],k*9);
+    const t=order[k];target.set(t.length>9?t.slice(0,9):t,k*9);if(color)for(let j=0;j<3;j++)color.set([t[9+j*3],t[10+j*3],t[11+j*3],2],k*12+j*4);
     for(let j=0;j<3;j++){const [dx,dy]=corners[j];uv[k*6+j*2]=((tile%16)+(col+dx)/cols)/16;uv[k*6+j*2+1]=(Math.floor(tile/16)+(row+dy)/rows)/16;cell[k*6+j*2]=((tile%16)+.5)/16;cell[k*6+j*2+1]=(Math.floor(tile/16)+.5)/16;
      // each atlas quad is one particle: its centre, and this corner's place inside it
      part.set([((tile%16)+(col+.5)/cols)/16,(Math.floor(tile/16)+(row+.5)/rows)/16,dx,dy],k*12+j*4)}k++;
    }
   }
  }
- return {target,uv,cell,part,originalTriangles:input.length/9,triangles:targetCount,scale};
+ return {target,uv,cell,part,color,originalTriangles:input.length/9,triangles:targetCount,scale};
 }
 // Particle methods move each `part` as one grain. A big model has far more faces than the built-in shapes (80×80 grains),
 // so its grains can be merged on an n×n grid of the image: detail 0 = built-in grain size, 1 = one grain per face pair (as imported).

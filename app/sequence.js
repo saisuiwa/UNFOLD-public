@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js';
+import {drawSequenceVisual} from './sequence-renderer.js?v=4';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift} from './sequence-core.js';
 import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';
@@ -19,21 +19,22 @@ import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look
 import { createRenderControls } from './render-look-controls.js?v=2';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
 import * as THREE from './vendor/three.module.min.js';
-import { smooth, vertexShader, particleFragment } from './motion.js?v=27';
+import { smooth, vertexShader, particleFragment } from './motion.js?v=29';
 import { presetNames, presetTargets } from './shape-presets.js?v=6';
-import { createTextShape, validateText } from './text-shape.js?v=9';
-import { SceneBlur } from './effects.js?v=30';
+import { createTextShape, validateText } from './text-shape.js?v=10';
+import { SceneBlur } from './effects.js?v=31';
 import { WebMWriter, opusHead } from './webm-writer.js?v=2';
 import { MP4Writer } from './mp4-writer.js?v=1';
-import { FONTS, createMaskTextShape, createSilhouetteShape } from './mask-shape.js?v=5';
-import { parseTimings, timingsToJSON, detectBeat, drawLyricCard, loadCardFonts, layoutLyricMV } from './lyric-mv.js?v=8';
-import { importModel } from './model-import.js?v=10';
+import { FONTS, createMaskTextShape, createSilhouetteShape } from './mask-shape.js?v=6';
+import { parseTimings, timingsToJSON, detectBeat, drawLyricCard, loadCardFonts, layoutLyricMV } from './lyric-mv.js?v=9';
+import { importModel } from './model-import.js?v=12';
 import { listModels, getModel, saveModel, deleteModel, updateModel } from './model-library.js?v=4';
+import { COLOUR_SHAPES, isColourShape, colourShape, loadColourShape, paintColourLabel } from './colour-shapes.js?v=1';
 import { grainSequenceNote, tileSequenceNote } from './slider-notes.js?v=2';
 import { applyTiles, tilesAcross } from './tile-size.js?v=1';
 import { ALL, UNGROUPED, cleanGroupName, groupOf, groupSelect, inGroup, loadActive, renderTabs, saveActive, validActive, wantsTabs } from './model-groups.js?v=1';
-import { modelThumb, fillMissingThumbs } from './model-thumb.js?v=1';
-import { particleParts } from './model-layout.js?v=10';
+import { modelThumb, fillMissingThumbs } from './model-thumb.js?v=2';
+import { particleParts } from './model-layout.js?v=13';
 import { createTimeline } from './timeline.js?v=7';
 import { lookView, lookViewText } from './look-view.js?v=1';
 import { BUILTIN_KEYS, getCustom, isCustomKey, isUsable, listCustom, methodEntries, methodLabel, newCustomId, onRegistryChange, registerCustom, setCustomStatus, unregisterCustom } from './method-registry.js';
@@ -102,7 +103,7 @@ export const seq = {
   audioBuffer: null, audioOwner: null, audioName: '', withAudio: true, phase: 0, link: false, selection: null,
   fx: { blur: 0, bloom: 0, neon: 0, neonColor: '', glass: 0, chroma: 0, glitch: 0, scan: 0, grain: 0, vignette: 0, bokeh: 0 },
   cam: { persp: 0, kenburns: 0, handheld: 0, tilt: 0, orbit: 0 },
-  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0.5, detail: 1, tiles: .5, depth: 1, fill: true, silSens: 0.5,
+  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0.5, detail: 1, modelColor: 1, tiles: .5, depth: 1, fill: true, silSens: 0.5,
   playing: false, t: 0, audio: null, recording: false,
 };
 
@@ -203,6 +204,7 @@ function customGeometry(data) {
   g.setAttribute('cell', new THREE.BufferAttribute(data.cell, 2));
   g.setAttribute('part', new THREE.BufferAttribute(particleParts(data, seq.detail), 4));
   g.setAttribute('targetPosition', new THREE.BufferAttribute(data.target, 3));
+  if (data.color) g.setAttribute('modelColor', new THREE.BufferAttribute(data.color, 4));   // a GLB's own colours (mixed in by seq.modelColor)
   g.userData.layout = data;
   applyTiles(THREE, g, tilesAcross(seq.tiles));
   return g;
@@ -217,7 +219,7 @@ function updateSliderNotes() {
   const grain = $('seq-detail-note'), tile = $('seq-tiles-note');
   if (!grain || !tile) return;
   const items = seq.transitions.slice(0, Math.max(0, seq.slides.length - 1)).map(tr => ({
-    method: tr.method, method2: tr.method2, shapeHasGrain: savedModels.has(tr.shape) || ['text', 'silA', 'silB'].includes(tr.shape),
+    method: tr.method, method2: tr.method2, shapeHasGrain: savedModels.has(tr.shape) || isColourShape(tr.shape) || ['text', 'silA', 'silB'].includes(tr.shape),
   }));
   const g = grainSequenceNote(items).text, t = tileSequenceNote(items, seq.tiles).text;
   if (g + '\n' + t !== sliderNotes) { sliderNotes = g + '\n' + t; grain.textContent = g; tile.textContent = t; }
@@ -237,7 +239,7 @@ function shapeKey(tr, i) {
   if (tr.shape === 'text') return `text:${textFont(tr)}:${tr.text || 'UNFOLD'}`;
   if (tr.shape === 'silA' || tr.shape === 'silB') return `sil:${silSlide(tr, i)?.id}:${seq.silSens}`;
   if (tr.shape === 'none') return 'sphere';
-  if (tr.orderedPicture === true && savedModels.has(tr.shape)) return `${tr.shape}:ordered`;   // a GLB with the picture laid on by position
+  if (tr.orderedPicture === true && (savedModels.has(tr.shape) || isColourShape(tr.shape))) return `${tr.shape}:ordered`;   // a GLB with the picture laid on by position
   return tr.shape;
 }
 async function ensureShape(tr, i) {
@@ -246,7 +248,9 @@ async function ensureShape(tr, i) {
   if (savedModels.has(tr.shape)) {
     const record = await getModel(tr.shape);
     if (!record) throw new Error('保存したGLBが見つかりません。');
-    geoCache.set(key, customGeometry(await importModel(record.buffer, { ordered: tr.orderedPicture === true })));
+    geoCache.set(key, customGeometry(await importModel(record.buffer, { ordered: tr.orderedPicture === true, colors: true })));
+  } else if (isColourShape(tr.shape)) {   // a colour shape that comes with the app
+    geoCache.set(key, customGeometry(await loadColourShape(tr.shape, { ordered: tr.orderedPicture === true })));
   } else if (tr.shape === 'text') {
     const font = textFont(tr), text = tr.text || 'UNFOLD';
     const data = font === 'classic' ? await createTextShape(validateText(text)) : await createMaskTextShape(text, font);
@@ -271,7 +275,7 @@ function dropSilhouettes() {
 }
 export function shuffleTransitions() {
   const pick = a => a[Math.floor(Math.random() * a.length)];
-  const shapes = [...Object.keys(BUILTIN), ...presetNames, ...savedModels.keys()];
+  const shapes = [...Object.keys(BUILTIN), ...presetNames, ...COLOUR_SHAPES.map(c => c.id), ...savedModels.keys()];
   seq.transitions.forEach((tr, i) => {
     const prev = seq.transitions[i - 1];
     do { tr.method = pick(BUILTIN_KEYS); } while (prev && tr.method === prev.method);
@@ -417,7 +421,7 @@ function renderLookTransition(force = false) {
 }
 function shapeLabel(tr) {
   if (tr.shape === 'none') return { through: '立体化なし・通り抜け', reveal: '立体化なし・吹き飛んで次が現れる', return: '立体化なし・行って戻る' }[tr.flow ?? 'through'];
-  return tr.shape === 'text' ? `文字「${tr.text}」` : savedModels.get(tr.shape)?.name || BUILTIN[tr.shape] || PRESET_LABELS[tr.shape] || tr.shape;
+  return tr.shape === 'text' ? `文字「${tr.text}」` : savedModels.get(tr.shape)?.name || colourShape(tr.shape)?.name || BUILTIN[tr.shape] || PRESET_LABELS[tr.shape] || tr.shape;
 }
 
 function renderModelLibrary() {
@@ -446,20 +450,20 @@ function renderModelLibrary() {
   $('seq-model-status').textContent = savedModels.size ? `保存済み ${savedModels.size}個。「04 見た目」の変形（形メニュー）や、◆を選んだ「03 選択中」から選べます。` : '追加したGLBはこのブラウザに保存され、1枚モードでも使えます。';
 }
 async function loadModelLibrary() {
-  try { for (const model of await listModels()) savedModels.set(model.id, model); renderModelLibrary(); refreshUI();
+   try { for (const model of await listModels()) savedModels.set(model.id, model); renderModelLibrary(); refreshUI();
     fillMissingThumbs([...savedModels.values()], () => { renderModelLibrary(); refreshUI(); }); }
   catch (e) { $('seq-model-status').textContent = '保存したGLBを読み込めませんでした。'; }
 }
 async function importSequenceModel(file) {
   if (!file) return;
   if (!file.name.toLowerCase().endsWith('.glb')) { notice('GLB形式を選んでね。'); return; }
-  if (file.size > 50 * 1024 * 1024) { notice('50 MB以下のGLBを選んでね。'); return; }
+  if (file.size > 100 * 1024 * 1024) { notice('100 MB以下のGLBを選んでね。'); return; }
   if (savedModels.size >= MAX_SAVED_MODELS) { notice(`保存できるGLBは${MAX_SAVED_MODELS}個までです。使わないGLBを削除してね。`); return false; }
   const button = $('seq-model-add'); button.disabled = true;
   $('seq-model-status').textContent = 'GLBを読み込み、保存中…';
   try {
     const buffer = await file.arrayBuffer();
-    const data = await importModel(buffer);
+    const data = await importModel(buffer, { colors: true });
     let thumb = ''; try { thumb = modelThumb(data.target); } catch (e) { console.warn('thumbnail:', e); }
     const tab = validActive([...savedModels.values()], activeGroup), group = tab === ALL || tab === UNGROUPED ? '' : tab;   // a new GLB joins the tab you are looking at
     const model = await saveModel(file.name.replace(/\.glb$/i, ''), buffer, data.originalTriangles, thumb, group);
@@ -1036,7 +1040,7 @@ function inspectTransition(box, title, i, tr) {
   const mix = document.createElement('input'); mix.type = 'checkbox'; mix.checked = tr.mixTiles !== false;mix.disabled=!!imageCode;
   mix.title = '崩れている間、画像を断片に分けて混ぜます。オフにすると、絵柄がそのまま貼られます（世界地図の画像なら、球が本物の地球儀になります）。';
   field(box, '絵柄を混ぜる', mix).onchange = () => edit(() => { if (mix.checked) delete tr.mixTiles; else tr.mixTiles = false; });
-  if (savedModels.has(tr.shape)) {
+  if (savedModels.has(tr.shape) || isColourShape(tr.shape)) {
     const ord = document.createElement('input'); ord.type = 'checkbox'; ord.checked = tr.orderedPicture === true;
     ord.title = 'GLBの形に、画像を位置どおりに貼ります（画像の左は形の左、下は下。印刷した模様のように、絵がそのまま形に乗ります）。オフだと、画像の断片が形のあちこちにバラバラに貼られます。';
     field(box, '絵を位置どおりに貼る（GLB）', ord).onchange = () => edit(() => { if (ord.checked) tr.orderedPicture = true; else delete tr.orderedPicture; });
@@ -1052,7 +1056,7 @@ function inspectTransition(box, title, i, tr) {
   }
   if (tr.shape !== 'none') {
     const allModels = [...savedModels.values()], tabOn = wantsTabs(allModels), shownTab = validActive(allModels, activeGroup);
-    const shapes = [...Object.entries(BUILTIN), ...presetNames.map(k => [k, PRESET_LABELS[k] || k]),
+    const shapes = [...Object.entries(BUILTIN), ...presetNames.map(k => [k, PRESET_LABELS[k] || k]), ...COLOUR_SHAPES.map(c => [c.id, c.name]),
       ...allModels.filter(m => !tabOn || m.id === tr.shape || inGroup(m, shownTab)).map(m => [m.id, 'GLB：' + m.name]), ...Object.entries(SPECIAL_SHAPES).filter(([k]) => k !== 'none')];
     const grid = document.createElement('div'); grid.className = 'shape-grid'; grid.setAttribute('role', 'group'); grid.setAttribute('aria-label', '立体の形');
     for (const [k, label] of shapes) {
@@ -1062,7 +1066,11 @@ function inspectTransition(box, title, i, tr) {
       const thumb = savedModels.get(k)?.thumb;
       if (savedModels.has(k)) b.className = 'added';
       const ic = thumb ? Object.assign(document.createElement('img'), { src: thumb, alt: '' }) : document.createElement('span');
-      if (!thumb) ic.textContent = SHAPE_ICONS[k] || '▲';
+      if (!thumb) ic.textContent = SHAPE_ICONS[k] || colourShape(k)?.icon || '▲';
+      if (isColourShape(k)) {   // colour shapes: no frame, icon and name in their own colours
+        const nm = document.createElement('b'); nm.textContent = label; paintColourLabel(ic, k); paintColourLabel(nm, k);
+        b.title = `${label}（色つき）`; b.append(ic, nm); b.onclick = () => edit(() => { tr.shape = k; }); grid.append(b); continue;
+      }
       b.append(ic, label.replace(/^GLB：/, '').replace('シルエット（次の画像）', 'シルエット次').replace('シルエット（今の画像）', 'シルエット今'));
       b.onclick = () => edit(() => { tr.shape = k; if (k === 'text' && !tr.text) tr.text = '幻想'; });
       grid.append(b);
@@ -1293,7 +1301,7 @@ function stateForSave() {
   return {
     lyricDocument:seq.lyricDocument,
     settings: { lyricMotion:cleanLyricSettings(seq.lyricMotion), bpm: seq.bpm, phase: seq.phase, holdBeats: seq.holdBeats, offset: seq.offset, bg: seq.bg, push: seq.push, pulse: seq.pulse,
-      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, chaosLength: seq.chaosLength, detail: seq.detail, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook) },
+      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, chaosLength: seq.chaosLength, detail: seq.detail, modelColor: seq.modelColor, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook) },
     slides: seq.slides, transitions: seq.transitions, lyrics: seq.lyrics,
     audio: seq.audioOwner ? { owner: seq.audioOwner, name: seq.audioName } : null,
     methods: collectMethods(seq.transitions, getCustom),     // goes into .unfold files only (exportFile); the autosave ignores it
@@ -1348,6 +1356,7 @@ async function restoreProject(json, blobs) {
   seq.renderLook = cleanRenderLook(st.renderLook);
   for (const k of ['bpm', 'phase', 'holdBeats', 'offset', 'bg', 'push', 'pulse', 'strength', 'pullback', 'formPullback', 'detail', 'tiles', 'depth', 'fill', 'silSens', 'withAudio', 'link']) if (st[k] !== undefined) seq[k] = st[k];
   seq.chaosLength = Number.isFinite(st.chaosLength) ? Math.max(0, Math.min(1, st.chaosLength)) : 0;   // a project saved before this setting keeps its timing
+  seq.modelColor = Number.isFinite(st.modelColor) ? Math.max(0, Math.min(1, st.modelColor)) : 0;   // a project saved before GLB colours keeps showing only the picture
   if (st.lyricOpts) seq.lyricOpts = { ...seq.lyricOpts, ...st.lyricOpts };
   if (st.fx) seq.fx = { ...seq.fx, ...st.fx };
   if (st.cam) seq.cam = { ...seq.cam, ...st.cam };
@@ -1369,7 +1378,7 @@ async function restoreProject(json, blobs) {
   seq.lyrics = json.lyrics || [];
   if (json.audio?.asset && blobs.get(json.audio.asset)) await loadAudio(blobs.get(json.audio.asset), json.audio.name, json.audio.asset,{restoring:true});
   else {seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';seq.audioBlob=null;seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; ($('seq-audio-name')||{}).textContent = '';}
-  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-offset', 'offset', 1], ['seq-push', 'push', 100], ['seq-pulse', 'pulse', 100], ['seq-strength', 'strength', 100], ['seq-pullback', 'pullback', 100], ['seq-form-pullback', 'formPullback', 100], ['seq-chaos', 'chaosLength', 100], ['seq-detail', 'detail', 100], ['seq-tiles', 'tiles', 100], ['seq-sil', 'silSens', 100]]) $(id).value = +(seq[key] * scale).toFixed(2);
+  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-offset', 'offset', 1], ['seq-push', 'push', 100], ['seq-pulse', 'pulse', 100], ['seq-strength', 'strength', 100], ['seq-pullback', 'pullback', 100], ['seq-form-pullback', 'formPullback', 100], ['seq-chaos', 'chaosLength', 100], ['seq-detail', 'detail', 100], ['seq-model-color', 'modelColor', 100], ['seq-tiles', 'tiles', 100], ['seq-sil', 'silSens', 100]]) $(id).value = +(seq[key] * scale).toFixed(2);
   $('seq-fill').checked = seq.fill; $('seq-bg').value = seq.bg; $('seq-with-audio').checked = seq.withAudio;
   $('lyr-style').value = seq.lyricOpts.style; $('lyr-trans').value = seq.lyricOpts.transBeats; $('lyr-snap').checked = seq.lyricOpts.snap;
   $('lyr-text').value = seq.lyrics.map(l => l.t).join('\n');
@@ -1512,6 +1521,7 @@ function wire() {
     $(id).oninput = e => { seq[key] = Number(e.target.value) * scale; refreshUI(); };
   }
   $('seq-detail').oninput = e => { seq.detail = Number(e.target.value) / 100; applyParticleDetail(); renderAt(seq.t); scheduleSave(); };
+  $('seq-model-color').oninput = e => { seq.modelColor = Number(e.target.value) / 100; renderAt(seq.t); scheduleSave(); };
   $('seq-tiles').oninput = e => { seq.tiles = Number(e.target.value) / 100; applyTileSize(); updateSliderNotes(); renderAt(seq.t); scheduleSave(); };
   $('seq-shuffle').onclick = async () => { shuffleTransitions(); await prepareShapes(); refreshUI(); };
   $('seq-sil').onchange = e => { seq.silSens = Number(e.target.value) / 100; dropSilhouettes(); renderAt(seq.t); };
@@ -1705,7 +1715,7 @@ try {
   const blank = makeTexture(document.createElement('canvas'));
   const uniforms = { uImage: { value: blank }, uImageB: { value: blank }, uSwap: { value: 0 }, uSize: { value: new THREE.Vector2(planeW, planeH) },
     uDistort: { value: 0 }, uForm: { value: 0 }, uStrength: { value: .8 }, uDepth: { value: 1 }, uSeed: { value: 28 }, uMethod: { value: 0 },
-    uMethod2: { value: 0 }, uMethodMix: { value: 0 }, uProject: { value: 0 }, uTime: { value: 0 }, uDraw: { value: 1 }, uThrough: { value: 0 }, uFade: { value: 1 }, uGlass: { value: 0 }, uShape: { value: 0 }, uPreset: { value: 0 }, uConceal: { value: 0 } };
+    uMethod2: { value: 0 }, uMethodMix: { value: 0 }, uProject: { value: 0 }, uTime: { value: 0 }, uDraw: { value: 1 }, uThrough: { value: 0 }, uFade: { value: 1 }, uGlass: { value: 0 }, uShape: { value: 0 }, uPreset: { value: 0 }, uConceal: { value: 0 }, uModelColor: { value: 0 } };
   geoCache.set('sphere', gridGeometry(presetTargets('sphere')));
   variants = createVariants({ renderer, vertexShader, fragmentShader, uniforms, onReady: () => { if (!seq.playing) renderAt(seq.t); } });
   onRegistryChange(() => { renderMethodGrid(); renderInspector(); if (!seq.playing) renderAt(seq.t); });

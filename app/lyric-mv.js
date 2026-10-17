@@ -1,5 +1,5 @@
 // Lyric MV helpers: timing files, tempo detection, lyric cards and the automatic sequence layout.
-import { FONTS, ensureFont } from './mask-shape.js?v=5';
+import { FONTS, ensureFont } from './mask-shape.js?v=6';
 import { parseTimings, timingsToJSON } from './lyric-timings.js?v=2';
 
 // ---------------------------------------------------------------- timings --

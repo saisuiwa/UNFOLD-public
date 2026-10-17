@@ -1,4 +1,4 @@
-import {FONTS,ensureFont} from './mask-shape.js?v=5';
+import {FONTS,ensureFont} from './mask-shape.js?v=6';
 const faces=new Map(),pending=new Map(),labels=new Map(),localEntries=new Map(),codeFontBytes=new Map();
 const META='unfold-lyric-font-labels-v1';
 export function isLyricFontKey(key){

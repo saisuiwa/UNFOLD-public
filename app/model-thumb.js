@@ -1,5 +1,5 @@
 // A small shaded portrait of an added shape, drawn from its target triangles — the tile icon in the shape dashboards.
-import {importModel} from './model-import.js?v=9';
+import {importModel} from './model-import.js?v=12';
 import {getModel,updateModel} from './model-library.js?v=4';
 export const THUMB_COLOR=[127,214,255];
 export function modelThumb(target,size=96){

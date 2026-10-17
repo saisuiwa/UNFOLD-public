@@ -10,6 +10,15 @@
 
 公開ソース `0bc28e5`。本番407配信ファイル一致、保存往復・曲歌詞ロック・横縦の実H.264/AAC出力・旧工房8連携を確認済み。[使い方](docs/studio-user-guide.md) / [検証・公開・復旧記録](docs/publication-studio-2026-10-10.md)。GitHub pushなし。
 
+## 2026-10-17：GLBを100 MBまで、テクスチャの色も取り込み（未公開）
+
+- **GLBの上限を50 MB → 100 MB**（1枚モード・シーケンス・GLB置き場）。三角形100万枚までは変わりません。
+- **GLBの色を取り込む**：基本色（baseColorFactor）×ベースカラーテクスチャ×頂点カラーを、角（頂点）ごとの色として読みます（`app/model-import.js` の `modelPaint`、`importModel(buf,{colors:true})`）。テクスチャはGLBに埋め込まれた画像だけを読み、外部URLは今までどおり読みません。色は頂点ごとなので、面の少ないモデルではテクスチャの細かい模様はぼけます。KTX2（basisu）だけのテクスチャは読めず、基本色だけになります。
+- **「GLBの色（写真と混ぜる）」スライダー**：1枚モードは「粒の細かさ」の下、シーケンスは見た目の設定（`seq.modelColor`、保存されます）。立体になるにつれて写真とGLBの色を混ぜます（平らな写真は染めない）。新しい作品は100%、この設定を保存していない前の作品は0%（写真だけ）で開きます。色のないGLB・組み込みの形・立体文字には効きません。
+- **色つきの標準の形 17種**（1枚モードの「03 立体にする」の形ボタン、シーケンスの形メニュー、STUDIO）：カラー見本・スイカ・ドーナツ・土星・アイス・雪だるま・太陽系・積み木・星くず・ルービック・風船・宝石・DNA・マカロン・ドミノ・紙吹雪・ハート吹雪。名前と記号がその形の色で表示されます（青枠なし）。一覧と読み込みは `app/colour-shapes.js`（id は `c-…`、GLB は `app/assets/models/`、最初に選んだときに読む）。GLBは `tools/make_colour_samples.py`（カラー見本だけ `tools/make_colour_sample_glb.py`）で作り直せます。使わなかった案（地球・きのこ・桜吹雪・シャボン玉・星空）も同じスクリプトにあります。
+- **画面いっぱいのGLB**：GLBの `asset.extras.unfold.fit = "frame"` があると、いつもの大きさ（長い辺3.5）ではなく16:9の画面（5.25×2.95）に合わせます（`model-import.js` の `fitFrame`）。紙吹雪・ハート吹雪はこれで、立体化中の引きもかけません（`fillsFrame`）。
+- しくみ：`model-layout.js` が分割しても色を運び `color`（rgba、a=2が「色あり」）を返す → `modelColor` 属性 → `motion.js` で `uModelColor` 分だけ混ぜる。
+
 ## 2026-10-15：シーケンスの操作まわり（拡大・移動／見た目の変形／GLB追加欄）
 
 - **タイムラインに「拡大」「移動」スライダー**（シーケンス）：STUDIOのタイムラインと同じ2本。拡大は「全体」を×1として×8まで、移動は横スクロール位置（拡大しているときだけ動かせます）。「－」「＋」「全体」ボタンやスクロールとも連動します。
@@ -67,7 +76,7 @@ https://unfold.saisuiwa.com/ に `864801b` を公開済み。画像メソッド�
 現在のアプリ本体、公開用ZIP、デモ動画、読み込んで使うGLB、以前の版と作業記録をこのフォルダにまとめています。
 
 - `app/` — 現在の公開版（Cloudflare、2026-10-06・質感エフェクト8種入り）のソース。`index.html` が1枚モード、`sequence.html` がシーケンスです。
-- `releases/UNFOLD-Test-custom-methods-glb-2026-10-04.zip` — **現在のNetlify公開版（2026-10-04 00:45 に公開）**。自作メソッド・画像ごとのカメラ・新しい形（龍・クジラ…）・位置どおり貼るGLB・GLB100個まで、など2026-10-02〜04の更新が全部入り。公開前の確認結果は `docs/公開前チェックリスト_自作メソッド.md` の §7。
+- `releases/UNFOLD-Test-custom-methods-glb-2026-10-04.zip` — **旧Netlify版の最後のZIP（2026-10-04。Netlifyはもう使っていません）**。自作メソッド・画像ごとのカメラ・新しい形（龍・クジラ…）・位置どおり貼るGLB・GLB100個まで、など2026-10-02〜04の更新が全部入り。公開前の確認結果は `docs/公開前チェックリスト_自作メソッド.md` の §7。
 - `releases/UNFOLD-Test-glb-dashboard-mp4-2026-09-30.zip` — 1つ前の公開版（2026-09-30 22:07）。戻すときはこれ（Netlifyの Deploys 一覧から前のデプロイを選んで Publish deploy でもOK）。引きスライダー・追加した形のダッシュボード・粒の細かさ・MP4書き出し入り。
 - `releases/UNFOLD-Test-effects-camera-2026-09-29.zip` — 1つ前の公開版（2026-09-29 22:24）。演出・カメラ入り。
 - `releases/UNFOLD-Test-particles-timeline-2026-09-29.zip` — 以前の公開版（2026-09-29 21:28）。崩れ方29種・タイムライン編集・3カラムのシーケンス・保存機能入り。
@@ -150,9 +159,9 @@ https://unfold.saisuiwa.com/ に `864801b` を公開済み。画像メソッド�
 
 公開サイト: https://unfold.saisuiwa.com/ （説明 `/guide/`、メソッド集 `/guide/methods.html`、GLB置き場 `/guide/glb.html`）  
 Cloudflare管理画面: Workers & Pages → `unfold`（手順と注意は `docs/公開手順_Cloudflare.md`）  
-前の公開先（古い版のまま残してあります）: https://unfold-test.netlify.app/ ・ Netlify管理画面: https://app.netlify.com/projects/unfold-test/deploys
+**公開先は Cloudflare だけです。** Netlify（unfold-test）はもう使っていません（2026-10-17 作者。サイトを消すときは Netlify の管理画面 https://app.netlify.com/projects/unfold-test から）。
 
-Mac内の移動は公開中のサイトや管理画面に影響しません。現時点では手動デプロイなので、今後更新する場合は `docs/公開手順_Cloudflare.md` の手順で、`app/` のフォルダを Cloudflare の `unfold` にアップロードしてください（Netlify の `unfold-test` は古い版のまま止まっています）。ローカルの編集だけでは公開サイトは更新されません。
+Mac内の移動は公開中のサイトや管理画面に影響しません。現時点では手動デプロイなので、今後更新する場合は `docs/公開手順_Cloudflare.md` の手順で、`app/` のフォルダを Cloudflare の `unfold` にアップロードしてください。ローカルの編集だけでは公開サイトは更新されません。
 
 追加したGLBはサイトごと・ブラウザごとのIndexedDBに保存され、1枚モードとシーケンスで共有されます。従来版で一時的に読み込んだGLBは一度追加し直す必要があります。ブラウザのサイトデータを削除すると保存したGLBも消えるので、元のGLBファイルは保管してください。
 

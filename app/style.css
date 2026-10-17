@@ -176,3 +176,7 @@
 .group-box[hidden]{display:none}
 .group-select{max-width:140px;min-height:0;font-size:11px;padding:3px 6px;background:#1b2021;color:var(--text);border:1px solid #3a4547;border-radius:6px}
 
+
+/* colour shapes (colour-shapes.js): icon and name in the shape's own colours */
+.shapes button b.colour-name{font-weight:700}
+.colour-name{background:var(--colour-grad);-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent}

@@ -4,7 +4,7 @@
 
 - 公開先：Cloudflare ダッシュボード → Workers & Pages → `unfold`（`unfold.saisuiwa.workers.dev` と独自ドメイン `unfold.saisuiwa.com`）
 - ドメイン：`saisuiwa.com`（Cloudflare Registrar、自動更新オン、期限 2027-10-04）
-- 前の公開先（Netlify `unfold-test.netlify.app`）は、そのまま残してあります（古い版）。
+- 前の公開先（Netlify `unfold-test.netlify.app`）は、もう使っていません（2026-10-17）。公開先は Cloudflare だけです。
 
 ## 更新するとき（Claude がやる手順）
 

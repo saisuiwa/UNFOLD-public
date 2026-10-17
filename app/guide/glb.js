@@ -80,7 +80,7 @@ function render() {
 
 let modules = null;
 async function load() {
-  modules ??= await Promise.all([import('../model-library.js?v=4'), import('../model-import.js?v=10'), import('../model-thumb.js?v=1')]);
+  modules ??= await Promise.all([import('../model-library.js?v=4'), import('../model-import.js?v=12'), import('../model-thumb.js?v=1')]);
   return modules;
 }
 

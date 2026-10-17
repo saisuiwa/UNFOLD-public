@@ -19,6 +19,9 @@ attribute vec2 cell;
 attribute vec3 tcell;   // xy: centre of the tile this face moves with, z: how many tiles across (0 / missing = the 16x16 cell)
 attribute vec3 targetPosition;
 attribute vec4 part;   // xy: centre of this small quad in image uv, zw: this corner inside it (0/1) — one "particle"
+attribute vec4 modelColor;   // a GLB's own colour at this corner (linear rgb), a: 2 when the model has colour (a missing attribute reads 0 or 1)
+uniform float uModelColor;   // how much of that colour shows on the solid (0 = the picture only)
+varying vec4 vModelColor;
 varying vec2 vUv;
 varying vec3 vPosition;
 varying float vForm;
@@ -331,6 +334,8 @@ void main(){
   vUv=mix(uv,shuffled,uConceal*(1.-mix(lineA,lineB,uMethodMix)));
   // flat solids (text, silhouettes) end up showing the picture straight through them, like a stencil
   vUv=mix(vUv,targetPosition.xy/uSize+.5,uProject*smoothstep(.5,.95,uForm));
+  // the model's own colour comes in as it becomes the solid (the flat picture is never tinted)
+  vModelColor=vec4(modelColor.rgb,step(1.5,modelColor.a)*uModelColor*smoothstep(.5,.95,uForm));
   // the newer methods fold paper in depth, so they are shaded while they break too
   float shade=mix(step(3.5,uMethod),step(3.5,uMethod2),uMethodMix);
   vForm=max(uForm,uDistort*.9*shade);
@@ -371,6 +376,7 @@ ${renderLookFragment}
 uniform float uDraw;   // line drawing: 1 = every stroke shown; falls while breaking, rises again as the next picture is drawn
 uniform float uFade;   // brief dip that hides the hand-over in pass-through changes (1 = fully visible)
 uniform float uGlass;  // glass look for tilted pieces and solids: refraction, cool tint, rim light and a sharp highlight
+varying vec4 vModelColor;
 vec4 glassLook(vec4 c,vec3 n){
   if(uGlass<=0.)return c;
   n*=sign(n.z+1e-4);
@@ -441,6 +447,7 @@ vec4 lineDrawing(vec4 c,float k){
   return vec4(col,c.a*a);
 }
 vec4 particleLook(vec4 c){
+  c.rgb=mix(c.rgb,vModelColor.rgb,vModelColor.a);
   float k=smoothstep(.02,.55,vPMix);
   if(vPKind>.5&&k>0.){
     if(vPKind>8.5)c=lineDrawing(c,vPMix);
