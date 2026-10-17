@@ -1,4 +1,4 @@
-// カット割りの「装飾」: 文字のまわりに付く小さな飾り（手描きの丸囲み・キラキラ・矢印・効果線…）。
+// カット割りの「装飾」: 文字のまわりに付く小さな飾り（手描きの丸囲み・キラキラ・矢印・効果線…）と、文字の後ろに淡く重ねる透ける飾り（付箋・すりガラス・薄紙…）。
 // 文字のキャンバスに、文字と同じ座標で描く（layer.js の textCanvas）。だからカメラ・置き場所・引き継ぎの変形は文字と一緒に掛かり、
 // 色ずれ（ゴースト）の層には入らない。物の世界のあるカットには付けない（世界が飾りの役をする。plan.js の assignDecos）。
 //
@@ -6,7 +6,7 @@
 //   back  true なら文字の後ろに描く（それ以外は文字の上）
 //   d     {x0,y0,x1,y1,w,h,cx,cy}: 文字の外接矩形（文字のキャンバスの px）、size: 字の大きさ、W,H: 画面、lt: カットの中の時刻、dur: カットの長さ、
 //         a: 出てくる進み 0→1（カットの頭）、z: 残っている度合い 1→0（カットの終わり）、fg: 文字色、accent: アクセント色、seed: カットごとの種
-// 決まり: 同じ時刻なら同じ絵（Math.random・Date.now は使わない。乱数は plan(r) の r か hash）。文字を隠さない（文字の上に描くものは線・小さな形だけ）。
+// 決まり: 同じ時刻なら同じ絵（Math.random・Date.now は使わない。乱数は plan(r) の r か hash）。文字を隠さない（文字の上に描くものは線・小さな形だけ。面で覆うものは back にして淡く）。
 import {TAU,clamp,lerp,smooth,outCubic,outBack,hash,sign,rgba,addDailyParts} from './kit.js';
 import {DAILY_CUT_PARTS} from './daily-parts.js';
 
@@ -25,6 +25,30 @@ function strokePart(c,pts,u){
 function star4(c,x,y,r,rot=0){c.save();c.translate(x,y);c.rotate(rot);c.beginPath();for(let i=0;i<8;i++){const a=i*Math.PI/4,rr=i%2?r*.28:r;c.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);}c.closePath();c.fill();c.restore();}
 function heart(c,x,y,s){c.beginPath();c.moveTo(x,y+s*.35);c.bezierCurveTo(x-s*.9,y-s*.2,x-s*.45,y-s*.95,x,y-s*.4);c.bezierCurveTo(x+s*.45,y-s*.95,x+s*.9,y-s*.2,x,y+s*.35);c.closePath();c.fill();}
 function note(c,x,y,s){c.beginPath();c.ellipse(x,y,s*.32,s*.24,-.4,0,TAU);c.fill();c.fillRect(x+s*.24,y-s*1.05,s*.09,s*1.05);c.beginPath();c.moveTo(x+s*.33,y-s*1.05);c.quadraticCurveTo(x+s*.75,y-s*.85,x+s*.62,y-s*.45);c.lineWidth=s*.09;c.stroke();}
+// 透ける装飾（付箋・ガラス・薄紙…）の色。文字の後ろに薄く重ねるので、淡い色だけ
+const PALE=['#ffe27a','#ffb3cf','#a8e6ff','#c4f0a8','#d9c2ff'];
+const RAINBOW=['#ff6b6b','#ffb347','#ffe66d','#7bed9f','#70a1ff','#c56cf0'];
+/** 角の1つが折れた付箋の形（side 1: 右下が折れる、-1: 左下） */
+function stickyPath(c,x,y,w,h,f,side){
+ c.beginPath();
+ if(side>0){c.moveTo(x,y);c.lineTo(x+w,y);c.lineTo(x+w,y+h-f);c.lineTo(x+w-f,y+h);c.lineTo(x,y+h);}
+ else{c.moveTo(x,y);c.lineTo(x+w,y);c.lineTo(x+w,y+h);c.lineTo(x+f,y+h);c.lineTo(x,y+h-f);}
+ c.closePath();
+}
+/** 中心 (cx,cy)・幅 w・高さ h の、薄い付箋を1枚。u: 貼られる進み 0→1、alpha: 色の濃さ */
+function drawSticky(c,d,cx,cy,w,h,tilt,col,alpha,u,side){
+ if(u<=0)return;
+ const k=lerp(1.14,1,outCubic(u)),f=Math.min(w,h)*.16,x=-w/2,y=-h/2;
+ c.save();c.globalAlpha*=clamp(u*2.2);c.translate(cx,cy);c.rotate(tilt+(1-outCubic(u))*.12*side);c.scale(k,k);
+ c.save();c.translate(d.size*.05,d.size*.07);stickyPath(c,x,y,w,h,f,side);c.fillStyle='rgba(0,0,0,0.10)';c.fill();c.restore();
+ stickyPath(c,x,y,w,h,f,side);c.fillStyle=rgba(col,alpha);c.fill();
+ c.fillStyle=rgba(col,alpha*.7);c.fillRect(x,y,w,h*.14);
+ c.beginPath();if(side>0){c.moveTo(x+w,y+h-f);c.lineTo(x+w-f,y+h);c.lineTo(x+w-f,y+h-f);}else{c.moveTo(x,y+h-f);c.lineTo(x+f,y+h);c.lineTo(x+f,y+h-f);}c.closePath();c.fillStyle=rgba('#ffffff',.24);c.fill();
+ stickyPath(c,x,y,w,h,f,side);c.strokeStyle=rgba(col,Math.min(1,alpha*1.8));c.lineWidth=Math.max(1,d.size*.02);c.stroke();
+ c.restore();
+}
+/** 角の丸い四角の道筋（roundRect がないブラウザでは角の丸くない四角） */
+function roundBox(c,x,y,w,h,r){c.beginPath();if(c.roundRect)c.roundRect(x,y,w,h,r);else c.rect(x,y,w,h);}
 
 export const DECO={
  scribbleCircle:{name:'手描きの丸囲み',tags:['pop','emotional','graphic'],w:1.3,plan:r=>({turns:1.08+r()*.14,tilt:(r()-.5)*.2,col:r()<.7?'accent':'fg'}),
@@ -83,6 +107,72 @@ export const DECO={
  orbitDots:{name:'まわる点',tags:['calm','graphic','emotional'],w:.9,plan:r=>({n:3+Math.floor(r()*3),dir:sign(r),sp:.5+r()*.4}),
   draw(c,d,P){const rx=d.w/2+d.size*.5,ry=d.h/2+d.size*.42;c.save();c.globalAlpha=d.z*clamp(d.a*2);
    for(let j=0;j<P.n;j++){const base=d.lt*P.sp*TAU*P.dir+j*TAU/P.n;for(let t=0;t<5;t++){const a=base-t*.09*P.dir,r=d.size*(.07-t*.011);c.fillStyle=rgba(j%2?d.fg:d.accent,1-t*.2);c.beginPath();c.arc(d.cx+Math.cos(a)*rx,d.cy+Math.sin(a)*ry,Math.max(.5,r),0,TAU);c.fill();}}
+   c.restore();}},
+ // ---- 透ける装飾（2026-10-17）: 少し透けた付箋・ガラス・薄紙など。強すぎない飾りとして、どれも文字の後ろに淡く重ねる（シャボン玉だけは文字のまわりに線で描く）
+ paleSticky:{name:'薄い付箋',tags:['pop','emotional','calm'],w:1.1,back:true,plan:r=>({tilt:(r()-.5)*.14,col:Math.floor(r()*PALE.length),tape:r()<.55,side:sign(r)}),
+  draw(c,d,P){const m=d.size*.32,w=d.w+m*2,h=d.h+m*2,u=clamp(d.a*1.2);c.save();c.globalAlpha=d.z;
+   drawSticky(c,d,d.cx,d.cy,w,h,P.tilt,PALE[P.col]||PALE[0],.3,u,P.side);
+   if(P.tape&&u>.5){c.translate(d.cx,d.cy);c.rotate(P.tilt);c.translate(0,-h/2);c.rotate(-P.tilt*2-.05);c.globalAlpha=d.z*clamp((u-.5)*3);c.fillStyle=rgba('#ffffff',.28);c.fillRect(-w*.14,-d.size*.12,w*.28,d.size*.24);}
+   c.restore();}},
+ stickyStack:{name:'付箋の重なり',tags:['pop','graphic','emotional'],w:.9,back:true,plan:r=>{const a=Math.floor(r()*PALE.length);return {back:(a+1+Math.floor(r()*(PALE.length-1)))%PALE.length,front:a,t1:(r()-.5)*.24,t2:(r()-.5)*.1,dx:sign(r)};},
+  draw(c,d,P){const m=d.size*.3,w=d.w+m*2,h=d.h+m*2;c.save();c.globalAlpha=d.z;
+   drawSticky(c,d,d.cx+P.dx*d.size*.35,d.cy-d.size*.22,w,h,P.t1,PALE[P.back]||PALE[1],.2,clamp(d.a*1.5),-P.dx);
+   drawSticky(c,d,d.cx,d.cy,w,h,P.t2,PALE[P.front]||PALE[0],.27,clamp(d.a*1.6-.35),P.dx);
+   c.restore();}},
+ maskingTape:{name:'マスキングテープ',tags:['pop','emotional','graphic'],w:1,back:true,plan:r=>({pair:sign(r),col:r()<.45?-1:Math.floor(r()*PALE.length),seed:Math.floor(r()*1000)}),
+  draw(c,d,P){const col=P.col<0?d.accent:PALE[P.col]||PALE[0],L=d.size*1.25,T=d.size*.34,o=d.size*.12,ends=P.pair>0?[[d.x0-o,d.y0-o,-.78],[d.x1+o,d.y1+o,-.78]]:[[d.x1+o,d.y0-o,.78],[d.x0-o,d.y1+o,.78]];
+   c.save();c.globalAlpha=d.z;
+   ends.forEach(([x,y,ang],j)=>{const u=outCubic(clamp(d.a*1.7-j*.35));if(u<=0)return;const x0=-L/2,x1=-L/2+L*u,zig=T/5;
+    c.save();c.translate(x,y);c.rotate(ang);c.beginPath();c.moveTo(x0,-T/2);c.lineTo(x1,-T/2);
+    for(let i=1;i<=5;i++)c.lineTo(x1+(i%2?1:-1)*zig*.35*(hash(P.seed,j,i)+.4),-T/2+i*zig);
+    c.lineTo(x0,T/2);for(let i=4;i>=1;i--)c.lineTo(x0+(i%2?1:-1)*zig*.35*(hash(P.seed,j+5,i)+.4),-T/2+i*zig);c.closePath();
+    c.fillStyle=rgba(col,.38);c.fill();c.clip();c.strokeStyle=rgba('#ffffff',.18);c.lineWidth=Math.max(1,T*.12);
+    for(let s=x0-T;s<x1;s+=T*.55){c.beginPath();c.moveTo(s,T/2);c.lineTo(s+T*.6,-T/2);c.stroke();}
+    c.restore();});
+   c.restore();}},
+ frostedGlass:{name:'すりガラスの板',tags:['calm','graphic','emotional'],w:1.1,back:true,plan:r=>({round:.16+r()*.2,dir:sign(r),seed:Math.floor(r()*1000)}),
+  draw(c,d,P){const m=d.size*.38,w=d.w+m*2,h=d.h+m*2,u=outCubic(d.a),k=lerp(.96,1,u),x=-w/2,y=-h/2,rad=Math.min(w,h)*P.round;
+   c.save();c.globalAlpha=d.z*clamp(d.a*2);c.translate(d.cx,d.cy+(1-u)*d.size*.25);c.scale(k,k);
+   roundBox(c,x,y,w,h,rad);c.fillStyle=rgba('#ffffff',.1);c.fill();c.fillStyle=rgba(d.accent,.06);c.fill();
+   c.save();roundBox(c,x,y,w,h,rad);c.clip();
+   c.fillStyle=rgba('#ffffff',.08);for(let i=0;i<40;i++){const gx=x+hash(P.seed,i,1)*w,gy=y+hash(P.seed,i,2)*h,gr=Math.max(.6,d.size*.012*(.5+hash(P.seed,i,3)));c.fillRect(gx,gy,gr,gr);}
+   const span=w+h,pos=((d.lt*.32+hash(P.seed,1,9))%1)*span*1.6-span*.3,sx=P.dir>0?x+pos:x+w-pos;
+   for(const [off,bw,al] of [[0,d.size*.55,.13],[d.size*.75,d.size*.16,.09]]){const bx=sx+P.dir*off;c.beginPath();c.moveTo(bx,y);c.lineTo(bx+P.dir*bw,y);c.lineTo(bx+P.dir*bw-P.dir*h*.6,y+h);c.lineTo(bx-P.dir*h*.6,y+h);c.closePath();c.fillStyle=rgba('#ffffff',al);c.fill();}
+   c.restore();
+   roundBox(c,x,y,w,h,rad);c.strokeStyle=rgba('#ffffff',.38);c.lineWidth=Math.max(1,d.size*.025);c.stroke();
+   c.beginPath();c.moveTo(x+rad,y+c.lineWidth);c.lineTo(x+w-rad,y+c.lineWidth);c.strokeStyle=rgba('#ffffff',.55);c.stroke();
+   c.restore();}},
+ glassBubbles:{name:'シャボン玉',tags:['calm','emotional','pop'],w:1,plan:r=>({n:4+Math.floor(r()*3),seed:Math.floor(r()*1000)}),
+  draw(c,d,P){c.save();
+   for(let j=0;j<P.n;j++){const ang=(j+hash(P.seed,j,1)*.7)/P.n*TAU,rx=d.w/2+d.size*(.45+hash(P.seed,j,2)*.35),ry=d.h/2+d.size*(.4+hash(P.seed,j,3)*.3),R=d.size*(.14+hash(P.seed,j,4)*.18)*outBack(clamp(d.a*1.6-j*.1),2);
+    if(R<=.5)continue;const x=d.cx+Math.cos(ang)*rx+Math.sin(d.lt*1.5+j)*d.size*.06,y=d.cy+Math.sin(ang)*ry-d.lt*d.size*.12*(.5+hash(P.seed,j,5));
+    c.globalAlpha=d.z;c.beginPath();c.arc(x,y,R,0,TAU);c.fillStyle=rgba('#ffffff',.06);c.fill();c.strokeStyle=rgba('#ffffff',.5);c.lineWidth=Math.max(1,R*.08);c.stroke();
+    c.beginPath();c.arc(x,y,R*.92,Math.PI*.15,Math.PI*.85);c.strokeStyle=rgba(d.accent,.45);c.lineWidth=Math.max(1,R*.1);c.stroke();
+    c.beginPath();c.arc(x,y,R*.68,Math.PI*1.1,Math.PI*1.45);c.strokeStyle=rgba('#ffffff',.8);c.lineWidth=Math.max(1,R*.12);c.lineCap='round';c.stroke();
+    c.beginPath();c.arc(x-R*.35,y-R*.42,Math.max(.5,R*.09),0,TAU);c.fillStyle=rgba('#ffffff',.7);c.fill();}
+   c.restore();}},
+ softHalo:{name:'透ける光の輪',tags:['calm','emotional'],w:1,back:true,plan:r=>({breath:.5+r()*.5,ring:r()<.6}),
+  draw(c,d,P){const k=outCubic(d.a)*(1+.035*Math.sin(d.lt*P.breath*TAU)),rx=(d.w/2+d.size*.9)*k,ry=(d.h/2+d.size*.75)*k;if(rx<=1)return;
+   c.save();c.globalAlpha=d.z;c.fillStyle=rgba(d.accent,.05);
+   for(let i=0;i<7;i++){const s=1-i/7;c.beginPath();c.ellipse(d.cx,d.cy,rx*s,ry*s,0,0,TAU);c.fill();}
+   if(P.ring){c.beginPath();c.ellipse(d.cx,d.cy,rx*1.04,ry*1.04,0,0,TAU);c.strokeStyle=rgba('#ffffff',.22);c.lineWidth=Math.max(1,d.size*.02);c.stroke();}
+   c.restore();}},
+ veilCircles:{name:'透ける丸の重なり',tags:['graphic','calm','pop'],w:.9,back:true,plan:r=>({seed:Math.floor(r()*1000),dir:sign(r),col:Math.floor(r()*PALE.length)}),
+  draw(c,d,P){const cols=[d.accent,PALE[P.col]||PALE[0],'#ffffff'],als=[.13,.13,.08];c.save();c.globalAlpha=d.z;
+   for(let j=0;j<3;j++){const s=outBack(clamp(d.a*1.5-j*.2),1.6);if(s<=.01)continue;const ang=hash(P.seed,j,1)*TAU+d.lt*.15*P.dir,dist=d.size*(.3+hash(P.seed,j,2)*.5),R=(Math.max(d.w,d.h)*.2+d.size*(.35+hash(P.seed,j,3)*.35))*s;
+    c.beginPath();c.arc(d.cx+Math.cos(ang)*dist,d.cy+Math.sin(ang)*dist*.6,R,0,TAU);c.fillStyle=rgba(cols[j],als[j]);c.fill();}
+   c.restore();}},
+ prismStreak:{name:'虹色の反射',tags:['emotional','graphic','glitch'],w:.9,back:true,plan:r=>({ang:sign(r)*(.32+r()*.25),seed:Math.floor(r()*1000)}),
+  draw(c,d,P){const L=d.w+d.size*2.4,band=d.size*.95,st=band/RAINBOW.length,u=outCubic(d.a),wob=Math.sin(d.lt*1.2+P.seed)*d.size*.04;if(u<=0)return;
+   c.save();c.globalAlpha=d.z;c.translate(d.cx,d.cy);c.rotate(P.ang);
+   RAINBOW.forEach((col,i)=>{c.fillStyle=rgba(col,.17);c.fillRect(-L/2,-band/2+i*st+wob*(i/RAINBOW.length-.5),L*u,st+.5);});
+   c.fillStyle=rgba('#ffffff',.25);c.fillRect(-L/2,-band/2-Math.max(1,d.size*.015),L*u,Math.max(1,d.size*.015));
+   c.restore();}},
+ tracingPaper:{name:'薄紙',tags:['calm','emotional','graphic'],w:1,back:true,plan:r=>({from:sign(r),tilt:(r()-.5)*.08,seed:Math.floor(r()*1000)}),
+  draw(c,d,P){const w=d.w+d.size*1.4,h=d.h+d.size*.55,u=outCubic(d.a),step=d.size*.18,n=Math.max(4,Math.ceil(w/step)),x=-w/2,y=-h/2;
+   c.save();c.globalAlpha=d.z*clamp(d.a*2.5);c.translate(d.cx+(1-u)*d.size*1.2*P.from,d.cy);c.rotate(P.tilt);
+   c.beginPath();for(let i=0;i<=n;i++)c.lineTo(x+w*i/n,y+(hash(P.seed,i,1)-.5)*d.size*.08);for(let i=n;i>=0;i--)c.lineTo(x+w*i/n,y+h+(hash(P.seed,i,2)-.5)*d.size*.08);c.closePath();
+   c.fillStyle=rgba('#ffffff',.16);c.fill();c.fillStyle=rgba(d.accent,.04);c.fill();c.strokeStyle=rgba('#ffffff',.3);c.lineWidth=1;c.stroke();
    c.restore();}},
 };
 const fract2=x=>x-Math.floor(x);
