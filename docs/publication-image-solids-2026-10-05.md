@@ -1,5 +1,7 @@
 # 2026-10-05 公開記録：JavaScript画像メソッドの立体・GLB接続
 
+> この記録のコミット番号は、非公開の本体リポジトリ（`saisuiwa/UNFOLD`）のものです。公開用リポジトリでは番号が違います（対応は `docs/公開用リポジトリへの反映.md`）。
+
 - 公開URL：https://unfold.saisuiwa.com/
 - Worker：`unfold`（既存の公開先を更新）
 - 公開ソース：`c502dae4688bea0503597b6657ea8f0fd6b657af`

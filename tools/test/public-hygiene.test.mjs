@@ -6,16 +6,10 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {hygieneProblems} from '../lib/public-hygiene.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const TEXT = /\.(md|txt|js|mjs|html|json|css|py)$/;
-// the words are put together from pieces so that this file does not match itself
-const RULES = [
-  [new RegExp('/Users/' + '[A-Za-z0-9._-]+/'), 'a Mac user folder: write ~/… or a path relative to the repository'],
-  [new RegExp('ひろ' + 'くん'), 'the author’s nickname: write 作者'],
-  [new RegExp('コ' + 'コ(?![アナッ])'), 'the AI’s nickname: write Claude'],
-  [new RegExp('[A-Za-z0-9._%+-]+@' + '(gmail|yahoo|icloud|outlook|hotmail)\\.[a-z.]+', 'i'), 'a personal mail address'],
-];
 
 let files = null;
 try { files = execFileSync('git', ['-c', 'core.quotepath=off', 'ls-files', '-z'], {cwd: ROOT, encoding: 'utf8'}).split('\0').filter(Boolean); } catch {}
@@ -26,9 +20,7 @@ test('no nickname, Mac user folder or personal mail address in the tracked text 
     if (!TEXT.test(file) || file.startsWith('app/vendor/')) continue;
     let text;
     try { text = readFileSync(ROOT + file, 'utf8'); } catch { continue; }   // listed but not on disk (deleted, not yet committed)
-    text.split('\n').forEach((line, i) => {
-      for (const [re, what] of RULES) if (re.test(line)) found.push(`${file}:${i + 1}  ${what}`);
-    });
+    for (const {line, what} of hygieneProblems(text)) found.push(`${file}:${line}  ${what}`);
   }
   assert.deepEqual(found, []);
 });

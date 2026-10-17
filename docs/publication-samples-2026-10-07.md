@@ -1,5 +1,7 @@
 # サンプル集・新サンプル2つの公開記録 — 2026-10-07
 
+> この記録のコミット番号は、非公開の本体リポジトリ（`saisuiwa/UNFOLD`）のものです。公開用リポジトリでは番号が違います（対応は `docs/公開用リポジトリへの反映.md`）。
+
 作者の承認を受けて、既存Cloudflare Worker `unfold` を更新した。
 
 - 工房：https://unfold.saisuiwa.com/workshop

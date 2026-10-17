@@ -1,5 +1,7 @@
 # メソッド工房の公開記録 — 2026-10-06
 
+> この記録のコミット番号は、非公開の本体リポジトリ（`saisuiwa/UNFOLD`）のものです。公開用リポジトリでは番号が違います（対応は `docs/公開用リポジトリへの反映.md`）。
+
 作者の公開承認を受け、既存のCloudflare Worker `unfold` と独自ドメインを更新。
 
 - 工房の正規URL：**https://unfold.saisuiwa.com/workshop**（`/workshop.html` からリダイレクト）。

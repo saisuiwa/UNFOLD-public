@@ -1,5 +1,7 @@
 # STUDIOの本体統合・公開記録 — 2026-10-10
 
+> この記録のコミット番号は、非公開の本体リポジトリ（`saisuiwa/UNFOLD`）のものです。公開用リポジトリでは番号が違います（対応は `docs/公開用リポジトリへの反映.md`）。
+
 作者の明示的な承認を受けて、検証済みSTUDIOをmainへ早送り統合し、既存Cloudflare Worker `unfold` に公開した。GitHub pushなし。個人の素材・作品・テスト・作業記録・認証情報は公開していない。
 
 - STUDIO: https://unfold.saisuiwa.com/studio

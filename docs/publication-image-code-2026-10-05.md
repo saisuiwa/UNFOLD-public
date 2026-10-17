@@ -1,5 +1,7 @@
 # 2026-10-05 公開記録：画像JavaScriptメソッド・Rapier物理演算
 
+> この記録のコミット番号は、非公開の本体リポジトリ（`saisuiwa/UNFOLD`）のものです。公開用リポジトリでは番号が違います（対応は `docs/公開用リポジトリへの反映.md`）。
+
 - 公開URL：https://unfold.saisuiwa.com/
 - Cloudflare Worker：`unfold`（既存の独自ドメインへ更新）
 - 配信ソース：`864801b`（実装 `89bd03d` を含む）
