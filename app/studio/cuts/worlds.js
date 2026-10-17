@@ -35,6 +35,8 @@ const rr=(c,x,y,w,h,r)=>{r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.a
 /** 世界の入り・出にかける秒数。出は、次がすぐ続かないカット（exitOK）だけ */
 export function worldTimes(D,exitOK){return {inW:clamp(D*.3,.14,.36),outW:exitOK?clamp(D*.2,.1,.28):0};}
 const dly=(D,exitOK,k)=>worldTimes(D,exitOK).inW*k;
+// 字幕帯の長さ: 文字の右端から少し先まで（短い歌詞で、何も書いていない灰色の帯が画面の端まで続かないように）。文字が読めない時は、いちばん長い帯
+const telopW=(F,item,W)=>{const full=F.bar.w,right=item?.bbox?F.box.cx-F.box.w/2+item.bbox.x1:NaN;return Number.isFinite(right)?clamp(right+W*.07-W*.03,full*.36,full):full;};
 const FONTS=['gothic','mincho','round','marker','dela','dot'];
 
 export const WORLD={
@@ -159,16 +161,16 @@ export const WORLD={
   }},
 
  telop:{name:'字幕帯',tags:['graphic','impact','glitch'],w:1,fits:n=>n<=24,
-  box:(P,F,it,W,H)=>({cx:W*.03+F.bar.w/2,cy:F.box.cy,w:F.bar.w,h:F.bar.h,rot:0}),
+  box:(P,F,it,W,H)=>{const w=telopW(F,it,W);return {cx:W*.03+w/2,cy:F.box.cy,w,h:F.bar.h,rot:0};},
   plan:r=>({y:.66+r()*.14}),
   frame(P,{W,H,D,exitOK}){const bh=H*.24;return {box:{cx:W*.52,cy:H*P.y,w:W*.78,h:bh*.7},bar:{w:W*.94,h:bh},mode:'wrap',align:'left',delay:dly(D,exitOK,.4),maxWidth:.98};},
   textColor:()=>'#ffffff',
-  back(c,e,P,F){
-   const {w,h}=F.bar,y=F.box.cy-h/2,x0=e.W*.03,x1=x0+w;
+  back(c,e,P,F,item){
+   const h=F.bar.h,w=telopW(F,item,e.W),y=F.box.cy-h/2,x0=e.W*.03;
    c.save();c.beginPath();c.rect(x0+w*outCubic(e.pOut),y-4,w*outCubic(e.pIn)-w*outCubic(e.pOut)+2,h+8);c.clip();
    c.fillStyle=mixHex(e.bg,'#ffffff',.16);c.fillRect(x0,y,w,h);c.fillStyle=rgba(e.accent,.6);c.fillRect(x0,y,w,2);c.fillRect(x0,y+h-2,w,2);c.fillStyle=e.accent;c.fillRect(x0,y,e.W*.014,h);
    c.font=`700 ${Math.max(10,h*.13)}px ui-monospace,Menlo,monospace`;c.fillStyle=e.accent;c.textAlign='left';c.textBaseline='top';c.fillText('LYRIC',x0+e.W*.03,y+h*.08);
-   c.fillStyle=rgba(e.fg,.25);c.fillRect(x0+e.W*.03,y+h*.26,w*.5,1.5);c.restore();
+   c.fillStyle=rgba(e.fg,.25);c.fillRect(x0+e.W*.03,y+h*.26,Math.min(w*.5,w-e.W*.06),1.5);c.restore();
   }},
 
  ransom:{name:'切り抜き文字',tags:['impact','pop','glitch'],w:.9,fits:n=>n<=12,

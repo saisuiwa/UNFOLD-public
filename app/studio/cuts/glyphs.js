@@ -160,7 +160,12 @@ export function layoutText({text,runs,pieces,W,H,size,font,measure,vertical=fals
   for(let r=0;r<rr;r++)lines.push({x0:W/2-cc*cell/2,x1:W/2+cc*cell/2,cy:H/2+(r-(rr-1)/2)*cell,h:cell});
   var scale=1;
  }else if(!vertical){
-  const total=body.reduce((a,c)=>a+c.w,0),maxW=W*maxWidth,nLines=mode==='path'?1:Math.max(1,Math.ceil(total/maxW)),target=total/nLines;
+  const total=body.reduce((a,c)=>a+c.w,0),maxW=W*maxWidth,hMax=Math.max(1,...body.map(c=>c.size||0));
+  // 行数: 幅に収まる行数が基本。ただ、低くて横に長い箱（字幕帯など）では、行を減らした方が字が大きくなるなら減らす（2行にして豆粒の字にならないように）
+  const fitK=n=>Math.min(1,W*.92*n/Math.max(1,total),H*.82/(n*hMax*1.28));
+  let nLines=mode==='path'?1:Math.max(1,Math.ceil(total/maxW));
+  for(let n=nLines-1;n>=1;n--)if(fitK(n)>fitK(nLines)*1.08)nLines=n;
+  const target=total/nLines;
   const rows=[];let cur=[],curW=0;
   for(const c of chars){
    if(c.br){rows.push(cur);cur=[];curW=0;continue;}

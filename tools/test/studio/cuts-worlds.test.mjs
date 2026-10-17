@@ -92,3 +92,14 @@ test('assignWorlds: every cut with a world still leaves a readable share of its 
  }
 });
 
+
+test('字幕帯: a short lyric stays on one line at a readable size, and the band ends a little after the text (no long empty band)', () => {
+ for(const text of ['ひとりでも 空はひらくから','紙は窓から飛んだ']){
+  const cut=cutOf('telop',{text,runs:[{text}]}),it=itemFor(cut),F=it.worldFrame;
+  assert.equal(new Set(it.glyphs.map(g=>g.line)).size,1,text+': one line');
+  const right=F.box.cx-F.box.w/2+it.bbox.x1,box=WORLD.telop.box(cut.worldP,F,it,W,H),bandRight=box.cx+box.w/2;
+  assert.ok(bandRight>right,text+': the band reaches past the text');
+  assert.ok(bandRight-right<W*.1,text+`: the band ends soon after the text (${Math.round(bandRight-right)} px of empty band)`);
+  assert.ok(box.w<F.bar.w,text+': shorter than the full-width band');
+ }
+});
