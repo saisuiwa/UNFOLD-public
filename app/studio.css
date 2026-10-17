@@ -183,3 +183,8 @@
 .timeline-tools .zoom-box{display:grid;gap:2px;margin-left:auto}
 .timeline-tools .zoom-box .zoom-field{margin:0}
 .timeline-tools .pan-field input:disabled{opacity:.4}
+/* 作品の切り替え: 「新しいMV」の確認、「保存した作品」の一覧、さっきの作品に戻るボタン */
+.unfold-dialog h2{margin:4px 0 10px;font-size:18px}.unfold-dialog p{line-height:1.7}.unfold-dialog .work-meta{display:block;font-size:12px;color:#a9c2bb}.unfold-dialog .work-lyric{display:block;font-size:12px;color:#d9cbe9}
+.unfold-dialog .dialog-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.unfold-dialog .dialog-actions button{margin:0}
+.saved-list{display:grid;gap:8px;margin-top:6px}.unfold-dialog .saved-item{margin:0;display:grid;gap:3px;text-align:left;padding:10px 12px;border-radius:9px;line-height:1.4}.saved-item strong{font-size:14px;color:#e8f4ef}.saved-item.current{opacity:.7;border-style:dashed}
+.back-prev{background:#3a3220;border-color:#c99a3d;color:#ffd98a}.back-prev:hover{background:#4a3f26}
