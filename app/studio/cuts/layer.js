@@ -4,6 +4,7 @@
 import {drawCutFrame,finishFrame,ghostPasses,ghostOffset,resetCtx} from './compose.js';
 import {renderText} from './glyphs.js';
 import {renderWorld,worldBox} from './worlds.js';
+import {renderDeco} from './decos.js';
 import {buildAnyItem} from './items.js';
 import {absoluteCuts,fontsUsed,cleanCutData,cutActive,cutOf,spanOf} from './plan.js';
 import {layerFrame} from '../image-layer.js';
@@ -70,7 +71,7 @@ export function createCutEngine(){
   },
   textCanvas(cut,lt){
    const c=S.canvas('text'),x=clear(c),it=engine.itemOf(cut);
-   if(cut.world)renderWorld(x,cut,it,lt,{layer:layerCtx,W:S.W,H:S.H});else renderText(x,it,lt,{layer:layerCtx});
+   if(cut.world)renderWorld(x,cut,it,lt,{layer:layerCtx,W:S.W,H:S.H});else{renderDeco(x,cut,it,lt,{back:true});renderText(x,it,lt,{layer:layerCtx});renderDeco(x,cut,it,lt);}   // 装飾は文字と同じキャンバスに（ゴーストの層には描かない）
    return c;
   },
   /** ゴーストの層: 世界の物は付けず、文字だけを、その時刻で、その色で描く（層ごとに別のキャンバス） */
@@ -108,7 +109,7 @@ export function createCutEngine(){
 }
 
 /** 部品を全部外した、いちばん素朴なカット（部品の表と食い違うデータで描けなかった時の代わり） */
-const plainCut=c=>({...c,bgPart:null,cam:null,fx:null,trans:null,transDur:0,ghost:0,world:null,worldP:null,carry:false,carryDur:0,enter:'cut',enterP:{},hold:'still',holdP:{},exit:'cut',exitP:{},treat:'none',treatP:{},gVertical:false});
+const plainCut=c=>({...c,bgPart:null,cam:null,fx:null,trans:null,transDur:0,ghost:0,world:null,worldP:null,deco:null,decoP:null,carry:false,carryDur:0,enter:'cut',enterP:{},hold:'still',holdP:{},exit:'cut',exitP:{},treat:'none',treatP:{},gVertical:false});
 
 /** この時刻に、このカット演出より下（ほかのクリップ）に見える絵があるか。あれば、カット演出は透明な絵にする */
 const hasUnderlay=(project,tUs,selfId)=>{

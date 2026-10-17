@@ -7,16 +7,17 @@ import {AXES,MOODS} from '../../../app/studio/cuts/kit.js';
 import {GLYPH_GROUPS} from '../../../app/studio/cuts/glyphs.js';
 import {GROUPS} from '../../../app/studio/cuts/parts.js';
 import {WORLD} from '../../../app/studio/cuts/worlds.js';
+import {DECO} from '../../../app/studio/cuts/decos.js';
 import {planCutsRaw,finishCutPlan,cleanCutData} from '../../../app/studio/cuts/plan.js';
 import {buildAnyItem} from '../../../app/studio/cuts/items.js';
 import {createProject,newLayout} from '../../../app/studio/model.js';
 import {rng} from '../../../app/studio/omakase.js';
 
-const TABLES={...GLYPH_GROUPS,...GROUPS,world:WORLD};
+const TABLES={...GLYPH_GROUPS,...GROUPS,world:WORLD,deco:DECO};
 // 軸ごとの、計画のカットでの項目名（部品の名前、その値）
-const FIELD={enter:['enter','enterP'],hold:['hold','holdP'],exit:['exit','exitP'],treat:['treat','treatP'],bg:['bgPart','bgP'],cam:['cam','camP'],fx:['fx','fxP'],trans:['trans','transP'],world:['world','worldP']};
+const FIELD={enter:['enter','enterP'],hold:['hold','holdP'],exit:['exit','exitP'],treat:['treat','treatP'],bg:['bgPart','bgP'],cam:['cam','camP'],fx:['fx','fxP'],trans:['trans','transP'],world:['world','worldP'],deco:['deco','decoP']};
 const NEEDS={enter:d=>typeof d.inDur==='function'&&(d.glyph||d.item),exit:d=>typeof d.outDur==='function'&&(d.glyph||d.item),hold:d=>d.glyph||d.item,treat:d=>typeof d.style==='function',
- bg:d=>typeof d.draw==='function',cam:d=>typeof d.get==='function',fx:d=>typeof d.apply==='function'&&d.dur>0,trans:d=>typeof d.draw==='function'&&d.dur>0,world:d=>typeof d.frame==='function'&&typeof d.fits==='function'};
+ bg:d=>typeof d.draw==='function',cam:d=>typeof d.get==='function',fx:d=>typeof d.apply==='function'&&d.dur>0,trans:d=>typeof d.draw==='function'&&d.dur>0,world:d=>typeof d.frame==='function'&&typeof d.fits==='function',deco:d=>typeof d.draw==='function'};
 
 test('every daily part follows the rules of the routine and is joined to its table (not hidden by a hand-made part of the same name)', () => {
  const seen=new Set();
@@ -43,7 +44,7 @@ const projectOf=()=>{const p=createProject({durationUs:12e6});p.locks.lyrics=fal
  p.lyrics=TEXTS.map((text,i)=>({id:'L'+i,text,runs:[{id:'r'+i,text}],startUs:Math.round((.4+i*2.8)*1e6),endUs:Math.round((.4+i*2.8+2.6)*1e6),motion:{font:'gothic',color:'#ffffff',emphasisColor:'#ff6fae'},timingSource:'manual',opacity:1}));
  for(const v of Object.values(p.views))for(const l of p.lyrics)v.layout[l.id]=newLayout();return p;};
 const measure=(ch,font,px)=>/[\x00-\x7f]/.test(ch)?px*.55:px;
-const planOf=seed=>finishCutPlan(planCutsRaw(projectOf(),{seed,camAmount:1,fxAmount:1,transAmount:1,worldAmount:1,treatAmount:1,holdAmount:1}),{itemOf:cut=>buildAnyItem(cut,{W:960,H:540,measure})});
+const planOf=seed=>finishCutPlan(planCutsRaw(projectOf(),{seed,camAmount:1,fxAmount:1,transAmount:1,worldAmount:1,treatAmount:1,holdAmount:1,decoAmount:1}),{itemOf:cut=>buildAnyItem(cut,{W:960,H:540,measure})});
 
 test('おまかせのカット割り picks the daily parts, and the saved values of a daily part pass the value check unchanged', () => {
  const used=new Set(),changed=[];
@@ -54,7 +55,7 @@ test('おまかせのカット割り picks the daily parts, and the saved values
    if(seed>12)continue;
    for(const part of DAILY_CUT_PARTS){
     const [k,kp]=FIELD[part.axis],P=part.plan?part.plan(rng(`check:${seed}:${part.key}`)):{};
-    const cut={...d.cuts[0],[k]:part.key,[kp]:P};if(part.axis==='trans'){cut.transDur=Math.min(part.dur,.3);}
+    const cut={...d.cuts[0],[k]:part.key,[kp]:P};if(part.axis==='deco'){cut.world=null;cut.worldP=null;}   // 装飾は物の世界のあるカットには付かないif(part.axis==='trans'){cut.transDur=Math.min(part.dur,.3);}
     const clean=cleanCutData({...d,cuts:[cut,...d.cuts.slice(1)]});
     if(!clean)changed.push(`${part.axis}/${part.key}: the data was dropped`);
     else if(clean.cuts[0][k]!==part.key)changed.push(`${part.axis}/${part.key}: became ${clean.cuts[0][k]}`);

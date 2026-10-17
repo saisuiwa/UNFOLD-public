@@ -62,7 +62,7 @@ export function finishFrame(out,{cut,t,X,A,carry},S){
  const lt=t-cut.start;
  if(carry&&A&&lt<carry.dur){drawCarry(out,A,X,Math.max(0,lt)/carry.dur,carry.fromBox,carry.toBox,S);reset(out);}
  else if(cut.trans&&A&&TRANS[cut.trans]&&lt<cut.transDur){
-  out.save();TRANS[cut.trans].draw(out,A,X,Math.max(0,lt)/cut.transDur,{W,H,opaque:S.opaque,accent:cut.emphasisColor,fg:cut.color},cut.transP);out.restore();reset(out);
+  out.save();TRANS[cut.trans].draw(out,A,X,Math.max(0,lt)/cut.transDur,{W,H,opaque:S.opaque,accent:cut.emphasisColor,fg:cut.color,tmp:S.tmp},cut.transP);out.restore();reset(out);
  }else out.drawImage(X,0,0);
  if(cut.fx&&FX[cut.fx]){
   const F=FX[cut.fx];

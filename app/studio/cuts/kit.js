@@ -29,7 +29,7 @@ export const contrast=hex=>luma(hex)>.55?'#101018':'#ffffff';
 /** 雰囲気のタグ（部品の tags に使う） */
 export const MOODS=['calm','pop','glitch','graphic','emotional','impact'];
 /** 部品の軸（daily-parts.js の axis）と、その日本語名 */
-export const AXES={enter:'登場',hold:'保持',exit:'退場',treat:'加工',bg:'背景',cam:'カメラ',fx:'画面効果',trans:'つなぎ',world:'物の世界'};
+export const AXES={enter:'登場',hold:'保持',exit:'退場',treat:'加工',bg:'背景',cam:'カメラ',fx:'画面効果',trans:'つなぎ',world:'物の世界',deco:'装飾'};
 
 /**
  * 毎日の部品を、軸ごとの表の末尾に足す（glyphs.js / parts.js / worlds.js が、自分の表について呼ぶ）。

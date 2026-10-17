@@ -8,6 +8,7 @@ import {MOODS,rng,fitCap,SIZE_MIN} from '../omakase.js';
 import {BG,CAMERA,FX,TRANS,GROUPS,GROUP_NAMES} from './parts.js';
 import {ENTER,HOLD,EXIT,TREAT,GLYPH_GROUPS,GLYPH_GROUP_NAMES,timingsOf} from './glyphs.js';
 import {WORLD,worldChoices} from './worlds.js';
+import {DECO} from './decos.js';
 import {refinePlan,auditPlan} from './audit.js';
 
 export const CUT_VERSION=1;
@@ -295,6 +296,24 @@ export function assignWorlds(cuts,{seed=1,worldAmount=.5,worldOpacity=1}={}){
 }
 
 /**
+ * cuts に deco/decoP（装飾: 手描きの丸囲み・キラキラ・矢印…）を書き足して返す（assignWorlds の後に呼ぶ。量 0 なら一切使わない）。互換のルール:
+ *  - 物の世界のあるカットには付けない（世界が飾りの役をする）。縦書きのカットにも付けない。
+ *  - 加工が下線・蛍光ペン・箱（字に付く飾り）のカットには付けない（飾りが重なる）。
+ *  - 0.5秒未満のカットは、飾りが出てくる時間が足りないので出にくい。直前と同じ装飾は選ばない。乱数はカットごとの別の種なので、ほかの軸の選び方は変わらない。
+ */
+export function assignDecos(cuts,{seed=1,decoAmount=.4}={}){
+ const hist=[];
+ for(const c of cuts){
+  const r=rng(`deco:${seed}:${c.id}`),D=c.end-c.start;
+  let key=null;
+  if(decoAmount>0&&!c.world&&!c.gVertical&&!['marker','underline','box'].includes(c.treat)&&r()<decoAmount*(D<.5?.5:1))key=pickFrom(r,DECO,{mood:c.moodId,history:hist,n:3,f:.25});else r();
+  if(key)hist.push(key);
+  c.deco=key;c.decoP=key?DECO[key].plan(rng(`dp:${seed}:${c.id}`),c):null;
+ }
+ return cuts;
+}
+
+/**
  * 前のカットとほぼ隙間なく続く所で、「前のカットの台が画面いっぱいに寄り、次のカットの台に入れ替わって引く」引き継ぎを付ける（c.carry=true）。互換のルール:
  *  - 前後どちらかが世界のカットだと出やすい（台がある）。どちらも世界でないカットどうしは出にくい（約1/3）。
  *  - 0.5秒未満のカットには付けない。長さは短いほうのカットの半分まで（最大0.42秒）。
@@ -406,7 +425,7 @@ function cleanCutDataUncached(d){
   const key=(reg,k,def)=>reg&&typeof k==='string'&&Object.hasOwn(reg,k)?k:def;
   const n=[...c.text.replace(/\s/g,'')].length;
   let world=key(WORLD,c.world,null);if(world&&!WORLD[world].fits(n))world=null;   // その世界に置ける字数を超えるものは使わない
-  const bgPart=key(BG,c.bgPart,null),cam=key(CAMERA,c.cam,null),fx=key(FX,c.fx,null),trans=key(TRANS,c.trans,null);
+  const bgPart=key(BG,c.bgPart,null),cam=key(CAMERA,c.cam,null),fx=key(FX,c.fx,null),trans=key(TRANS,c.trans,null),deco=world?null:key(DECO,c.deco,null);
   const enter=key(ENTER,c.enter,'cut'),hold=key(HOLD,c.hold,'still'),exit=key(EXIT,c.exit,'cut'),treat=key(TREAT,c.treat,'none');
   cuts.push({
    a,b,text:c.text,recap:!!c.recap,unitIndex:finite(c.unitIndex,cuts.length,0,1000),moodId:key(Object.fromEntries(MOODS.map(m=>[m.id,1])),c.moodId,'pop'),
@@ -418,7 +437,7 @@ function cleanCutDataUncached(d){
    ghost:finite(c.ghost,0,0,2.5),ghostP:{dir:c.ghostP?.dir===-1?-1:1},
    enter,enterP:cleanP('enter',ENTER,enter,c.enterP)??{},hold,holdP:cleanP('hold',HOLD,hold,c.holdP)??{},exit,exitP:cleanP('exit',EXIT,exit,c.exitP)??{},
    treat,treatP:cleanP('treat',TREAT,treat,c.treatP)??{},gFont:key(Object.fromEntries(GLYPH_FONTS.map(f=>[f,1])),c.gFont,'gothic'),gVertical:!!c.gVertical&&!world,
-   world,worldP:world?cleanP('world',WORLD,world,c.worldP):null,worldExit:!!c.worldExit,worldA:world?finite(c.worldA,1,0,1):undefined,carry:!!c.carry,carryDur:finite(c.carryDur,0,0,1),dScale:c.dScale>0?finite(c.dScale,1,.5,2):undefined
+   world,worldP:world?cleanP('world',WORLD,world,c.worldP):null,worldExit:!!c.worldExit,worldA:world?finite(c.worldA,1,0,1):undefined,deco,decoP:deco?cleanP('deco',DECO,deco,c.decoP):null,carry:!!c.carry,carryDur:finite(c.carryDur,0,0,1),dScale:c.dScale>0?finite(c.dScale,1,.5,2):undefined
   });
  }
  return {v:CUT_VERSION,text:d.text,sig:d.sig,dur:d.dur,seed:d.seed|0,cuts};
@@ -451,7 +470,7 @@ export function linesOf(project,{freeText=false}={}){
  return {lyrics:subjects,subjects,lines:subjects.map(l=>({text:String(l.text).replace(/\s*\n\s*/g,' ').trim(),start:l.startUs/1e6,end:l.endUs/1e6}))};
 }
 
-export const CUT_DEFAULTS={freeText:true,mood:MIX,density:.57,recap:'auto',wordSizes:true,sizePct:12,bgMode:'auto',camAmount:.6,fxAmount:.5,transAmount:.65,treatAmount:.45,holdAmount:.7,ghostAmount:.2,worldAmount:.55,worldOpacity:1,carryAmount:.35,avoidFlash:true,fontMode:'cut',refine:true};
+export const CUT_DEFAULTS={freeText:true,mood:MIX,density:.57,recap:'auto',wordSizes:true,sizePct:12,bgMode:'auto',camAmount:.6,fxAmount:.5,transAmount:.65,treatAmount:.45,holdAmount:.7,ghostAmount:.2,worldAmount:.55,worldOpacity:1,decoAmount:.4,carryAmount:.35,avoidFlash:true,fontMode:'cut',refine:true};
 
 /**
  * 計画の前半（文字の大きさを測らなくてよい所まで）。返す cuts は、まだ検査と手直しの前。
@@ -466,6 +485,7 @@ export function planCutsRaw(project,opts={}){
  assignParts(cuts,{seed,bgMode:o.bgMode,camAmount:o.camAmount,fxAmount:o.fxAmount,transAmount:o.transAmount,ghostAmount:o.ghostAmount,avoidFlash:o.avoidFlash});
  assignGlyphParts(cuts,{seed,fontMode:o.fontMode,treatAmount:o.treatAmount,holdAmount:o.holdAmount});
  assignWorlds(cuts,{seed,worldAmount:o.worldAmount,worldOpacity:o.worldOpacity});
+ assignDecos(cuts,{seed,decoAmount:o.decoAmount});
  assignCarry(cuts,{seed,carryAmount:o.carryAmount});
  return {cuts,lyrics,seed,options:o};
 }
@@ -497,6 +517,6 @@ export function finishCutPlan({cuts,lyrics,seed,options},{itemOf,invalidate=()=>
 export function summarizeCuts(cuts){
  const count=f=>cuts.filter(f).length,names=reg=>keys=>[...new Set(keys.filter(Boolean))].map(k=>reg[k]?.name||k);
  return {cuts:cuts.length,recaps:count(c=>c.recap),worlds:names(WORLD)(cuts.map(c=>c.world)),cameras:names(CAMERA)(cuts.map(c=>c.cam)),effects:names(FX)(cuts.map(c=>c.fx)),
-  transitions:names(TRANS)(cuts.map(c=>c.trans)),carries:count(c=>c.carry),backgrounds:names(BG)(cuts.map(c=>c.bgPart)),enters:names(ENTER)(cuts.map(c=>c.enter)),
+  transitions:names(TRANS)(cuts.map(c=>c.trans)),carries:count(c=>c.carry),backgrounds:names(BG)(cuts.map(c=>c.bgPart)),decos:names(DECO)(cuts.map(c=>c.deco)),enters:names(ENTER)(cuts.map(c=>c.enter)),
   avgCut:cuts.length?cuts.reduce((a,c)=>a+(c.end-c.start),0)/cuts.length:0};
 }
