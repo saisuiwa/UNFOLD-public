@@ -1,8 +1,8 @@
 // The check that stands between a day's new samples and Git. It prints PASS / FAIL for each step and exits 1 if anything failed.
 //   node tools/verify_daily.mjs                       everything, for all samples (a few minutes)
 //   node tools/verify_daily.mjs --expect-new=2026-10-08
-//        the daily run: the samples added on that day (Japan time) must be exactly one GLSL method, one JavaScript image method and at least
-//        DAILY_CUT_PARTS_MIN parts of STUDIO's カット割り (since 2026-10-18; no new text code motion or effect);
+//        the daily run: before 2026-10-18 the samples added on that day (Japan time) must be exactly one GLSL method, one JavaScript image method and one text code motion;
+//        since 2026-10-18 they must be at least DAILY_CUT_PARTS_MIN parts of STUDIO's カット割り (no new text code motion or effect; a GLSL or image method is optional, at most one each);
 //        the GPU check and the preview check then look at the samples added on that day or later (the older ones were checked on their day)
 //   --base=REF   what the ?v= numbers are compared with (default origin/main)
 // Steps: unit tests (tools/test and tools/test/studio) - the GLSL samples on the GPU (the editor's three checks, warnings count as failures) - the image methods and the text code motions in the app's own runtimes
@@ -59,14 +59,18 @@ await step('unit tests', () => {
 if (expectNew) {
   // from 2026-10-18 the routine makes cut parts instead of a text code motion (the author, 2026-10-17); a day before that keeps the old quota
   const cutRule = expectNew >= CUT_PARTS_FROM;
-  await step(cutRule ? `one new GLSL method, one image method and at least ${DAILY_CUT_PARTS_MIN} cut parts on ${expectNew}` : `exactly one new GLSL method, image method and text code motion on ${expectNew}`, () => {
+  await step(cutRule ? `at least ${DAILY_CUT_PARTS_MIN} cut parts on ${expectNew} (a GLSL method and an image method are allowed, at most one each, but not required)` : `exactly one new GLSL method, image method and text code motion on ${expectNew}`, () => {
     const added = items.filter(i => i.added === expectNew);
     const counts = Object.fromEntries([...DAILY_GROUPS, 'codetext', 'effect'].map(g => [g, added.filter(i => i.group === g).length]));
-    need(counts.method === 1 && counts.image === 1, `added on ${expectNew}: method ${counts.method}, image ${counts.image} (each must be 1)`);
     if (cutRule) {
+      // the author, 2026-10-17: for now only cut parts; a method or an image method may still be added (at most one each), but is not required
+      need(counts.method <= 1 && counts.image <= 1, `added on ${expectNew}: method ${counts.method}, image ${counts.image} (at most 1 each)`);
       need(counts.cutpart >= DAILY_CUT_PARTS_MIN, `added on ${expectNew}: ${counts.cutpart} cut parts (at least ${DAILY_CUT_PARTS_MIN})`);
       need(counts.codetext === 0 && counts.effect === 0, `added on ${expectNew}: codetext ${counts.codetext}, effect ${counts.effect} (from ${CUT_PARTS_FROM} the routine makes cut parts instead)`);
-    } else need(counts.codetext === 1, `added on ${expectNew}: codetext ${counts.codetext} (must be 1 before ${CUT_PARTS_FROM})`);
+    } else {
+      need(counts.method === 1 && counts.image === 1, `added on ${expectNew}: method ${counts.method}, image ${counts.image} (each must be 1)`);
+      need(counts.codetext === 1, `added on ${expectNew}: codetext ${counts.codetext} (must be 1 before ${CUT_PARTS_FROM})`);
+    }
     need(!items.some(i => i.added > expectNew), `something is dated after ${expectNew}: ${items.filter(i => i.added > expectNew).map(i => i.id).join(', ')}`);
     return added.filter(i => DAILY_GROUPS.includes(i.group)).map(i => i.id).join(', ');
   });
