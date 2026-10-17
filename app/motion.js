@@ -28,6 +28,10 @@ attribute vec4 part;   // xy: centre of this small quad in image uv, zw: this co
 attribute vec4 modelColor;   // a GLB's own colour at this corner (linear rgb), a: 2 when the model has colour (a missing attribute reads 0 or 1)
 uniform float uModelColor;   // how much of that colour shows on the solid (0 = the picture only)
 varying vec4 vModelColor;
+attribute vec3 modelUv;      // the GLB's own texture coordinates (xy) and 1 when this corner is painted by its texture (uModelTex); missing = 0
+attribute vec4 modelNormal;  // the GLB's smooth normal (xyz), w: 2 when known (a missing attribute reads 0 or 1)
+varying vec3 vModelUv;
+varying vec4 vModelNormal;   // view-space smooth normal, w: how much it replaces the faceted one (as the solid forms)
 varying vec2 vUv;
 varying vec3 vPosition;
 varying float vForm;
@@ -342,6 +346,11 @@ void main(){
   vUv=mix(vUv,targetPosition.xy/uSize+.5,uProject*smoothstep(.5,.95,uForm));
   // the model's own colour comes in as it becomes the solid (the flat picture is never tinted)
   vModelColor=vec4(modelColor.rgb,step(1.5,modelColor.a)*uModelColor*smoothstep(.5,.95,uForm));
+  vModelUv=modelUv;
+  float smoothOn=step(1.5,modelNormal.w);
+  // the solid is drawn with z scaled by uDepth, so its normal leans the other way (n.z / depth)
+  vec3 sn=smoothOn>.5?modelNormal.xyz*vec3(1.,1.,1./max(uDepth,.05)):vec3(0.,0.,1.);
+  vModelNormal=vec4(normalize(normalMatrix*sn),smoothOn*smoothstep(.5,.95,uForm));
   // the newer methods fold paper in depth, so they are shaded while they break too
   float shade=mix(step(3.5,uMethod),step(3.5,uMethod2),uMethodMix);
   vForm=max(uForm,uDistort*.9*shade);
@@ -383,6 +392,11 @@ uniform float uDraw;   // line drawing: 1 = every stroke shown; falls while brea
 uniform float uFade;   // brief dip that hides the hand-over in pass-through changes (1 = fully visible)
 uniform float uGlass;  // glass look for tilted pieces and solids: refraction, cool tint, rim light and a sharp highlight
 varying vec4 vModelColor;
+varying vec3 vModelUv;
+varying vec4 vModelNormal;
+uniform sampler2D uModelTex;   // the GLB's base colour texture (model-import.js), read where vModelUv.z says so
+// the solid's own smooth shading: the GLB's normal, turned to the same side as the faceted one, takes over as it forms
+vec3 modelNormalAt(vec3 face){if(vModelNormal.w<.001)return face;vec3 s=normalize(vModelNormal.xyz);if(dot(s,face)<0.)s=-s;return normalize(mix(face,s,vModelNormal.w));}
 vec4 glassLook(vec4 c,vec3 n){
   if(uGlass<=0.)return c;
   n*=sign(n.z+1e-4);
@@ -453,7 +467,7 @@ vec4 lineDrawing(vec4 c,float k){
   return vec4(col,c.a*a);
 }
 vec4 particleLook(vec4 c){
-  c.rgb=mix(c.rgb,vModelColor.rgb,vModelColor.a);
+  if(vModelColor.a>.001){vec3 own=vModelColor.rgb;if(vModelUv.z>.5)own*=texture2D(uModelTex,vModelUv.xy).rgb;c.rgb=mix(c.rgb,own,vModelColor.a);}
   float k=smoothstep(.02,.55,vPMix);
   if(vPKind>.5&&k>0.){
     if(vPKind>8.5)c=lineDrawing(c,vPMix);
@@ -475,7 +489,7 @@ ${particleFragment}
 void main(){
   vec4 c=particleLook(texAt(vUv));
   if(c.a<0.01)discard;
-  vec3 normal=normalize(cross(dFdx(vPosition),dFdy(vPosition)));
+  vec3 normal=modelNormalAt(normalize(cross(dFdx(vPosition),dFdy(vPosition))));
   c=glassLook(c,normal);
   float light=surfaceLight(normal);
   c.rgb*=mix(1.,light,vForm);

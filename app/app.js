@@ -8,17 +8,17 @@ import { createShotControls } from './shot-motion-controls.js?v=3';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
 import * as THREE from './vendor/three.module.min.js';
-import {motionAt,exportRange,chaosTime,smooth,vertexShader,fragmentShader} from './motion.js?v=30';
+import {motionAt,exportRange,chaosTime,smooth,vertexShader,fragmentShader} from './motion.js?v=31';
 import {presetNames,presetTargets} from './shape-presets.js?v=6';
-import {importModel} from './model-import.js?v=12';
+import {importModel} from './model-import.js?v=13';
 import {listModels,getModel,saveModel,deleteModel,updateModel} from './model-library.js?v=4';
-import {COLOUR_SHAPES,isColourShape,fillsFrame,loadColourShape,paintColourLabel} from './colour-shapes.js?v=1';
+import {COLOUR_SHAPES,isColourShape,fillsFrame,loadColourShape,paintColourLabel} from './colour-shapes.js?v=2';
 import {ALL,UNGROUPED,groupOf,groupSelect,inGroup,loadActive,renderTabs,saveActive,validActive,wantsTabs} from './model-groups.js?v=1';
-import {modelThumb,fillMissingThumbs} from './model-thumb.js?v=2';
-import {particleParts} from './model-layout.js?v=13';
-import {createTextShape,validateText} from './text-shape.js?v=10';
-import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from './mask-shape.js?v=6';
-import {effectsAt,SceneBlur} from './effects.js?v=32';
+import {modelThumb,fillMissingThumbs} from './model-thumb.js?v=3';
+import {particleParts} from './model-layout.js?v=14';
+import {createTextShape,validateText} from './text-shape.js?v=11';
+import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from './mask-shape.js?v=7';
+import {effectsAt,SceneBlur} from './effects.js?v=33';
 import {BUILTIN_KEYS,getCustom,listCustom,onRegistryChange,registerCustom,resolveKey,setCustomStatus,unregisterCustom} from './method-registry.js';
 import {createPersistence,openStore} from './method-library.js';
 import {registerBundledImageMethods} from './bundled-image-methods.js';
@@ -60,7 +60,7 @@ function geometryFor(w,h){
  const custom=shapeOf(state.shape);
  if(custom){const data=custom.data,g=new THREE.BufferGeometry(),positions=new Float32Array(data.target.length);
   for(let i=0;i<data.uv.length/2;i++){positions[i*3]=(data.uv[i*2]-.5)*w;positions[i*3+1]=(data.uv[i*2+1]-.5)*h}
-  g.setAttribute('position',new THREE.BufferAttribute(positions,3));g.setAttribute('uv',new THREE.BufferAttribute(data.uv,2));g.setAttribute('cell',new THREE.BufferAttribute(data.cell,2));g.setAttribute('part',new THREE.BufferAttribute(particleParts(data,state.detail),4));g.setAttribute('targetPosition',new THREE.BufferAttribute(data.target,3));if(data.color)g.setAttribute('modelColor',new THREE.BufferAttribute(data.color,4));applyTiles(THREE,g,tilesAcross(state.tiles));return g;
+  g.setAttribute('position',new THREE.BufferAttribute(positions,3));g.setAttribute('uv',new THREE.BufferAttribute(data.uv,2));g.setAttribute('cell',new THREE.BufferAttribute(data.cell,2));g.setAttribute('part',new THREE.BufferAttribute(particleParts(data,state.detail),4));g.setAttribute('targetPosition',new THREE.BufferAttribute(data.target,3));if(data.color)g.setAttribute('modelColor',new THREE.BufferAttribute(data.color,4));if(data.modelUv)g.setAttribute('modelUv',new THREE.BufferAttribute(data.modelUv,3));if(data.normal)g.setAttribute('modelNormal',new THREE.BufferAttribute(data.normal,4));applyTiles(THREE,g,tilesAcross(state.tiles));return g;
  }
 
  const positions=[],uvs=[],cells=[],parts=[];const tiles=16,sub=5;
@@ -74,7 +74,7 @@ function setSource(canvas,name){
  sourceCanvas=canvas;texture?.dispose();texture=new THREE.CanvasTexture(canvas);texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=false;texture.colorSpace=THREE.SRGBColorSpace;
  const aspect=canvas.width/canvas.height;const h=Math.min(3.65,5.25/aspect),w=h*aspect;
  if(mesh){mesh.geometry.dispose();mesh.material.dispose();scene.remove(mesh)}
- const uniforms={uImage:{value:texture},uSize:{value:new THREE.Vector2(w,h)},uDistort:{value:0},uForm:{value:0},uStrength:{value:.75},uDepth:{value:1},uSeed:{value:28},uMethod:{value:0},uMethod2:{value:0},uMethodMix:{value:0},uProject:{value:0},uTime:{value:0},uDraw:{value:1},uThrough:{value:0},uFade:{value:1},uGlass:{value:0},uShape:{value:0},uPreset:{value:0},uConceal:{value:0},uModelColor:{value:state.modelColor}};
+ const uniforms={uImage:{value:texture},uSize:{value:new THREE.Vector2(w,h)},uDistort:{value:0},uForm:{value:0},uStrength:{value:.75},uDepth:{value:1},uSeed:{value:28},uMethod:{value:0},uMethod2:{value:0},uMethodMix:{value:0},uProject:{value:0},uTime:{value:0},uDraw:{value:1},uThrough:{value:0},uFade:{value:1},uGlass:{value:0},uShape:{value:0},uPreset:{value:0},uConceal:{value:0},uModelColor:{value:state.modelColor},uModelTex:{value:null}};
  mesh=new THREE.Mesh(geometryFor(w,h),(variants?.dispose(),variants=createVariants({renderer,vertexShader,fragmentShader,uniforms,onReady:()=>render()}),variants.base));mesh.frustumCulled=false;scene.add(mesh);
  const thumb=document.createElement('canvas');thumb.width=140;thumb.height=Math.round(140/aspect);thumb.getContext('2d').drawImage(canvas,0,0,thumb.width,thumb.height);$('thumbnail').src=thumb.toDataURL();$('image-name').textContent=name;
  $('image-size').textContent=`${canvas.width} × ${canvas.height} · クリックして変更`;render();
@@ -86,7 +86,7 @@ function resize(){
 function setCamera(aspect){const height=Math.max(5.4,6.8/aspect);camera.left=-height*aspect/2;camera.right=height*aspect/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix()}
 function render(){
  if(!mesh)return;const imageCode=isImageMethodKey(state.method),m=motionAt(state.t,state.chaosLength),u=mesh.material.uniforms;if(imageCode&&!state.imageSolid)m.form=0;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
- u.uDistort.value=imageCode?0:m.distort;u.uForm.value=m.form;u.uStrength.value=state.strength;u.uDepth.value=state.depth;u.uModelColor.value=state.modelColor;u.uSeed.value=state.seed;u.uMethod.value=pick.uMethod;u.uMethod2.value=pick.uMethod2;u.uShape.value=shapeIds[state.shape]??0;
+ u.uDistort.value=imageCode?0:m.distort;u.uForm.value=m.form;u.uStrength.value=state.strength;u.uDepth.value=state.depth;u.uModelColor.value=state.modelColor;u.uModelTex.value=shapeOf(state.shape)?.data.texture??null;u.uSeed.value=state.seed;u.uMethod.value=pick.uMethod;u.uMethod2.value=pick.uMethod2;u.uShape.value=shapeIds[state.shape]??0;
  u.uPreset.value=(presetNames.includes(state.shape)||shapeOf(state.shape))?1:0;u.uProject.value=shapeOf(state.shape)?.kind==='text'?1:0;u.uConceal.value=!imageCode&&state.mystery?smooth(.08,.24,state.t)*(1-smooth(.80,.94,state.t)):0;
  // All camera motion fades out with deformation, guaranteeing a flat identical final image.
  const preset=u.uPreset.value===1,orientation=imageCode&&!state.imageSolid?m.distort:m.form;

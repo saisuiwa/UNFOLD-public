@@ -1,6 +1,6 @@
 import {FontLoader} from './vendor/FontLoader.js';
 import {TextGeometry} from './vendor/TextGeometry.js';
-import {modelLayout} from './model-layout.js?v=13';
+import {modelLayout} from './model-layout.js?v=14';
 let fontPromise;
 export function validateText(text){
  const value=String(text).trim();

@@ -1,7 +1,7 @@
 // Colour shapes that come with the app: GLBs in assets/models, listed with the built-in shapes and drawn in their own colours
 // (tools/make_colour_samples.py makes them; colour-sample.glb is tools/make_colour_sample_glb.py). Ids start with "c-".
 // Each is read on first use and kept. `fit: 'frame'` ones are laid out to fill the picture (see model-import.js) and are not pulled back.
-import {importModel} from './model-import.js?v=12';
+import {importModel} from './model-import.js?v=13';
 
 export const COLOUR_SHAPES = [
   {id: 'c-sample', name: 'カラー見本', icon: '◐', file: 'colour-sample.glb', colors: ['#ff6b6b', '#ffd93d', '#4dabf7']},

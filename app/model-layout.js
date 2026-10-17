@@ -2,53 +2,60 @@
 export const MAX_MODEL_TRIANGLES=1000000;
 // opts.ordered: lay the picture on by position (tile rows from the bottom up, left to right in each row) instead of in the order the triangles come in,
 // so the model shows the picture the way a printed texture would. Off (the default) = as before.
-// opts.colors: the model's own linear rgb for each corner (9 per triangle, like input). It is carried through the splits and returned as `color`
-// (rgba per corner, a = 2: a geometry without the attribute reads 0 or 1 there, so only 2 means "this corner has the model's colour").
+// opts.extras = {data, stride}: more numbers for each corner (stride per corner, 3·stride per triangle, in the order of input), e.g. a GLB's own colour,
+// texture coordinates and normal (model-import.js). They are carried through the splits (a new corner gets the average of the edge's two) and returned
+// as `extras` (3·stride per triangle, in the order of `target`).
+// The triangles are kept in flat arrays (positions as doubles, exactly as before; extras as floats), so a million triangles with extras fit in memory.
 export function modelLayout(input,opts={}){
- const colors=opts.colors?.length===input.length?opts.colors:null;
  if(!input.length||input.length%9)throw new Error('三角形の形状を読み取れませんでした。');
- const triangles=[];const lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];
- for(let i=0;i<input.length;i+=9){const t=Array.from(input.slice(i,i+9));
-  if(t.some(v=>!Number.isFinite(v)))throw new Error('モデルの座標が不正です。');
-  for(let j=0;j<9;j++){lo[j%3]=Math.min(lo[j%3],t[j]);hi[j%3]=Math.max(hi[j%3],t[j])}if(colors)for(let j=i;j<i+9;j++)t.push(Number.isFinite(colors[j])?Math.max(0,colors[j]):1);triangles.push(t);
- }
- if(triangles.length>MAX_MODEL_TRIANGLES)throw new Error('三角形100万枚以下に軽量化したGLBを選んでね。');
+ const n=input.length/9;
+ if(n>MAX_MODEL_TRIANGLES)throw new Error('三角形100万枚以下に軽量化したGLBを選んでね。');
+ const E=opts.extras&&opts.extras.data?.length===n*3*opts.extras.stride?opts.extras.stride:0,X=E*3;
+ const lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];
+ for(let i=0;i<input.length;i++){const v=input[i];if(!Number.isFinite(v))throw new Error('モデルの座標が不正です。');const k=i%3;lo[k]=Math.min(lo[k],v);hi[k]=Math.max(hi[k],v)}
  const extent=Math.max(...hi.map((v,i)=>v-lo[i]));
  if(extent<1e-8)throw new Error('大きさのある立体が見つかりませんでした。');
  const center=lo.map((v,i)=>(v+hi[i])/2),scale=3.5/extent;
- for(const t of triangles)for(let j=0;j<9;j++)t[j]=(t[j]-center[j%3])*scale;
- const targetCount=Math.max(4096,Math.ceil(triangles.length/512)*512);
+ const targetCount=Math.max(4096,Math.ceil(n/512)*512);
+ const pos=new Float64Array(targetCount*9),ext=X?new Float32Array(targetCount*X):null;
+ for(let i=0;i<input.length;i++)pos[i]=(input[i]-center[i%3])*scale;
+ if(ext)ext.set(opts.extras.data);
  // Split the largest triangles first, leaving the imported silhouette intact.
- const size=t=>{const a=t.slice(3,6).map((v,i)=>v-t[i]),b=t.slice(6,9).map((v,i)=>v-t[i]);return Math.hypot(a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0])};
- const heap=[];
- function push(t){const n={t,s:size(t)};let i=heap.length;heap.push(n);while(i){const p=(i-1)>>1;if(heap[p].s>=n.s)break;heap[i]=heap[p];i=p}heap[i]=n}
- function pop(){const top=heap[0],last=heap.pop();if(heap.length){let i=0;while(i*2+1<heap.length){let c=i*2+1;if(c+1<heap.length&&heap[c+1].s>heap[c].s)c++;if(heap[c].s<=last.s)break;heap[i]=heap[c];i=c}heap[i]=last}return top.t}
- triangles.forEach(push);
- while(heap.length<targetCount){const t=pop(),v=[t.slice(0,3),t.slice(3,6),t.slice(6,9)];
-  const edge=[0,1,2].map(i=>v[i].reduce((s,x,k)=>s+(x-v[(i+1)%3][k])**2,0));let i=edge.indexOf(Math.max(...edge)),a=v[i],b=v[(i+1)%3],c=v[(i+2)%3],m=a.map((x,k)=>(x+b[k])/2);
-  if(t.length>9){const w=[t.slice(9,12),t.slice(12,15),t.slice(15,18)],ca=w[i],cb=w[(i+1)%3],cc=w[(i+2)%3],cm=ca.map((x,k)=>(x+cb[k])/2);
-   push([...a,...m,...c,...ca,...cm,...cc]);push([...m,...b,...c,...cm,...cb,...cc]);}
-  else{push([...a,...m,...c]);push([...m,...b,...c]);}
+ const size=t=>{const o=t*9,a0=pos[o+3]-pos[o],a1=pos[o+4]-pos[o+1],a2=pos[o+5]-pos[o+2],b0=pos[o+6]-pos[o],b1=pos[o+7]-pos[o+1],b2=pos[o+8]-pos[o+2];return Math.hypot(a1*b2-a2*b1,a2*b0-a0*b2,a0*b1-a1*b0)};
+ const heapT=new Int32Array(targetCount),heapS=new Float64Array(targetCount);let h=0,used=n;
+ function push(t){const s=size(t);let i=h++;while(i){const p=(i-1)>>1;if(heapS[p]>=s)break;heapT[i]=heapT[p];heapS[i]=heapS[p];i=p}heapT[i]=t;heapS[i]=s}
+ function pop(){const top=heapT[0],lt=heapT[--h],ls=heapS[h];if(h){let i=0;while(i*2+1<h){let c=i*2+1;if(c+1<h&&heapS[c+1]>heapS[c])c++;if(heapS[c]<=ls)break;heapT[i]=heapT[c];heapS[i]=heapS[c];i=c}heapT[i]=lt;heapS[i]=ls}return top}
+ for(let t=0;t<n;t++)push(t);
+ const P=[0,0,0,0,0,0,0,0,0],Q=new Float32Array(X||1);
+ while(h<targetCount){const t=pop(),o=t*9;for(let j=0;j<9;j++)P[j]=pos[o+j];
+  const edge=[0,1,2].map(i=>{let s=0;for(let k=0;k<3;k++)s+=(P[i*3+k]-P[((i+1)%3)*3+k])**2;return s});
+  const i=edge.indexOf(Math.max(...edge)),ia=i,ib=(i+1)%3,ic=(i+2)%3,u=used++;
+  // [a, m, c] replaces t, [m, b, c] is new
+  for(let k=0;k<3;k++){const a=P[ia*3+k],b=P[ib*3+k],c=P[ic*3+k],m=(a+b)/2;pos[o+k]=a;pos[o+3+k]=m;pos[o+6+k]=c;pos[u*9+k]=m;pos[u*9+3+k]=b;pos[u*9+6+k]=c}
+  if(ext){const e=t*X,f=u*X;Q.set(ext.subarray(e,e+X));
+   for(let k=0;k<E;k++){const a=Q[ia*E+k],b=Q[ib*E+k],c=Q[ic*E+k],m=(a+b)/2;ext[e+k]=a;ext[e+E+k]=m;ext[e+2*E+k]=c;ext[f+k]=m;ext[f+E+k]=b;ext[f+2*E+k]=c}}
+  push(t);push(u);
  }
- let order=heap.map(n=>n.t);
+ let order=heapT;
  if(opts.ordered){   // equal numbers of triangles in 16 bands from the bottom (by height), each band left to right
-  const keyed=order.map(t=>({t,x:(t[0]+t[3]+t[6])/3,y:(t[1]+t[4]+t[7])/3})).sort((a,b)=>a.y-b.y),band=targetCount/16;
+  const cx=t=>(pos[t*9]+pos[t*9+3]+pos[t*9+6])/3,cy=t=>(pos[t*9+1]+pos[t*9+4]+pos[t*9+7])/3;
+  const keyed=Array.from(heapT,t=>({t,x:cx(t),y:cy(t)})).sort((a,b)=>a.y-b.y),band=targetCount/16;
   order=[];for(let r=0;r<16;r++)for(const q of keyed.slice(r*band,(r+1)*band).sort((a,b)=>a.x-b.x))order.push(q.t);
  }
- const target=new Float32Array(targetCount*9),color=colors?new Float32Array(targetCount*12):null,uv=new Float32Array(targetCount*6),cell=new Float32Array(targetCount*6),part=new Float32Array(targetCount*12);
+ const target=new Float32Array(targetCount*9),extras=ext?new Float32Array(targetCount*X):null,uv=new Float32Array(targetCount*6),cell=new Float32Array(targetCount*6),part=new Float32Array(targetCount*12);
  const quads=targetCount/512,rows=Math.max(1,Math.round(Math.sqrt(quads)));
  let k=0;
  for(let tile=0;tile<256;tile++){let pending=quads;
   for(let row=0;row<rows;row++){const cols=Math.ceil(pending/(rows-row));pending-=cols;
    for(let col=0;col<cols;col++)for(const corners of [[[0,0],[1,0],[0,1]],[[1,0],[1,1],[0,1]]]){
-    const t=order[k];target.set(t.length>9?t.slice(0,9):t,k*9);if(color)for(let j=0;j<3;j++)color.set([t[9+j*3],t[10+j*3],t[11+j*3],2],k*12+j*4);
+    const t=order[k];target.set(pos.subarray(t*9,t*9+9),k*9);if(extras)extras.set(ext.subarray(t*X,t*X+X),k*X);
     for(let j=0;j<3;j++){const [dx,dy]=corners[j];uv[k*6+j*2]=((tile%16)+(col+dx)/cols)/16;uv[k*6+j*2+1]=(Math.floor(tile/16)+(row+dy)/rows)/16;cell[k*6+j*2]=((tile%16)+.5)/16;cell[k*6+j*2+1]=(Math.floor(tile/16)+.5)/16;
      // each atlas quad is one particle: its centre, and this corner's place inside it
      part.set([((tile%16)+(col+.5)/cols)/16,(Math.floor(tile/16)+(row+.5)/rows)/16,dx,dy],k*12+j*4)}k++;
    }
   }
  }
- return {target,uv,cell,part,color,originalTriangles:input.length/9,triangles:targetCount,scale};
+ return {target,uv,cell,part,extras,originalTriangles:n,triangles:targetCount,scale};
 }
 // Particle methods move each `part` as one grain. A big model has far more faces than the built-in shapes (80×80 grains),
 // so its grains can be merged on an n×n grid of the image: detail 0 = built-in grain size, 1 = one grain per face pair (as imported).

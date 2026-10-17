@@ -1,7 +1,7 @@
 // Any text (Japanese too, any web font) or an image silhouette → an extruded solid for the tile atlas.
 // A mask is drawn on a canvas, traced with marching squares, and extruded with three.js.
 import * as THREE from './vendor/three.module.min.js';
-import {modelLayout} from './model-layout.js?v=13';
+import {modelLayout} from './model-layout.js?v=14';
 
 export const FONTS = {
   gothic: {label: 'ゴシック極太', family: '"Noto Sans JP","Hiragino Sans",sans-serif', weight: 900},

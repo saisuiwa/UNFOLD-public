@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {vertexShader,fragmentShader,motionAt} from './motion.js?v=30';
+import {vertexShader,fragmentShader,motionAt} from './motion.js?v=31';
 import {createPreview,makeTestImage} from './method-preview.js';
 import {checkSource} from './method-guard.js';
 import {compileUserMethod} from './custom-method.js';
@@ -9,7 +9,7 @@ import {createCodeMotionRuntime} from './code-motion-runtime.js';
 import {IMAGE_RUNTIME,imageFrame} from './image-method-format.js';
 import {previewTarget} from './image-method-target.js';
 import {getModel} from './model-library.js?v=4';
-import {importModel} from './model-import.js?v=12';
+import {importModel} from './model-import.js?v=13';
 import {getCodeMotionFont} from './lyric-fonts.js';
 import {codeFrameInput} from './code-motion-layer.js';
 import {motionOf} from './workshop-library.js';

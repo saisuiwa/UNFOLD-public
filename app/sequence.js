@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=5';
+import {drawSequenceVisual} from './sequence-renderer.js?v=6';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift} from './sequence-core.js';
 import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';
@@ -19,22 +19,22 @@ import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look
 import { createRenderControls } from './render-look-controls.js?v=2';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
 import * as THREE from './vendor/three.module.min.js';
-import { smooth, vertexShader, particleFragment } from './motion.js?v=30';
+import { smooth, vertexShader, particleFragment } from './motion.js?v=31';
 import { presetNames, presetTargets } from './shape-presets.js?v=6';
-import { createTextShape, validateText } from './text-shape.js?v=10';
-import { SceneBlur } from './effects.js?v=32';
+import { createTextShape, validateText } from './text-shape.js?v=11';
+import { SceneBlur } from './effects.js?v=33';
 import { WebMWriter, opusHead } from './webm-writer.js?v=2';
 import { MP4Writer } from './mp4-writer.js?v=1';
-import { FONTS, createMaskTextShape, createSilhouetteShape } from './mask-shape.js?v=6';
-import { parseTimings, timingsToJSON, detectBeat, drawLyricCard, loadCardFonts, layoutLyricMV } from './lyric-mv.js?v=9';
-import { importModel } from './model-import.js?v=12';
+import { FONTS, createMaskTextShape, createSilhouetteShape } from './mask-shape.js?v=7';
+import { parseTimings, timingsToJSON, detectBeat, drawLyricCard, loadCardFonts, layoutLyricMV } from './lyric-mv.js?v=10';
+import { importModel } from './model-import.js?v=13';
 import { listModels, getModel, saveModel, deleteModel, updateModel } from './model-library.js?v=4';
-import { COLOUR_SHAPES, isColourShape, colourShape, loadColourShape, paintColourLabel } from './colour-shapes.js?v=1';
+import { COLOUR_SHAPES, isColourShape, colourShape, loadColourShape, paintColourLabel } from './colour-shapes.js?v=2';
 import { grainSequenceNote, tileSequenceNote } from './slider-notes.js?v=2';
 import { applyTiles, tilesAcross } from './tile-size.js?v=1';
 import { ALL, UNGROUPED, cleanGroupName, groupOf, groupSelect, inGroup, loadActive, renderTabs, saveActive, validActive, wantsTabs } from './model-groups.js?v=1';
-import { modelThumb, fillMissingThumbs } from './model-thumb.js?v=2';
-import { particleParts } from './model-layout.js?v=13';
+import { modelThumb, fillMissingThumbs } from './model-thumb.js?v=3';
+import { particleParts } from './model-layout.js?v=14';
 import { createTimeline } from './timeline.js?v=7';
 import { lookView, lookViewText } from './look-view.js?v=1';
 import { BUILTIN_KEYS, getCustom, isCustomKey, isUsable, listCustom, methodEntries, methodLabel, newCustomId, onRegistryChange, registerCustom, setCustomStatus, unregisterCustom } from './method-registry.js';
@@ -85,7 +85,7 @@ ${particleFragment}
 void main(){
   vec4 c=particleLook(texAt(vUv));
   if(c.a<0.01)discard;
-  vec3 normal=normalize(cross(dFdx(vPosition),dFdy(vPosition)));
+  vec3 normal=modelNormalAt(normalize(cross(dFdx(vPosition),dFdy(vPosition))));
   c=glassLook(c,normal);
   float light=surfaceLight(normal);
   c.rgb*=mix(1.,light,vForm);
@@ -205,6 +205,8 @@ function customGeometry(data) {
   g.setAttribute('part', new THREE.BufferAttribute(particleParts(data, seq.detail), 4));
   g.setAttribute('targetPosition', new THREE.BufferAttribute(data.target, 3));
   if (data.color) g.setAttribute('modelColor', new THREE.BufferAttribute(data.color, 4));   // a GLB's own colours (mixed in by seq.modelColor)
+  if (data.modelUv) g.setAttribute('modelUv', new THREE.BufferAttribute(data.modelUv, 3));   // its texture (data.texture → uModelTex)
+  if (data.normal) g.setAttribute('modelNormal', new THREE.BufferAttribute(data.normal, 4));   // its smooth shading
   g.userData.layout = data;
   applyTiles(THREE, g, tilesAcross(seq.tiles));
   return g;
@@ -1715,7 +1717,7 @@ try {
   const blank = makeTexture(document.createElement('canvas'));
   const uniforms = { uImage: { value: blank }, uImageB: { value: blank }, uSwap: { value: 0 }, uSize: { value: new THREE.Vector2(planeW, planeH) },
     uDistort: { value: 0 }, uForm: { value: 0 }, uStrength: { value: .8 }, uDepth: { value: 1 }, uSeed: { value: 28 }, uMethod: { value: 0 },
-    uMethod2: { value: 0 }, uMethodMix: { value: 0 }, uProject: { value: 0 }, uTime: { value: 0 }, uDraw: { value: 1 }, uThrough: { value: 0 }, uFade: { value: 1 }, uGlass: { value: 0 }, uShape: { value: 0 }, uPreset: { value: 0 }, uConceal: { value: 0 }, uModelColor: { value: 0 } };
+    uMethod2: { value: 0 }, uMethodMix: { value: 0 }, uProject: { value: 0 }, uTime: { value: 0 }, uDraw: { value: 1 }, uThrough: { value: 0 }, uFade: { value: 1 }, uGlass: { value: 0 }, uShape: { value: 0 }, uPreset: { value: 0 }, uConceal: { value: 0 }, uModelColor: { value: 0 }, uModelTex: { value: null } };
   geoCache.set('sphere', gridGeometry(presetTargets('sphere')));
   variants = createVariants({ renderer, vertexShader, fragmentShader, uniforms, onReady: () => { if (!seq.playing) renderAt(seq.t); } });
   onRegistryChange(() => { renderMethodGrid(); renderInspector(); if (!seq.playing) renderAt(seq.t); });

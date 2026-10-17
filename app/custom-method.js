@@ -98,7 +98,7 @@ export async function compileUserMethod(renderer, { vertexShader, fragmentShader
 // pick(keyA, keyB) -> { material, uMethod, uMethod2, used }: used = the custom methods really drawn with it. Never returns a shader that is still compiling or has failed —
 // the custom method that is not ready is replaced by the default method, so the picture never breaks. onReady(variant) fires when one finishes.
 export function createVariants({ renderer, vertexShader, fragmentShader, uniforms, onReady = () => {} }) {
-  const make = source => new THREE.ShaderMaterial({ defaultAttributeValues: { color: [1, 1, 1], uv: [0, 0], uv1: [0, 0], tcell: [0, 0, 0], modelColor: [0, 0, 0, 0] }, uniforms, vertexShader: source, fragmentShader, side: THREE.DoubleSide, transparent: true });
+  const make = source => new THREE.ShaderMaterial({ defaultAttributeValues: { color: [1, 1, 1], uv: [0, 0], uv1: [0, 0], tcell: [0, 0, 0], modelColor: [0, 0, 0, 0], modelUv: [0, 0, 0], modelNormal: [0, 0, 0, 0] }, uniforms, vertexShader: source, fragmentShader, side: THREE.DoubleSide, transparent: true });
   const base = make(vertexShader);
   const variants = new Map();          // "cm-a@1|cm-b@2" -> { ids, key, map, state: 'pending' | 'ok' | 'failed', errors, material }
   let disposed = false;

@@ -1,7 +1,7 @@
 import {previewTarget} from './image-method-target.js';
-import {motionAt} from './motion.js?v=30';
+import {motionAt} from './motion.js?v=31';
 import * as THREE from './vendor/three.module.min.js';
-import {createMethodEditor} from './method-editor.js?v=18';
+import {createMethodEditor} from './method-editor.js?v=19';
 import {createImageMethodRuntime} from './image-method-runtime.js';
 import {IMAGE_METHOD_PRESETS} from './image-method-presets.js';
 import {cleanImageCode,newImageMethodId,imageFrame} from './image-method-format.js';
