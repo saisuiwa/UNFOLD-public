@@ -124,3 +124,11 @@ test('抜き文字（knockout）: the plate covers the picture when in, is gone 
  }
  assert.ok(seen>0,'no knockout in 60 plans');
 });
+
+test('抜き文字: a white or nearly white accent never becomes a white plate over the whole picture', () => {
+ for(const accent of ['#ffffff','#fff2c2']){
+  const c=new Proxy({},{get(t,k){if(k in t)return t[k];return ()=>{};},set(t,k,v){t[k]=v;return true;}});
+  WORLD.knockout.plate(c,{W,H,lt:.5,pIn:1,pOut:0,cx:W/2,cy:H/2,fg:'#ffffff',accent,bg:'#14121f'},{fill:'accent',dir:0,edge:false},{mask:false});
+  assert.notEqual(String(c.fillStyle).toLowerCase(),accent,`plate in ${accent}`);
+ }
+});

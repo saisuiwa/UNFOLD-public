@@ -47,9 +47,10 @@ const KO_SCALE=1.35;
 function knockoutFrame(P,{W,H,D,exitOK}){return {box:{cx:W/2,cy:H/2,w:W*.62,h:H*.46},delay:dly(D,exitOK,.15),maxWidth:.98};}
 function knockoutScale(c,e){c.translate(e.W/2,e.H/2);c.scale(KO_SCALE,KO_SCALE);c.translate(-e.W/2,-e.H/2);}
 const knockoutBox=(P,F,it,W,H)=>({cx:W/2,cy:H/2,w:W,h:H,rot:0});   // 台は絵全体（引き継ぎは画面いっぱいの板どうしで重なる）
-/** 板の色。穴から見える地（背景色）と明るさが近いと字が読めないので、差が小さい時は紙か墨に替える */
+/** 板の色。穴から見える地（背景色）と明るさが近いと字が読めないので、差が小さい時は紙か墨に替える。
+ *  アクセント色が白に近い配色（白＋…）では、画面いっぱいの白い板がフラッシュのようになるので、紙の色にする（2026-10-18） */
 function plateColor(fill,e){
- const col=fill==='accent'?e.accent:fill==='ink'?'#121218':'#f2ecdc';
+ const col=fill==='accent'&&luma(e.accent)<=.85?e.accent:fill==='ink'?'#121218':'#f2ecdc';
  return Math.abs(luma(col)-luma(e.bg))<.4?(luma(e.bg)>.5?'#121218':'#f2ecdc'):col;
 }
 

@@ -165,3 +165,14 @@ test('字の置き換え: the scramble / reel / mask entrances draw other charac
  for(let t=.4;t<it.D-.3;t+=.01){const n=stateAt(it,t).glyphs.filter(g=>g.ch!=null).length;assert.ok(n<=1,`${n} letters swapped at ${t}`);if(n)swapped++;}
  assert.ok(swapped>0,'never swapped');
 });
+
+test('マスクの中から: the mask entrances and exit clip each letter to its own cell while they move, and leave the letters as they are at rest', () => {
+ for(const k of ['maskRise','maskSlideX']){
+  const it=item({enter:k,enterP:ENTER[k].plan(rng('mk:'+k))},'光を見つけた');
+  assert.ok(stateAt(it,it.timing.inDur*.2).glyphs.some(g=>g.cell),`${k}: no letter is clipped while it enters`);
+  assert.ok(stateAt(it,it.timing.inDur*.999).glyphs.every(g=>!g.cell),`${k}: a letter is still clipped at rest`);
+ }
+ const it=item({exit:'maskExitUp',exitP:EXIT.maskExitUp.plan(rng('mx'))},'光を見つけた');
+ assert.ok(stateAt(it,it.D-it.timing.outDur-.01).glyphs.every(g=>!g.cell));
+ assert.ok(stateAt(it,it.D-1e-4).glyphs.every(g=>g.cell&&g.dy<-it.size));
+});

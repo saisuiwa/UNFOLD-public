@@ -210,7 +210,11 @@ export const FX={
  bloom:{name:'ブルーム',tags:['emotional','calm','pop','glitch'],w:1.1,dur:.45,plan:r=>({s:.8+r()*.5}),
   apply(c,e,P,k){const s=grab(c,e),w=Math.max(8,Math.round(e.W/10)),h=Math.max(6,Math.round(e.H/10)),sm=e.tmp(1,w,h),x=sm.getContext('2d');
    x.imageSmoothingEnabled=true;x.globalCompositeOperation='copy';x.drawImage(s,0,0,w,h);x.globalCompositeOperation='source-over';
-   c.save();c.globalCompositeOperation='lighter';c.globalAlpha=clamp(.7*k*P.s);c.imageSmoothingEnabled=true;c.drawImage(sm,0,0,w,h,0,0,e.W,e.H);c.restore();}}
+   // 明るい所が絵の広い範囲を占める時（画面いっぱいの板・大きな吹き出しなど）は、足すと白く飛ぶので弱める（2026-10-18。ブルームは光る所のまわりのにじみ）
+   //  明るさは、縮めた絵の平均（不透明度 × 明るさ。0..1）。文字だけの絵は 0.1 ほどで、ほぼ元の強さ。半分ほど明るい板では消える
+   let sum=0,all=0;try{const d=x.getImageData(0,0,w,h).data;for(let i=0;i<d.length;i+=4){all++;sum+=d[i+3]/255*(d[i]+d[i+1]+d[i+2])/765;}}catch{}
+   const gain=clamp(1-(all?sum/all:0)*1.8);
+   c.save();c.globalCompositeOperation='lighter';c.globalAlpha=clamp(.7*k*P.s*gain);c.imageSmoothingEnabled=true;c.drawImage(sm,0,0,w,h,0,0,e.W,e.H);c.restore();}}
 };
 
 // ---- つなぎ（前カットの最後の絵 A と、今カットの絵 B を合成） ------------------------------------------------------------------------------------

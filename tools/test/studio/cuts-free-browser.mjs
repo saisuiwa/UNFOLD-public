@@ -45,6 +45,9 @@ await withStudioPage(async page=>{
  const a=await render(freeMid);
  await writeFile('tools/out/studio/cuts-free-over-picture.png',Buffer.from(a.png,'base64'));
  // 抜き文字（knockout の STAGE）のカットが画面にある時だけは、板が絵全体を覆い、下の赤い絵は字の形からだけ見える（計画の種は毎回変わる）
+ // 落ちた時に、その時刻に出ていたカットの部品を書き出す（計画の種は毎回変わるので、どの部品かを分かるように）
+ const partsAt=us=>page.evaluate(us=>{const p=c.get().project;const items=[...p.lyrics.map(l=>({at:l.startUs,d:l.cut,who:'lyric'})),...p.clips.filter(k=>k.settings?.cut).map(k=>({at:k.startUs,d:k.settings.cut,who:'free'}))];
+  return items.map(({at,d,who})=>{const lt=(us-at)/1e6,k=d?.cuts?.find(x=>lt>=x.a&&lt<x.b);return k&&{who,lt:+lt.toFixed(2),bg:k.bgPart,fx:k.fx,trans:k.trans,world:k.world,deco:k.deco,enter:k.enter,exit:k.exit,treat:k.treat,cam:k.cam};}).filter(Boolean);},us);
  const knockoutAt=us=>page.evaluate(async us=>{const {WORLD}=await import('/studio/cuts/worlds.js'),p=c.get().project;
   const items=[...p.lyrics.map(l=>({at:l.startUs,d:l.cut})),...p.clips.filter(k=>k.settings?.cut).map(k=>({at:k.startUs,d:k.settings.cut}))];
   return items.some(({at,d})=>{const lt=(us-at)/1e6,k=d?.cuts?.find(x=>lt>=x.a&&lt<x.b);return !!(k&&WORLD[k.world]?.knockout);});},us);
@@ -76,15 +79,16 @@ await withStudioPage(async page=>{
   for(let t=.4e6;t<11.8e6;t+=.1e6){const f=await comp.render({projectUs:Math.round(t),viewId:'wide',width:W,height:H,epoch:1});const cv=new OffscreenCanvas(W,H),x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(f.bitmap,0,0);f.close();
    const d=x.getImageData(0,0,W,H).data;let n=0;for(let i=0;i<d.length;i+=4)if(d[i]>235&&d[i+1]>235&&d[i+2]>235)n++;const share=n/(W*H);if(share>max){max=share;at=t;}}
   comp.dispose();return {max,at};});
- // 落ちた時に、その時刻に出ていたカットの部品を書き出す（計画の種は毎回変わるので、どの部品かを分かるように）
- const partsAt=us=>page.evaluate(us=>{const p=c.get().project;const items=[...p.lyrics.map(l=>({at:l.startUs,d:l.cut,who:'lyric'})),...p.clips.filter(k=>k.settings?.cut).map(k=>({at:k.startUs,d:k.settings.cut,who:'free'}))];
-  return items.map(({at,d,who})=>{const lt=(us-at)/1e6,k=d?.cuts?.find(x=>lt>=x.a&&lt<x.b);return k&&{who,lt:+lt.toFixed(2),bg:k.bgPart,fx:k.fx,trans:k.trans,world:k.world,deco:k.deco,enter:k.enter,exit:k.exit,treat:k.treat,cam:k.cam};}).filter(Boolean);},us);
- if(!(white.max<.7))console.log('near-white frame parts:',JSON.stringify(await partsAt(white.at)));
+ if(!(white.max<.7)){console.log('near-white frame parts:',JSON.stringify(await partsAt(white.at)));
+  // 同じ時刻を、新しい合成器で1コマだけ描き直す（続けて描いた時だけ白くなるなら、前のコマが残っている）
+  const fresh=await render(white.at,'wide',240,135);await writeFile('tools/out/studio/cuts-near-white-fresh.png',Buffer.from(fresh.png,'base64'));
+  console.log('near-white fresh render: bright',fresh.bright,'of',240*135,'corner',fresh.corner);}
  assert.ok(white.max<.7,'no near-white frame: the whitest frame is '+Math.round(white.max*100)+'% white at '+white.at/1e6+' s');
  const lyricMid=6.2e6+1e6;
  const b=await render(lyricMid);
  if(await knockoutAt(lyricMid)){   // 字が登場・退場の途中で隠れている一瞬もあるので、前後の何点かで、字の形から絵が見える時があるかを見る
   let red=b.red;for(const d of [-.3e6,-.15e6,.15e6,.3e6]){if(red>200)break;red=Math.max(red,(await render(lyricMid+d)).red);}
+  if(!(red>200)){await writeFile('tools/out/studio/cuts-lyric-knockout-fail.png',Buffer.from(b.png,'base64'));console.log('knockout lyric parts:',JSON.stringify(await partsAt(lyricMid)));}
   assert.ok(red>200,'lyrics too (a knockout plate): the picture shows through the letters: '+red);}
  else assert.ok(b.corner[0]>160&&b.corner[1]<90,'lyrics too: the picture shows through: '+b.corner);
  await writeFile('tools/out/studio/cuts-lyric-over-picture.png',Buffer.from(b.png,'base64'));

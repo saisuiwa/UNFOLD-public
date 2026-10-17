@@ -88,6 +88,12 @@ export const ENTER={
    const k=clamp((p-at)/.14);return k<1?{reel:{cur:symOf(P.sym,E.r(i,fi)),next:g.ch,u:outBack(k,2.2)}}:null;}},   // 左から順に、本物の字が上から入って少し行き過ぎて止まる
  maskReveal:{name:'伏せ字から替わる',tags:['graphic','calm','glitch'],w:.8,fast:true,inDur:(D,n)=>clamp(.12+n*.05,.2,D*.5),plan:r=>({mark:pickW(r,['■','●','＊'],[2,1,1])}),
   glyph(g,i,n,p,E,P){const at=.12+.8*(n>1?i/(n-1):0);if(p<at)return {ch:P.mark,a:.75};const k=clamp((p-at)/.1);return k<1?{a:.6+.4*k,sx:1.1-.1*k,sy:1.1-.1*k}:null;}},
+ // ---- マスクの中から（2026-10-18）: 字を自分の枠で切り抜き（s.cell）、枠の外から入れる
+ maskRise:{name:'切れ目からせり上がる',tags:['graphic','calm','emotional','pop'],w:1.1,fast:true,inDur:D=>clamp(D*.36,.18,.48),plan:r=>({unit:pickW(r,['char','line'],[1.4,1]),alt:r()<.4,spread:.35+r()*.2}),
+  glyph(g,i,n,p,E,P){const ln=g.line??0,q=P.unit==='line'?local(p,ln,E.nLines,.4):local(p,i,n,P.spread);if(1-outExpo(q)<.002)return null;   // 止まり切ったら切り抜きもやめる
+   const dir=P.alt&&ln%2?-1:1;return {cell:true,dy:dir*g.size*1.15*(1-outExpo(q))};}},   // 行ごとの時、alt なら奇数行は上から
+ maskSlideX:{name:'枠の中で横から滑り込む',tags:['graphic','glitch','pop'],w:.9,fast:true,inDur:D=>clamp(D*.34,.16,.44),plan:r=>({dir:sign(r)}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,.5);if(1-outExpo(q)<.002)return null;return {cell:true,dx:P.dir*g.size*1.3*(1-outExpo(q))};}},
  splitIn:{name:'斜めの切れ目からせり出す',tags:['impact','graphic','glitch'],w:.9,fast:true,inDur:D=>clamp(D*.32,.16,.42),plan:r=>({ang:sign(r)*(28+r()*22),line:r()<.7}),
   item(it,p,E,P){const e=outExpo(p),h=(E.bbox.y1-E.bbox.y0)+E.size*.4;it.split={ang:P.ang*DEG,n:h*(1-e),t:0,dy:0,line:P.line?clamp(1.4-p*1.6):0};}}
 };
@@ -145,6 +151,12 @@ export const EXIT={
  glitchOut:{name:'ずれて消える',tags:['glitch','graphic','impact'],w:1,outDur:D=>clamp(D*.22,.12,.3),plan:()=>({}),
   glyph(g,i,n,p,E){const f=Math.floor(p*14);return {dx:(E.r(i,f)-.5)*E.size*1.4*p,a:p>.5&&E.r(i,Math.floor(p*20))<p?0:1-p*.5};}},
  // 斜めの切れ目（2026-10-17）: 一太刀で斜めに切れ、上と下が切れ目に沿って逆へずれてから、落ちて消える
+ // マスクの中へ（2026-10-18）: 字が自分の枠の中を、加速しながら上へ抜けて消える
+ maskExitUp:{name:'切れ目の上へ抜ける',tags:['graphic','calm','emotional','pop'],w:1,outDur:D=>clamp(D*.24,.13,.34),plan:r=>({spread:.35+r()*.2}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread);return q<=0?null:{cell:true,dy:-inCubic(q)*g.size*1.2};}},
+ // タイプの逆（2026-10-18）: 最後の字から順に消える
+ eraseBack:{name:'末尾から消える',tags:['glitch','graphic','calm'],w:.9,maxChars:16,outDur:(D,n)=>clamp(n*.04+.06,.12,D*.4),plan:()=>({}),
+  glyph:(g,i,n,p)=>i>=n-Math.floor(p*(n+.999))?{hide:true}:null},
  splitDrop:{name:'斜めに切れてずれ落ちる',tags:['impact','graphic','glitch'],w:.9,outDur:D=>clamp(D*.26,.14,.36),plan:r=>({ang:sign(r)*(18+r()*24)}),
   item(it,p,E,P){const h=(E.bbox.y1-E.bbox.y0)+E.size*.4;it.split={ang:P.ang*DEG,n:0,t:outCubic(clamp(p*2.2))*E.size*.35,dy:inCubic(clamp((p-.3)/.7))*h*1.6,line:clamp(1-p*3)};it.a*=1-inCubic(clamp((p-.45)/.55));}}
 };
@@ -281,13 +293,13 @@ export function buildItem(cut,{W,H,measure,pieces,fontFamily=key=>`"U-${key}", s
   enter:cut.enter,enterP:cut.enterP,hold:cut.hold,holdP:cut.holdP,exit:cut.exit,exitP:cut.exitP,timing:tm};
 }
 
-const IDENT=()=>({dx:0,dy:0,sx:1,sy:1,rot:0,a:1,blur:0,hide:false,ch:null,reel:null});
-const merge=(st,d)=>{if(!d)return;if(d.hide)st.hide=true;if(d.ch!=null)st.ch=d.ch;if(d.reel)st.reel=d.reel;st.dx+=d.dx||0;st.dy+=d.dy||0;st.sx*=d.sx??1;st.sy*=d.sy??1;st.rot+=d.rot||0;st.a*=d.a??1;st.blur=Math.max(st.blur,d.blur||0);};
+const IDENT=()=>({dx:0,dy:0,sx:1,sy:1,rot:0,a:1,blur:0,hide:false,ch:null,reel:null,cell:false});
+const merge=(st,d)=>{if(!d)return;if(d.hide)st.hide=true;if(d.ch!=null)st.ch=d.ch;if(d.reel)st.reel=d.reel;if(d.cell)st.cell=true;st.dx+=d.dx||0;st.dy+=d.dy||0;st.sx*=d.sx??1;st.sy*=d.sy??1;st.rot+=d.rot||0;st.a*=d.a??1;st.blur=Math.max(st.blur,d.blur||0);};
 /** カット内の時刻 lt での、字ごとの状態とアイテム全体の状態（純関数） */
 export function stateAt(item,lt){
  const {D,timing:{inDur,outDur}}=item,n=item.n;
  const pIn=inDur>0?clamp(lt/inDur):1,pOut=outDur>0?clamp((lt-(D-outDur))/outDur):0,amt=clamp((lt-inDur*.85)/.25)*(1-pOut);
- const E={size:item.size,W:item.W,H:item.H,r:(i,k)=>hash(i,k,item.seed%977),nWords:item.nWords,n,bbox:item.bbox,lt,D,seed:item.seed};
+ const E={size:item.size,W:item.W,H:item.H,r:(i,k)=>hash(i,k,item.seed%977),nWords:item.nWords,nLines:Math.max(1,item.lines?.length||1),n,bbox:item.bbox,lt,D,seed:item.seed};
  const en=ENTER[item.enter],ho=HOLD[item.hold],ex=EXIT[item.exit];
  const it={blur:0,sx:1,sy:1,a:1,clip:null,bar:null,split:null,pIn,pOut};
  if(en&&pIn<1)en.item?.(it,pIn,E,item.enterP);
@@ -336,7 +348,11 @@ function fakeBlur(c,paint,r,base){
 }
 function glyphDraw(c,item,g,s,it,tint){
  const T=item.style,px=g.size,bl=Math.max(s.blur||0,(T.blur||0)*px),base=clamp(s.a)*it.a;
- c.save();c.translate(g.cx+s.dx,g.cy+s.dy);if(g.rot0||s.rot)c.rotate(((g.rot0||0)+s.rot)*DEG);c.scale(s.sx,s.sy);
+ c.save();
+ // s.cell: 字の元の位置の枠（スロットのリールと同じ大きさ）で切り抜いてから動かす。枠の外へ出た所は見えない（マスクの中からせり上がる・抜ける）
+ if(s.cell){const h=px*1.12;c.translate(g.cx,g.cy);c.beginPath();c.rect(-px*.62,-h/2,px*1.24,h);c.clip();c.translate(s.dx,s.dy);}
+ else c.translate(g.cx+s.dx,g.cy+s.dy);
+ if(g.rot0||s.rot)c.rotate(((g.rot0||0)+s.rot)*DEG);c.scale(s.sx,s.sy);
  c.font=`${px}px ${g.fontKey?item.fontFamily(g.fontKey):item.family}`;c.textAlign='center';c.textBaseline='middle';
  const col=tint||g.color||(g.emphasis?item.accent:item.color);
  const one=tint?(ch,oy)=>{c.globalAlpha=base;c.fillStyle=tint;c.fillText(ch,0,oy);}:(ch,oy)=>{   // tint: ゴーストの層。影・縁・押し出しは付けず、色だけで塗った形にする
