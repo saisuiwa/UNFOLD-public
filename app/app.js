@@ -8,7 +8,7 @@ import { createShotControls } from './shot-motion-controls.js?v=3';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
 import * as THREE from './vendor/three.module.min.js';
-import {motionAt,exportRange,smooth,vertexShader,fragmentShader} from './motion.js?v=29';
+import {motionAt,exportRange,chaosTime,smooth,vertexShader,fragmentShader} from './motion.js?v=30';
 import {presetNames,presetTargets} from './shape-presets.js?v=6';
 import {importModel} from './model-import.js?v=12';
 import {listModels,getModel,saveModel,deleteModel,updateModel} from './model-library.js?v=4';
@@ -18,7 +18,7 @@ import {modelThumb,fillMissingThumbs} from './model-thumb.js?v=2';
 import {particleParts} from './model-layout.js?v=13';
 import {createTextShape,validateText} from './text-shape.js?v=10';
 import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from './mask-shape.js?v=6';
-import {effectsAt,SceneBlur} from './effects.js?v=31';
+import {effectsAt,SceneBlur} from './effects.js?v=32';
 import {BUILTIN_KEYS,getCustom,listCustom,onRegistryChange,registerCustom,resolveKey,setCustomStatus,unregisterCustom} from './method-registry.js';
 import {createPersistence,openStore} from './method-library.js';
 import {registerBundledImageMethods} from './bundled-image-methods.js';
@@ -40,7 +40,7 @@ let activeGroup=loadActive('unfold-glb-tab');   // the GLB tab in use (the same 
 const customShapes=new Map(),colourShapes=new Map(),savedModels=new Map();let customSerial=0,importing=false;
 const $=id=>document.getElementById(id);
 const loadShot=()=>{try{return cleanShot(JSON.parse(localStorage.getItem('unfold-single-shot')||'null'))}catch{return cleanShot()}};
-const state={imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+const state={imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
@@ -85,7 +85,7 @@ function resize(){
 }
 function setCamera(aspect){const height=Math.max(5.4,6.8/aspect);camera.left=-height*aspect/2;camera.right=height*aspect/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix()}
 function render(){
- if(!mesh)return;const imageCode=isImageMethodKey(state.method),m=motionAt(state.t),u=mesh.material.uniforms;if(imageCode&&!state.imageSolid)m.form=0;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
+ if(!mesh)return;const imageCode=isImageMethodKey(state.method),m=motionAt(state.t,state.chaosLength),u=mesh.material.uniforms;if(imageCode&&!state.imageSolid)m.form=0;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
  u.uDistort.value=imageCode?0:m.distort;u.uForm.value=m.form;u.uStrength.value=state.strength;u.uDepth.value=state.depth;u.uModelColor.value=state.modelColor;u.uSeed.value=state.seed;u.uMethod.value=pick.uMethod;u.uMethod2.value=pick.uMethod2;u.uShape.value=shapeIds[state.shape]??0;
  u.uPreset.value=(presetNames.includes(state.shape)||shapeOf(state.shape))?1:0;u.uProject.value=shapeOf(state.shape)?.kind==='text'?1:0;u.uConceal.value=!imageCode&&state.mystery?smooth(.08,.24,state.t)*(1-smooth(.80,.94,state.t)):0;
  // All camera motion fades out with deformation, guaranteeing a flat identical final image.
@@ -110,7 +110,7 @@ function render(){
  if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText}):null,id:state.method,imageA:sourceCanvas,imageB:sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};const fade=smoothImage(state.t/.025)*smoothImage((1-state.t)/.025);if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
  safety?.afterDraw();updateTransport(m);
 }
-function updateTransport(m=motionAt(state.t)){
+function updateTransport(m=motionAt(state.t,state.chaosLength)){
  $('timeline').value=Math.round(state.t*1000);$('current-time').textContent=(state.t*state.duration).toFixed(1).padStart(4,'0');$('total-time').textContent=state.duration.toFixed(1)+' s';
  const titles=['01 / 元の画像','02 / ぐちゃぐちゃ',isImageMethodKey(state.method)&&!state.imageSolid?'03 / コード演出':'03 / 立体化','04 / 元どおり'];$('phase-badge').textContent=titles[m.phase];
  $('stage-caption').textContent=['ここから、変化がはじまる。','かたちをほどいて、自由に。',isImageMethodKey(state.method)&&!state.imageSolid?'画像片が動く、コードの演出。':'平面から、もうひとつのかたちへ。','最後は、最初の一枚へ。'][m.phase];
@@ -183,7 +183,7 @@ function thumbFor(data){try{return modelThumb(data.target)}catch(e){console.warn
 const shapeOf=id=>customShapes.get(id)??colourShapes.get(id);
 function addCustomShape(name,data,kind='model',id=`custom-${++customSerial}`){
  customShapes.set(id,{name,data,kind});addShapeButton(id,name,savedModels.get(id)?.thumb||thumbFor(data),kind);
- state.viewX=state.viewY=0;state.t=.56;state.previewRange=false;setChoice('shapes','shape',id);
+ state.viewX=state.viewY=0;state.t=chaosTime(.56,state.chaosLength);state.previewRange=false;setChoice('shapes','shape',id);
 }
 async function loadSavedModels(){
  try{for(const meta of await listModels()){savedModels.set(meta.id,meta);addShapeButton(meta.id,meta.name,meta.thumb)}
@@ -298,6 +298,7 @@ function wireControls(){
  // grain size of added shapes in the particle methods: only the grouping of faces changes, never the solid itself
  $('particle-detail').addEventListener('input',e=>{state.detail=Number(e.target.value)/100;$('particle-detail-value').textContent=e.target.value+'%';
   const custom=shapeOf(state.shape);if(custom)mesh.geometry.setAttribute('part',new THREE.BufferAttribute(particleParts(custom.data,state.detail),4));render()});
+ $('chaos-length').addEventListener('input',e=>{state.chaosLength=Number(e.target.value)/100;$('chaos-length-value').textContent=e.target.value+'%';render()});
  $('model-color').addEventListener('input',e=>{state.modelColor=Number(e.target.value)/100;$('model-color-value').textContent=e.target.value+'%';render()});
  updateSliderNotes();
  $('tile-size').addEventListener('input',e=>{state.tiles=Number(e.target.value)/100;const n=tilesAcross(state.tiles);$('tile-size-value').textContent=`${n}×${n}${n===16?'・標準':''}`;applyTiles(THREE,mesh.geometry,n);updateSliderNotes();render()});
@@ -308,7 +309,7 @@ function wireControls(){
   if(isColourShape(id)&&!colourShapes.has(id)){if(importing)return;importing=true;b.disabled=true;$('model-status').textContent=`${b.title} を読み込み中…`;
    try{const data=await loadColourShape(id);colourShapes.set(id,{name:COLOUR_SHAPES.find(c=>c.id===id).name,data,kind:'colour'});$('model-status').textContent='色つきの形を読み込みました。'}
    catch(e){console.error(e);notice(e.message||'形を読み込めませんでした。');return}finally{importing=false;b.disabled=false}
-   state.viewX=state.viewY=0;state.t=.56;state.previewRange=false;}
+   state.viewX=state.viewY=0;state.t=chaosTime(.56,state.chaosLength);state.previewRange=false;}
   setChoice('shapes','shape',id)});
  for(const [id,key] of [['intensity','strength'],['pullback','pullback'],['form-pullback','formPullback'],['depth','depth']])$(id).addEventListener('input',e=>{state[key]=Number(e.target.value)/100;$(id+'-value').textContent=e.target.value+'%';render()});
  $('randomize').onclick=()=>{state.seed=Math.floor(Math.random()*999);$('seed-label').textContent='SEED '+String(state.seed).padStart(3,'0');render()};
@@ -322,14 +323,14 @@ function wireControls(){
  $('quality').onchange=updateResolution;
  function setBg(color){state.bg=color;$('custom-bg').value=color;document.querySelectorAll('[data-bg]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.bg===color));render()}
  document.querySelectorAll('[data-bg]').forEach(b=>b.onclick=()=>setBg(b.dataset.bg));$('custom-bg').oninput=e=>setBg(e.target.value);
- $('image-input').onchange=e=>loadImage(e.target.files[0]);$('demo').onclick=()=>{state.t=.56;state.playing=false;setSource(makeSample(),'カラーテスト・サンプル')};
+ $('image-input').onchange=e=>loadImage(e.target.files[0]);$('demo').onclick=()=>{state.t=chaosTime(.56,state.chaosLength);state.playing=false;setSource(makeSample(),'カラーテスト・サンプル')};
  $('dropzone').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('image-input').click()}};
  for(const event of ['dragenter','dragover'])$('dropzone').addEventListener(event,e=>{e.preventDefault();$('dropzone').classList.add('dragover')});
  $('dropzone').ondragleave=()=>$('dropzone').classList.remove('dragover');$('dropzone').ondrop=e=>{e.preventDefault();$('dropzone').classList.remove('dragover');loadImage(e.dataTransfer.files[0])};
  window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>e.preventDefault());
  $('play').onclick=()=>{if(state.t>=1)state.t=state.previewRange?getRange().from:0;state.playing=!state.playing;render()};$('restart').onclick=()=>{state.playing=false;state.previewRange=false;setTime(0)};
  $('timeline').oninput=e=>{state.playing=false;state.previewRange=false;setTime(Number(e.target.value)/1000)};
- document.querySelectorAll('.chapters button').forEach(b=>b.onclick=()=>{state.playing=false;state.previewRange=false;setTime(Number(b.dataset.time))});
+ document.querySelectorAll('.chapters button').forEach(b=>b.onclick=()=>{state.playing=false;state.previewRange=false;setTime(chaosTime(Number(b.dataset.time),state.chaosLength))});
  $('loop').onclick=()=>{state.loop=!state.loop;$('loop').setAttribute('aria-pressed',state.loop);$('loop').classList.toggle('active',state.loop)};
  document.addEventListener('keydown',e=>{if(e.code==='Space'&&!['INPUT','SELECT','BUTTON','TEXTAREA','LABEL'].includes(e.target.tagName)&&!state.recording){e.preventDefault();$('play').click()}});
  let drag=null;$('scene').onpointerdown=e=>{if(state.recording)return;drag={x:e.clientX,y:e.clientY,rx:state.viewX,ry:state.viewY};$('scene').setPointerCapture(e.pointerId)};
@@ -342,7 +343,7 @@ function wireControls(){
 }
 function outputSize(){const q=Number($('quality').value);return state.ratio==='1:1'?[q,q]:state.ratio==='9:16'?[q,Math.round(q*16/9)]:[Math.round(q*16/9),q]}
 function updateResolution(){$('resolution-label').textContent=outputSize().join(' × ')}
-function getRange(){return exportRange(state.startMode,state.customStart,state.duration)}
+function getRange(){return exportRange(state.startMode,state.customStart,state.duration,state.chaosLength)}
 function updateRange(){
  const r=getRange();$('custom-start').value=(state.customStart*100).toFixed(1);$('custom-start-row').hidden=state.startMode!=='custom';
  $('custom-start-value').textContent=(state.customStart*state.duration).toFixed(1)+'秒';

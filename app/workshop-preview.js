@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {vertexShader,fragmentShader,motionAt} from './motion.js?v=29';
+import {vertexShader,fragmentShader,motionAt} from './motion.js?v=30';
 import {createPreview,makeTestImage} from './method-preview.js';
 import {checkSource} from './method-guard.js';
 import {compileUserMethod} from './custom-method.js';
