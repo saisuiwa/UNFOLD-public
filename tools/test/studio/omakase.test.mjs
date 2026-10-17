@@ -315,7 +315,7 @@ import {extraMotions} from '../../../app/studio/omakase.js';
 import {DAILY_CODE_MOTIONS} from '../../../app/code-motion-daily.js';
 const LIB=[
  {id:'m1',name:'私のぷるぷる',motion:{code:{version:1,source:'// my own\nconst {createText,text}=api;const t=createText(text);return {update(){t.fillOpacity=1}};'}}},
- {id:'m2',name:'私のレシピ',motion:{recipe:{layout:'center',units:'char',enter:'rise',exit:'fade',ease:'smooth',stagger:.05,distance:.5,dur:.6}}},
+ {id:'m2',name:'私のレシピ',motion:{recipe:{version:1,layout:'editorial',enter:'rise',sustain:['sway'],exit:'fade',strength:.6,stagger:.05}}},   // the shape the library saves (validateRecipe)
  {id:'m3',name:'私の背景',workshop:{shelf:'effect'},motion:{code:{version:1,source:'// my effect\nreturn {update(){}};'}}},
 ];
 test('extraMotions: bundled text motions no mood lists, and the saved ones except effects', () => {
@@ -329,10 +329,12 @@ test('extraMotions: bundled text motions no mood lists, and the saved ones excep
 });
 test('a plan uses the extra motions too, keeps them when replayed, and its commands carry the saved code / recipe', () => {
  const p=project(30),extras=extraMotions({library:LIB});
- const plan=planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:3},extras}),again=planOmakase(p,{mood:'pop',seeds:{...SEEDS,layout:3},extras});
- assert.deepEqual(plan.lines,again.lines);
- const used=plan.lines.filter(l=>l.extra);
+ // which motions a seed picks depends on how many bundled motions there are (the daily routine adds one every day), so look for a seed that uses
+ // the extra motions at least twice instead of hard-coding one; most seeds do
+ let seeds,plan,used=[];
+ for(let k=0;k<40&&used.length<2;k++){seeds={...SEEDS,text:SEEDS.text+k*7919,layout:3};plan=planOmakase(p,{mood:'pop',seeds,extras});used=plan.lines.filter(l=>l.extra);}
  assert.ok(used.length>=2,'saved motions are used: '+used.length);
+ assert.deepEqual(plan.lines,planOmakase(p,{mood:'pop',seeds,extras}).lines,'the same seeds give the same plan');
  assert.ok(plan.lines.some(l=>!l.extra),'the mood\'s own motions are still used');
  const q=applyCommand(p,omakaseCommands(p,plan,{parts:{text:true,bg:false,color:false,size:false,layout:false}})).project;
  assertProject(q);
