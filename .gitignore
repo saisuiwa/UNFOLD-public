@@ -16,6 +16,8 @@
 # the previews on the samples page (a few small ones are added every day; tools/make_sample_previews.mjs makes them)
 !/app/guide/samples/*.jpg
 !/app/guide/samples/*.mp4
+# the annotated screenshots of the 使い方 page (tools/manual/shoot.mjs makes them)
+!/app/guide/manual/*.jpg
 /tools/**
 !/tools/**/
 !/tools/**/*.py

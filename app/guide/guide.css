@@ -15,7 +15,7 @@ p { margin:0 0 1em; }
 .top-in { max-width:1100px; margin:auto; padding:0 20px; min-height:58px; display:flex; align-items:center; gap:6px 22px; flex-wrap:wrap; }
 .brand { font-weight:800; font-size:20px; letter-spacing:-.5px; color:var(--text); text-decoration:none; white-space:nowrap; }
 .brand b { color:var(--lime); font-weight:800; margin-right:6px; }
-.top nav { display:flex; gap:4px 20px; flex-wrap:wrap; }
+.top nav { display:flex; gap:4px 15px; flex-wrap:wrap; }
 .top nav a { color:var(--muted); text-decoration:none; padding:15px 2px 13px; border-bottom:2px solid transparent; font-weight:600; font-size:14px; }
 .top nav a:hover { color:var(--text); }
 .top nav a[aria-current=page] { color:var(--text); border-color:var(--lime); }

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UNFOLD 使い方 — 画面の見かた</title>
+<meta name="description" content="UNFOLDの3つの画面（1枚モード・シーケンス・STUDIO）を、番号つきの画面写真で説明します。">
+<link rel="stylesheet" href="./guide.css?v=3">
+<style>
+/* 使い方: 番号つきの画面写真と、その番号の説明 */
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:22px}
+.flow a{display:block;text-decoration:none;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.flow a:hover{border-color:#7b8a83}
+.flow b{display:block;font-size:16px;color:var(--lime)}.flow span{font-size:13px;color:#c4ccc6}
+.shot{margin:18px 0 10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#0d1112}
+.shot img{display:block;width:100%;height:auto}.shot a{display:block;cursor:zoom-in}
+.shot figcaption{font-size:13px;color:var(--muted);padding:8px 14px;border-top:1px solid var(--line)}
+.marks{counter-reset:none;display:grid;gap:8px;padding:0;margin:12px 0 28px;list-style:none}
+.marks li{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px 10px 52px;font-size:14px;color:#d4dbd5}
+.marks li::before{content:attr(data-n);position:absolute;left:14px;top:10px;width:26px;height:26px;border-radius:50%;background:#ff4f7b;color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px}
+.marks li b{color:var(--text);margin-right:6px}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin:12px 0 26px;padding:0;list-style:none}
+.legend li{display:flex;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:14px}
+.legend i{flex:none;width:18px;height:18px;border-radius:5px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 22%,transparent)}
+.legend small{display:block;color:var(--muted);font-size:12px;line-height:1.5}
+h3.sub{margin:30px 0 4px;font-size:18px}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <a class="brand" href="../"><b>◈</b>UNFOLD</a>
+  <nav aria-label="ページ">
+    <a href="./">説明</a>
+    <a href="./manual.html" aria-current="page">使い方</a>
+    <a href="./methods.html">メソッド集</a>
+    <a href="./samples.html">サンプル集</a>
+    <a href="./motions.html">モーション集</a>
+    <a href="./glb.html">GLB置き場</a>
+  <a href="../lyric-sync/index.html">歌詞タイミング</a>
+  <a href="../workshop.html">メソッド工房</a></nav>
+  <span class="spacer"></span>
+  <a class="btn small" href="../">1枚モード</a>
+  <a class="btn small lime" href="../sequence.html">シーケンス</a>
+</div></header>
+
+<main>
+<div class="hero">
+  <div class="eyebrow">HOW TO USE</div>
+  <h1>使い方 — <em>画面の見かた</em></h1>
+  <p class="lede">UNFOLD には画面が3つあります。まず1枚の絵で試して、何枚もつないで曲に合わせ、最後に STUDIO で歌詞のMVに仕上げる、という順番です。写真の<b style="color:#ff6d93">ピンクの番号</b>が、下の説明の番号です。</p>
+  <div class="flow">
+    <a href="#single"><b>① 1枚モード</b><span>1枚の絵を崩して、立体にして、もとに戻す。まずはここで試す</span></a>
+    <a href="#sequence"><b>② シーケンス</b><span>絵を何枚も並べて、間の変化（◆）を決める。曲と歌詞も入れられる</span></a>
+    <a href="#studio"><b>③ STUDIO</b><span>曲・歌詞・絵を重ねて、歌詞の動きや演出を決めて、MVとショートにする</span></a>
+  </div>
+</div>
+
+<section id="single">
+  <h2><small>01</small>1枚モード</h2>
+  <p>1枚の絵が「元の画像 → ぐちゃぐちゃ → 立体 → 元どおり」と変わる動画を作ります。開いたらすぐ見本が動いています。</p>
+  <figure class="shot"><a href="./manual/single-1.jpg" target="_blank" rel="noopener" title="大きく見る"><img src="./manual/single-1.jpg" width="1440" height="900" alt="1枚モードの画面。左に素材と崩れ方、まん中に途中の形、右に立体の形" loading="lazy"></a><figcaption>1枚モード（立体になった所）</figcaption></figure>
+  <ol class="marks">
+    <li data-n="1"><b>絵を入れる</b>「素材」の枠に絵をドロップするか、クリックして選びます（PNG・JPG・WebP、20MBまで）。「サンプルに戻す」で見本の絵に戻ります。</li>
+    <li data-n="2"><b>崩れ方を選ぶ</b>くしゃくしゃ・ばらばら・砕ける・塵になる… から1つ。押すとすぐ動きが変わります。</li>
+    <li data-n="3"><b>途中の形を見る</b>ドラッグで立体を回せます。ダブルクリックか「正面に戻す」で正面に戻ります。</li>
+    <li data-n="4"><b>再生と、4つの段階</b>再生ボタンと時間のバー。下の4つの札（元の画像・ぐちゃぐちゃ・立体化・元どおり）を押すと、その場面に飛びます。</li>
+    <li data-n="5"><b>形・演出・保存の切り替え</b>「03 立体」で形、「04-05 演出」でブラー・シェイク・グリッチ・光のにじみなどの演出と仕上げ、「動画保存」で長さ・画面の比率・画質などを決めます。</li>
+    <li data-n="6"><b>立体の形を選ぶ</b>球・ハート・土星・人… から選びます。その下の「＋ GLB・文字・シルエットを追加」で、3Dモデルや文字の形も足せます。</li>
+    <li data-n="7"><b>動画にする</b>右上の「動画を書き出す」で、動画ファイルにして保存します。</li>
+  </ol>
+</section>
+
+<section id="sequence">
+  <h2><small>02</small>シーケンス</h2>
+  <p>絵を何枚も並べて、絵と絵の間の変化（<b>◆</b>）を決めます。曲を入れると拍に合わせて切り替わり、歌詞も入れられます。</p>
+  <figure class="shot"><a href="./manual/sequence-1.jpg" target="_blank" rel="noopener" title="大きく見る"><img src="./manual/sequence-1.jpg" width="1440" height="900" alt="シーケンスの画面。下のタイムラインに絵と◆が並んでいる" loading="lazy"></a><figcaption>シーケンス（絵を3枚入れた所）</figcaption></figure>
+  <ol class="marks">
+    <li data-n="1"><b>絵を何枚も入れる</b>入れた順にタイムラインに並びます。タイムラインのブロックに絵をドロップすると、その絵を差し替えます。</li>
+    <li data-n="2"><b>崩れ方</b>タイムラインの◆を選んでから押すと、その◆の崩れ方が変わります。</li>
+    <li data-n="3"><b>できあがりを見る</b>再生すると、つないだ動画をここで確かめられます。</li>
+    <li data-n="4"><b>並べる所</b>上から「画像」「音声」「歌詞」。ドラッグで並べ替え、端をつまんで長さを変えます。</li>
+    <li data-n="5"><b>◆ ＝ 絵と絵の間の変化</b>押すと、右にその◆の設定が出ます（下の写真）。</li>
+    <li data-n="6"><b>書き出し・読み込み・新規・保存先</b>「書き出し」は作品を1つのファイル（.unfold）に保存、「読み込み」はそのファイルを開きます。「新規」は確かめてから空にします（書き出していない変更は消えます）。「保存先…」を決めると、パソコンのファイルにも自動で保存します。</li>
+    <li data-n="7"><b>STUDIOへ送る</b>曲・歌詞・絵・崩れ方を一式そのまま STUDIO に送ります。</li>
+  </ol>
+  <figure class="shot"><a href="./manual/sequence-2.jpg" target="_blank" rel="noopener" title="大きく見る"><img src="./manual/sequence-2.jpg" width="1440" height="900" alt="◆を選んだところ。右に崩れ方・戻り方・形の設定" loading="lazy"></a><figcaption>◆を選んだ所</figcaption></figure>
+  <ol class="marks">
+    <li data-n="1"><b>選んだ◆</b>枠が光っているのが、いま選んでいる◆です。</li>
+    <li data-n="2"><b>◆の設定</b>崩れ方・戻り方・立体にするか・絵柄を混ぜるか・形。ここで変えたことは、その◆だけに効きます。</li>
+    <li data-n="3"><b>タブ</b>「03 選択中」は選んだものの設定、「04 見た目」は再生位置の見た目、「05 曲・歌詞」は曲と歌詞、「動画保存・GLB追加」は動画にする所です。</li>
+  </ol>
+</section>
+
+<section id="studio">
+  <h2><small>03</small>STUDIO</h2>
+  <p>曲・歌詞・絵・動画・UNFOLDの変形を、同じ曲の時間に重ねて、MVに仕上げる画面です。シーケンスの「06 STUDIO」から送ると、全部そろった状態で開きます。</p>
+
+  <h3 class="sub">上のバー：ボタンは色で仲間分け</h3>
+  <figure class="shot"><a href="./manual/studio-0.jpg" target="_blank" rel="noopener" title="大きく見る"><img src="./manual/studio-0.jpg" width="1440" height="96" alt="STUDIOの上のバー。作品・編集・演出・書き出しの組" loading="lazy"></a></figure>
+  <ul class="legend">
+    <li><i style="--c:#8ab4ff"></i><span>青 ＝ 作品<small>新しいMV・保存した作品・ブラウザに保存</small></span></li>
+    <li><i style="--c:#b8c6c3"></i><span>灰 ＝ 編集<small>元に戻す・やり直す</small></span></li>
+    <li><i style="--c:#8fe5c7"></i><span>ミント ＝ 演出・作る<small>おまかせ、おまかせで作る</small></span></li>
+    <li><i style="--c:#f3b664"></i><span>オレンジ ＝ 書き出し<small>ショート・MP4を書き出す</small></span></li>
+    <li><i style="--c:#6fd0dc"></i><span>水色 ＝ 素材を足す<small>左の列の ＋画像・動画、文字を追加 など</small></span></li>
+    <li><i style="--c:#ff8f8f"></i><span>赤 ＝ 消す・止める<small>選択を削除・ショートを削除・書き出しを中止</small></span></li>
+    <li><i style="--c:#b69cff"></i><span>紫 ＝ カット割り<small>短いカットに切る演出</small></span></li>
+  </ul>
+  <ol class="marks">
+    <li data-n="1"><b>横・縦／かんたん・詳細</b>「横 16:9」「縦 9:16」で、どちらの構図を見るか。「かんたん」はよく使うものだけ、「詳細」はすべての操作を出します。</li>
+    <li data-n="2"><b>作品（青）</b>「新しいMV」はまっさらな作品を作ります（下の写真のように確かめてから）。「保存した作品」で、このブラウザに保存した作品を開きます。編集は少しあとに自動でも保存されます。</li>
+    <li data-n="3"><b>編集（灰）</b>元に戻す・やり直す。</li>
+    <li data-n="4"><b>演出（ミント）</b>「おまかせ」を押すと、右のパネルがおまかせに戻ります。</li>
+    <li data-n="5"><b>書き出し（オレンジ）</b>「ショート」で曲の一部分を縦の短い動画に、「MP4を書き出す」で曲全体を音つきのMP4にします。</li>
+  </ol>
+
+  <h3 class="sub">画面全体</h3>
+  <figure class="shot"><a href="./manual/studio-1.jpg" target="_blank" rel="noopener" title="大きく見る"><img src="./manual/studio-1.jpg" width="1440" height="900" alt="STUDIOの画面全体。左に素材、まん中に画面、右におまかせ、下にタイムライン" loading="lazy"></a><figcaption>STUDIO（おまかせの「カット割り」で作った所）</figcaption></figure>
+  <ol class="marks">
+    <li data-n="1"><b>上のバー</b>上の写真のとおり、色で仲間分けしてあります。</li>
+    <li data-n="2"><b>素材を足す</b>「＋ 画像・動画」「効果音を追加」「文字を追加」「光の演出を追加」。曲・歌詞・UNFOLD作品は、ふつうはシーケンスから送ります（直接入れる時は「詳細」に切り替え）。</li>
+    <li data-n="3"><b>画面と再生</b>できあがりの絵。「先頭」「再生」と、下のバーで再生位置を動かします。</li>
+    <li data-n="4"><b>おまかせ</b>何も選んでいない時の右のパネル。「演出のしかた」で <b>歌詞ごとに1つの動き</b> か <b>✂ カット割り</b>（短く切って、背景・カメラ・文字の部品を重ねる）を選んで、「おまかせで作る」。「前の案／次の案」で行き来できます。</li>
+    <li data-n="5"><b>タイムライン</b>上から「歌詞」「画像」「演出」「音声」。押すと選べて、右のパネルがその設定になります。「選択を削除」で選んだものを消します（元に戻すで戻せます）。</li>
+  </ol>
+
+  <h3 class="sub">歌詞を選んだ時：この歌詞だけカット割りにする</h3>
+  <figure class="shot"><a href="./manual/studio-2.jpg" target="_blank" rel="noopener" title="大きく見る"><img src="./manual/studio-2.jpg" width="1440" height="900" alt="歌詞を選んだところ。右に「この歌詞を編集」と、カット割りの箱" loading="lazy"></a><figcaption>タイムラインの歌詞を押した所</figcaption></figure>
+  <ol class="marks">
+    <li data-n="1"><b>選んだ歌詞</b>タイムラインの歌詞を押すと、画面がその歌詞の所へ動きます。</li>
+    <li data-n="2"><b>おまかせに戻る</b>何かを選んでいる間は、右のパネルの一番上のこのボタンで、おまかせの画面に戻れます。</li>
+    <li data-n="3"><b>動き・色・書体</b>その歌詞の動き、言葉ごとの色、書体を変えます。</li>
+    <li data-n="4"><b>この歌詞だけカット割り</b>「✂ この歌詞をカット割りにする」で、その歌詞だけがカット演出になります。「別の案」で引き直し、「普通の動きに戻す」でやめられます。下の動きの札を選んでも、普通の動きに戻ります。</li>
+  </ol>
+
+  <h3 class="sub">ショート（曲の一部分を縦動画に）</h3>
+  <figure class="shot"><a href="./manual/studio-3.jpg" target="_blank" rel="noopener" title="大きく見る"><img src="./manual/studio-3.jpg" width="1440" height="900" alt="ショートの窓。開始と終了を決めて書き出す" loading="lazy"></a><figcaption>上のバーの「ショート」で開く窓</figcaption></figure>
+  <ol class="marks">
+    <li data-n="1"><b>ショートの窓を開く</b>作ったショートの数が（1）のように出ます。窓を開いたままでも、再生やタイムラインを使えます。</li>
+    <li data-n="2"><b>いまの位置を開始・終了に</b>再生位置をサビの頭に合わせて「いまの位置を開始に」、終わりで「いまの位置を終了に」。数字を直接入れても大丈夫です。「区間を確定」で決まります。</li>
+    <li data-n="3"><b>縦の短い動画にする</b>「この区間を試聴」で確かめて、「このショートを書き出す」で縦のMP4にします。</li>
+  </ol>
+
+  <h3 class="sub">「新しいMV」を押した時</h3>
+  <figure class="shot"><a href="./manual/studio-4.jpg" target="_blank" rel="noopener" title="大きく見る"><img src="./manual/studio-4.jpg" width="1440" height="900" alt="新しいMVを作りますか？の確認" loading="lazy"></a><figcaption>作りかけの作品がある時は、確かめてから</figcaption></figure>
+  <ol class="marks">
+    <li data-n="1"><b>今の作品は保存されてから閉じる</b>「やめる」（または Esc）なら何も変わりません。作った後は、上のバーに「↩ さっきの作品に戻る」が出ます。</li>
+    <li data-n="2"><b>名前を変えておける</b>あとで「保存した作品」で見分けやすいように。一覧には、保存した日時・長さ・歌詞の数・最初の歌詞も出ます。</li>
+  </ol>
+</section>
+</main>
+<footer>
+  <a href="./">説明</a> ・ <a href="../">1枚モード</a> ・ <a href="../sequence.html">シーケンス</a> ・ <a href="../studio.html">STUDIO</a> ・ <a href="./methods.html">メソッド集</a> ・ <a href="./glb.html">GLB置き場</a>
+  <p style="margin-top:10px">© 2026 UNFOLD</p>
+</footer>
+</body>
+</html>
