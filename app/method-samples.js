@@ -244,6 +244,20 @@ vec3 userMethod(vec2 p, float amount) {
   gLocal = 1.;
   return vec3(q, e * (ph(3.) - .5) * .3);
 }` },
+  { key: 'wiper-sweep', name: 'ワイパーで払われる', symbol: '払', category: 'method', desc: '下の中心を軸にワイパーが振れて、通った所の粒が横へ払われていきます。', added: '2026-10-16', poster: .3, source: `// 画面の下の真ん中を軸にした、ワイパーの動き。通った所の粒が、振れる向きへ払われる
+vec3 userMethod(vec2 p, float amount) {
+  vec2 c = partC(), l = p - c;
+  vec2 u = (c - vec2(0., -.5 * uSize.y)) / uSize.y;           // 軸（下の真ん中）から見た位置
+  float turn = atan(u.x, u.y) / 3.1416 + .5;                  // 左 0 から 右 1 へ、ワイパーが振れる
+  float delay = turn * .45 + ph(1.) * .05;
+  float e = smoothstep(delay, delay + .22, amount);
+  vec2 push = normalize(vec2(u.y, -u.x) + vec2(.0001)) * e * e * (.45 + ph(2.) * .6) * uSize.y;
+  l = rot((ph(3.) - .5) * 7. * e) * l * (1. - .3 * e);
+  gKind = 2.;                                                 // 粒の見た目: 2 = 丸い点
+  gAlpha = 1. - .3 * e;
+  gLocal = 1.;
+  return vec3(c + l + push, (ph(4.) - .5) * .3 * e);
+}` },
 ];
 
 // Text to paste into an AI chat: it explains what to write, and the rules the editor checks, so what comes back is likely to pass.

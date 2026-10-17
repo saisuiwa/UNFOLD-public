@@ -132,5 +132,22 @@ return {update(frame){
   piece.mesh.rotation.set(0,0,turn);
   piece.mesh.scale.setScalar(1-.1*k);
  }
+}};`}},
+ {key:'hop-wave',name:'ぴょんぴょん跳ねるタイル',symbol:'跳',desc:'斜めに波が走って、タイルが順にぴょんぴょんと跳ね上がって戻ります。',added:'2026-10-16',poster:1.2,
+  code:{version:1,runtime:IMAGE_RUNTIME,params:{columns:14,gravity:4,bounce:.5,seed:6,returnMode:'reverse',label:'UNFOLD',font:'gothic'},source:`// 左下から右上へ斜めに波が走り、タイルが順に跳ねて、少しずつ小さくなる跳ね方で落ち着く。強さ(amount)が戻ると元へ帰る
+const {createImageTiles,size,smooth}=api;
+const tiles=createImageTiles();
+const half=size.width*.5;
+return {update(frame){
+ const t=Math.min(1,frame.amount/.8);
+ for(const piece of tiles){
+  const x=piece.home.x,y=piece.home.y,diag=((x/half)+(y/half)+2)/4;      // 0 = 左下、1 = 右上
+  const local=Math.max(0,Math.min(1,t*1.1-diag*.35));                    // タイルごとの進み具合
+  const hop=Math.abs(Math.sin(local*Math.PI*2.5))*(1-.5*local)*half*.22;   // 2回半、だんだん低く（強さが最大のときも跳ねている）
+  const grow=smooth(Math.min(1,local*3))*(1-smooth(Math.max(0,local*2-1)));
+  piece.mesh.position.set(x,y+hop,hop*.5);
+  piece.mesh.rotation.set(0,0,Math.sin(local*Math.PI*2.5)*.25*(1-.5*local));
+  piece.mesh.scale.setScalar(1+.15*grow);
+ }
 }};`}}
 ];
