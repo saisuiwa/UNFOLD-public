@@ -29,6 +29,11 @@ const local=(p,i,n,spread)=>clamp((p-(n>1?i/(n-1)*spread:0))/Math.max(.05,1-spre
 const ALL=['calm','pop','glitch','graphic','emotional','impact'];
 /** 字 g が、文字全体の中心から長い向き（横組みなら横・縦組みなら縦）にどれだけ離れているか（-1..1）と、その向き。字間を動かす部品が使う */
 function along(g,E){const b=E.bbox,w=b.x1-b.x0,h=b.y1-b.y0,horiz=w>=h,half=Math.max(1,(horiz?w:h)/2);return {u:horiz?(g.cx-(b.x0+b.x1)/2)/half:(g.cy-(b.y0+b.y1)/2)/half,horiz};}
+// 字の置き換えの部品が、本物の字の代わりに描く記号の組（plan の sym で選ぶ）
+const SYMS={mix:'#$%&@*+=<>/?アイウエオカキクケコサシス0123456789ABCDEFXZ',hex:'0123456789ABCDEF',kana:'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン',digit:'0123456789'};
+const symOf=(set,u)=>{const S=SYMS[set]||SYMS.mix;return S[Math.floor(clamp(u,0,.999)*S.length)];};
+/** 字 i が確定する順番（0 が最初、1 が最後）。left: 左から、center: 中央から外へ、random: ばらばら */
+const lockOrder=(i,n,E,order)=>n<=1?0:order==='center'?Math.abs(i-(n-1)/2)/((n-1)/2):order==='random'?E.r(i,77):i/(n-1);
 const spread=(g,E,d)=>{const {u,horiz}=along(g,E);return horiz?{dx:u*d}:{dy:u*d};};
 
 // ---- 登場（短いカット向け。fast=短くても成り立つ） --------------------------------------------------------------------------------------------
@@ -72,6 +77,17 @@ export const ENTER={
   glyph(g,i,n,p,E,P){const half=Math.max(E.size,(E.bbox.x1-E.bbox.x0)/2,(E.bbox.y1-E.bbox.y0)/2),m=1+P.k*(1-outExpo(clamp(p*1.25)))-P.dip*Math.sin(Math.PI*clamp((p-.42)/.58));
    return {...spread(g,E,half*(m-1)),a:clamp(p*4)};}},
  // ---- 斜めの切れ目（2026-10-17）: 字を斜めの線で上下に分け、切れ目の向こうからそれぞれ逆向きにせり出す（renderText の it.split）
+ // ---- 字の置き換え（2026-10-18）: 本物の字の代わりに別の字（記号・伏せ字・リール）を描き、順に本物へ確定する（glyphDraw の s.ch / s.reel）
+ scramble:{name:'暗号から確定する',tags:['glitch','graphic','impact'],w:1,fast:true,inDur:D=>clamp(D*.42,.24,.6),plan:r=>({order:pickW(r,['left','center','random'],[2,1,1]),rate:14+r()*10,sym:pickW(r,['mix','hex','kana'],[2,1,1])}),
+  glyph(g,i,n,p,E,P){const at=.18+.72*lockOrder(i,n,E,P.order);
+   if(p<at)return {ch:symOf(P.sym,E.r(i,Math.floor(E.lt*P.rate)+31)),a:.85};
+   const k=clamp((p-at)/.12);return k<1?{sx:1+.18*(1-k),sy:1+.18*(1-k)}:null;}},   // 確定した字は、少し大きくなってから戻る
+ slotReel:{name:'スロットで止まる',tags:['pop','graphic','glitch'],w:.9,fast:true,inDur:D=>clamp(D*.45,.28,.65),plan:r=>({rate:12+r()*6,sym:pickW(r,['mix','kana','digit'],[2,1,1])}),
+  glyph(g,i,n,p,E,P){const at=.3+.52*(n>1?i/(n-1):0),f=E.lt*P.rate*(1+.3*E.r(i,5)),fi=Math.floor(f);
+   if(p<at)return {reel:{cur:symOf(P.sym,E.r(i,fi)),next:symOf(P.sym,E.r(i,fi+1)),u:f-fi}};
+   const k=clamp((p-at)/.14);return k<1?{reel:{cur:symOf(P.sym,E.r(i,fi)),next:g.ch,u:outBack(k,2.2)}}:null;}},   // 左から順に、本物の字が上から入って少し行き過ぎて止まる
+ maskReveal:{name:'伏せ字から替わる',tags:['graphic','calm','glitch'],w:.8,fast:true,inDur:(D,n)=>clamp(.12+n*.05,.2,D*.5),plan:r=>({mark:pickW(r,['■','●','＊'],[2,1,1])}),
+  glyph(g,i,n,p,E,P){const at=.12+.8*(n>1?i/(n-1):0);if(p<at)return {ch:P.mark,a:.75};const k=clamp((p-at)/.1);return k<1?{a:.6+.4*k,sx:1.1-.1*k,sy:1.1-.1*k}:null;}},
  splitIn:{name:'斜めの切れ目からせり出す',tags:['impact','graphic','glitch'],w:.9,fast:true,inDur:D=>clamp(D*.32,.16,.42),plan:r=>({ang:sign(r)*(28+r()*22),line:r()<.7}),
   item(it,p,E,P){const e=outExpo(p),h=(E.bbox.y1-E.bbox.y0)+E.size*.4;it.split={ang:P.ang*DEG,n:h*(1-e),t:0,dy:0,line:P.line?clamp(1.4-p*1.6):0};}}
 };
@@ -97,6 +113,9 @@ export const HOLD={
  // 字間（2026-10-17）。端の字でも動きは字の大きさの1割4分まで（読める範囲は1割5分）
  trackBreathe:{name:'字間が息をする',tags:['calm','emotional'],w:.9,plan:r=>({ph:r()*TAU,sp:1.2+r()*.8}),
   glyph:(g,i,n,p,E,P)=>spread(g,E,Math.sin(E.lt*P.sp+P.ph)*E.size*.14*p)},
+ // 字の置き換え（2026-10-18）: ときどき1字だけが一瞬（2〜3コマ）記号に化けて戻る。化けるのは同時に1字だけ（読める時間を減らしすぎない）
+ glyphSwap:{name:'ときどき別の字に化ける',tags:['glitch','graphic'],w:.8,plan:r=>({rate:1.1+r()*.8,sym:pickW(r,['mix','hex','kana'],[2,1,1])}),
+  glyph(g,i,n,p,E,P){if(p<.5)return null;const w=E.lt*P.rate,k=Math.floor(w);if(fract(w)>.08||Math.floor(hash(k,3,E.seed%89)*n)!==i)return null;const f=Math.floor(E.lt*24);return {ch:symOf(P.sym,E.r(i,f)),dx:(E.r(i,f+3)-.5)*E.size*.12};}},
  trackOpen:{name:'字間が広がり続ける',tags:['calm','emotional','graphic'],w:.9,plan:r=>({k:.12+r()*.02}),
   glyph:(g,i,n,p,E,P)=>spread(g,E,clamp(E.lt/Math.max(.3,E.D))*E.size*P.k*p)}
 };
@@ -262,8 +281,8 @@ export function buildItem(cut,{W,H,measure,pieces,fontFamily=key=>`"U-${key}", s
   enter:cut.enter,enterP:cut.enterP,hold:cut.hold,holdP:cut.holdP,exit:cut.exit,exitP:cut.exitP,timing:tm};
 }
 
-const IDENT=()=>({dx:0,dy:0,sx:1,sy:1,rot:0,a:1,blur:0,hide:false});
-const merge=(st,d)=>{if(!d)return;if(d.hide)st.hide=true;st.dx+=d.dx||0;st.dy+=d.dy||0;st.sx*=d.sx??1;st.sy*=d.sy??1;st.rot+=d.rot||0;st.a*=d.a??1;st.blur=Math.max(st.blur,d.blur||0);};
+const IDENT=()=>({dx:0,dy:0,sx:1,sy:1,rot:0,a:1,blur:0,hide:false,ch:null,reel:null});
+const merge=(st,d)=>{if(!d)return;if(d.hide)st.hide=true;if(d.ch!=null)st.ch=d.ch;if(d.reel)st.reel=d.reel;st.dx+=d.dx||0;st.dy+=d.dy||0;st.sx*=d.sx??1;st.sy*=d.sy??1;st.rot+=d.rot||0;st.a*=d.a??1;st.blur=Math.max(st.blur,d.blur||0);};
 /** カット内の時刻 lt での、字ごとの状態とアイテム全体の状態（純関数） */
 export function stateAt(item,lt){
  const {D,timing:{inDur,outDur}}=item,n=item.n;
@@ -287,7 +306,7 @@ export function stateAt(item,lt){
 export function readableAt(item,lt){
  const {glyphs,it}=stateAt(item,lt),s=item.size;
  if(it.blur>s*.06||it.clip||(it.split&&(it.split.n>s*.05||it.split.t>s*.05||it.split.dy>s*.05))||it.sx<.85||it.sx>1.2||it.sy<.85||it.sy>1.2||it.a<.9)return false;
- return glyphs.every(g=>!g.hide&&(g.blur||0)<=s*.08&&g.a>=.9&&Math.abs(g.dx)<s*.15&&Math.abs(g.dy)<s*.15&&g.sx>.8&&g.sx<1.25&&g.sy>.8&&g.sy<1.25&&Math.abs(g.rot)<12);
+ return glyphs.every(g=>!g.hide&&g.ch==null&&!g.reel&&(g.blur||0)<=s*.08&&g.a>=.9&&Math.abs(g.dx)<s*.15&&Math.abs(g.dy)<s*.15&&g.sx>.8&&g.sx<1.25&&g.sy>.8&&g.sy<1.25&&Math.abs(g.rot)<12);
 }
 /** カットのうち、読める状態にある時間の割合（0.04秒きざみ） */
 export function readableShare(item,step=.04){
@@ -320,13 +339,18 @@ function glyphDraw(c,item,g,s,it,tint){
  c.save();c.translate(g.cx+s.dx,g.cy+s.dy);if(g.rot0||s.rot)c.rotate(((g.rot0||0)+s.rot)*DEG);c.scale(s.sx,s.sy);
  c.font=`${px}px ${g.fontKey?item.fontFamily(g.fontKey):item.family}`;c.textAlign='center';c.textBaseline='middle';
  const col=tint||g.color||(g.emphasis?item.accent:item.color);
- const paint=tint?()=>{c.globalAlpha=base;c.fillStyle=tint;c.fillText(g.ch,0,0);}:()=>{   // tint: ゴーストの層。影・縁・押し出しは付けず、色だけで塗った形にする
+ const one=tint?(ch,oy)=>{c.globalAlpha=base;c.fillStyle=tint;c.fillText(ch,0,oy);}:(ch,oy)=>{   // tint: ゴーストの層。影・縁・押し出しは付けず、色だけで塗った形にする
   c.globalAlpha=base;
-  if(T.extrude){c.fillStyle=T.extrude.color;for(let k=T.extrude.n;k>=1;k--)c.fillText(g.ch,k*T.extrude.dx*px,k*T.extrude.dy*px);}
-  if(T.trail){c.fillStyle=col;for(let k=T.trail.n;k>=1;k--){c.globalAlpha=base*T.trail.a*(1-(k-1)/T.trail.n);c.fillText(g.ch,k*T.trail.dx*px,k*(T.trail.dy||0)*px);}c.globalAlpha=base;}
+  if(T.extrude){c.fillStyle=T.extrude.color;for(let k=T.extrude.n;k>=1;k--)c.fillText(ch,k*T.extrude.dx*px,oy+k*T.extrude.dy*px);}
+  if(T.trail){c.fillStyle=col;for(let k=T.trail.n;k>=1;k--){c.globalAlpha=base*T.trail.a*(1-(k-1)/T.trail.n);c.fillText(ch,k*T.trail.dx*px,oy+k*(T.trail.dy||0)*px);}c.globalAlpha=base;}
   if(T.shadow){c.shadowColor=T.shadow.color;c.shadowBlur=T.shadow.blur*px;c.shadowOffsetX=T.shadow.dx*px;c.shadowOffsetY=T.shadow.dy*px;}
-  if(T.stroke){c.lineJoin='round';c.lineWidth=T.stroke.w*px;c.strokeStyle=T.stroke.color;c.strokeText(g.ch,0,0);c.shadowColor='transparent';}
-  if(T.fill!==false){c.fillStyle=T.textColor&&!g.emphasis?T.textColor:col;c.fillText(g.ch,0,0);}
+  if(T.stroke){c.lineJoin='round';c.lineWidth=T.stroke.w*px;c.strokeStyle=T.stroke.color;c.strokeText(ch,0,oy);c.shadowColor='transparent';}
+  if(T.fill!==false){c.fillStyle=T.textColor&&!g.emphasis?T.textColor:col;c.fillText(ch,0,oy);}
+ };
+ // 字の置き換え: s.ch があれば、その字を描く。s.reel = {cur,next,u} なら、字の枠で切り抜いて、リールのように next を上から、cur を下へ u だけずらして描く
+ const paint=()=>{
+  if(!s.reel){one(s.ch??g.ch,0);return;}
+  const h=px*1.12,u=s.reel.u;c.save();c.beginPath();c.rect(-px*.62,-h/2,px*1.24,h);c.clip();one(s.reel.next,(u-1)*h);one(s.reel.cur,u*h);c.restore();
  };
  if(bl>.5&&!tint){if(canFilter(c)){c.filter=`blur(${bl.toFixed(1)}px)`;paint();}else fakeBlur(c,paint,bl,base);}
  else paint();

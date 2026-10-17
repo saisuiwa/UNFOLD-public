@@ -5,6 +5,7 @@ import {assignParts,assignGlyphParts,GLYPH_FONTS} from '../../../app/studio/cuts
 import {placeItem} from '../../../app/studio/cuts/items.js';
 import {parseLines,DEFAULT_LINES_TEXT,planProject,describeGlyphParts,glyphChoices} from './cuts-helpers.mjs';
 import {wordPieces} from '../../../app/studio/word-size.js';
+import {rng} from '../../../app/studio/omakase.js';
 
 const W=960,H=540;
 const measure=(ch,font,px)=>/[\x00-\x7f]/.test(ch)?px*.55:px;
@@ -45,14 +46,14 @@ test('every part is named, tagged, and has a plan that is deterministic', () => 
 
 // it.split: 斜めの切れ目（上下を切り分けてずらす）。ずれが残っていれば、まだ元の形ではない
 const splitAway=(x,size)=>!!(x.split&&(x.split.n>size*.05||x.split.t>size*.05||x.split.dy>size*.05));
-const near=(it,s,lim=.14)=>{const {glyphs,it:x}=stateAt(it,s);return !splitAway(x,it.size)&&glyphs.every(g=>!g.hide&&g.a>=.85&&Math.abs(g.dx)<it.size*lim&&Math.abs(g.dy)<it.size*lim&&g.sx>.85&&g.sx<1.2&&g.sy>.85&&g.sy<1.2&&Math.abs(g.rot)<10&&(g.blur||0)<it.size*.05);};
+const near=(it,s,lim=.14)=>{const {glyphs,it:x}=stateAt(it,s);return !splitAway(x,it.size)&&glyphs.every(g=>!g.hide&&g.ch==null&&!g.reel&&g.a>=.85&&Math.abs(g.dx)<it.size*lim&&Math.abs(g.dy)<it.size*lim&&g.sx>.85&&g.sx<1.2&&g.sy>.85&&g.sy<1.2&&Math.abs(g.rot)<10&&(g.blur||0)<it.size*.05);};
 test('enters start away from rest (except cut) and land on rest; exits start at rest', () => {
  for(const [k,d] of Object.entries(ENTER)){
   const P=d.plan?d.plan(()=>.5):{},it=item({enter:k,enterP:P});
   const inD=it.timing.inDur;
   if(k==='cut'){assert.equal(inD,0);continue;}
   assert.ok(inD>0&&inD<=.6*it.D,k);
-  const start=stateAt(it,0),s0=start.glyphs.some(g=>g.hide||g.a<.5||Math.abs(g.dx)>1||Math.abs(g.dy)>1||g.sx!==1||g.sy!==1||g.rot!==0)||start.it.clip||splitAway(start.it,it.size)||start.it.blur>0||start.it.sx!==1||start.it.a<1;
+  const start=stateAt(it,0),s0=start.glyphs.some(g=>g.hide||g.ch!=null||g.reel||g.a<.5||Math.abs(g.dx)>1||Math.abs(g.dy)>1||g.sx!==1||g.sy!==1||g.rot!==0)||start.it.clip||splitAway(start.it,it.size)||start.it.blur>0||start.it.sx!==1||start.it.a<1;
   assert.ok(s0,`${k} does not start away from rest`);
   assert.ok(near(it,inD*.999),`${k} does not land on rest`);
   for(let t=0;t<=it.D;t+=.02){const {glyphs,it:x}=stateAt(it,t);for(const g of glyphs)for(const v of [g.dx,g.dy,g.sx,g.sy,g.rot,g.a])assert.ok(Number.isFinite(v),`${k} NaN`);assert.ok(Number.isFinite(x.blur));}
@@ -151,4 +152,16 @@ test('assignGlyphParts: a recap cut (the whole line, to be read) is never made �
  let recaps=0,soft=0;
  for(let seed=1;seed<=80;seed++)for(const c of planFor(seed,{glyph:{treatAmount:1}})){if(c.recap){recaps++;if(c.treat==='soft')soft++;}}
  assert.ok(recaps>40,`recaps ${recaps}`);assert.equal(soft,0);
+});
+
+test('字の置き換え: the scramble / reel / mask entrances draw other characters first and the real ones at the end; ときどき化ける swaps one letter at a time at most', () => {
+ for(const k of ['scramble','slotReel','maskReveal']){
+  const it=item({enter:k,enterP:ENTER[k].plan(rng('sw:'+k))},'光を見つけた');
+  const start=stateAt(it,.01).glyphs;assert.ok(start.every(g=>g.ch!=null||g.reel),`${k}: not every letter starts as another character`);
+  assert.ok(start.every(g=>g.ch==null||g.ch.length===1),`${k}: one character per letter`);
+  const end=stateAt(it,it.timing.inDur*.999).glyphs;assert.ok(end.every(g=>g.ch==null&&!g.reel),`${k}: not every letter is real by the end`);
+ }
+ const it=item({hold:'glyphSwap',holdP:HOLD.glyphSwap.plan(rng('gs'))},'光を見つけた');let swapped=0;
+ for(let t=.4;t<it.D-.3;t+=.01){const n=stateAt(it,t).glyphs.filter(g=>g.ch!=null).length;assert.ok(n<=1,`${n} letters swapped at ${t}`);if(n)swapped++;}
+ assert.ok(swapped>0,'never swapped');
 });
