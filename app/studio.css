@@ -187,7 +187,6 @@
 .unfold-dialog h2{margin:4px 0 10px;font-size:18px}.unfold-dialog p{line-height:1.7}.unfold-dialog .work-meta{display:block;font-size:12px;color:#a9c2bb}.unfold-dialog .work-lyric{display:block;font-size:12px;color:#d9cbe9}
 .unfold-dialog .dialog-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}.unfold-dialog .dialog-actions button{margin:0}
 .saved-list{display:grid;gap:8px;margin-top:6px}.unfold-dialog .saved-item{margin:0;display:grid;gap:3px;text-align:left;padding:10px 12px;border-radius:9px;line-height:1.4}.saved-item strong{font-size:14px;color:#e8f4ef}.saved-item.current{opacity:.7;border-style:dashed}
-.back-prev{background:#3a3220;border-color:#c99a3d;color:#ffd98a}.back-prev:hover{background:#4a3f26}
 /* この歌詞を編集 → 動き の一番上: この歌詞の演出（歌詞ごとの動き / カット割り） */
 .studio-lyric-edit .lq-cut{border:1px solid #5b4a7e;border-radius:8px;padding:8px 10px;margin:0 0 10px;background:#1c1a2b}
 .studio-lyric-edit .lq-cut.on{border-color:#b69cff;background:#241f3a}
@@ -207,3 +206,24 @@
 .short-pop{position:fixed;top:58px;right:16px;width:min(360px,calc(100vw - 32px));max-height:calc(100vh - 90px);overflow:auto;z-index:40;background:#172427;border:1px solid #6d8f84;border-radius:12px;padding:12px 14px;box-shadow:0 18px 40px #0009}
 .short-pop[hidden]{display:none}.short-pop .short-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.short-pop h2{margin:0;font-size:16px}.short-pop h2 small{font-size:11px;color:#9fb3ae;font-weight:400}
 .short-pop .short-editor{margin-top:8px;padding-top:10px}.short-pop .short-here{justify-self:start;min-height:26px;padding:2px 10px;font-size:11px}
+/* ボタンの色分け（仲間ごとの色）: 作品＝青、編集＝灰、演出・作る＝ミント、書き出し＝オレンジ、素材を足す＝水色、消す・止める＝赤、カット割り＝紫 */
+:root{--c-file:#8ab4ff;--c-edit:#b8c6c3;--c-make:#8fe5c7;--c-out:#f3b664;--c-add:#6fd0dc;--c-danger:#ff8f8f;--c-cut:#b69cff}
+.header-actions{flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px}
+.btn-group{--fam:var(--c-edit);display:flex;align-items:center;gap:4px;padding:2px 3px 2px 8px;border:1px solid color-mix(in srgb,var(--fam) 38%,transparent);border-radius:8px;background:color-mix(in srgb,var(--fam) 6%,transparent)}
+.btn-group .group-label{font-size:10px;line-height:1;color:var(--fam);letter-spacing:.08em;white-space:nowrap;margin-right:2px}
+.btn-group .group-buttons{display:flex;gap:4px;align-items:center}
+.g-file{--fam:var(--c-file)}.g-edit{--fam:var(--c-edit)}.g-make{--fam:var(--c-make)}.g-out{--fam:var(--c-out)}
+.btn-group button{border-color:color-mix(in srgb,var(--fam) 45%,var(--line))}
+.btn-group button:hover{border-color:var(--fam);background:color-mix(in srgb,var(--fam) 15%,#253033)}
+.btn-group button.primary,.btn-group button.primary:hover{background:var(--fam);border-color:var(--fam);color:#10181a}
+.btn-group button[aria-pressed=true]{color:var(--fam);border-color:var(--fam);background:color-mix(in srgb,var(--fam) 16%,#253033)}
+.btn-group .back-prev{background:color-mix(in srgb,var(--fam) 26%,#1d2a33);border-color:var(--fam);color:#dce8ff}
+/* 素材を足す（左の列）: 水色 */
+.import-controls button{border-color:color-mix(in srgb,var(--c-add) 42%,var(--line))}.import-controls button:hover{border-color:var(--c-add);background:color-mix(in srgb,var(--c-add) 14%,#253033)}
+/* 消す・止める: 赤（押す前に一度見直せるように） */
+button.danger{border-color:color-mix(in srgb,var(--c-danger) 55%,var(--line));color:#ffd2d2}button.danger:hover{border-color:var(--c-danger);background:color-mix(in srgb,var(--c-danger) 16%,#253033)}
+/* 上のバーのボタンの文字は折り返さない。幅が足りない時は、先に組の見出しを隠す */
+.studio-header button,.studio-header .brand{white-space:nowrap}
+@media(max-width:1419px){.btn-group .group-label{display:none}.btn-group{padding-left:3px}}
+/* 使い方（説明書）へのリンク */
+.help-link{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:50%}.help-link:hover{color:var(--ink);border-color:var(--mint)}

@@ -3,7 +3,7 @@ import {lyricStyleName,sceneSummary,chipsFor,isEffectClip,isBackgroundClip,clipT
 // Four fixed lanes like the sequence editor so the whole song reads in a few rows: 歌詞 first (the lane used most), then 画像 / 演出 / 音声; the layers of the selected scene sit below.
 const SUB=26;
 export function mountTimeline(root,controller){let version='',zoom=1,state,drag=false,focusedSceneId=null,projectId=null,revealed=null;root.tabIndex=0;root.setAttribute('aria-label','タイムライン');
- const run=fn=>action(controller,fn)(),b=(t,f)=>button(controller,t,f);
+ const run=fn=>action(controller,fn)(),b=(t,f,a)=>button(controller,t,f,a);
 // 削除。歌詞・曲は「位置固定」中だと消せない（かんたん表示では固定を外すボタンが隠れている）ので、そのとき確かめて、固定はそのままで、選んだものだけを消す（1回で元に戻せる）
 const deleteSelected=async()=>{
  try{await controller.editSelected('delete');}
@@ -22,7 +22,7 @@ const deleteSelected=async()=>{
  // 移動: the same as scrolling the timeline sideways (only useful when it is zoomed in); it follows the scrolling and the zoom
  function syncPan(){const room=Math.max(0,tracks.scrollWidth-scroller.clientWidth);panInput.disabled=room<2;const f=room<2?0:scroller.scrollLeft/room;panInput.value=String(Math.round(f*1000));panOut.textContent=Math.round(f*100)+'%';}
  panInput.addEventListener('input',()=>{const room=Math.max(0,tracks.scrollWidth-scroller.clientWidth);scroller.scrollLeft=Number(panInput.value)/1000*room;panOut.textContent=Math.round(Number(panInput.value)/10)+'%';});
- const toolbar=el('div',{class:'timeline-tools'},b('シーンを追加',()=>controller.addScene()),b('再生位置で分割',()=>controller.editSelected('split')),b('配置を複製',()=>controller.editSelected('duplicate')),b('選択を削除',deleteSelected),zoomBox);const waveCache=new Map();const scroller=el('div',{class:'timeline-scroll'}),tracks=el('div',{class:'timeline-tracks'}),chips=el('div',{class:'timeline-chips','data-testid':'timeline-chips','aria-live':'polite'});for(const x of toolbar.querySelectorAll('button'))if(['シーンを追加','再生位置で分割','配置を複製'].includes(x.textContent))x.dataset.advanced='';
+ const toolbar=el('div',{class:'timeline-tools'},b('シーンを追加',()=>controller.addScene()),b('再生位置で分割',()=>controller.editSelected('split')),b('配置を複製',()=>controller.editSelected('duplicate')),b('選択を削除',deleteSelected,{class:'danger',title:'選んでいる歌詞・配置・シーンを消します（元に戻すで戻せます）'}),zoomBox);const waveCache=new Map();const scroller=el('div',{class:'timeline-scroll'}),tracks=el('div',{class:'timeline-tracks'}),chips=el('div',{class:'timeline-chips','data-testid':'timeline-chips','aria-live':'polite'});for(const x of toolbar.querySelectorAll('button'))if(['シーンを追加','再生位置で分割','配置を複製'].includes(x.textContent))x.dataset.advanced='';
  scroller.append(tracks);root.append(toolbar,scroller,chips);scroller.addEventListener('scroll',syncPan);
  // click or drag on the ruler or an empty stretch of a lane to move the playhead (the preview follows)
  let seeking=false,seekBusy=false;const seekTo=e=>{const rect=tracks.getBoundingClientRect(),head=parseFloat(getComputedStyle(tracks).getPropertyValue('--lane-head'))||76,frac=Math.min(1,Math.max(0,(e.clientX-rect.left-head)/Math.max(1,rect.width-head)));if(seekBusy||!state)return;seekBusy=true;controller.seek(Math.round(frac*state.project.durationUs)).catch(()=>{}).finally(()=>{seekBusy=false;});};
