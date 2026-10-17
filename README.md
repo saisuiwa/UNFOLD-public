@@ -10,6 +10,10 @@
 
 公開ソース `0bc28e5`。本番407配信ファイル一致、保存往復・曲歌詞ロック・横縦の実H.264/AAC出力・旧工房8連携を確認済み。[使い方](docs/studio-user-guide.md) / [検証・公開・復旧記録](docs/publication-studio-2026-10-10.md)。GitHub pushなし。
 
+## 2026-10-17（続き）：カット割りの軸の名前（公開済み・`8751dcc`、[公開記録](docs/publication-axis-names-2026-10-17.md)）
+
+- 軸の名前を **IN・STAY・OUT・STYLE・DECO・BG・CAM・FX・TRANS・STAGE** に（STUDIO の画面にも。日本語を小さく添える）。参考にしたツールの名前は、コードと文書から外した。
+
 ## 2026-10-17（続き）：カット割りの部品20個と「装飾」の軸（公開済み・`a2cfe86`、[公開記録](docs/publication-cut-decos-2026-10-17.md)）
 
 - STUDIO のカット割りに、少ない軸の部品20個と、新しい軸「装飾」（手描きの丸囲み・キラキラ・矢印・効果線…12種、`app/studio/cuts/decos.js`）。設定に「装飾」。毎日のルーティンでも装飾を足せる。
