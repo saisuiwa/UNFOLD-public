@@ -21,7 +21,7 @@
 import {TAU,clamp,lerp,fract,outCubic,inCubic,inOutCubic,outBack,smooth,hash,sign,local,rgba} from './kit.js';
 
 export const DAILY_CUT_PARTS=[
- // ---- 2026-10-17（最初の8個。手順書を作り直した日に、Claudeが手本として足した）
+ // ---- 2026-10-17（最初の8個。手順書を作り直した日に、Claude が手本として足した）
  {axis:'enter',key:'centerOut',name:'真ん中から広がる',desc:'全部の字が行の真ん中に重なって現れ、元の位置へ広がります。',added:'2026-10-17',
   tags:['pop','graphic','impact','emotional'],w:1,fast:true,inDur:D=>clamp(D*.32,.15,.4),plan:r=>({k:.6+r()*.4}),
   glyph(g,i,n,p,E,P){const e=inOutCubic(p),mid=(E.bbox.x0+E.bbox.x1)/2,s=lerp(.6,1,outBack(p,1.4));return {dx:(mid-g.cx)*(1-e)*P.k,sx:s,sy:s,a:clamp(p*3)};}},

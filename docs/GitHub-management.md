@@ -20,7 +20,7 @@ Music, lyric source material, images, 3D models, videos, .unfold projects, ZIP r
 
 Guide thumbnails and preview videos (the old method gallery's `app/guide/methods/`), verification screenshots and videos are also excluded. A fresh clone therefore has missing guide previews; use the complete ORICO folder for deployment. The one exception is `app/guide/samples/*.jpg|mp4`, the small previews of the samples page: they are in Git (made by `tools/make_sample_previews.mjs`, each under 80 KB / 400 KB, checked by `tools/verify_daily.mjs`). The browser lyric integration test additionally needs the local synthetic audio fixture `tools/test/fixtures/lyric-fixture.mp3`. Node tests run from source alone; historical comparisons skip when the archived baseline is absent.
 
-The ignore file allows only selected source and documentation extensions. Update it when adding a new source format. Never put credentials in tracked code or documentation.
+The ignore file allows only selected source and documentation extensions. Update it when adding a new source format. Never put credentials in tracked code or documentation. The repository is meant to be public, so do not name people either: no nickname of the author or of the AI, no Mac user folder (`/Users/<name>/…`; write `~/…` or a path relative to the repository) and no personal mail address. `tools/test/public-hygiene.test.mjs` checks this.
 
 ## Save a change
 
