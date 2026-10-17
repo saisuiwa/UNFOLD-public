@@ -3,6 +3,7 @@ import {imageTarget} from './image-method-target.js';
 import {encodeCanvasVideo} from './frame-video.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
+import {usesImageLabel} from './image-label.js?v=1';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=26';
 import { createShotControls } from './shot-motion-controls.js?v=3';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
@@ -40,7 +41,7 @@ let activeGroup=loadActive('unfold-glb-tab');   // the GLB tab in use (the same 
 const customShapes=new Map(),colourShapes=new Map(),savedModels=new Map();let customSerial=0,importing=false;
 const $=id=>document.getElementById(id);
 const loadShot=()=>{try{return cleanShot(JSON.parse(localStorage.getItem('unfold-single-shot')||'null'))}catch{return cleanShot()}};
-const state={imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+const state={imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
@@ -107,7 +108,7 @@ function render(){
  const view=syncPerspective(camera,perspCam,state.renderLook.enabled?state.renderLook.perspective:0);
  u.uGlass.value=imageCode?0:fx.glass;sceneBlur.render(scene,view,imageCode?0:fx.blur,imageCode?0:fx.glitch,imageCode?0:fx.chroma,fx.seconds,imageCode?{}:fx);
  imageInput=null;
- if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText}):null,id:state.method,imageA:sourceCanvas,imageB:sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};const fade=smoothImage(state.t/.025)*smoothImage((1-state.t)/.025);if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
+ if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={params:state.imageLabel?{label:state.imageLabel}:undefined,target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText}):null,id:state.method,imageA:sourceCanvas,imageB:sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};const fade=smoothImage(state.t/.025)*smoothImage((1-state.t)/.025);if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
  safety?.afterDraw();updateTransport(m);
 }
 function updateTransport(m=motionAt(state.t,state.chaosLength)){
@@ -130,6 +131,9 @@ function updateSliderNotes(){const g=$('particle-detail-note'),t=$('tile-size-no
 function syncImageControls(){
  const code=isImageMethodKey(state.method);document.querySelector('#pane-shape .form-section').hidden=false;
  let toggle=$('image-solid');if(!toggle){const label=document.createElement('label');label.id='image-solid-control';label.className='range-label';toggle=document.createElement('input');toggle.id='image-solid';toggle.type='checkbox';toggle.onchange=()=>{state.imageSolid=toggle.checked;syncImageControls();render()};label.append(toggle,' 立体化する');document.querySelector('#pane-shape .form-section').prepend(label)}toggle.checked=state.imageSolid;$('image-solid-control').hidden=!code;
+ // 「表示する文字」: for image code that shows words (params.label, e.g. 爆砕と再誕). Empty = the method's own words. Re-prepared after a short pause in typing.
+ let lab=$('image-label-control');if(!lab){lab=document.createElement('label');lab.id='image-label-control';lab.className='range-label';lab.style.display='block';const input=document.createElement('input');input.id='image-label-input';input.type='text';input.maxLength=100;input.autocomplete='off';input.spellcheck=false;input.style.cssText='width:100%;margin-top:8px;box-sizing:border-box';let t=0;input.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{state.imageLabel=input.value.trim();render()},400)};lab.append('表示する文字',input);$('methods').after(lab)}
+ const labelMethod=code&&usesImageLabel(getCustom(state.method)?.code?.source);lab.hidden=!labelMethod;if(labelMethod)$('image-label-input').placeholder=getCustom(state.method)?.code?.params?.label||'UNFOLD';
  let hint=$('image-shape-note');if(!hint){hint=document.createElement('p');hint.id='image-shape-note';hint.className='hint';$('pane-shape').prepend(hint)}hint.hidden=!code;hint.textContent='画像片が選んだ立体・GLBへ集まり、画像へ戻ります。「立体化する」をオフにすると物理演出だけになります。';
  for(const id of ['tile-size','randomize','mystery','fx-blur','fx-chroma','fx-glitch','fx-bloom','fx-neon','fx-glass','fx-scan','fx-grain','fx-vignette','fx-bokeh'])if($(id))$(id).disabled=code;
  $('intensity').min=code?0:10;$('tab-shape').textContent='03 立体';

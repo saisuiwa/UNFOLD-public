@@ -1,9 +1,10 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=6';
+import {drawSequenceVisual} from './sequence-renderer.js?v=7';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift} from './sequence-core.js';
 import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
+import {usesImageLabel} from './image-label.js?v=1';
 import {applyLyricStyle,setWordColor} from './lyric-style.js';
 import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=12';
 import {createLyricControls} from './lyric-controls.js?v=28';
@@ -1039,6 +1040,12 @@ function inspectTransition(box, title, i, tr) {
   const hint = document.createElement('p'); hint.className = 'hint';
   hint.textContent = imageCode?'JavaScript画像メソッド：画像 → 物理演出 → 選んだ立体 → 次の画像。立体化をオフにもできます。絵柄シャッフル・画面効果は未対応。メソッドのミックスは映像クロスフェードです。':on.checked ? '画像 → ぐちゃぐちゃ → 立体 → 次の画像' : '画像 → ぐちゃぐちゃ → 次の画像（立体化を飛ばす）';
   box.append(hint);
+  // 「表示する文字」: image code that shows words (params.label, e.g. 爆砕と再誕) can say something else in this ◆ (tr.label; empty = the method's own words)
+  const wordy = [tr.method, tr.method2].map(k => isImageMethodKey(k) && getCustom(k)).find(r => r && usesImageLabel(r.code?.source));
+  if (wordy) {
+    const lb = document.createElement('input'); lb.type = 'text'; lb.maxLength = 100; lb.value = tr.label || ''; lb.placeholder = wordy.code?.params?.label || 'UNFOLD';
+    field(box, '表示する文字', lb).onchange = () => edit(() => { const v = lb.value.trim().slice(0, 100); if (v) tr.label = v; else delete tr.label; });
+  }
   const mix = document.createElement('input'); mix.type = 'checkbox'; mix.checked = tr.mixTiles !== false;mix.disabled=!!imageCode;
   mix.title = '崩れている間、画像を断片に分けて混ぜます。オフにすると、絵柄がそのまま貼られます（世界地図の画像なら、球が本物の地球儀になります）。';
   field(box, '絵柄を混ぜる', mix).onchange = () => edit(() => { if (mix.checked) delete tr.mixTiles; else tr.mixTiles = false; });

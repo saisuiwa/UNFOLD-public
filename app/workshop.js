@@ -5,6 +5,9 @@ import {LYRIC_PALETTES} from './lyric-style.js';
 import {listModels} from './model-library.js?v=4';
 import {readDrafts,writeDrafts,sampleEdited,colorFormats,loadWorkshopImage,assetStore,viewOf} from './workshop-data.js';
 import {effectPrompt} from './effect-prompt.js';
+import {usesImageLabel} from './image-label.js?v=1';
+// the 「表示する文字」 field: only for image code that shows words from params.label
+const syncLabelField=()=>{document.getElementById('label-field').hidden=!(draft?.kind==='image'&&usesImageLabel(draft.source))};
 import {createWorkshopPreview,testImage} from './workshop-preview.js';
 import {savedWorkshopItems,addWorkshopItem,announceWorkshopItem,workshopFile,importedDrafts,WORKSHOP_EXAMPLES} from './workshop-library.js';
 const $=id=>document.getElementById(id),node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});
@@ -27,7 +30,7 @@ function select(item){stash();stop();draft=defaults(state.drafts[item.key]||item
 function fill(){
  $('name').value=draft.name;$('name').maxLength=kind==='text'?40:20;$('code').value=draft.source;$('code').maxLength=kind==='glsl'?8000:32000;$('words').value=draft.words;$('font').value=draft.font;
  $('strength').value=draft.strength;$('shape').value=draft.shape;$('color').value=draft.color;$('hex').value=draft.color;$('accent').value=draft.accent;
- for(const k of ['columns','gravity','bounce','seed'])$(k).value=draft.params[k];$('return-mode').value=draft.params.returnMode;
+ for(const k of ['columns','gravity','bounce','seed'])$(k).value=draft.params[k];$('return-mode').value=draft.params.returnMode;$('image-label').value=draft.params.label??'UNFOLD';syncLabelField();
  $('shape-field').hidden=kind!=='image';$('physics-settings').hidden=kind!=='image';$('text-settings').hidden=kind!=='text';$('handoff').hidden=true;
  $('engine-label').textContent=view==='effect'?'EFFECT':{glsl:'GLSL',image:'JS + PHYSICS',text:'TEXT MOTION'}[kind];document.querySelectorAll('[data-kind]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.kind===view)));$('shelf-note').hidden=view!=='effect';
  $('api-help').textContent={glsl:'vec3 userMethod(vec2 p,float amount) を1つ。amount 0で原画、最大0.8。hash / rot / cell / partC / ph。8000文字以内、forは各64回・合計256回。書き方、GPUコンパイル、負荷を確認します。',image:'api.THREE / Text / gsap / RAPIER。createImageTiles / createImagePlane / createText / physics.bind / floor / at。return {timeline,update(frame),physicsTime(frame)}。座標はワールド単位。表面の演出は「立体化なし」で確認し、工房から作品へ適用すると「立体化なし」も引き継ぎます。外部import・通信は使えません。',text:'api.THREE / Text / gsap / createText / text / runs / color / accent / width / height / duration。return {timeline,update(t)}。画面中心が原点、単位px。GSAPはpaused:true。外部import・通信は使えません。'}[kind];
@@ -47,9 +50,10 @@ async function run(){stop();const own=serial,sig=signature();notice('コード�
  const r=await preview.prepare(structuredClone(draft),images);if(own!==serial)return;current=r;time=1.5;await r.render(time,Number($('strength').value));if(own!==serial)return;checked=sig;thumbnail();playing=true;notice('確認できました。再生・追加・共有ができます。','ready');
  }catch(e){if(own===serial){stop();notice(e.message,'error')}}}
 $('preview-run').onclick=run;$('preview-stop').onclick=()=>stop('実行を終了しました。プレビューで再開できます。');$('preview-play').onclick=()=>{if(!current){notice('先にプレビューを押してください。');return}playing=!playing};$('time').oninput=()=>{playing=false;time=Number($('time').value);render()};$('strength').oninput=()=>{const wasChecked=checked===signature();draft.strength=Number($('strength').value);draft.dirty=true;delete draft.thumb;if(wasChecked)checked=signature();stash();render()};
-$('name').oninput=()=>{draft.name=$('name').value;stash()};$('code').oninput=()=>{draft.source=$('code').value;edit()};$('code').onkeydown=e=>{if(e.key==='Tab'){e.preventDefault();const a=e.target;a.setRangeText('  ',a.selectionStart,a.selectionEnd,'end');a.dispatchEvent(new Event('input'))}};
+$('name').oninput=()=>{draft.name=$('name').value;stash()};$('code').oninput=()=>{draft.source=$('code').value;syncLabelField();edit()};$('code').onkeydown=e=>{if(e.key==='Tab'){e.preventDefault();const a=e.target;a.setRangeText('  ',a.selectionStart,a.selectionEnd,'end');a.dispatchEvent(new Event('input'))}};
 for(const [id,k]of [['words','words'],['font','font'],['shape','shape']])$(id).oninput=()=>{draft[k]=$(id).value;edit()};
 for(const k of ['columns','gravity','bounce','seed'])$(k).oninput=()=>{draft.params[k]=Number($(k).value);edit()};$('return-mode').onchange=()=>{draft.params.returnMode=$('return-mode').value;edit()};
+$('image-label').oninput=()=>{draft.params.label=$('image-label').value.slice(0,100);edit()};
 $('search').oninput=cards;document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{const item=Object.values(state.drafts).findLast(x=>viewOf(x)===b.dataset.kind)||samples.find(x=>viewOf(x)===b.dataset.kind);select(item)});
 function newDraft(copy=false){const base=copy?draft:samples.find(x=>viewOf(x)===view);const d={...structuredClone(base),key:'draft:'+crypto.randomUUID(),name:copy?(draft.name+' コピー').slice(0,kind==='text'?40:20):view==='effect'?'新しいエフェクト':'新しいメソッド',dirty:true};delete d.savedId;delete d.thumb;select(d)}
 $('new-draft').onclick=()=>newDraft();$('duplicate').onclick=()=>newDraft(true);

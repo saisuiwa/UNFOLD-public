@@ -154,12 +154,12 @@ export function drawSequenceVisual(ctx,sec) {
   sceneBlur.render(scene, view, imageCode?0:fx.blur, imageCode?0:fx.glitch, imageCode?0:fx.chroma, sec, imageCode?{}:{ ...fx, neonColor: seq.fx.neonColor });
   if(imageCode){
    const duration=tr.beats*beatSec(),f=imageFrame(L.u*duration,duration,seq.strength,{form:c.form}),mix=tr.method2?smooth(.30,.62,L.u):0,fade=smoothImage(L.u/.025)*smoothImage((1-L.u)/.025),keys=[tr.method,tr.method2];
-   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
+   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={params:tr.label?{label:tr.label}:undefined,target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
   }else{
    // holding a picture: if the change after it is image code, its worker is started now (imageLayer.warm), so a quick change is not spent waiting for it
    const next=L.tr<0?seq.transitions[L.i]:null,nextKeys=next&&next.shape==='none'&&seq.slides[L.i+1]?[next.method,next.method2]:[];
    for(let i=0;i<2;i++){
-    if(isImageMethodKey(nextKeys[i]))imageLayerAt(i).warm({target:null,id:nextKeys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH}});
+    if(isImageMethodKey(nextKeys[i]))imageLayerAt(i).warm({params:next.label?{label:next.label}:undefined,target:null,id:nextKeys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH}});
     else imageLayers[i]?.reset();
    }
   }
