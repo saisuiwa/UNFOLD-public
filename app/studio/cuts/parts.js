@@ -85,6 +85,13 @@ export const BG={
     c.save();c.translate(x,y);c.rotate(e.t*(1+hash(P.seed,i,5))*sign(()=>hash(P.seed,i,6))+i);c.scale(1,.45+.45*Math.abs(Math.sin(e.t*2+i)));
     c.moveTo(0,-s);c.quadraticCurveTo(s,-s*.2,0,s);c.quadraticCurveTo(-s,-s*.2,0,-s);c.closePath();c.restore();}
    c.fillStyle=rgba(col,.42);c.fill();}},
+ snow:{name:'雪',tags:['calm','emotional'],w:.9,plan:r=>({n:50+Math.floor(r()*30),v:.05+r()*.03,wind:(r()-.5)*.5,seed:Math.floor(r()*1000)}),
+  // 奥と手前の2つの層。層ごとに全部の雪を1つの形にまとめて1回で塗る（重なった所が濃くならない。2つの層が重なっても 125/255 まで）。奥の雪は小さく、遅く、薄い
+  draw(c,e,P){const S=Math.min(e.W,e.H),col=mixHex(e.fg,'#ffffff',.5);
+   for(const [layer,al] of [[0,.18],[1,.38]]){c.beginPath();
+    for(let i=layer;i<P.n;i+=2){const z=layer?.7+.3*hash(P.seed,i,1):.35+.3*hash(P.seed,i,1),u=fract(hash(P.seed,i,2)+e.t*P.v*z*1.8),y=u*e.H*1.1-e.H*.05,
+     x=fract(hash(P.seed,i,3)+u*P.wind)*e.W+Math.sin(e.t*(.6+z)+i*1.3)*S*.02*z,r=Math.max(1,S*.012*z);c.moveTo(x+r,y);c.arc(x,y,r,0,TAU);}
+    c.fillStyle=rgba(col,al);c.fill();}}},
  embers:{name:'火の粉',tags:['impact','emotional'],w:.8,
   plan:r=>({n:40+Math.floor(r()*20),v:.12+r()*.08,seed:Math.floor(r()*1000)}),
   draw(c,e,P){const g=c.createLinearGradient(0,e.H,0,e.H*.45);g.addColorStop(0,rgba('#ff5a1f',.18));g.addColorStop(1,rgba('#ff5a1f',0));c.fillStyle=g;c.fillRect(0,e.H*.45,e.W,e.H*.55);
@@ -193,6 +200,13 @@ export const FX={
   apply(c,e,P,k){const u=1-clamp(k),R=Math.hypot(e.W,e.H)*.62,ro=outCubic(u*1.15)*R,ri=Math.max(0,(u-.35)/.65)**2*R;if(ro<=ri+.5)return;
    const s=e.opaque===false?grab(c,e):null;
    c.save();c.beginPath();c.arc(e.W*P.cx,e.H*P.cy,ro,0,TAU);if(ri>.5)c.arc(e.W*P.cx,e.H*P.cy,ri,0,TAU,true);c.clip('evenodd');invertIn(c,e,s);c.restore();}},
+ shockRing:{name:'暗転して衝撃波',tags:['impact','pop','glitch'],w:.8,dur:.45,strongFlash:true,plan:r=>({cx:.5+(r()-.5)*.2,cy:.5+(r()-.5)*.2}),
+  // カットの頭の2コマ（0.08秒）だけ暗くしてから、輪が2つ広がる。下に写真や映像がある時（opaque===false）は、描いてある所の上だけに描く
+  apply(c,e,P){const t=e.lt,R=Math.hypot(e.W,e.H)*.62;c.save();if(e.opaque===false)c.globalCompositeOperation='source-atop';
+   if(t<.08){c.fillStyle='rgba(0,0,0,.82)';c.fillRect(0,0,e.W,e.H);c.restore();return;}
+   for(const lag of [0,.07]){const v=clamp((t-.06-lag)/.36);if(v<=0||v>=1)continue;c.globalAlpha=(1-v)*.85;c.strokeStyle=lag?e.accent:mixHex(e.accent,'#ffffff',.6);c.lineWidth=Math.max(1.5,e.H*.035*(1-v));
+    c.beginPath();c.arc(e.W*P.cx,e.H*P.cy,outCubic(v)*R,0,TAU);c.stroke();}
+   c.restore();}},
  invert:{name:'反転',tags:['glitch','impact','graphic'],w:.7,dur:.12,strongFlash:true,plan:()=>({}),
   apply(c,e){const s=e.opaque===false?grab(c,e):null;c.save();invertIn(c,e,s);c.restore();}},
  radial:{name:'放射色収差',tags:['glitch','pop','impact','emotional'],w:1.1,dur:.4,plan:r=>({s:.7+r()*.6}),

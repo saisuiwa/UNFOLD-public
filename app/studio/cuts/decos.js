@@ -7,7 +7,7 @@
 //   d     {x0,y0,x1,y1,w,h,cx,cy}: 文字の外接矩形（文字のキャンバスの px）、size: 字の大きさ、W,H: 画面、lt: カットの中の時刻、dur: カットの長さ、
 //         a: 出てくる進み 0→1（カットの頭）、z: 残っている度合い 1→0（カットの終わり）、fg: 文字色、accent: アクセント色、seed: カットごとの種
 // 決まり: 同じ時刻なら同じ絵（Math.random・Date.now は使わない。乱数は plan(r) の r か hash）。文字を隠さない（文字の上に描くものは線・小さな形だけ。面で覆うものは back にして淡く）。
-import {TAU,clamp,lerp,smooth,outCubic,outBack,hash,sign,rgba,addDailyParts} from './kit.js';
+import {TAU,clamp,lerp,fract,smooth,outCubic,outBack,hash,sign,rgba,addDailyParts} from './kit.js';
 import {DAILY_CUT_PARTS} from './daily-parts.js';
 
 /** 中心 (cx,cy)、半径 (rx,ry) の、手で描いたように少しゆがんだ輪の点。turns 周ぶん（1 より大きいと描き始めと終わりが重なる） */
@@ -26,6 +26,8 @@ function star4(c,x,y,r,rot=0){c.save();c.translate(x,y);c.rotate(rot);c.beginPat
 function heart(c,x,y,s){c.beginPath();c.moveTo(x,y+s*.35);c.bezierCurveTo(x-s*.9,y-s*.2,x-s*.45,y-s*.95,x,y-s*.4);c.bezierCurveTo(x+s*.45,y-s*.95,x+s*.9,y-s*.2,x,y+s*.35);c.closePath();c.fill();}
 function note(c,x,y,s){c.beginPath();c.ellipse(x,y,s*.32,s*.24,-.4,0,TAU);c.fill();c.fillRect(x+s*.24,y-s*1.05,s*.09,s*1.05);c.beginPath();c.moveTo(x+s*.33,y-s*1.05);c.quadraticCurveTo(x+s*.75,y-s*.85,x+s*.62,y-s*.45);c.lineWidth=s*.09;c.stroke();}
 // 透ける装飾（付箋・ガラス・薄紙…）の色。文字の後ろに薄く重ねるので、淡い色だけ
+// 心電図の1拍の形（拍の中の位置 0..1 → 高さ。1 が一番高い）
+const ECG=[[0,0],[.38,0],[.41,.1],[.44,0],[.46,-.15],[.49,1],[.52,-.35],[.55,0],[.62,0],[.66,.16],[.7,0],[1,0]];
 const PALE=['#ffe27a','#ffb3cf','#a8e6ff','#c4f0a8','#d9c2ff'];
 const RAINBOW=['#ff6b6b','#ffb347','#ffe66d','#7bed9f','#70a1ff','#c56cf0'];
 /** 角の1つが折れた付箋の形（side 1: 右下が折れる、-1: 左下） */
@@ -109,6 +111,29 @@ export const DECO={
    for(let j=0;j<P.n;j++){const base=d.lt*P.sp*TAU*P.dir+j*TAU/P.n;for(let t=0;t<5;t++){const a=base-t*.09*P.dir,r=d.size*(.07-t*.011);c.fillStyle=rgba(j%2?d.fg:d.accent,1-t*.2);c.beginPath();c.arc(d.cx+Math.cos(a)*rx,d.cy+Math.sin(a)*ry,Math.max(.5,r),0,TAU);c.fill();}}
    c.restore();}},
  // ---- 透ける装飾（2026-10-17）: 少し透けた付箋・ガラス・薄紙など。強すぎない飾りとして、どれも文字の後ろに淡く重ねる（シャボン玉だけは文字のまわりに線で描く）
+ // ---- 線の飾り（2026-10-18）
+ cornerCatch:{name:'四隅の枠が捕まえる',tags:['graphic','impact','pop'],w:1,plan:r=>({len:.3+r()*.15,col:r()<.7?'accent':'fg'}),
+  // 四隅の L 字が外から縮んできて、文字の角で少し行き過ぎて止まる
+  draw(c,d,P){const u=outBack(clamp(d.a*1.25),1.8),pad=d.size*(.22+(1-u)*1.6),L=d.size*P.len,x0=d.x0-pad,x1=d.x1+pad,y0=d.y0-pad*.8,y1=d.y1+pad*.8;
+   c.save();c.globalAlpha=d.z*clamp(d.a*3);c.strokeStyle=P.col==='fg'?d.fg:d.accent;c.lineWidth=Math.max(2,d.size*.055);c.lineCap='square';c.beginPath();
+   for(const [x,y,sx,sy] of [[x0,y0,1,1],[x1,y0,-1,1],[x0,y1,1,-1],[x1,y1,-1,-1]]){c.moveTo(x,y+sy*L);c.lineTo(x,y);c.lineTo(x+sx*L,y);}
+   c.stroke();c.restore();}},
+ ecgPulse:{name:'心電図の線',tags:['emotional','graphic','impact'],w:.9,back:true,plan:r=>({v:.7+r()*.5,k:1+Math.floor(r()*2)}),
+  // 文字の後ろを、心電図のような線が左から右へ走る。走った後は少しずつ薄くなる。k は1回に走る間の鼓動の数
+  draw(c,d,P){const x0=d.x0-d.size*.9,x1=d.x1+d.size*.9,Wd=x1-x0,hx=x0+fract(d.lt*P.v)*Wd*1.4,per=Wd/P.k,A=d.size*.55,tail=Wd*.7,st=Math.max(2,d.size*.04);
+   const ecg=x=>{const f=fract(x/per);for(let j=1;j<ECG.length;j++)if(f<=ECG[j][0]){const [a,ya]=ECG[j-1],[b,yb]=ECG[j];return lerp(ya,yb,(f-a)/(b-a));}return 0;};
+   c.save();c.lineWidth=Math.max(1.5,d.size*.045);c.lineJoin=c.lineCap='round';c.strokeStyle=d.accent;
+   for(let s=0;s<10;s++){const xa=Math.max(x0,hx-tail*(1-s/10)),xb=Math.min(x1,hx-tail*(1-(s+1)/10));if(xb<=xa)continue;
+    c.globalAlpha=d.z*clamp(d.a*2)*.8*(s+1)/10;c.beginPath();c.moveTo(xa,d.cy-A*ecg(xa-x0));for(let x=xa+st;x<xb;x+=st)c.lineTo(x,d.cy-A*ecg(x-x0));c.lineTo(xb,d.cy-A*ecg(xb-x0));c.stroke();}
+   if(hx>=x0&&hx<=x1){c.globalAlpha=d.z*clamp(d.a*2)*.8;c.fillStyle=d.accent;c.beginPath();c.arc(hx,d.cy-A*ecg(hx-x0),d.size*.05,0,TAU);c.fill();}
+   c.restore();}},
+ crossFlash:{name:'X字の閃光',tags:['impact','glitch','graphic'],w:.9,plan:r=>({side:sign(r),ang:.5+r()*.35}),
+  // 文字の上の角で、細い2本の光が X 字に交差して閃き、すぐに細く小さくなる（カットの頭）。そのあとも小さくまたたく
+  draw(c,d,P){const t=d.lt,f=t<.4?1-t/.4:0,k=Math.max(f,(.25+.15*Math.sin(t*9))*.5),x=P.side>0?d.x1+d.size*.35:d.x0-d.size*.35,y=d.y0-d.size*.25,L=d.size*(.6+1.6*outCubic(clamp(t/.12)))*(.5+.5*k);
+   c.save();c.globalAlpha=d.z*clamp(k)*clamp(t/.03);c.lineCap='round';
+   for(const [lw,col] of [[d.size*.05,rgba(d.accent,.5)],[Math.max(1,d.size*.015),'#ffffff']]){c.lineWidth=lw;c.strokeStyle=col;c.beginPath();
+    for(const a of [P.ang,-P.ang]){const dx=Math.cos(a)*L,dy=Math.sin(a)*L;c.moveTo(x-dx,y-dy);c.lineTo(x+dx,y+dy);}c.stroke();}
+   c.fillStyle='#ffffff';c.beginPath();c.arc(x,y,d.size*.05*(.6+.4*k),0,TAU);c.fill();c.restore();}},
  paleSticky:{name:'薄い付箋',tags:['pop','emotional','calm'],w:1.1,back:true,plan:r=>({tilt:(r()-.5)*.14,col:Math.floor(r()*PALE.length),tape:r()<.55,side:sign(r)}),
   draw(c,d,P){const m=d.size*.32,w=d.w+m*2,h=d.h+m*2,u=clamp(d.a*1.2);c.save();c.globalAlpha=d.z;
    drawSticky(c,d,d.cx,d.cy,w,h,P.tilt,PALE[P.col]||PALE[0],.3,u,P.side);

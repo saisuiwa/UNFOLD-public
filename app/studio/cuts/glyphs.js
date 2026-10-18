@@ -4,6 +4,7 @@
 // 文字アイテムの契約（字ごとの変形を返す関数を、純関数で書いたもの）:
 //   登場/保持/退場の部品は、アイテムの「字ごとの変形」を返すだけ。どのレイアウトにも掛けられる。
 //     glyph(g, i, n, p, E, P) → {dx,dy,sx,sy,rot,a,blur,hide}   足し算・掛け算（blur は最大）で合成される。blur は px。i は見える字の番号、n は見える字の数
+//       ほかに ch reel cell paint bold thin erode（字の描き替え・切り抜き・塗り・太さ・削れて消える。glyphDraw のコメント）
 //     item(it, p, E, P)       → アイテム全体の {blur,sx,sy,a,clip,bar} を書き換える（ワイプ・ブラー・伸縮など）
 //   p は、登場なら 0→1（登場の間）、退場なら 0→1（退場の間）、保持なら動きの強さ 0→1。
 //   inDur(D,n,P) / outDur(D,n,P) は、登場・退場にかける秒数（カットの長さ D から決める。短いカットでは短い）。
@@ -34,6 +35,8 @@ const SYMS={mix:'#$%&@*+=<>/?アイウエオカキクケコサシス0123456789AB
 const symOf=(set,u)=>{const S=SYMS[set]||SYMS.mix;return S[Math.floor(clamp(u,0,.999)*S.length)];};
 /** 字 i が確定する順番（0 が最初、1 が最後）。left: 左から、center: 中央から外へ、random: ばらばら */
 const lockOrder=(i,n,E,order)=>n<=1?0:order==='center'?Math.abs(i-(n-1)/2)/((n-1)/2):order==='random'?E.r(i,77):i/(n-1);
+// 字ごとに違う色で弾む登場の色（はっきりした6色）
+const POP_COLORS=['#ff5d73','#ffb020','#ffe14d','#3ddc84','#4da3ff','#b46bff'];
 const spread=(g,E,d)=>{const {u,horiz}=along(g,E);return horiz?{dx:u*d}:{dy:u*d};};
 
 // ---- 登場（短いカット向け。fast=短くても成り立つ） --------------------------------------------------------------------------------------------
@@ -97,6 +100,12 @@ export const ENTER={
  // 太さ（2026-10-18）: 細い輪郭だけの字が順に出て、塗りが満ちながら一度太り、元の太さで止まる
  thinToBold:{name:'細い線から太く育つ',tags:['emotional','calm','impact'],w:.9,fast:true,inDur:D=>clamp(D*.4,.2,.55),plan:r=>({spread:.35+r()*.2}),
   glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread);if(q<=0)return {hide:true};if(q>=1)return null;return {thin:1-outCubic(clamp(q*1.4)),bold:Math.sin(Math.PI*q)*.08};}},
+ // ---- 色と落下（2026-10-18）
+ dropFocus:{name:'ぼけながら落ちて止まる',tags:['emotional','impact','calm'],w:.9,fast:true,inDur:D=>clamp(D*.36,.18,.46),plan:r=>({spread:.35+r()*.2,k:1.6+r()*.8}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread);if(q<=0)return {hide:true};return {dy:-(1-outBack(q,P.k))*E.size*1.2,blur:(1-outCubic(q))*E.size*.26,a:clamp(q*3)};}},   // 上からぼけて落ち、少し行き過ぎてから戻る
+ colorPop:{name:'色とりどりに弾む',tags:['pop','emotional','impact'],w:.9,fast:true,inDur:D=>clamp(D*.36,.18,.46),plan:r=>({off:Math.floor(r()*6),spread:.4+r()*.15}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread);if(q<=0)return {hide:true};const s=outBack(q,2.4);
+   return {sx:s,sy:s,dy:-Math.sin(Math.PI*clamp(q*1.3))*E.size*.25,paint:q<.75?{u:1,color:POP_COLORS[(i+P.off)%POP_COLORS.length]}:null};}},   // 字ごとに違う色で跳ねて出て、着いたら元の色に戻る
  splitIn:{name:'斜めの切れ目からせり出す',tags:['impact','graphic','glitch'],w:.9,fast:true,inDur:D=>clamp(D*.32,.16,.42),plan:r=>({ang:sign(r)*(28+r()*22),line:r()<.7}),
   item(it,p,E,P){const e=outExpo(p),h=(E.bbox.y1-E.bbox.y0)+E.size*.4;it.split={ang:P.ang*DEG,n:h*(1-e),t:0,dy:0,line:P.line?clamp(1.4-p*1.6):0};}}
 };
@@ -134,6 +143,16 @@ export const HOLD={
   glyph:(g,i,n,p,E,P)=>({bold:(.5+.5*Math.sin(E.lt*P.sp+P.ph))*.075*p})},
  weightWave:{name:'太さの波が通る',tags:['pop','graphic','calm'],w:.8,plan:r=>({sp:2.4+r()*1.6,gap:.55+r()*.3}),
   glyph:(g,i,n,p,E,P)=>({bold:Math.pow(Math.max(0,Math.cos(E.lt*P.sp-i*P.gap)),6)*.1*p})},
+ // 傾き・大きさ・行の波（2026-10-18）。傾きは6度まで、大きさは1割まで（読める範囲）
+ tiltDomino:{name:'傾きがドミノで伝わる',tags:['pop','calm','graphic'],w:.9,plan:r=>({sp:.55+r()*.35,dir:sign(r)}),
+  glyph(g,i,n,p,E,P){const f=fract(E.lt*P.sp)*(n+5)-2.5,d=(P.dir>0?i:n-1-i)-f;if(Math.abs(d)>=2.2)return null;const k=Math.cos(d/2.2*Math.PI/2)**2,rot=P.dir*5.8*k*p;
+   return {rot,dx:rot*DEG*g.size*.9,dy:-Math.abs(rot*DEG)*g.size*.3};}},   // 足元の角を軸に倒れかけて戻るのが、となりの字へ順に伝わる
+ sizeBump:{name:'大きさのこぶが通る',tags:['pop','emotional','calm'],w:.9,plan:r=>({sp:.5+r()*.35,dir:sign(r)}),
+  glyph(g,i,n,p,E,P){const f=fract(E.lt*P.sp)*(n+3)-1.5,d=(P.dir>0?i:n-1-i)-f,k=Math.exp(-d*d/1.4),s=1+.095*k*p;return k<.01?null:{sx:s,sy:s,dy:-(s-1)*g.size*.5-k*p*g.size*.06};}},   // 足元から上へふくらみ、少し持ち上がる
+ sizeBreathe:{name:'字ごとに呼吸する',tags:['calm','emotional','pop'],w:.9,plan:r=>({sp:2+r()*1.2}),
+  glyph(g,i,n,p,E,P){const s=1+.065*p*Math.sin(E.lt*P.sp*(.7+.6*E.r(i,51))+E.r(i,52)*TAU);return {sx:s,sy:s,dy:-(s-1)*g.size*.5};}},   // 字ごとに速さと始まりが違う。足元はそのまま
+ lineShiver:{name:'行がざわつく',tags:['glitch','graphic','impact'],w:.8,plan:r=>({fps:10+Math.floor(r()*6)}),
+  glyph(g,i,n,p,E,P){const f=Math.floor(E.lt*P.fps),ln=g.line??0;return {dx:(hash(ln,f,E.seed%71)-.5)*E.size*.07*p,dy:(hash(ln,f,E.seed%71+5)-.5)*E.size*.012*p};}},   // 行ごとに、横へ小刻みにずれ続ける
  trackOpen:{name:'字間が広がり続ける',tags:['calm','emotional','graphic'],w:.9,plan:r=>({k:.12+r()*.02}),
   glyph:(g,i,n,p,E,P)=>spread(g,E,clamp(E.lt/Math.max(.3,E.D))*E.size*P.k*p)}
 };
@@ -169,6 +188,14 @@ export const EXIT={
  // タイプの逆（2026-10-18）: 最後の字から順に消える
  eraseBack:{name:'末尾から消える',tags:['glitch','graphic','calm'],w:.9,maxChars:16,outDur:(D,n)=>clamp(n*.04+.06,.12,D*.4),plan:()=>({}),
   glyph:(g,i,n,p)=>i>=n-Math.floor(p*(n+.999))?{hide:true}:null},
+ // ---- 削れて消える（2026-10-18）: 字が境目から削られて消え、削れた所が粒（砂・火の粉・消しかす）になって飛ぶ（glyphDraw の s.erode）。
+ //  k は削れの進み（1 で字が全部削れる。1 を過ぎても粒は飛び続ける）。最後に全体が薄くなって消える
+ sandAway:{name:'砂になって風化する',tags:['emotional','calm','glitch'],w:.9,outDur:D=>clamp(D*.34,.2,.48),plan:r=>({wind:.7+r()*.5,lift:.3+r()*.4}),
+  glyph(g,i,n,p,E,P){const q=local(p,n-1-i,n,.55);if(q<=0)return null;return {erode:{kind:'sand',k:q*1.5,wind:P.wind,lift:P.lift},a:1-inOutCubic(clamp((p-.8)/.2))};}},   // 行の右端の字から
+ burnAway:{name:'燃えて消える',tags:['emotional','impact','glitch'],w:.8,outDur:D=>clamp(D*.34,.2,.48),plan:r=>({spread:.3+r()*.25}),
+  glyph(g,i,n,p,E,P){const q=clamp((p-E.r(i,41)*P.spread)/(1-P.spread));if(q<=0)return null;return {erode:{kind:'burn',k:q*1.35},a:1-inOutCubic(clamp((p-.82)/.18))};}},   // 字ごとにばらばらに火が付き、下から燃え上がる
+ rubAway:{name:'消しゴムで消える',tags:['calm','graphic','emotional'],w:.8,outDur:D=>clamp(D*.36,.2,.5),plan:r=>({rows:3+Math.floor(r()*2)}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,.6);if(q<=0)return null;return {erode:{kind:'rub',k:q*1.25,rows:P.rows},a:1-inOutCubic(clamp((p-.85)/.15))};}},   // 上の段から、往復しながらこすって消す。こすった跡がうっすら残る
  splitDrop:{name:'斜めに切れてずれ落ちる',tags:['impact','graphic','glitch'],w:.9,outDur:D=>clamp(D*.26,.14,.36),plan:r=>({ang:sign(r)*(18+r()*24)}),
   item(it,p,E,P){const h=(E.bbox.y1-E.bbox.y0)+E.size*.4;it.split={ang:P.ang*DEG,n:0,t:outCubic(clamp(p*2.2))*E.size*.35,dy:inCubic(clamp((p-.3)/.7))*h*1.6,line:clamp(1-p*3)};it.a*=1-inCubic(clamp((p-.45)/.55));}}
 };
@@ -176,6 +203,7 @@ export const EXIT={
 // ---- 加工（字の描き方と、行の後ろに敷く図形） -------------------------------------------------------------------------------------------------
 const luma=hex=>{const n=parseInt(String(hex).slice(1,7),16)||0;return (.2126*(n>>16&255)+.7152*(n>>8&255)+.0722*(n&255))/255;};
 const contrast=hex=>luma(hex)>.55?'#101018':'#ffffff';
+const mixHex=(a,b,u)=>{const x=parseInt(String(a).slice(1,7),16)||0,y=parseInt(String(b).slice(1,7),16)||0;return '#'+[16,8,0].map(k=>Math.round(lerp(x>>k&255,y>>k&255,u)).toString(16).padStart(2,'0')).join('');};
 const rgbaOf=(hex,a)=>{const n=parseInt(String(hex).slice(1,7),16)||0;return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`;};
 export const TREAT={
  none:{name:'なし',tags:ALL,w:2.2,style:()=>({})},
@@ -197,6 +225,15 @@ export const TREAT={
   style:P=>({fillFx:{kind:'rainbow',pal:P.pal||'rainbow',k:P.k??1,v:P.v??.25}})},
  shineSweep:{name:'光の帯が走る',tags:['graphic','impact','calm','emotional'],w:.8,plan:r=>({k:.6+r()*.6,v:.45+r()*.35}),
   style:P=>({fillFx:{kind:'shine',k:P.k??.8,v:P.v??.6}})},
+ // ---- 影と縁（2026-10-18）
+ longShadow:{name:'長い影',tags:['graphic','pop','impact','emotional'],w:.8,plan:r=>({ang:30+r()*30,swing:6+r()*12,v:.5+r()*.6,len:.7+r()*.4}),
+  // 影の色は、アクセント色を背景色へ寄せた色（暗い背景では暗く、明るい背景では淡く）
+  style:(P,c)=>({longShadow:{ang:P.ang??45,swing:P.swing??10,v:P.v??.8,len:P.len??.9,color:mixHex(c.accent||'#888888',c.bg||'#000000',luma(c.bg||'#000000')<.5?.62:.5)}})},
+ echoOutline:{name:'輪郭の影が重なる',tags:['graphic','pop','glitch'],w:.8,plan:r=>({n:3+Math.floor(r()*2),dx:sign(r)*(.04+r()*.025),dy:.045+r()*.025}),
+  style:(P,c)=>({echo:{n:P.n??3,dx:P.dx??.05,dy:P.dy??.05,color:c.accent||'#ffd34d'}})},
+ doubleRim:{name:'二重のフチ',tags:['pop','impact','graphic'],w:.9,
+  // 内側のフチは字の色の反対（白か黒）、外側はアクセント色。アクセント色が内側と近い時は、外側も白か黒
+  style:(P,c)=>{const inner=luma(c.color)>.6?'#16161e':'#ffffff',outer=Math.abs(luma(c.accent)-luma(inner))<.3?(luma(inner)>.5?'#16161e':'#ffffff'):c.accent;return {rim:{w:.3,color:outer},stroke:{w:.15,color:inner}};}},
  stripeFill:{name:'縞が流れる',tags:['pop','graphic','glitch'],w:.7,plan:r=>({n:4+Math.floor(r()*3),v:sign(r)*(.5+r()*.5)}),
   style:P=>({fillFx:{kind:'stripes',n:P.n??5,v:P.v??.7}})}
 };
@@ -312,8 +349,8 @@ export function buildItem(cut,{W,H,measure,pieces,fontFamily=key=>`"U-${key}", s
   enter:cut.enter,enterP:cut.enterP,hold:cut.hold,holdP:cut.holdP,exit:cut.exit,exitP:cut.exitP,timing:tm};
 }
 
-const IDENT=()=>({dx:0,dy:0,sx:1,sy:1,rot:0,a:1,blur:0,hide:false,ch:null,reel:null,cell:false,paint:null,bold:0,thin:0});
-const merge=(st,d)=>{if(!d)return;if(d.hide)st.hide=true;if(d.ch!=null)st.ch=d.ch;if(d.reel)st.reel=d.reel;if(d.cell)st.cell=true;if(d.paint)st.paint=d.paint;if(d.bold)st.bold=Math.max(st.bold,d.bold);if(d.thin)st.thin=Math.max(st.thin,d.thin);st.dx+=d.dx||0;st.dy+=d.dy||0;st.sx*=d.sx??1;st.sy*=d.sy??1;st.rot+=d.rot||0;st.a*=d.a??1;st.blur=Math.max(st.blur,d.blur||0);};
+const IDENT=()=>({dx:0,dy:0,sx:1,sy:1,rot:0,a:1,blur:0,hide:false,ch:null,reel:null,cell:false,paint:null,bold:0,thin:0,erode:null});
+const merge=(st,d)=>{if(!d)return;if(d.hide)st.hide=true;if(d.ch!=null)st.ch=d.ch;if(d.reel)st.reel=d.reel;if(d.cell)st.cell=true;if(d.paint)st.paint=d.paint;if(d.erode)st.erode=d.erode;if(d.bold)st.bold=Math.max(st.bold,d.bold);if(d.thin)st.thin=Math.max(st.thin,d.thin);st.dx+=d.dx||0;st.dy+=d.dy||0;st.sx*=d.sx??1;st.sy*=d.sy??1;st.rot+=d.rot||0;st.a*=d.a??1;st.blur=Math.max(st.blur,d.blur||0);};
 /** カット内の時刻 lt での、字ごとの状態とアイテム全体の状態（純関数） */
 export function stateAt(item,lt){
  const {D,timing:{inDur,outDur}}=item,n=item.n;
@@ -337,7 +374,7 @@ export function stateAt(item,lt){
 export function readableAt(item,lt){
  const {glyphs,it}=stateAt(item,lt),s=item.size;
  if(it.blur>s*.06||it.clip||(it.split&&(it.split.n>s*.05||it.split.t>s*.05||it.split.dy>s*.05))||it.sx<.85||it.sx>1.2||it.sy<.85||it.sy>1.2||it.a<.9)return false;
- return glyphs.every(g=>!g.hide&&g.ch==null&&!g.reel&&(g.blur||0)<=s*.08&&g.a>=.9&&Math.abs(g.dx)<s*.15&&Math.abs(g.dy)<s*.15&&g.sx>.8&&g.sx<1.25&&g.sy>.8&&g.sy<1.25&&Math.abs(g.rot)<12);
+ return glyphs.every(g=>!g.hide&&g.ch==null&&!g.reel&&!(g.erode&&g.erode.k>.01)&&(g.blur||0)<=s*.08&&g.a>=.9&&Math.abs(g.dx)<s*.15&&Math.abs(g.dy)<s*.15&&g.sx>.8&&g.sx<1.25&&g.sy>.8&&g.sy<1.25&&Math.abs(g.rot)<12);
 }
 /** カットのうち、読める状態にある時間の割合（0.04秒きざみ） */
 export function readableShare(item,step=.04){
@@ -380,6 +417,52 @@ function fxFill(c,F,g,px,lt,item,col){
   for(let j=-1;j<=n;j++){const k0=(j+off)/n,k1=(j+off+.5)/n,k2=(j+off+1)/n;for(const [k,v] of [[k0,a],[k1,a],[k1,col],[k2,col]])if(k>=0&&k<=1)gr.addColorStop(k,v);}return gr;}
  return col;
 }
+/**
+ * 削れて消える字（s.erode = {kind,k,…}）。座標は字の中心が原点、px は字の大きさ。one(ch,oy,over,am) は字を1つ描く関数。k は削れの進み（1 で全部削れる。1 を過ぎても粒は飛ぶ）。
+ * 残っている所だけを切り抜いて描き、削れた所から粒を飛ばす（ゴーストの層 ghost では粒は描かない）。粒は字の枠の中の決まった位置から出る（字の形は分からないので、枠の中に散らす）。
+ *  sand: 右から左へ境目が進み、境目の手前はまだらに欠ける。粒は風で右上へ流れる
+ *  burn: 下から上へ、波打つ境目が燃え上がる。境目のすぐ上は赤く光り、その上は焦げる。火の粉が昇る
+ *  rub : 上の段から、段ごとに往復しながら消す。こすった跡がうっすら残り、消しかすが落ちる
+ */
+function erodeDraw(c,R,px,g,item,one,ch,col,base,ghost){
+ const k=R.k,u=clamp(k),w=px*.62,h=px*.6,seed=((g.i??0)*7+(item.seed|0))%997;
+ if(R.kind==='sand'){
+  const xb=w-2.2*w*u,band=px*.18,cs=Math.max(1.5,px*.055),x0=xb-band;
+  if(xb>-w){c.save();c.beginPath();if(x0>-w)c.rect(-w,-h,x0+w,2*h);
+   for(let j=Math.floor((Math.max(-w,x0)+w)/cs);j*cs-w<xb;j++){const cx0=j*cs-w,f=clamp((cx0+cs/2-x0)/band);for(let m=0;m*cs<2*h;m++)if(hash(seed,j,m)>f)c.rect(cx0,m*cs-h,cs*1.02,cs*1.02);}
+   c.clip();one(ch,0);c.restore();}
+  if(ghost)return;
+  c.fillStyle=col;
+  for(let j=0;j<40;j++){const x=-w+2*w*hash(seed,j,1),y=(hash(seed,j,2)-.5)*1.6*h,age=k-(w-x)/(2.2*w),a=clamp(1-age/.55);if(age<=0||a<=0)continue;
+   const r=px*(.018+.028*hash(seed,j,5))*(1-age*.6),X=x+age*px*(1+hash(seed,j,3))*R.wind*1.5,Y=y-age*px*R.lift*(.6+hash(seed,j,4))*1.4+Math.sin(age*7+j)*px*.05;
+   c.globalAlpha=base*a*.9;c.fillRect(X-r/2,Y-r/2,r,r);}
+  return;
+ }
+ if(R.kind==='burn'){
+  const yb=x=>h*1.25-2.6*h*u+Math.sin(x/px*9+seed)*px*.05+Math.sin(x/px*23+seed*.7)*px*.022,st=w/10;
+  if(u<1){
+   c.save();c.beginPath();c.moveTo(-w,-h*1.3);c.lineTo(w,-h*1.3);for(let x=w;x>=-w-.1;x-=st)c.lineTo(x,yb(x));c.closePath();c.clip();one(ch,0);c.restore();
+   // 境目の上の帯だけを、別の色で塗り直す（字の形の所だけが焦げて光る）
+   const band=(o0,o1,color,am)=>{c.save();c.beginPath();for(let x=w;x>=-w-.1;x-=st)c.lineTo(x,yb(x)-o1);for(let x=-w;x<=w+.1;x+=st)c.lineTo(x,yb(x)-o0);c.closePath();c.clip();one(ch,0,color,am);c.restore();};
+   if(!ghost){band(px*.09,px*.2,'#3a1a0c',.7);band(-px*.01,px*.09,'#ff8a2a',1);}
+  }
+  if(ghost)return;
+  for(let j=0;j<18;j++){const rel=.1+.76*hash(seed,j,2),age=k-rel;if(age<=0||age>.6)continue;
+   const X=-w+2*w*hash(seed,j,1)+Math.sin(age*8+j)*px*.07,Y=h*1.25-2.6*h*rel-age*px*(1+hash(seed,j,3))*1.3,r=px*(.012+.018*hash(seed,j,4));
+   c.globalAlpha=base*clamp((1-age/.6)*(.6+.4*Math.sin(age*40+j)));c.fillStyle=j%3?'#ffb347':'#ff5a1f';c.beginPath();c.arc(X,Y,Math.max(.6,r),0,TAU);c.fill();}
+  return;
+ }
+ // rub
+ const rows=R.rows|0||3,bh=2*h/rows,e=u*rows;
+ if(!ghost)one(ch,0,null,.14*(1-clamp((k-1)/.25)));   // こすった跡
+ if(u<1){c.save();c.beginPath();
+  for(let b=0;b<rows;b++){const y=-h+b*bh;if(e>=b+1)continue;if(e<=b){c.rect(-w,y,2*w,bh+.5);continue;}const f=e-b;if(b%2===0)c.rect(-w+2*w*f,y,2*w*(1-f),bh+.5);else c.rect(-w,y,2*w*(1-f),bh+.5);}
+  c.clip();one(ch,0);c.restore();}
+ if(ghost)return;
+ c.fillStyle=col;
+ for(let j=0;j<16;j++){const ej=hash(seed,j,1)*rows*.98,age=k-ej/rows;if(age<=0||age>.45)continue;const b=Math.floor(ej),f=ej-b,x=b%2===0?-w+2*w*f:w-2*w*f,y=-h+(b+.5)*bh;
+  const X=x+(hash(seed,j,2)-.5)*px*.9*age,Y=y+age*age*px*5,r=px*(.02+.025*hash(seed,j,3));c.globalAlpha=base*.55*clamp(1-age/.45);c.fillRect(X-r/2,Y-r/2,r,r*.7);}
+}
 function glyphDraw(c,item,g,s,it,tint){
  const T=item.style,px=g.size,bl=Math.max(s.blur||0,(T.blur||0)*px),base=clamp(s.a)*it.a;
  c.save();
@@ -389,20 +472,29 @@ function glyphDraw(c,item,g,s,it,tint){
  if(g.rot0||s.rot)c.rotate(((g.rot0||0)+s.rot)*DEG);c.scale(s.sx,s.sy);
  c.font=`${px}px ${g.fontKey?item.fontFamily(g.fontKey):item.family}`;c.textAlign='center';c.textBaseline='middle';
  const col=tint||g.color||(g.emphasis?item.accent:item.color);
- const one=tint?(ch,oy)=>{c.globalAlpha=base;c.fillStyle=tint;c.fillText(ch,0,oy);}:(ch,oy,over)=>{   // tint: ゴーストの層。影・縁・押し出しは付けず、色だけで塗った形にする。over: 塗りの色を替える（左から塗り替える）
-  c.globalAlpha=base;
+ const one=tint?(ch,oy,over,am=1)=>{c.globalAlpha=base*am;c.fillStyle=tint;c.fillText(ch,0,oy);}:(ch,oy,over,am=1)=>{   // tint: ゴーストの層。影・縁・押し出しは付けず、色だけで塗った形にする。over: 塗りの色を替える（左から塗り替える）。am: 濃さを掛ける
+  const b=base*am;c.globalAlpha=b;
+  // T.longShadow: 字から長く伸びる影。光の向き（ang）が時刻でゆっくり振れる。遠いコピーから順に重ね、先の方ほど薄い
+  if(T.longShadow){const L=T.longShadow,a=(L.ang+Math.sin((it.lt||0)*L.v)*L.swing)*DEG,len=L.len*px,m=Math.round(clamp(len/2.2,10,48)),ux=Math.cos(a)*len/m,uy=Math.sin(a)*len/m;c.fillStyle=L.color;
+   for(let k=m;k>=1;k--){c.globalAlpha=b*(1-.85*(k/m)**2);c.fillText(ch,k*ux,oy+k*uy);}c.globalAlpha=b;}
   if(T.extrude){c.fillStyle=T.extrude.color;for(let k=T.extrude.n;k>=1;k--)c.fillText(ch,k*T.extrude.dx*px,oy+k*T.extrude.dy*px);}
-  if(T.trail){c.fillStyle=col;for(let k=T.trail.n;k>=1;k--){c.globalAlpha=base*T.trail.a*(1-(k-1)/T.trail.n);c.fillText(ch,k*T.trail.dx*px,oy+k*(T.trail.dy||0)*px);}c.globalAlpha=base;}
+  // T.echo: 輪郭だけのコピーを、ずらして何枚も重ねる（昔の立体文字）。ずれは少しだけ息をする
+  if(T.echo){const X=T.echo;c.lineJoin='round';c.lineWidth=Math.max(1,px*.028);c.strokeStyle=X.color;
+   for(let k=X.n;k>=1;k--){const v=1+.18*Math.sin((it.lt||0)*2.6-k*.9);c.globalAlpha=b*(1-(k-1)/X.n*.55);c.strokeText(ch,k*X.dx*px*v,oy+k*X.dy*px*v);}c.globalAlpha=b;}
+  if(T.trail){c.fillStyle=col;for(let k=T.trail.n;k>=1;k--){c.globalAlpha=b*T.trail.a*(1-(k-1)/T.trail.n);c.fillText(ch,k*T.trail.dx*px,oy+k*(T.trail.dy||0)*px);}c.globalAlpha=b;}
   if(T.shadow){c.shadowColor=T.shadow.color;c.shadowBlur=T.shadow.blur*px;c.shadowOffsetX=T.shadow.dx*px;c.shadowOffsetY=T.shadow.dy*px;}
+  // T.rim: 外側の太いフチ（T.stroke の内側のフチと合わせて二重のフチ）
+  if(T.rim){c.lineJoin='round';c.lineWidth=T.rim.w*px;c.strokeStyle=T.rim.color;c.strokeText(ch,0,oy);}
   if(T.stroke){c.lineJoin='round';c.lineWidth=T.stroke.w*px;c.strokeStyle=T.stroke.color;c.strokeText(ch,0,oy);c.shadowColor='transparent';}
   const fill=over||(T.fillFx?fxFill(c,T.fillFx,g,px,it.lt||0,item,col):T.textColor&&!g.emphasis?T.textColor:col);
   // s.bold: 字と同じ色の縁で太らせる（どの書体でも太さを変えられる）。s.thin: 細い輪郭だけで描き、塗りを薄くする（1 で輪郭だけ）
   if(s.bold>.001){c.lineJoin='round';c.lineWidth=s.bold*px;c.strokeStyle=fill;c.strokeText(ch,0,oy);c.shadowColor='transparent';}
-  if(s.thin>.001){c.lineJoin='round';c.lineWidth=Math.max(.75,px*.022);c.strokeStyle=fill;c.strokeText(ch,0,oy);c.shadowColor='transparent';c.globalAlpha=base*(1-s.thin);}
+  if(s.thin>.001){c.lineJoin='round';c.lineWidth=Math.max(.75,px*.022);c.strokeStyle=fill;c.strokeText(ch,0,oy);c.shadowColor='transparent';c.globalAlpha=b*(1-s.thin);}
   if(T.fill!==false){c.fillStyle=fill;c.fillText(ch,0,oy);}
  };
  // 字の置き換え: s.ch があれば、その字を描く。s.reel = {cur,next,u} なら、字の枠で切り抜いて、リールのように next を上から、cur を下へ u だけずらして描く
  const paint=()=>{
+  if(s.erode){erodeDraw(c,s.erode,px,g,item,one,s.ch??g.ch,col,base,!!tint);return;}
   if(!s.reel){one(s.ch??g.ch,0);
    // s.paint = {u,color}: 字の左から u の割合だけ、別の色で塗り直す（字の途中まで塗られることもある）
    if(s.paint&&s.paint.u>0&&!tint){const pc=s.paint.color==='accent'?(item.accent&&item.accent.toLowerCase()!==String(col).toLowerCase()?item.accent:'#ffd34d'):s.paint.color;
