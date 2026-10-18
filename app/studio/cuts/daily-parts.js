@@ -152,4 +152,36 @@ export const DAILY_CUT_PARTS=[
   tags:['impact','glitch','pop'],w:1,dur:.3,poster:.08,plan:r=>({s:.12+r()*.1}),
   apply(c,e,P,k){if(k<=.001||!e.tmp)return;const t=e.tmp('stretchX',e.W,e.H),x=t.getContext('2d');x.clearRect(0,0,e.W,e.H);x.drawImage(c.canvas,0,0);
    const sx=1+P.s*k,sy=1-P.s*k*.25;c.save();c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,e.W,e.H);c.drawImage(t,e.W*(1-sx)/2,e.H*(1-sy)/2,e.W*sx,e.H*sy);c.restore();}},
+
+ // ---- 2026-10-18（軸の違う動きを追加）
+ // 輪郭の線が走ってから、中の塗りが閃く
+ {axis:'enter',key:'outlineFlash',name:'輪郭から閃く',desc:'字ごとに細い輪郭が現れ、中がアクセント色に閃いて元の色へ戻ります。',added:'2026-10-18',
+  tags:['graphic','impact','pop'],w:1,fast:true,inDur:D=>clamp(D*.3,.14,.38),plan:r=>({spread:.16+r()*.08}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread);if(q<=0)return {hide:true};const trace=clamp(q/.46),flash=clamp(1-Math.abs(q-.62)/.14);return {thin:1-trace,paint:flash>.08?{u:1,color:'accent'}:null,a:clamp(q*5)};}},
+ // 保持中、選ばれた1字だけが明滅する
+ {axis:'hold',key:'singleBlink',name:'一字だけ点滅',desc:'ほとんど静かな行の中で、選ばれた一字だけが小さく明滅します。',added:'2026-10-18',
+  tags:['glitch','graphic','calm'],w:.9,plan:r=>({at:r(),speed:2.2+r()*.8,phase:r()*TAU}),
+  glyph(g,i,n,p,E,P){if(Math.floor(P.at*n)!==i)return null;const b=.5+.5*Math.sin(E.lt*P.speed*TAU+P.phase);return {a:.92+.08*b,bold:.065*(b>.68?1:.1)*p,dy:Math.sin(E.lt*P.speed*TAU+P.phase)*E.size*.018*p};}},
+ // 文字を縦に伸ばして滴らせる
+ {axis:'exit',key:'dripAway',name:'雨だれに溶ける',desc:'字の下が伸びて雨だれのように垂れ、ぼけながら消えていきます。',added:'2026-10-18',
+  tags:['emotional','glitch','impact'],w:1,outDur:D=>clamp(D*.28,.16,.4),plan:r=>({spread:.15+r()*.12}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread),fall=inCubic(q);return {dy:fall*g.size*1.05,sy:1+fall*.62,sx:1+fall*.08,blur:fall*g.size*.075,a:1-clamp((q-.52)/.48)};}},
+ // 小さな跳ねを重ねて、字ごとに外へ去る
+ {axis:'exit',key:'hopAway',name:'小さく跳ね去る',desc:'字が小さな跳ねを二度重ねながら、少し横へ進んで消えていきます。',added:'2026-10-18',
+  tags:['pop','impact','graphic'],w:.9,outDur:D=>clamp(D*.27,.15,.38),plan:r=>({spread:.2+r()*.1}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread),hop=Math.abs(Math.sin(q*TAU*2))*(1-q),dir=E.r(i,8)<.5?-1:1;return {dx:dir*g.size*.42*outCubic(q),dy:g.size*(.42*outCubic(q)-.3*hop),rot:dir*5*hop,a:1-smooth(q/.96)};}},
+ // 文字の後ろに照準が近づく
+ {axis:'deco',key:'crosshair',name:'照準',desc:'細い輪と十字が文字の外から近づき、行の中心で静かに止まります。',added:'2026-10-18',
+  tags:['graphic','impact','glitch'],w:1,back:true,plan:r=>({side:sign(r),size:.34+r()*.12}),
+  draw(c,d,P){const u=outCubic(d.a),cx=d.cx+P.side*(1-u)*d.w*.34,cy=d.cy-(1-u)*d.h*.18,r=d.size*P.size*(.25+.75*u);c.save();c.globalAlpha=d.z*.48;c.strokeStyle=d.accent;c.lineWidth=Math.max(1,d.size*.018);c.beginPath();c.arc(cx,cy,r,0,TAU);c.stroke();const gap=r*.32,reach=r*1.55;c.beginPath();c.moveTo(cx-reach,cy);c.lineTo(cx-gap,cy);c.moveTo(cx+gap,cy);c.lineTo(cx+reach,cy);c.moveTo(cx,cy-reach);c.lineTo(cx,cy-gap);c.moveTo(cx,cy+gap);c.lineTo(cx,cy+reach);c.stroke();c.restore();}},
+ // 震える縦線の列を中央から左右へ分ける
+ {axis:'bg',key:'splitColumns',name:'真ん中が割れる縦線',desc:'細い縦線が細かく震え、中央のすき間がゆっくり広がって戻ります。',added:'2026-10-18',
+  tags:['graphic','glitch','calm'],w:.9,plan:r=>({n:30+Math.floor(r()*11),seed:Math.floor(r()*1000),speed:.8+r()*.5}),
+  draw(c,e,P){const gap=e.W*(.025+.055*(.5+.5*Math.sin(e.t*P.speed*TAU*.2)));c.save();c.lineWidth=Math.max(.8,e.W/P.n*.12);
+   for(let i=0;i<P.n;i++){const base=((i+.5)/P.n-.5)*e.W,side=Math.sign(base);if(Math.abs(base)<gap*.5)continue;const jitter=Math.sin(e.t*P.speed*TAU+hash(P.seed,i,1)*TAU)*e.W*.004,x=e.W*.5+base+side*gap*.5+jitter;c.strokeStyle=rgba(i%3?e.fg:e.accent,.17);c.beginPath();c.moveTo(x,0);c.lineTo(x,e.H);c.stroke();}
+   c.restore();}},
+ // 星形の窓が広がって次の絵に切り替わる
+ {axis:'trans',key:'starWindow',name:'星窓で切り替わる',desc:'前の絵の上に星形の窓が広がり、窓の向こうから次の絵へ切り替わります。',added:'2026-10-18',
+  tags:['pop','impact','graphic'],w:1,dur:.4,plan:r=>({rot:r()*TAU/10}),
+  draw(c,A,B,p,e,P){c.drawImage(A,0,0);const q=inCubic(p),R=Math.hypot(e.W,e.H)*2.25*q,cx=e.W*.5,cy=e.H*.5;c.save();c.beginPath();for(let i=0;i<20;i++){const a=P.rot+i*TAU/20,r=i%2?R*.52:R,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i?c.lineTo(x,y):c.moveTo(x,y);}c.closePath();c.clip();c.drawImage(B,0,0);c.restore();}},
 ];
