@@ -6,7 +6,8 @@
 //        the GPU check and the preview check then look at the samples added on that day or later (the older ones were checked on their day)
 //   --base=REF   what the ?v= numbers are compared with (default origin/main)
 // Steps: unit tests (tools/test and tools/test/studio) - the GLSL samples on the GPU (the editor's three checks, warnings count as failures) - the image methods and the text code motions in the app's own runtimes
-//        - the cut parts in STUDIO's cut engine (drawn, readable, a veil over a picture) - previews (files, size, video format, decodes)
+//        - the cut parts in STUDIO's cut engine (drawn, readable, a veil over a picture) - all cut parts in combination (no washed-out frames over many random plans)
+//        - previews (files, size, video format, decodes)
 //        - generated pages are up to date - every page opens without errors - the samples page works - the editor lists the samples
 //        - the method workshop lists and runs the new samples - the lyric panel lists the text motions - changed modules got a new ?v= - the daily log mentions every new sample.
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -253,6 +254,39 @@ try {
     for (const p of page.problems) problems.push(`page: ${p}`);
     await page.close();
     need(!problems.length, problems.join('\n'));
+  });
+
+  // Parts are picked per axis independently, so a new part meets every part of the other axes. Some accidents only show in a combination
+  // (an additive bloom over a full-screen plate, an invert over a plate, a white accent plate), and the browser tests only meet them by chance.
+  // So: plan many lyrics with every axis turned up, draw every frame (over a picture and on its own) and look for frames that turn almost white.
+  await step('cut parts in combination never wash the picture out (40 plans, with and without a picture under them)', async () => {
+    const page = await newPage();
+    await page.goto(`${server.url}/__tools/preview/cut-part.html`);
+    await page.waitForFunction(() => window.previewReady === true, null, { timeout: 30000 });
+    const found = await page.evaluate(async () => {
+      const L = await import('/studio/cuts/layer.js'), PL = await import('/studio/cuts/plan.js'), { createProject, newLayout } = await import('/studio/model.js');
+      await L.ensureCutFonts(['gothic', 'mincho', 'round', 'marker', 'dela', 'dot']);
+      const TEXTS = ['折り目が光に変わっていく', '小さな紙が風に飛んだ', 'ほら、もう一回ひろげよう', '紙の翼でどこまでも'];
+      const projectOf = () => { const p = createProject({ durationUs: 12e6 }); p.locks.lyrics = false;
+        p.lyrics = TEXTS.map((text, i) => ({ id: 'L' + i, text, runs: [{ id: 'r' + i, text }], startUs: Math.round((.4 + i * 2.8) * 1e6), endUs: Math.round((.4 + i * 2.8 + 2.6) * 1e6), motion: { font: 'gothic', color: '#ffffff', emphasisColor: '#ff6fae' }, timingSource: 'manual', opacity: 1 }));
+        for (const v of Object.values(p.views)) for (const l of p.lyrics) v.layout[l.id] = newLayout(); return p; };
+      const W = 240, H = 135, bad = [];
+      for (const opaque of [false, true]) for (let seed = 1; seed <= 20; seed++) {
+        const cuts = PL.planCutsRaw(projectOf(), { seed: seed * 7 + (opaque ? 1000 : 0), worldAmount: .9, fxAmount: 1, transAmount: 1, camAmount: 1, decoAmount: .6, treatAmount: 1, holdAmount: 1 }).cuts;
+        const eng = L.createCutEngine(); eng.setSize(W, H); eng.setOpaque(opaque);
+        for (let idx = 0; idx < cuts.length; idx++) { const c = cuts[idx];
+          for (let t = c.start; t < c.end; t += .08) {
+            const cv = new OffscreenCanvas(W, H), x = cv.getContext('2d', { willReadFrequently: true }); x.fillStyle = '#d01818'; x.fillRect(0, 0, W, H);
+            x.drawImage(eng.draw(cuts, idx, t), 0, 0); const d = x.getImageData(0, 0, W, H).data; let n = 0;
+            for (let i = 0; i < d.length; i += 4) if (d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235) n++;
+            if (n / (W * H) > .7) { bad.push(`${opaque ? 'on its own' : 'over a picture'}, plan ${seed}, cut ${idx} at ${(t - c.start).toFixed(2)} s: ${Math.round(n / (W * H) * 100)}% near-white — bg ${c.bgPart}, cam ${c.cam}, fx ${c.fx}, trans ${c.trans}, world ${c.world}, deco ${c.deco}, enter ${c.enter}, hold ${c.hold}, exit ${c.exit}, treat ${c.treat}, accent ${c.emphasisColor}`); break; }
+          } }
+      }
+      return bad;
+    });
+    for (const p of page.problems) found.push(`page: ${p}`);
+    await page.close();
+    need(!found.length, found.slice(0, 8).join('\n'));
   });
 
   const kindOf = { method: 'glsl', graphic: 'glsl', image: 'image', codetext: 'text', effect: 'effect' }, inWorkshop = recent.filter(i => kindOf[i.group]);   // the preset text motions are not in the workshop
