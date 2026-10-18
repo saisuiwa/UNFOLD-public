@@ -5,7 +5,8 @@
 // 世界の契約:
 //   plan(r, cut) → P                     保存して再現できる値
 //   fits(n)                              n 字までなら置ける
-//   frame(P, {W,H,n,D,exitOK}) → {box:{cx,cy,w,h}, mode?, cols?, curve?, align?, maxWidth?, delay, ...}
+//   frame(P, {W,H,n,D,exitOK}) → {box:{cx,cy,w,h}, mode?, cols?, curve?, align?, maxWidth?, size?, fit?, delay, ...}
+//                                         size: 字の大きさ（px）を世界が決める。fit:false なら箱に収めない（はみ出した所は絵の外で切れる）
 //                                         文字を置く箱と配置の種類（wrap|grid|path）。delay は、物が出てくるまで文字を待たせる秒数
 //   xform(c, e, P, F)                    物と文字をまとめて動かす（入り・出・傾き）
 //   back(c, e, P, F, item) / front(...)  文字の後ろ/前に描く物。item は配置済みの文字アイテム（行・字の位置を読める）
@@ -334,6 +335,24 @@ export const WORLD={
 ,
 
  // ---- 円・渦・図形の輪郭に並べる（2026-10-18）: 字を arrange で並べ直し、xform で全体をゆっくり回す・息づかせる
+ // ---- 超デカ文字（2026-10-18）: 1〜4字の短い語を、画面の高さいっぱいに置く。端ははみ出して切れる（frame の size と fit:false）
+ //  push: 大きい所から縮んで止まり、ゆっくり寄る。slide: 画面の横をゆっくり流れる。echo: 輪郭だけの同じ字を、ずらして後ろに重ねる
+ megaText:{name:'超デカ文字',tags:['impact','graphic','pop'],w:.8,fits:n=>n>=1&&n<=4,
+  plan:r=>({mode:pickW(r,['push','slide','echo'],[1.2,1,1]),dir:sign(r),tilt:r()<.3?sign(r)*(3+r()*4):0}),
+  // 字の大きさ: 画面の高さより少し大きく（短い語。上下が切れる）か、字数で幅の2割5分増しになる大きさ（長い語。左右が少し切れる）
+  frame(P,{W,H,n,D,exitOK}){return {box:{cx:W/2,cy:H/2,w:W*.96,h:H*.96},mode:'path',size:Math.min(H*1.25,W*1.25/Math.max(1,n*.92)),fit:false,delay:dly(D,exitOK,.2)};},
+  xform(c,e,P,F){const cx=F.box.cx,cy=F.box.cy,u=clamp(e.lt/Math.max(.3,e.D)),eIn=outCubic(e.pIn),eOut=inCubic(e.pOut);
+   let s,dx=0;
+   if(P.mode==='slide'){dx=P.dir*e.W*lerp(.16,-.1,u);s=lerp(1.15,1,eIn);}
+   else s=lerp(P.mode==='echo'?1.3:1.25,1,eIn)*(1+(P.mode==='echo'?.05:.1)*u);
+   s*=1+eOut*.6;
+   c.translate(cx+dx,cy);if(P.tilt)c.rotate(P.tilt*DEG);c.scale(s,s);c.globalAlpha*=clamp(e.pIn*4)*(1-eOut);c.translate(-cx,-cy);},
+  back(c,e,P,F,item){
+   if(P.mode!=='echo')return;
+   const off=item.size*.07*P.dir;
+   c.save();c.translate(F.box.cx-F.box.w/2,F.box.cy-F.box.h/2);c.lineJoin='round';c.strokeStyle=e.accent;c.lineWidth=Math.max(2,item.size*.018);c.globalAlpha*=.85*clamp(e.pIn*2);c.textAlign='center';c.textBaseline='middle';
+   for(const g of item.glyphs){c.font=`${g.size}px ${g.fontKey?item.fontFamily(g.fontKey):item.family}`;c.strokeText(g.ch,g.cx+off,g.cy+off*.6);}
+   c.restore();}},
  ringText:{name:'円に並んで回る',tags:['graphic','calm','pop'],w:.8,fits:n=>n>=3&&n<=18,
   box:(P,F,it,W,H)=>({...RING_BOX(W,H),rot:0}),
   plan:r=>({spin:sign(r)*(.18+r()*.2),ticks:r()<.6,top:r()<.5}),

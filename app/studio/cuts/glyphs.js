@@ -249,7 +249,7 @@ const KINSOKU_END=new Set([...'（「『【〔〈《［｛']);
  * 文字を字ごとの箱に並べる。返す glyphs の cx,cy は絵の中心(W/2,H/2)を基準にした絶対座標。
  * runs: [{text,scale?,emphasis?,color?}]、pieces: [{from,to}]（語の区切り。word 番号を付けるため）
  */
-export function layoutText({text,runs,pieces,W,H,size,font,measure,vertical=false,maxWidth=.86,mode='wrap',cols=0,curve=null,align='center'}){
+export function layoutText({text,runs,pieces,W,H,size,font,measure,vertical=false,maxWidth=.86,mode='wrap',cols=0,curve=null,align='center',fit=true}){
  const chars=[];let off=0;
  for(const r of (runs&&runs.length?runs:[{text}]))for(const ch of Array.from(r.text||'')){
   if(ch==='\n'){chars.push({ch,br:true});off+=1;continue;}
@@ -289,7 +289,7 @@ export function layoutText({text,runs,pieces,W,H,size,font,measure,vertical=fals
   if(cur.length)rows.push(cur);
   const info=rows.map(row=>({row,w:row.reduce((a,c)=>a+c.w,0),h:Math.max(1,...row.map(c=>c.size||0))}));
   const pitch=info.map(l=>l.h*1.28),totalH=pitch.reduce((a,b)=>a+b,0),maxLine=Math.max(1,...info.map(l=>l.w));
-  const k=Math.min(1,W*.92/maxLine,H*.82/Math.max(1,totalH));
+  const k=fit?Math.min(1,W*.92/maxLine,H*.82/Math.max(1,totalH)):1;   // fit=false: 枠に収めない（超デカ文字。はみ出した所は絵の外で切れる）
   let y=-totalH*k/2;
   info.forEach((l,li)=>{
    const ph=pitch[li]*k;let x=align==='left'?-W*maxWidth/2:-l.w*k/2;const cy=y+ph/2;
@@ -339,9 +339,10 @@ export function timingsOf(D,enter,exit,n,PE,PX){
  */
 export function buildItem(cut,{W,H,measure,pieces,fontFamily=key=>`"U-${key}", sans-serif`,frame=null}){
  // frame（世界が決める文字の領域）があれば、その箱の中だけで折り返す。大きさの基準は絵全体（fontScale）のまま。
+ // ただし世界が frame.size（字の大きさ px）と frame.fit=false を返したら、その大きさで、枠に収めずに置く（超デカ文字）
  const LW=frame?frame.box.w:W,LH=frame?frame.box.h:H;
- const size=Math.min(W,H)*cut.fontScale,font=cut.gFont||'gothic';
- const lay=layoutText({text:cut.text,runs:cut.runs,pieces,W:LW,H:LH,size,font,measure,vertical:!!cut.gVertical&&!frame,mode:frame?.mode,cols:frame?.cols,curve:frame?.curve,align:frame?.align,maxWidth:frame?.maxWidth});
+ const size=frame?.size||Math.min(W,H)*cut.fontScale,font=cut.gFont||'gothic';
+ const lay=layoutText({text:cut.text,runs:cut.runs,pieces,W:LW,H:LH,size,font,measure,vertical:!!cut.gVertical&&!frame,mode:frame?.mode,cols:frame?.cols,curve:frame?.curve,align:frame?.align,maxWidth:frame?.maxWidth,fit:frame?.fit!==false});
  const delay=frame?.delay||0,D=cut.end-cut.start-delay,n=lay.glyphs.length;
  const tm=timingsOf(D,cut.enter,cut.exit,n,cut.enterP,cut.exitP);
  const style=(TREAT[cut.treat]||TREAT.none).style(cut.treatP,{color:cut.color,accent:cut.emphasisColor,bg:cut.bg});

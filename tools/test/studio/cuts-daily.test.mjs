@@ -44,11 +44,14 @@ const projectOf=()=>{const p=createProject({durationUs:12e6});p.locks.lyrics=fal
  p.lyrics=TEXTS.map((text,i)=>({id:'L'+i,text,runs:[{id:'r'+i,text}],startUs:Math.round((.4+i*2.8)*1e6),endUs:Math.round((.4+i*2.8+2.6)*1e6),motion:{font:'gothic',color:'#ffffff',emphasisColor:'#ff6fae'},timingSource:'manual',opacity:1}));
  for(const v of Object.values(p.views))for(const l of p.lyrics)v.layout[l.id]=newLayout();return p;};
 const measure=(ch,font,px)=>/[\x00-\x7f]/.test(ch)?px*.55:px;
-const planOf=seed=>finishCutPlan(planCutsRaw(projectOf(),{seed,camAmount:1,fxAmount:1,transAmount:1,worldAmount:1,treatAmount:1,holdAmount:1,decoAmount:1}),{itemOf:cut=>buildAnyItem(cut,{W:960,H:540,measure})});
+const planOf=(seed,over={})=>finishCutPlan(planCutsRaw(projectOf(),{seed,camAmount:1,fxAmount:1,transAmount:1,worldAmount:1,treatAmount:1,holdAmount:1,decoAmount:1,...over}),{itemOf:cut=>buildAnyItem(cut,{W:960,H:540,measure})});
+// 台（世界）のあるカットには飾りが付かない。台を全部に付けると飾りの出番が少なく、飾りが増えると、どれかが60通りで一度も出ないことがある（2026-10-18、飾り34個で）。
+// だから「選ばれるか」は、台なしの計画も一緒に数える
 
 test('おまかせのカット割り picks the daily parts, and the saved values of a daily part pass the value check unchanged', () => {
  const used=new Set(),changed=[];
  for(let seed=1;seed<=60;seed++){
+  for(const [,d] of planOf(seed,{worldAmount:0}).data)for(const c of d.cuts)if(c.deco)used.add(`deco/${c.deco}`);
   for(const [,d] of planOf(seed).data){
    for(const c of d.cuts)for(const [axis,[k]] of Object.entries(FIELD))if(c[k])used.add(`${axis}/${c[k]}`);
    // put each daily part (with values from its own plan) on the first cut, and read the data back

@@ -293,6 +293,7 @@ export function assignWorlds(cuts,{seed=1,worldAmount=.5,worldOpacity=1}={}){
   c.world=key;c.worldP=key?WORLD[key].plan(rng(`wp:${seed}:${id}`),c):null;c.worldExit=!!key&&!touchingNext;c.worldA=key?Math.round(clamp(worldOpacity,0,1)*100)/100:undefined;
   if(key){c.gVertical=false;if(['marker','underline','box','hollow','extrude','soft','blurTrail'].includes(c.treat)){c.treat='none';c.treatP={};}}
   if(key&&WORLD[key].knockout){c.treat='none';c.treatP={};c.ghost=0;if(!['gothic','dela','round'].includes(c.gFont))c.gFont='dela';}   // 抜き文字: 穴の形を変える加工と色ずれは付けず、太い書体で
+  if(key==='megaText'&&!['gothic','dela','round'].includes(c.gFont))c.gFont='dela';   // 超デカ文字: 細い書体は太い書体に（画面いっぱいの細い線は読みにくい）
  });
  return cuts;
 }

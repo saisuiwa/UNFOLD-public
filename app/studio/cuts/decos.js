@@ -134,6 +134,66 @@ export const DECO={
    for(const [lw,col] of [[d.size*.05,rgba(d.accent,.5)],[Math.max(1,d.size*.015),'#ffffff']]){c.lineWidth=lw;c.strokeStyle=col;c.beginPath();
     for(const a of [P.ang,-P.ang]){const dx=Math.cos(a)*L,dy=Math.sin(a)*L;c.moveTo(x-dx,y-dy);c.lineTo(x+dx,y+dy);}c.stroke();}
    c.fillStyle='#ffffff';c.beginPath();c.arc(x,y,d.size*.05*(.6+.4*k),0,TAU);c.fill();c.restore();}},
+ // ---- 計器・図形の飾り（2026-10-18）
+ barcode:{name:'バーコードの帯',tags:['graphic','glitch','impact'],w:.9,plan:r=>({side:sign(r),bars:26+Math.floor(r()*14)}),
+  // 文字の横に、細い縦線のバーコードの帯。何本かの太さが、時々入れ替わる（0.25秒ごと）
+  draw(c,d,P){const f=Math.floor(d.lt*4),h=d.size*.5,len=d.size*(2+.4*(P.bars%3)),u=outCubic(clamp(d.a*1.4));
+   const at=P.side>0?{x:d.x1+d.size*.35,y:d.cy-h/2}:{x:d.x0-d.size*.35-len,y:d.cy-h/2};
+   c.save();c.globalAlpha=d.z*.85;c.fillStyle=d.fg;let x=0;
+   for(let i=0;i<P.bars&&x<len*u;i++){const k=hash(d.seed,i,f%3===0?f:0),w=d.size*(.008+.03*k);if(hash(d.seed,i,7)<.82)c.fillRect(at.x+x,at.y,Math.min(w,len*u-x),h);x+=w+d.size*(.012+.02*hash(d.seed,i,9));}
+   c.fillStyle=d.accent;c.fillRect(at.x,at.y+h+d.size*.05,len*u*.3,Math.max(1,d.size*.012));c.restore();}},
+ hudNumbers:{name:'計器の数字',tags:['graphic','glitch','calm'],w:.9,plan:r=>({corner:Math.floor(r()*4),rate:8+Math.floor(r()*8)}),
+  // 文字の斜め上と斜め下に、小さな数字の読み取り値（座標・番号）。下の桁だけが、こまかく数え変わる
+  draw(c,d,P){const f=Math.floor(d.lt*P.rate),fs=Math.max(8,d.size*.11),num=(k,dig)=>String(Math.floor(hash(d.seed,k,1)*10**(dig-2))*100+Math.floor(hash(d.seed,k,f)*100)).padStart(dig,'0');
+   c.save();c.globalAlpha=d.z*clamp(d.a*2)*.8;c.font=`${fs}px ui-monospace, Menlo, monospace`;c.textBaseline='middle';
+   const L=d.x0-d.size*.1,R=d.x1+d.size*.1,T=d.y0-d.size*.28,B=d.y1+d.size*.28,top=P.corner%2===0;
+   c.fillStyle=d.fg;c.textAlign=top?'left':'right';c.fillText(`X ${num(1,6).slice(0,4)}.${num(2,4).slice(-2)}  Y ${num(3,6).slice(0,4)}.${num(4,4).slice(-2)}`,top?L:R,top?T:B);
+   c.textAlign=top?'right':'left';c.fillText(`ID ${num(5,5)}`,top?R:L,top?B:T);
+   c.fillStyle=d.accent;c.textAlign=top?'right':'left';c.fillText(`${Math.min(100,Math.floor(d.a*100+d.lt*7)%101)}%`,top?R:L,top?T:B);
+   c.fillRect(top?L:R-d.size*.5,top?T+fs*.8:B-fs*.8,d.size*.5*clamp(d.a*1.5),Math.max(1,fs*.12));c.restore();}},   // 読み取り値の下の、伸びる細い線
+ hudFrame:{name:'計器の枠',tags:['graphic','glitch','calm','impact'],w:.8,plan:r=>({label:Math.floor(r()*90)+10,ticks:20+Math.floor(r()*20)}),
+  // 画面の縁に、四隅のかぎ・小さなラベル・下の目盛りと進む印・時刻（カメラや置き場所に動かされず、画面に貼り付く）
+  draw(c,d,P){c.setTransform(1,0,0,1,0,0);const W=d.W,H=d.H,m=Math.min(W,H)*.045,k=Math.min(W,H)*.05,fs=Math.max(8,Math.min(W,H)*.022),u=outCubic(clamp(d.a*1.5));
+   c.globalAlpha=d.z*.75;c.strokeStyle=d.fg;c.lineWidth=Math.max(1,Math.min(W,H)*.003);c.beginPath();
+   for(const [x,y,sx,sy] of [[m,m,1,1],[W-m,m,-1,1],[m,H-m,1,-1],[W-m,H-m,-1,-1]]){const kk=k*u;c.moveTo(x,y+sy*kk);c.lineTo(x,y);c.lineTo(x+sx*kk,y);}
+   const y=H-m*1.6,x0=m*2,x1=W-m*2;c.moveTo(x0,y);c.lineTo(x0+(x1-x0)*u,y);
+   for(let i=0;i<=P.ticks;i++){const x=x0+(x1-x0)*i/P.ticks;if(x>x0+(x1-x0)*u)break;c.moveTo(x,y);c.lineTo(x,y-(i%5?m*.12:m*.25));}
+   c.stroke();
+   c.fillStyle=d.accent;c.fillRect(x0+(x1-x0)*clamp(d.lt/d.dur)-1,y-m*.35,Math.max(2,m*.06),m*.45);
+   c.fillStyle=d.fg;c.font=`${fs}px ui-monospace, Menlo, monospace`;c.textBaseline='middle';
+   const tc=d.lt+P.label,ss=String(Math.floor(tc)%60).padStart(2,'0'),ff=String(Math.floor(tc*24)%24).padStart(2,'0');
+   c.textAlign='left';c.fillText(`TC 00:00:${ss}:${ff}`,m*1.6,m*1.1);c.textAlign='right';c.fillText(`${String(P.label).padStart(3,'0')} / REC`,W-m*1.6,m*1.1);
+   c.fillStyle=d.accent;c.globalAlpha*=.5+.5*(Math.floor(d.lt*2)%2);c.beginPath();c.arc(W-m*1.6-fs*5.6,m*1.1,fs*.3,0,TAU);c.fill();}},
+ strikeLine:{name:'打ち消し線',tags:['graphic','impact','glitch'],w:.9,plan:r=>({dir:sign(r),y:(r()-.5)*.16}),
+  // 語の真ん中を、細い線が横切る（端から伸びてくる）。線の両端に小さな印
+  draw(c,d,P){const u=outCubic(clamp(d.a*1.6)),ext=d.size*.45,x0=d.x0-ext,x1=d.x1+ext,len=(x1-x0)*u,nL=Math.max(1,Math.round(d.h/(d.size*1.2))),y=(nL>1?d.y0+d.h/nL/2:d.cy)+P.y*d.size,t=Math.max(1.5,d.size*.025);   // 2行以上なら1行目の真ん中を通る
+   c.save();c.globalAlpha=d.z;c.fillStyle=d.accent;const xs=P.dir>0?x0:x1-len;c.fillRect(xs,y-t/2,len,t);
+   if(u>.98){c.fillRect(x0,y-t*2.5,t,t*5);c.fillRect(x1-t,y-t*2.5,t,t*5);}c.restore();}},
+ arcRing:{name:'弧が描かれる輪',tags:['graphic','calm','emotional','pop'],w:.9,back:true,plan:r=>({dir:sign(r),start:r()*TAU}),
+  // 文字の後ろで、二重の円弧が描かれて輪になり、ゆっくり回る。弧の先に小さな点
+  draw(c,d,P){const R=Math.max(d.w,d.h)/2+d.size*.45,u=outCubic(clamp(d.a*1.2)),rot=P.start+P.dir*d.lt*.6;
+   c.save();c.globalAlpha=d.z*.75;c.lineCap='round';
+   for(const [r,col,span,lw] of [[R,d.accent,1.7,.06],[R*.86,d.fg,1.35,.035]]){const a0=rot+(r===R?0:Math.PI),a1=a0+span*Math.PI*u;c.strokeStyle=col;c.lineWidth=Math.max(1.5,d.size*lw);
+    c.beginPath();c.arc(d.cx,d.cy,r,a0,a1);c.stroke();c.fillStyle=col;c.beginPath();c.arc(d.cx+Math.cos(a1)*r,d.cy+Math.sin(a1)*r,d.size*lw*1.2,0,TAU);c.fill();}
+   c.restore();}},
+ shapeMorph:{name:'図形の変形',tags:['graphic','pop','calm'],w:.8,back:true,plan:r=>({spin:sign(r)*(.3+r()*.4)}),
+  // 文字の後ろで、淡い図形が三角→四角→五角→六角→円と、角の数を増やしながら変わる。輪郭の残像が少し遅れて回る
+  draw(c,d,P){const R=Math.max(d.h,d.w*.42)*.85+d.size*.3,u=clamp(d.lt/Math.max(.3,d.dur*.85)),k=3+u*u*9,rot=d.lt*P.spin,s=outBack(clamp(d.a*1.3),1.4);
+   const poly=(r,a)=>{c.beginPath();for(let i=0;i<=72;i++){const th=a+i/72*TAU,n0=Math.floor(k),n1=n0+1,w=k-n0,rad=n=>Math.cos(Math.PI/n)/Math.cos(((th-a)%(TAU/n))-Math.PI/n),rr=r*lerp(rad(n0),rad(n1),w);i?c.lineTo(d.cx+Math.cos(th)*rr,d.cy+Math.sin(th)*rr):c.moveTo(d.cx+Math.cos(th)*rr,d.cy+Math.sin(th)*rr);}c.closePath();};
+   c.save();c.globalAlpha=d.z*.22;c.fillStyle=d.accent;poly(R*s,rot-Math.PI/2);c.fill();
+   c.globalAlpha=d.z*.5;c.strokeStyle=d.accent;c.lineWidth=Math.max(1,d.size*.012);for(const j of [1,2]){poly(R*s*(1+j*.06),rot-Math.PI/2-j*.18);c.stroke();}c.restore();}},
+ tagChips:{name:'タグの札',tags:['graphic','pop','calm'],w:.9,plan:r=>({n:3+Math.floor(r()*3),seed:Math.floor(r()*1000)}),
+  // 文字の下に、丸い小さな札が左から順に出てくる。札の中は短い線（字の代わり）
+  draw(c,d,P){const h=d.size*.2,y=d.y1+d.size*.3,gap=d.size*.08;let x=d.x0;
+   c.save();for(let i=0;i<P.n;i++){const w=d.size*(.42+.38*hash(P.seed,i,1)),p=outBack(clamp(d.a*2.2-i*.18),2);if(p<=0)break;if(x+w>d.x1+d.size*.6)break;
+    c.globalAlpha=d.z*clamp(p);const filled=i%2===0;roundBox(c,x,y+(1-p)*h*.6,w,h,h/2);
+    if(filled){c.fillStyle=i===0?d.accent:d.fg;c.fill();}else{c.strokeStyle=d.fg;c.lineWidth=Math.max(1,d.size*.012);c.stroke();}
+    c.fillStyle=filled?(i===0?'#ffffff':d.accent):d.fg;c.globalAlpha*=.75;c.fillRect(x+h*.45,y+(1-p)*h*.6+h*.42,w-h*.9,Math.max(1,h*.16));x+=w+gap;}
+   c.restore();}},
+ blinkCursor:{name:'点滅するカーソル',tags:['graphic','glitch','calm'],w:.8,plan:r=>({rate:1.6+r()*.8,block:r()<.35}),
+  // 文字の最後の後ろで、縦棒（か四角）のカーソルが点滅する（消えている間も、ごく薄く残る）
+  draw(c,d,P){const on=fract(d.lt*P.rate)<.65,h=d.size*.95,w=P.block?d.size*.5:Math.max(3,d.size*.1);   // 1周期の6割5分は点いている
+   c.save();c.globalAlpha=d.z*(P.block?.7:1)*(on?1:.15);c.fillStyle=d.accent;c.fillRect(d.x1+d.size*.12,d.y1-h-d.size*.05,w,h);c.restore();}},
  paleSticky:{name:'薄い付箋',tags:['pop','emotional','calm'],w:1.1,back:true,plan:r=>({tilt:(r()-.5)*.14,col:Math.floor(r()*PALE.length),tape:r()<.55,side:sign(r)}),
   draw(c,d,P){const m=d.size*.32,w=d.w+m*2,h=d.h+m*2,u=clamp(d.a*1.2);c.save();c.globalAlpha=d.z;
    drawSticky(c,d,d.cx,d.cy,w,h,P.tilt,PALE[P.col]||PALE[0],.3,u,P.side);
