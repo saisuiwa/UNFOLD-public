@@ -54,6 +54,33 @@ function plateColor(fill,e){
  return Math.abs(luma(col)-luma(e.bg))<.4?(luma(e.bg)>.5?'#121218':'#f2ecdc'):col;
 }
 
+// ---- 円・渦・図形の輪郭に並べる（2026-10-18）の共通部分 ------------------------------------------------------------------------------------
+// 字を、文字の箱（F.box、箱の左上が原点）の中の点の列に並べ直す。pts は弧の長さで等間隔に取れる関数 at(s) → [x,y,接線の角度]、len は全長。
+// 字が入り切らない時は、字を小さくする。並べ直したら、文字の外接矩形（bbox）も作り直す（登場・退場の部品が使う）
+// fill: 字を全長に等間隔で配る（閉じた図形を一周させる時）
+function placeAlong(item,at,len,{gap=1.08,center=true,shrink=null,fill=false}={}){
+ const n=item.glyphs.length;if(!n)return;
+ const need=item.glyphs.reduce((a,g)=>a+g.size*gap,0),k=Math.min(1,len/Math.max(1,need));let s0=center?Math.max(0,(len-need*k)/2):0,acc=0;
+ item.glyphs.forEach((g,i)=>{const w=g.size*gap*k,s=fill?(i+.5)*len/n:s0+acc+w/2,[x,y,ang]=at(s);const sh=shrink?shrink(s):1;acc+=w;g.size*=k*sh;g.cx=x;g.cy=y;g.rot0=ang/DEG;g.cell=null;});
+ const xs=item.glyphs.map(g=>g.cx),ys=item.glyphs.map(g=>g.cy),m=Math.max(...item.glyphs.map(g=>g.size))/2;
+ item.bbox={x0:Math.min(...xs)-m,y0:Math.min(...ys)-m,x1:Math.max(...xs)+m,y1:Math.max(...ys)+m};
+}
+/** 閉じた形の点の列 [x,y] から、弧の長さで点を取る関数と全長を作る */
+function pathOf(pts){
+ const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));const len=cum.at(-1);
+ const at=s=>{s=((s%len)+len)%len;let lo=0,hi=cum.length-1;while(hi-lo>1){const mid=(lo+hi)>>1;if(cum[mid]<=s)lo=mid;else hi=mid;}
+  const [ax,ay]=pts[lo],[bx,by]=pts[hi],u=(s-cum[lo])/Math.max(1e-9,cum[hi]-cum[lo]);return [ax+(bx-ax)*u,ay+(by-ay)*u,Math.atan2(by-ay,bx-ax)];};
+ return {at,len};
+}
+const RING_BOX=(W,H)=>({cx:W/2,cy:H/2,w:Math.min(W,H)*.86,h:Math.min(W,H)*.86});
+/** 図形の輪郭（箱の中心が原点、半径 R の大きさ）。heart: ハート、star: 5つの角の星。どちらも上から時計回り */
+function shapePts(kind,R){
+ const pts=[];
+ if(kind==='heart'){for(let i=0;i<=240;i++){const t=i/240*TAU,x=16*Math.sin(t)**3,y=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));pts.push([x/17*R,y/17*R-R*.05]);}}
+ else{for(let i=0;i<=10;i++){const a=-Math.PI/2+i*Math.PI/5,r=i%2?R*.45:R;pts.push([Math.cos(a)*r,Math.sin(a)*r]);}}
+ return pts;
+}
+
 export const WORLD={
  ticket:{name:'チケット',tags:['pop','graphic'],w:1.1,fits:n=>n<=16,
   box:(P,F,it,W,H)=>({cx:W/2,cy:H/2,w:F.g.tw,h:F.g.th,rot:P.tilt}),
@@ -304,6 +331,41 @@ export const WORLD={
    c.fillStyle=dark?'rgba(0,0,0,0.08)':'rgba(255,255,255,0.18)';for(let i=0;i<90;i++){const g=Math.max(1,e.H*.004*(.5+hash(P.seed,i,3)));c.fillRect(hash(P.seed,i,1)*e.W,hash(P.seed,i,2)*e.H,g,g);}
    const span=e.W+e.H,pos=fract(e.lt*.18+hash(P.seed,9))*span*1.4-span*.2,x=P.dir>0?pos:e.W-pos;
    c.fillStyle='rgba(255,255,255,0.14)';c.beginPath();c.moveTo(x,0);c.lineTo(x+P.dir*e.W*.12,0);c.lineTo(x+P.dir*e.W*.12-P.dir*e.H*.5,e.H);c.lineTo(x-P.dir*e.H*.5,e.H);c.closePath();c.fill();}}
+,
+
+ // ---- 円・渦・図形の輪郭に並べる（2026-10-18）: 字を arrange で並べ直し、xform で全体をゆっくり回す・息づかせる
+ ringText:{name:'円に並んで回る',tags:['graphic','calm','pop'],w:.8,fits:n=>n>=3&&n<=18,
+  box:(P,F,it,W,H)=>({...RING_BOX(W,H),rot:0}),
+  plan:r=>({spin:sign(r)*(.18+r()*.2),ticks:r()<.6,top:r()<.5}),
+  frame(P,{W,H,D,exitOK}){return {box:RING_BOX(W,H),delay:dly(D,exitOK,.35)};},
+  arrange(item,P){const F=item.worldFrame,R=F.box.w*.36,cx=F.box.w/2,cy=F.box.h/2,len=TAU*R,base=P.top?-Math.PI/2:Math.PI/2;
+   const n=item.glyphs.length,need=item.glyphs.reduce((a,g)=>a+g.size*1.12,0),full=need>=len*.8;
+   placeAlong(item,s=>{const a=base-(full?len:need)/R/2+s/R;return [cx+Math.cos(a)*R,cy+Math.sin(a)*R,a+Math.PI/2];},full?len:need,{gap:1.12,center:false});},
+  xform(c,e,P,F){const eIn=outBack(e.pIn,1.4),eOut=inCubic(e.pOut),s=Math.max(.01,(.4+.6*eIn)*(1-eOut*.6)),cx=F.box.cx,cy=F.box.cy;
+   c.translate(cx,cy);c.rotate(e.lt*P.spin+(1-eIn)*-.8);c.scale(s,s);c.globalAlpha*=clamp(e.pIn*3)*(1-eOut);c.translate(-cx,-cy);},
+  back(c,e,P,F,item){const R=F.box.w*.36,cx=F.box.cx,cy=F.box.cy,sz=item.size;c.save();c.strokeStyle=rgba(e.accent,.7);c.lineWidth=Math.max(1,e.H*.003);
+   for(const r of [R+sz*.72,R-sz*.72]){c.beginPath();c.arc(cx,cy,Math.max(4,r),0,TAU);c.stroke();}
+   if(P.ticks){c.lineWidth=Math.max(1,e.H*.004);for(let i=0;i<48;i++){const a=i/48*TAU,r0=R+sz*.8,r1=r0+sz*(i%4?.12:.28);c.beginPath();c.moveTo(cx+Math.cos(a)*r0,cy+Math.sin(a)*r0);c.lineTo(cx+Math.cos(a)*r1,cy+Math.sin(a)*r1);c.stroke();}}
+   c.fillStyle=rgba(e.accent,.85);c.beginPath();c.arc(cx,cy,Math.max(2,sz*.12),0,TAU);c.fill();c.restore();}},
+ spiralText:{name:'渦巻きに並ぶ',tags:['emotional','glitch','calm'],w:.7,fits:n=>n>=4&&n<=22,
+  box:(P,F,it,W,H)=>({...RING_BOX(W,H),rot:0}),
+  plan:r=>({spin:sign(r)*(.25+r()*.25),turns:1.6+r()*.8}),
+  frame(P,{W,H,D,exitOK}){return {box:RING_BOX(W,H),delay:dly(D,exitOK,.3)};},
+  arrange(item,P){const F=item.worldFrame,cx=F.box.w/2,cy=F.box.h/2,R0=F.box.w*.44,R1=F.box.w*.1,T=P.turns*TAU,pts=[];
+   for(let i=0;i<=600;i++){const u=i/600,a=-Math.PI/2+u*T,r=R0+(R1-R0)*u;pts.push([cx+Math.cos(a)*r,cy+Math.sin(a)*r]);}
+   const {at,len}=pathOf(pts);placeAlong(item,at,len,{gap:1.06,center:false,shrink:s=>1-.45*clamp(s/len)});},   // 内側ほど小さく（奥へ吸い込まれる）
+  xform(c,e,P,F){const eIn=outCubic(e.pIn),eOut=inCubic(e.pOut),cx=F.box.cx,cy=F.box.cy,s=Math.max(.01,(.6+.4*eIn)*(1-eOut));
+   c.translate(cx,cy);c.rotate(e.lt*P.spin);c.scale(s,s);c.globalAlpha*=clamp(e.pIn*2.5)*(1-eOut);c.translate(-cx,-cy);}},
+ shapeText:{name:'図形の輪郭を巡る',tags:['pop','emotional','graphic'],w:.7,fits:n=>n>=4&&n<=20,
+  box:(P,F,it,W,H)=>({...RING_BOX(W,H),rot:0}),
+  plan:r=>({shape:pickW(r,['heart','star'],[1.2,1]),line:r()<.7}),
+  frame(P,{W,H,D,exitOK}){return {box:RING_BOX(W,H),delay:dly(D,exitOK,.35)};},
+  arrange(item,P){const F=item.worldFrame,cx=F.box.w/2,cy=F.box.h/2,R=F.box.w*.4,pts=shapePts(P.shape,R).map(([x,y])=>[cx+x,cy+y]);
+   const {at,len}=pathOf(pts);placeAlong(item,at,len,{gap:1.1,center:false,fill:true});},   // 一周に等間隔で配る
+  xform(c,e,P,F){const eIn=outBack(e.pIn,1.6),eOut=inCubic(e.pOut),cx=F.box.cx,cy=F.box.cy,s=Math.max(.01,(.3+.7*eIn)*(1-eOut*.7)*(1+.03*Math.sin(e.lt*TAU*.9)));
+   c.translate(cx,cy);c.scale(s,s);c.globalAlpha*=clamp(e.pIn*3)*(1-eOut);c.translate(-cx,-cy);},
+  back(c,e,P,F,item){if(!P.line)return;const R=F.box.w*.4,pts=shapePts(P.shape,R*.78);c.save();c.translate(F.box.cx,F.box.cy);c.strokeStyle=rgba(e.accent,.6);c.lineWidth=Math.max(1,e.H*.004);c.lineJoin='round';
+   c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.stroke();c.restore();}}
 };
 // 毎日のルーティンで足した物の世界（daily-parts.js）を、表の末尾につなぐ
 addDailyParts({world:WORLD},DAILY_CUT_PARTS);

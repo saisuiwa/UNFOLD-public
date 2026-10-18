@@ -94,6 +94,9 @@ export const ENTER={
    const dir=P.alt&&ln%2?-1:1;return {cell:true,dy:dir*g.size*1.15*(1-outExpo(q))};}},   // 行ごとの時、alt なら奇数行は上から
  maskSlideX:{name:'枠の中で横から滑り込む',tags:['graphic','glitch','pop'],w:.9,fast:true,inDur:D=>clamp(D*.34,.16,.44),plan:r=>({dir:sign(r)}),
   glyph(g,i,n,p,E,P){const q=local(p,i,n,.5);if(1-outExpo(q)<.002)return null;return {cell:true,dx:P.dir*g.size*1.3*(1-outExpo(q))};}},
+ // 太さ（2026-10-18）: 細い輪郭だけの字が順に出て、塗りが満ちながら一度太り、元の太さで止まる
+ thinToBold:{name:'細い線から太く育つ',tags:['emotional','calm','impact'],w:.9,fast:true,inDur:D=>clamp(D*.4,.2,.55),plan:r=>({spread:.35+r()*.2}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread);if(q<=0)return {hide:true};if(q>=1)return null;return {thin:1-outCubic(clamp(q*1.4)),bold:Math.sin(Math.PI*q)*.08};}},
  splitIn:{name:'斜めの切れ目からせり出す',tags:['impact','graphic','glitch'],w:.9,fast:true,inDur:D=>clamp(D*.32,.16,.42),plan:r=>({ang:sign(r)*(28+r()*22),line:r()<.7}),
   item(it,p,E,P){const e=outExpo(p),h=(E.bbox.y1-E.bbox.y0)+E.size*.4;it.split={ang:P.ang*DEG,n:h*(1-e),t:0,dy:0,line:P.line?clamp(1.4-p*1.6):0};}}
 };
@@ -122,6 +125,15 @@ export const HOLD={
  // 字の置き換え（2026-10-18）: ときどき1字だけが一瞬（2〜3コマ）記号に化けて戻る。化けるのは同時に1字だけ（読める時間を減らしすぎない）
  glyphSwap:{name:'ときどき別の字に化ける',tags:['glitch','graphic'],w:.8,plan:r=>({rate:1.1+r()*.8,sym:pickW(r,['mix','hex','kana'],[2,1,1])}),
   glyph(g,i,n,p,E,P){if(p<.5)return null;const w=E.lt*P.rate,k=Math.floor(w);if(fract(w)>.08||Math.floor(hash(k,3,E.seed%89)*n)!==i)return null;const f=Math.floor(E.lt*24);return {ch:symOf(P.sym,E.r(i,f)),dx:(E.r(i,f+3)-.5)*E.size*.12};}},
+ // 左から塗り替える（2026-10-18）: 読んでいる間に、字がアクセント色で左から（縦書きは上から）塗られていく。字の途中まで塗られることもある
+ paintSweep:{name:'左から塗り替える',tags:['emotional','calm','pop','graphic'],w:.9,plan:r=>({end:.7+r()*.2}),
+  glyph(g,i,n,p,E,P){if(p<=0)return null;const b=E.bbox,horiz=b.x1-b.x0>=b.y1-b.y0,a=horiz?b.x0:b.y0,len=(horiz?b.x1-b.x0:b.y1-b.y0)+E.size,
+   x=a-E.size*.5+len*clamp(E.lt/Math.max(.3,E.D*P.end)),u=clamp((x-((horiz?g.cx:g.cy)-g.size*.62))/(g.size*1.24));return u>0?{paint:{u,color:'accent'}}:null;}},
+ // 太さ（2026-10-18）: 字と同じ色の縁で太らせる
+ weightBreathe:{name:'太さが呼吸する',tags:['calm','emotional','pop'],w:.9,plan:r=>({ph:r()*TAU,sp:1.6+r()*1.2}),
+  glyph:(g,i,n,p,E,P)=>({bold:(.5+.5*Math.sin(E.lt*P.sp+P.ph))*.075*p})},
+ weightWave:{name:'太さの波が通る',tags:['pop','graphic','calm'],w:.8,plan:r=>({sp:2.4+r()*1.6,gap:.55+r()*.3}),
+  glyph:(g,i,n,p,E,P)=>({bold:Math.pow(Math.max(0,Math.cos(E.lt*P.sp-i*P.gap)),6)*.1*p})},
  trackOpen:{name:'字間が広がり続ける',tags:['calm','emotional','graphic'],w:.9,plan:r=>({k:.12+r()*.02}),
   glyph:(g,i,n,p,E,P)=>spread(g,E,clamp(E.lt/Math.max(.3,E.D))*E.size*P.k*p)}
 };
@@ -179,7 +191,14 @@ export const TREAT={
  softShadow:{name:'ぼかし影',tags:['emotional','calm','pop','graphic'],w:1,
   // 暗い背景では黒い影が見えないので、アクセント色のやわらかい影にする
   style:(P,c)=>({shadow:{dx:.05,dy:.06,blur:.3,color:luma(c.bg)<.5?rgbaOf(c.accent,.6):'rgba(0,0,0,.55)'}})},
- blurTrail:{name:'ぼかし送り',tags:['pop','glitch','emotional','impact'],w:.9,style:()=>({trail:{n:5,dx:-.075,dy:0,a:.5}})}
+ blurTrail:{name:'ぼかし送り',tags:['pop','glitch','emotional','impact'],w:.9,style:()=>({trail:{n:5,dx:-.075,dy:0,a:.5}})},
+ // ---- 字の中の色・模様（2026-10-18）: 字の塗りそのものが時間で動く（glyphDraw の fxFill）。字の位置で色をずらすので、行全体で流れて見える
+ rainbowFill:{name:'虹色が流れる',tags:['pop','emotional','calm'],w:.8,plan:r=>({pal:pickW(r,['rainbow','aurora','sunset'],[1.2,1,1]),k:.8+r()*.8,v:sign(r)*(.18+r()*.2)}),
+  style:P=>({fillFx:{kind:'rainbow',pal:P.pal||'rainbow',k:P.k??1,v:P.v??.25}})},
+ shineSweep:{name:'光の帯が走る',tags:['graphic','impact','calm','emotional'],w:.8,plan:r=>({k:.6+r()*.6,v:.45+r()*.35}),
+  style:P=>({fillFx:{kind:'shine',k:P.k??.8,v:P.v??.6}})},
+ stripeFill:{name:'縞が流れる',tags:['pop','graphic','glitch'],w:.7,plan:r=>({n:4+Math.floor(r()*3),v:sign(r)*(.5+r()*.5)}),
+  style:P=>({fillFx:{kind:'stripes',n:P.n??5,v:P.v??.7}})}
 };
 // 毎日のルーティンで足した部品（daily-parts.js）を、表の末尾につなぐ
 addDailyParts({enter:ENTER,hold:HOLD,exit:EXIT,treat:TREAT},DAILY_CUT_PARTS);
@@ -293,15 +312,15 @@ export function buildItem(cut,{W,H,measure,pieces,fontFamily=key=>`"U-${key}", s
   enter:cut.enter,enterP:cut.enterP,hold:cut.hold,holdP:cut.holdP,exit:cut.exit,exitP:cut.exitP,timing:tm};
 }
 
-const IDENT=()=>({dx:0,dy:0,sx:1,sy:1,rot:0,a:1,blur:0,hide:false,ch:null,reel:null,cell:false});
-const merge=(st,d)=>{if(!d)return;if(d.hide)st.hide=true;if(d.ch!=null)st.ch=d.ch;if(d.reel)st.reel=d.reel;if(d.cell)st.cell=true;st.dx+=d.dx||0;st.dy+=d.dy||0;st.sx*=d.sx??1;st.sy*=d.sy??1;st.rot+=d.rot||0;st.a*=d.a??1;st.blur=Math.max(st.blur,d.blur||0);};
+const IDENT=()=>({dx:0,dy:0,sx:1,sy:1,rot:0,a:1,blur:0,hide:false,ch:null,reel:null,cell:false,paint:null,bold:0,thin:0});
+const merge=(st,d)=>{if(!d)return;if(d.hide)st.hide=true;if(d.ch!=null)st.ch=d.ch;if(d.reel)st.reel=d.reel;if(d.cell)st.cell=true;if(d.paint)st.paint=d.paint;if(d.bold)st.bold=Math.max(st.bold,d.bold);if(d.thin)st.thin=Math.max(st.thin,d.thin);st.dx+=d.dx||0;st.dy+=d.dy||0;st.sx*=d.sx??1;st.sy*=d.sy??1;st.rot+=d.rot||0;st.a*=d.a??1;st.blur=Math.max(st.blur,d.blur||0);};
 /** カット内の時刻 lt での、字ごとの状態とアイテム全体の状態（純関数） */
 export function stateAt(item,lt){
  const {D,timing:{inDur,outDur}}=item,n=item.n;
  const pIn=inDur>0?clamp(lt/inDur):1,pOut=outDur>0?clamp((lt-(D-outDur))/outDur):0,amt=clamp((lt-inDur*.85)/.25)*(1-pOut);
  const E={size:item.size,W:item.W,H:item.H,r:(i,k)=>hash(i,k,item.seed%977),nWords:item.nWords,nLines:Math.max(1,item.lines?.length||1),n,bbox:item.bbox,lt,D,seed:item.seed};
  const en=ENTER[item.enter],ho=HOLD[item.hold],ex=EXIT[item.exit];
- const it={blur:0,sx:1,sy:1,a:1,clip:null,bar:null,split:null,pIn,pOut};
+ const it={blur:0,sx:1,sy:1,a:1,clip:null,bar:null,split:null,pIn,pOut,lt};
  if(en&&pIn<1)en.item?.(it,pIn,E,item.enterP);
  if(ho&&amt>0)ho.item?.(it,amt,E,item.holdP);
  if(ex&&pOut>0)ex.item?.(it,pOut,E,item.exitP);
@@ -346,6 +365,21 @@ function fakeBlur(c,paint,r,base){
  for(let k=0;k<8;k++){const a=k/8*TAU;c.save();c.translate(Math.cos(a)*r*.7,Math.sin(a)*r*.7);c.globalAlpha=base*.16;paint();c.restore();}
  c.globalAlpha=base*.45;paint();
 }
+/** 字の中を動く塗り（STYLE の fillFx）。字の位置（g.cx）と時刻（lt）から、字ごとのグラデーションを作る。座標は字の中心が原点 */
+function fxFill(c,F,g,px,lt,item,col){
+ const u=g.cx/Math.max(1,item.W);
+ if(F.kind==='rainbow'){
+  const [h0,span]=F.pal==='aurora'?[150,140]:F.pal==='sunset'?[330,80]:[0,360],hue=k=>h0+(((u*F.k+lt*F.v+k)%1)+1)%1*span;
+  const gr=c.createLinearGradient(-px*.6,0,px*.6,0);if(!gr?.addColorStop)return col;
+  for(const k of [0,.5,1])gr.addColorStop(k,`hsl(${hue(k*.25).toFixed(1)},90%,${F.pal==='aurora'?68:64}%)`);return gr;}
+ if(F.kind==='shine'){
+  const ph=fract(lt*F.v+u*F.k)*1.6-.3,gr=c.createLinearGradient(-px*.6,-px*.5,px*.6,px*.5);if(!gr?.addColorStop)return col;
+  const st=[[0,col],[ph-.16,col],[ph,'#ffffff'],[ph+.16,col],[1,col]].filter(([k])=>k>=0&&k<=1).sort((a,b)=>a[0]-b[0]);for(const [k,v] of st)gr.addColorStop(k,v);return gr;}
+ if(F.kind==='stripes'){
+  const gr=c.createLinearGradient(-px*.6,-px*.6,px*.6,px*.6);if(!gr?.addColorStop)return col;const n=F.n,off=fract(lt*F.v),a=item.accent&&item.accent.toLowerCase()!==String(col).toLowerCase()?item.accent:'#ffd34d';
+  for(let j=-1;j<=n;j++){const k0=(j+off)/n,k1=(j+off+.5)/n,k2=(j+off+1)/n;for(const [k,v] of [[k0,a],[k1,a],[k1,col],[k2,col]])if(k>=0&&k<=1)gr.addColorStop(k,v);}return gr;}
+ return col;
+}
 function glyphDraw(c,item,g,s,it,tint){
  const T=item.style,px=g.size,bl=Math.max(s.blur||0,(T.blur||0)*px),base=clamp(s.a)*it.a;
  c.save();
@@ -355,17 +389,25 @@ function glyphDraw(c,item,g,s,it,tint){
  if(g.rot0||s.rot)c.rotate(((g.rot0||0)+s.rot)*DEG);c.scale(s.sx,s.sy);
  c.font=`${px}px ${g.fontKey?item.fontFamily(g.fontKey):item.family}`;c.textAlign='center';c.textBaseline='middle';
  const col=tint||g.color||(g.emphasis?item.accent:item.color);
- const one=tint?(ch,oy)=>{c.globalAlpha=base;c.fillStyle=tint;c.fillText(ch,0,oy);}:(ch,oy)=>{   // tint: ゴーストの層。影・縁・押し出しは付けず、色だけで塗った形にする
+ const one=tint?(ch,oy)=>{c.globalAlpha=base;c.fillStyle=tint;c.fillText(ch,0,oy);}:(ch,oy,over)=>{   // tint: ゴーストの層。影・縁・押し出しは付けず、色だけで塗った形にする。over: 塗りの色を替える（左から塗り替える）
   c.globalAlpha=base;
   if(T.extrude){c.fillStyle=T.extrude.color;for(let k=T.extrude.n;k>=1;k--)c.fillText(ch,k*T.extrude.dx*px,oy+k*T.extrude.dy*px);}
   if(T.trail){c.fillStyle=col;for(let k=T.trail.n;k>=1;k--){c.globalAlpha=base*T.trail.a*(1-(k-1)/T.trail.n);c.fillText(ch,k*T.trail.dx*px,oy+k*(T.trail.dy||0)*px);}c.globalAlpha=base;}
   if(T.shadow){c.shadowColor=T.shadow.color;c.shadowBlur=T.shadow.blur*px;c.shadowOffsetX=T.shadow.dx*px;c.shadowOffsetY=T.shadow.dy*px;}
   if(T.stroke){c.lineJoin='round';c.lineWidth=T.stroke.w*px;c.strokeStyle=T.stroke.color;c.strokeText(ch,0,oy);c.shadowColor='transparent';}
-  if(T.fill!==false){c.fillStyle=T.textColor&&!g.emphasis?T.textColor:col;c.fillText(ch,0,oy);}
+  const fill=over||(T.fillFx?fxFill(c,T.fillFx,g,px,it.lt||0,item,col):T.textColor&&!g.emphasis?T.textColor:col);
+  // s.bold: 字と同じ色の縁で太らせる（どの書体でも太さを変えられる）。s.thin: 細い輪郭だけで描き、塗りを薄くする（1 で輪郭だけ）
+  if(s.bold>.001){c.lineJoin='round';c.lineWidth=s.bold*px;c.strokeStyle=fill;c.strokeText(ch,0,oy);c.shadowColor='transparent';}
+  if(s.thin>.001){c.lineJoin='round';c.lineWidth=Math.max(.75,px*.022);c.strokeStyle=fill;c.strokeText(ch,0,oy);c.shadowColor='transparent';c.globalAlpha=base*(1-s.thin);}
+  if(T.fill!==false){c.fillStyle=fill;c.fillText(ch,0,oy);}
  };
  // 字の置き換え: s.ch があれば、その字を描く。s.reel = {cur,next,u} なら、字の枠で切り抜いて、リールのように next を上から、cur を下へ u だけずらして描く
  const paint=()=>{
-  if(!s.reel){one(s.ch??g.ch,0);return;}
+  if(!s.reel){one(s.ch??g.ch,0);
+   // s.paint = {u,color}: 字の左から u の割合だけ、別の色で塗り直す（字の途中まで塗られることもある）
+   if(s.paint&&s.paint.u>0&&!tint){const pc=s.paint.color==='accent'?(item.accent&&item.accent.toLowerCase()!==String(col).toLowerCase()?item.accent:'#ffd34d'):s.paint.color;
+    c.save();c.beginPath();c.rect(-px*.7,-px,px*1.4*s.paint.u,px*2);c.clip();one(s.ch??g.ch,0,pc);c.restore();}
+   return;}
   const h=px*1.12,u=s.reel.u;c.save();c.beginPath();c.rect(-px*.62,-h/2,px*1.24,h);c.clip();one(s.reel.next,(u-1)*h);one(s.reel.cur,u*h);c.restore();
  };
  if(bl>.5&&!tint){if(canFilter(c)){c.filter=`blur(${bl.toFixed(1)}px)`;paint();}else fakeBlur(c,paint,bl,base);}

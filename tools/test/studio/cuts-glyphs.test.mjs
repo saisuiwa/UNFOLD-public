@@ -74,7 +74,7 @@ test('holds stay small (readable) and keep moving', () => {
   let moved=false;
   for(let t=.4;t<1.2;t+=.011){
    const {glyphs,it:x}=stateAt(it,t);
-   for(const g of glyphs){assert.ok((g.blur||0)<=it.size*.08+1e-9,`${k} glyph blur`);assert.ok(Math.abs(g.dx)<=it.size*.2&&Math.abs(g.dy)<=it.size*.2,`${k} shift`);assert.ok(Math.abs(g.rot)<=6,`${k} rot`);assert.ok(g.sx>.9&&g.sx<1.1&&g.sy>.9&&g.sy<1.1,`${k} scale`);if(g.dx||g.dy||g.rot||g.blur)moved=true;}
+   for(const g of glyphs){assert.ok((g.blur||0)<=it.size*.08+1e-9,`${k} glyph blur`);assert.ok(Math.abs(g.dx)<=it.size*.2&&Math.abs(g.dy)<=it.size*.2,`${k} shift`);assert.ok(Math.abs(g.rot)<=6,`${k} rot`);assert.ok(g.sx>.9&&g.sx<1.1&&g.sy>.9&&g.sy<1.1,`${k} scale`);if(g.dx||g.dy||g.rot||g.blur||g.bold||g.paint)moved=true;}
    assert.ok(x.sx>.95&&x.sx<1.05);assert.ok(x.blur<=it.size*.06+1e-9,`${k} item blur`);if(x.sx!==1||x.blur>0)moved=true;
   }
   assert.equal(moved,k!=='still',k);
