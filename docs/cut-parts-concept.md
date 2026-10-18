@@ -58,7 +58,7 @@ STUDIO の「✂ カット割り」は、歌詞の1行を短いカット（0.5�
 
 STYLE（`treat`）の `style()` が返せる値: `stroke` `fill` `shadow` `extrude` `textColor` `deco`（`'marker'` `'underline'` `'box'`）`blur` `trail`、`fillFx: {kind:'rainbow'|'shine'|'stripes', …}`（字の塗りそのものが時間で動く。手本 `treat/rainbowFill` `shineSweep` `stripeFill`）、`longShadow: {ang,swing,v,len,color}`（字から長く伸びる影。光の向きが時刻で振れる。手本 `treat/longShadow`）、`echo: {n,dx,dy,color}`（輪郭だけのコピーをずらして重ねる。手本 `treat/echoOutline`）、`rim: {w,color}`（`stroke` の外側のもう1本のフチ。手本 `treat/doubleRim`）。
 
-STAGE（`world`）: `arrange(item,P)` で字の位置（`g.cx` `g.cy` `g.rot0` `g.size`）を並べ直せる（並べ直したら `item.bbox` も作り直す。手本 `ringText` `spiralText` `shapeText`）。`knockout: true` と `plate(c,e,P,{mask})` で、画面いっぱいの板に字の形の穴を開ける（手本 `knockout`…）。
+STAGE（`world`）: `arrange(item,P)` で字の位置（`g.cx` `g.cy` `g.rot0` `g.size`）を並べ直せる（並べ直したら `item.bbox` も作り直す。手本 `ringText` `spiralText` `shapeText`）。`knockout: true` と `plate(c,e,P,{mask})` で、画面いっぱいの板に字の形の穴を開ける（手本 `knockout`…）。`frame()` が `size`（字の大きさ px）と `fit: false` を返すと、字を箱に収めずにその大きさで置く（はみ出した所は絵の外で切れる。手本 `megaText`）。
 
 毎日の部品は `daily-parts.js` だけで書く（本体は変えない）ので、ここにない道具が要る部品は作らずに、ログの「次に作れそうなこと」に「⚙ 本体に〜の仕組みが要る」と書く。
 
