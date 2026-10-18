@@ -349,7 +349,10 @@ try {
     // "＋自作メソッド" first asks GLSL or JavaScript; the presets are in the GLSL editor
     await page.evaluate(() => window.unfoldMethods.editor.open());
     await page.getByRole('button', { name: 'GLSLで作る' }).click();
-    await page.waitForSelector('#method-samples', { state: 'attached', timeout: 10000 });
+    // Opening the GLSL editor also creates its WebGL preview and starts the GPU checks in the same task. With software WebGL (SwiftShader, as here)
+    // that keeps the page busy for about 6-7 s on its own (measured 2026-10-18) and up to 30 s when the machine is loaded, so the wait for the list
+    // to be found is generous. What the step checks (every sample under its group) is unchanged. With a real GPU the editor opens at once.
+    await page.waitForSelector('#method-samples', { state: 'attached', timeout: 60000 });
     const listed = await page.evaluate(() => {
       const out = [...document.querySelectorAll('#method-samples optgroup')].map(g => ({ label: g.label, options: [...g.querySelectorAll('option')].map(o => o.value) }));
       window.unfoldMethods.editor.close();
