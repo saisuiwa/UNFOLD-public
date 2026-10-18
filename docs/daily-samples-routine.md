@@ -103,7 +103,7 @@ return {update(frame){
 
 `app/studio/cuts/daily-parts.js` の `DAILY_CUT_PARTS` の**末尾**に、その日の日付のコメント（`// ---- <今日>`）を付けて、**約8個（最低6・最大12）**足します。足した部品は、手で作った部品の表（`glyphs.js` の登場・保持・退場・加工、`parts.js` の背景・カメラ・画面効果・つなぎ、`worlds.js` の物の世界）の末尾に**自動でつながり**、STUDIO のおまかせ「✂ カット割り」が、ほかの部品と同じように雰囲気（`tags`）と出やすさ（`w`）で選びます。サンプル集の「カット割りの部品」の棚にも出ます。
 
-**触ってよいのは `daily-parts.js` だけ**です（`kit.js` の道具は使うだけ。`glyphs.js` `parts.js` `worlds.js` `compose.js` `layer.js` `plan.js` などカット割りの本体は変えない）。ほかに書き足すのは、ログと、`docs/cut-parts-wishlist.md` の「作った」の表（作った候補をそこへ移す）だけ。
+**手で書くコードは `daily-parts.js` だけ**です（`kit.js` の道具は使うだけ。`glyphs.js` `parts.js` `worlds.js` `compose.js` `layer.js` `plan.js` などカット割りの本体は変えない）。手で書き足す文書は、ログと、`docs/cut-parts-wishlist.md` の「作った」の表（作った候補をそこへ移す）。このほか、下の手順のスクリプトが作る物（`app/guide/samples/` のプレビューの JPG・MP4 と `app/guide/samples.html`）は、作り直してコミットしてよい（ゲートが「ページが最新か」を見ます）。
 
 #### 作るものの決め方（2026-10-18 から）
 1. `docs/cut-parts-concept.md` を読む（軸・動きの型・見本の読み方・エンジンにある道具・組み合わせの事故）。
@@ -136,7 +136,7 @@ return {update(frame){
 | 登場 `enter` | `inDur(D,n,P)`→秒、`plan(r)`→P、`glyph(g,i,n,p,E,P)`→`{dx,dy,sx,sy,rot,a,blur,hide}` か `item(it,p,E,P)` | `p` は登場の間 0→1。**p=1 で字は元どおり**（ずれ・回転・ぼけ 0、大きさ・不透明度 1）。まだ出ない字は `{hide:true}`。登場の長さは `clamp(D*.3,.13,.4)` くらい（短いカットで長すぎない）。短いカット（0.7秒未満）でも成り立つなら `fast:true`、長いカットが要るなら `minDur`、字数が多いと崩れるなら `maxChars` |
 | 退場 `exit` | `outDur(D,n,P)`、`plan`、`glyph` か `item` | `p` は退場の間 0→1。**p=0 で元どおり**、p=1 で見えない |
 | 保持 `hold` | `plan`、`glyph(g,i,n,p,E,P)` | 読んでいる間の小さな動き：ずれは字の大きさの20%まで、回転6度まで、大きさ0.9〜1.1、ぼけ8%まで。**ずれ・回転・ぼけのどれかで必ず動く**（大きさだけの変化は「動いていない」と判定される）。`E.lt`（カットの中の時刻）から直接決める |
-| 加工 `treat` | `style(P,c)`→`{stroke,fill,shadow,extrude,textColor,deco,blur,trail,fillFx}` | 字の描き方の組み合わせ。`deco` は `'marker'` `'underline'` `'box'` だけ。`fillFx` は字の塗りが時間で動く `{kind:'rainbow'|'shine'|'stripes',…}`（手本 `rainbowFill` `shineSweep` `stripeFill`。ほかの種類は本体の仕組みが要る）。`c.color` `c.accent` `c.bg` で色を決める（暗い背景でも見える色に） |
+| 加工 `treat` | `style(P,c)`→`{stroke,fill,shadow,extrude,textColor,deco,blur,trail,fillFx,longShadow,echo,rim}` | 字の描き方の組み合わせ（`longShadow` `echo` `rim` の意味と手本は `docs/cut-parts-concept.md` の 3）。`deco` は `'marker'` `'underline'` `'box'` だけ。`fillFx` は字の塗りが時間で動く `{kind:'rainbow'|'shine'|'stripes',…}`（手本 `rainbowFill` `shineSweep` `stripeFill`。ほかの種類は本体の仕組みが要る）。`c.color` `c.accent` `c.bg` で色を決める（暗い背景でも見える色に） |
 | 背景 `bg` | `plan`、`draw(ctx,e,P)` | `e.t`（曲の時刻）から描く。**半透明で**（不透明度0.5まで。下に絵がある時は絵が透けて見えること）。`e.W` `e.H` を使って横長・縦長どちらでも |
 | カメラ `cam` | `plan`、`get(e,P)`→`{s,x,y,rot}` | 文字の層全体の変形。`e.p`（カットの進み 0→1）で。拡大は1.0〜1.1、ずれは画面の3%まで、回転5度まで。大きく動くものは `strong:true` |
 | 画面効果 `fx` | `dur`（0.2〜0.45秒）、`plan`、`apply(ctx,e,P,k)` | カットの頭で、強さ `k` が 1→0 に減る後処理。**`e.opaque===false`（下に絵がある時）は、透明な所を塗らない**（白や色で全面を塗ると画面が真っ白になる）。点滅するものは `strongFlash:true`（「強い点滅を避ける」で外れる） |
@@ -145,7 +145,7 @@ return {update(frame){
 | 装飾 `deco` | `plan(r)`→P、`draw(c,d,P)`、`back`（文字の後ろに描くなら true） | 文字のまわりに付く飾り（2026-10-17 新設。手で作った21種は `decos.js`）。`d` は文字の外接矩形 `x0` `y0` `x1` `y1` `w` `h` `cx` `cy`、字の大きさ `size`、`lt` `dur`、出てくる進み `a`（0→1）と残る度合い `z`（1→0）、`fg` `accent` `seed`。**文字を隠さない**（文字の上には線・小さな形だけ。塗りは `back:true` で文字の後ろに、半透明で）。`a` で描いていく・飛び出すなど、出てくる動きを付ける |
 
 - 共通：**同じ時刻なら同じ絵**（`Math.random` `Date.now` は使わない。乱数は `plan(r)` の `r` か `hash`）。`plan` は JSON にできる値（数・文字・真偽・それらの配列と object）だけを返し、同じ `r` なら同じ値。値は STUDIO の作品ファイルに保存され、読み込む時に `plan` が出せる範囲に収められる（だから、`plan` の外の値に頼らない）。
-- 字の部品の `glyph` は、`{dx,dy,sx,sy,rot,a,blur,hide}` のほかに、`ch`（代わりに描く字）`reel`（リール）`cell`（字の枠で切り抜く）`paint`（左から塗り直す）`bold`（太らせる）`thin`（輪郭だけ）も返せる（2026-10-18 から。意味と手本は `docs/cut-parts-concept.md` の 3）。
+- 字の部品の `glyph` は、`{dx,dy,sx,sy,rot,a,blur,hide}` のほかに、`ch`（代わりに描く字）`reel`（リール）`cell`（字の枠で切り抜く）`paint`（左から塗り直す）`bold`（太らせる）`thin`（輪郭だけ）`erode`（削れて消える）も返せる（2026-10-18 から。意味と手本は `docs/cut-parts-concept.md` の 3）。
 - `g`（字）：`cx` `cy` `w` `size` `word`（語の番号）`line`、`wcx` `wcy`（語の真ん中）。`E`：`size` `W` `H` `r(i,k)`（字ごとの決まった乱数）`nWords` `n` `bbox`（行の外接矩形 `x0` `x1` `y0` `y1`）`lt` `D` `seed`。`e`（背景・カメラ・画面効果・つなぎ）：`W` `H` `t` `lt` `dur` `p` `fg` `accent` `bg` `opaque` `tmp(slot,w,h)`（作業用のキャンバス）。
 
 #### 書いたら

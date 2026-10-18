@@ -52,10 +52,11 @@ STUDIO の「✂ カット割り」は、歌詞の1行を短いカット（0.5�
 | `paint: {u, color}` | 字の左から u の割合を別の色で塗り直す（`color:'accent'` でアクセント色） | `hold/paintSweep` |
 | `bold` | 字と同じ色の縁で太らせる（字の大きさに対する割合、0.08 くらいまで） | `hold/weightBreathe` `weightWave` |
 | `thin` | 細い輪郭だけで描き、塗りを薄くする（1 で輪郭だけ） | `enter/thinToBold` |
+| `erode` | 字が境目から削られて消え、削れた所が粒になって飛ぶ `{kind:'sand'|'burn'|'rub',k,…}`（k は削れの進み。1 で全部削れ、1 を過ぎても粒は飛ぶ。読めない状態として数える） | `exit/sandAway` `burnAway` `rubAway` |
 
 `item(it,p,E,P)` が書ける値: `blur` `sx` `sy` `a` `clip`（左右の切り抜き）`bar`、`split: {ang, n, t, dy, line}`（文字の中心を通る斜めの線で上下を切り分ける。手本 `enter/splitIn` `exit/splitDrop`）。
 
-STYLE（`treat`）の `style()` が返せる値: `stroke` `fill` `shadow` `extrude` `textColor` `deco`（`'marker'` `'underline'` `'box'`）`blur` `trail`、`fillFx: {kind:'rainbow'|'shine'|'stripes', …}`（字の塗りそのものが時間で動く。手本 `treat/rainbowFill` `shineSweep` `stripeFill`）。
+STYLE（`treat`）の `style()` が返せる値: `stroke` `fill` `shadow` `extrude` `textColor` `deco`（`'marker'` `'underline'` `'box'`）`blur` `trail`、`fillFx: {kind:'rainbow'|'shine'|'stripes', …}`（字の塗りそのものが時間で動く。手本 `treat/rainbowFill` `shineSweep` `stripeFill`）、`longShadow: {ang,swing,v,len,color}`（字から長く伸びる影。光の向きが時刻で振れる。手本 `treat/longShadow`）、`echo: {n,dx,dy,color}`（輪郭だけのコピーをずらして重ねる。手本 `treat/echoOutline`）、`rim: {w,color}`（`stroke` の外側のもう1本のフチ。手本 `treat/doubleRim`）。
 
 STAGE（`world`）: `arrange(item,P)` で字の位置（`g.cx` `g.cy` `g.rot0` `g.size`）を並べ直せる（並べ直したら `item.bbox` も作り直す。手本 `ringText` `spiralText` `shapeText`）。`knockout: true` と `plate(c,e,P,{mask})` で、画面いっぱいの板に字の形の穴を開ける（手本 `knockout`…）。
 
