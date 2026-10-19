@@ -241,4 +241,29 @@ export const DAILY_CUT_PARTS=[
    for(let i=0;i<cols*rows;i++){const d=Math.abs(i-t),dist=Math.min(d,cols*rows-d),pulse=Math.max(0,1-dist),x=(i%cols)*cw,y=Math.floor(i/cols)*ch,gapX=cw*.1,gapY=ch*.1;
     c.fillStyle=rgba(i%3?e.fg:e.accent,.035+.24*pulse);c.fillRect(x+gapX,y+gapY,cw-gapX*2,ch-gapY*2);c.strokeStyle=rgba(e.fg,.13);c.lineWidth=step;c.strokeRect(x+gapX,y+gapY,cw-gapX*2,ch-gapY*2);}
   }},
+ // ---- 2026-10-20（字の入れ替わり・渦・稲妻・図形反転）
+ // 字が互いの場所を通り、元の並びへ戻る
+ {axis:'enter',key:'wordShuffle',name:'字が入れ替わる',desc:'字が近くの字と場所を入れ替えるように動き、元の並びへ戻ります。',added:'2026-10-20',poster:.055,
+  tags:['glitch','graphic','pop'],w:.8,fast:true,inDur:D=>clamp(D*.36,.2,.4),plan:r=>({dir:sign(r),spread:.9+r()*.08}),
+  glyph(g,i,n,p,E,P){if(p<=0)return {hide:true};if(p>=1)return null;const q=clamp(p/P.spread),move=smooth(clamp(q/.28))*(1-smooth(clamp((q-.66)/.34))),dir=(i%2?1:-1)*P.dir;return {dx:dir*g.w*2.5*move,dy:Math.sin(q*TAU*1.5+i*.8)*g.size*.15*move,rot:dir*13*Math.sin(q*Math.PI)*move};}},
+ // 行の中心へ向かって、渦を描きながら消える
+ {axis:'exit',key:'spiralGather',name:'渦へ巻き込まれる',desc:'字が行の中心へ渦を描いて寄り、小さくなりながら消えていきます。',added:'2026-10-20',
+  tags:['impact','graphic','emotional'],w:.8,outDur:D=>clamp(D*.28,.15,.38),plan:r=>({dir:sign(r),turns:.55+r()*.35}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,.18),u=inCubic(q),cx=(E.bbox.x0+E.bbox.x1)/2,cy=(E.bbox.y0+E.bbox.y1)/2,dx=g.cx-cx,dy=g.cy-cy,a=P.dir*TAU*P.turns*u,co=Math.cos(a),si=Math.sin(a),s=Math.max(.01,1-u*.92);return {dx:u*(dx*co-dy*si-dx),dy:u*(dx*si+dy*co-dy),sx:s,sy:s,a:1-smooth(q)};}},
+ // 震える手描きの矢印を数コマごとに描き替える
+ {axis:'deco',key:'jitterArrow',name:'震える手描き矢印',desc:'文字の下に手描きの矢印が現れ、数コマごとに線を描き替えて震えます。',added:'2026-10-20',poster:.32,
+  tags:['graphic','glitch','pop'],w:.8,back:true,plan:r=>({dir:sign(r),seed:Math.floor(r()*1000)}),
+  draw(c,d,P){const f=Math.floor(d.lt*12),h=(j,k)=>(hash(P.seed,f,j,k)-.5)*d.size*.035,x0=d.cx-P.dir*d.w*.22,x1=d.cx+P.dir*d.w*.22,y=d.y1+d.size*.13+h(0,0),tip=x1+h(1,0);c.save();c.globalAlpha=d.z*.48;c.strokeStyle=d.accent;c.lineWidth=Math.max(1,d.size*.025);c.lineCap='round';c.lineJoin='round';c.beginPath();c.moveTo(x0,y+h(2,1));c.lineTo(d.cx+h(2,2),y+h(2,3));c.lineTo(tip,y+h(2,4));c.moveTo(tip-P.dir*d.size*.16,y-d.size*.1+h(3,1));c.lineTo(tip,y+h(3,2));c.lineTo(tip-P.dir*d.size*.16,y+d.size*.1+h(3,3));c.stroke();c.restore();}},
+ // 稲妻が上から字の近くへ落ちる
+ {axis:'deco',key:'lightningDrop',name:'字へ落ちる稲妻',desc:'細い稲妻が上から字の近くへ落ち、短く光って消えます。',added:'2026-10-20',poster:.18,
+  tags:['impact','graphic','glitch'],w:.8,plan:r=>({x:.3+r()*.4,seed:Math.floor(r()*1000)}),
+  draw(c,d,P){const q=outCubic(clamp(d.a*1.8)),x=d.x0+d.w*P.x,y0=d.y0-d.size*.72,y1=d.y0+d.size*.06,steps=7,pts=[];for(let i=0;i<=steps;i++)pts.push([x+(i===0||i===steps?0:(hash(P.seed,i,1)-.5)*d.size*.18),lerp(y0,y1,i/steps)]);c.save();c.globalAlpha=d.z*.58*q;c.strokeStyle=d.accent;c.lineWidth=Math.max(1,d.size*.022);c.lineJoin='miter';c.beginPath();pts.forEach(([xx,yy],i)=>i?c.lineTo(xx,yy):c.moveTo(xx,yy));c.stroke();c.restore();}},
+ // 黒い球を、細い光の軌道が巡る
+ {axis:'bg',key:'orbSwirl',name:'球を巡る光の渦',desc:'半透明の黒い球を細い光の軌道が巡り、下の絵を残したまま回ります。',added:'2026-10-20',poster:.42,
+  tags:['emotional','graphic','calm'],w:.8,plan:r=>({x:.5+(r()-.5)*.24,y:.5+(r()-.5)*.2,r:.18+r()*.04,phase:r()*TAU,dir:sign(r)}),
+  draw(c,e,P){const S=Math.min(e.W,e.H),sheet=e.tmp?.('orbSwirl',e.W,e.H),xctx=sheet&&sheet!==c.canvas?sheet.getContext('2d'):c;if(sheet&&xctx!==c)xctx.clearRect(0,0,e.W,e.H);const x=e.W*P.x,y=e.H*P.y,r=S*P.r,g=xctx.createRadialGradient(x-r*.35,y-r*.4,r*.06,x,y,r);g.addColorStop(0,'rgba(0,0,0,.42)');g.addColorStop(.72,'rgba(0,0,0,.28)');g.addColorStop(1,'rgba(0,0,0,0)');xctx.save();xctx.fillStyle=g;xctx.beginPath();xctx.arc(x,y,r,0,TAU);xctx.fill();xctx.strokeStyle=rgba(e.fg,.28);xctx.lineWidth=Math.max(1,S*.003);xctx.beginPath();xctx.ellipse(x-r*.03,y,r*.72,r*.7,-.2,.7,4.65);xctx.stroke();xctx.fillStyle=rgba(e.fg,.34);xctx.beginPath();xctx.ellipse(x-r*.28,y-r*.32,r*.12,r*.045,-.45,0,TAU);xctx.fill();xctx.translate(x,y);xctx.rotate(e.t*.45*P.dir+P.phase);xctx.strokeStyle=rgba(e.accent,.27);xctx.lineWidth=Math.max(1,S*.004);xctx.beginPath();xctx.ellipse(0,0,r*1.35,r*.42,.12,0,TAU);xctx.stroke();xctx.rotate(-e.t*.8*P.dir-P.phase*1.7);xctx.strokeStyle=rgba(e.fg,.18);xctx.beginPath();xctx.ellipse(0,0,r*1.16,r*.3,-.24,0,TAU);xctx.stroke();xctx.restore();if(sheet&&xctx!==c){c.save();c.globalAlpha=.42;c.drawImage(sheet,0,0);c.restore();}}},
+ // 星形かハート形の輪の内側だけ色を反転する
+ {axis:'fx',key:'shapeInvert',name:'星窓の色反転',desc:'星形かハート形の窓が広がり、その輪の中だけ画面の色を反転します。',added:'2026-10-20',
+  tags:['impact','graphic','glitch'],w:1.4,dur:.42,plan:r=>({shape:r()<.5?'star':'heart',x:.5+(r()-.5)*.18,y:.5+(r()-.5)*.14,rot:r()*TAU}),
+  apply(c,e,P,k){const u=1-clamp(k),R=Math.hypot(e.W,e.H)*.8,ro=R*outCubic(clamp(u*1.22)),ri=R*outCubic(clamp((u-.3)/.7));if(ro<=ri+.5)return;const cx=e.W*P.x,cy=e.H*P.y,path=(r)=>{c.beginPath();if(P.shape==='star'){for(let i=0;i<10;i++){const a=P.rot+i*TAU/10,rr=r*(i%2?.46:1),x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;i?c.lineTo(x,y):c.moveTo(x,y);}c.closePath();}else{for(let i=0;i<=60;i++){const t=i/60*TAU,x=16*Math.sin(t)**3,y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t),X=cx+x*r/18,Y=cy-(y-2)*r/18;i?c.lineTo(X,Y):c.moveTo(X,Y);}c.closePath();}};const snap=e.opaque===false?e.tmp(0,e.W,e.H):null;if(snap){const x=snap.getContext('2d');x.globalCompositeOperation='copy';x.drawImage(c.canvas,0,0);x.globalCompositeOperation='source-over';}c.save();path(ro);path(ri);c.clip('evenodd');c.globalCompositeOperation='difference';c.fillStyle='#fff';c.fillRect(0,0,e.W,e.H);if(snap){c.globalCompositeOperation='destination-in';c.drawImage(snap,0,0);}c.restore();}},
 ];
