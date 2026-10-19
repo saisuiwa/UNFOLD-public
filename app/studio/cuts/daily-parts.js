@@ -19,7 +19,7 @@
 //   world         worlds.js の形（fits / frame / plan / back / front …）
 //   deco          plan(r) → P、draw(c,d,P)、back?（decos.js の形。文字のまわりの線・小さな形だけで、文字を隠さない）
 // 決まり: 同じ時刻なら同じ絵（Math.random・Date.now は使わない。乱数は plan(r) の r か、kit.js の hash）。plan は JSON にできる値だけ返す。
-import {TAU,clamp,lerp,fract,outCubic,inCubic,inOutCubic,outBack,smooth,bell,hash,sign,local,rgba} from './kit.js';
+import {TAU,clamp,lerp,fract,outCubic,inCubic,inOutCubic,outBack,outExpo,smooth,bell,hash,sign,local,rgba} from './kit.js';
 
 export const DAILY_CUT_PARTS=[
  // ---- 2026-10-17（最初の8個。手順書を作り直した日に、Claude が手本として足した）
@@ -184,4 +184,41 @@ export const DAILY_CUT_PARTS=[
  {axis:'trans',key:'starWindow',name:'星窓で切り替わる',desc:'前の絵の上に星形の窓が広がり、窓の向こうから次の絵へ切り替わります。',added:'2026-10-18',
   tags:['pop','impact','graphic'],w:1,dur:.4,plan:r=>({rot:r()*TAU/10}),
   draw(c,A,B,p,e,P){c.drawImage(A,0,0);const q=inCubic(p),R=Math.hypot(e.W,e.H)*2.25*q,cx=e.W*.5,cy=e.H*.5;c.save();c.beginPath();for(let i=0;i<20;i++){const a=P.rot+i*TAU/20,r=i%2?R*.52:R,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i?c.lineTo(x,y):c.moveTo(x,y);}c.closePath();c.clip();c.drawImage(B,0,0);c.restore();}},
+ // ---- 2026-10-19
+ // 字が上の細い線から、ブラインドを下ろすように下へ開く
+ {axis:'enter',key:'blindDown',name:'ブラインドが降りる',desc:'字が上の細い線から、ブラインドを下ろすように下へ向かって開いていきます。',added:'2026-10-19',
+  tags:['graphic','calm','pop','emotional'],w:1,fast:true,inDur:D=>clamp(D*.32,.16,.42),plan:r=>({spread:.3+r()*.2}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread);if(q<=0)return {hide:true};const u=outExpo(q);if(1-u<.002)return null;const sy=Math.max(.03,u);return {cell:true,sy,dy:-(1-sy)*g.size*.5,a:clamp(q*8)};}},
+ // 看板の電球のように、字が交互に明るくなる
+ {axis:'hold',key:'neonFlicker',name:'電光看板のように光る',desc:'字が看板の電球のように、順にずれながら明るく太くなったり戻ったりします。',added:'2026-10-19',
+  tags:['glitch','graphic','pop'],w:.9,plan:r=>({sp:1.1+r()*.6,ph:r()*TAU}),
+  glyph(g,i,n,p,E,P){const on=Math.sin(E.lt*P.sp*TAU*.5+i*1.7+P.ph)>.15?1:0;return {bold:.06*on*p,a:.94+.06*on,dy:Math.sin(E.lt*P.sp*TAU+i)*E.size*.02*p};}},
+ // 1字だけがその場に残り、ほかは両側へ離れて消える
+ {axis:'exit',key:'soloStay',name:'ひと文字だけ残る',desc:'一字だけがその場に残り、ほかの字は左右へ離れて消え、最後にその字も消えます。',added:'2026-10-19',
+  tags:['emotional','graphic','calm','impact'],w:.9,outDur:D=>clamp(D*.3,.16,.42),plan:r=>({at:r(),spread:.15+r()*.1}),
+  glyph(g,i,n,p,E,P){const keep=Math.min(n-1,Math.floor(P.at*n));if(i===keep)return {a:1-clamp((p-.72)/.28)};const q=local(p,i,n,P.spread),dir=i<keep?-1:1;return {dx:dir*inCubic(q)*E.size*(.9+.15*Math.abs(i-keep)),a:1-smooth(q)};}},
+ // 縦につぶれて1本の線になり、横へ流れて消える
+ {axis:'exit',key:'lineStream',name:'線にほどけて流れる',desc:'字が縦に細くつぶれて一本の線になり、横へ流れながら消えていきます。',added:'2026-10-19',
+  tags:['graphic','glitch','impact','calm'],w:.9,outDur:D=>clamp(D*.28,.15,.4),plan:r=>({spread:.2+r()*.1,dir:sign(r)}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,P.spread),squash=smooth(clamp(q/.5)),flow=inCubic(clamp((q-.35)/.65));return {sy:Math.max(.02,1-squash*.96),sx:1+squash*.25,dx:P.dir*flow*E.size*3.2,a:1-clamp((q-.7)/.3)};}},
+ // 文字の下に弦を張って弾く
+ {axis:'deco',key:'stringPluck',name:'弾かれる弦',desc:'文字の下に細い弦が張られ、弾かれて波になって震え、やがて静まります。',added:'2026-10-19',poster:.2,
+  tags:['graphic','calm','emotional','pop'],w:1,plan:r=>({k:1+Math.floor(r()*3),y:.28+r()*.1}),
+  draw(c,d,P){const y0=d.y1+d.size*P.y,x0=d.x0-d.size*.3,x1=d.x1+d.size*.3,len=x1-x0,u=outCubic(clamp(d.a*1.5)),steps=48,end=Math.max(2,Math.round(steps*u)),amp=d.size*.18*Math.exp(-d.lt*4)*Math.cos(d.lt*30);
+   c.save();c.globalAlpha=d.z*.8;c.strokeStyle=d.accent;c.lineWidth=Math.max(1.2,d.size*.025);c.lineCap='round';c.beginPath();
+   for(let i=0;i<=end;i++){const t=i/steps,x=x0+len*t,y=y0+Math.sin(t*Math.PI*P.k)*amp;i?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();
+   if(u>.98){c.fillStyle=d.fg;for(const x of [x0,x1]){c.beginPath();c.arc(x,y0,d.size*.035,0,TAU);c.fill();}}
+   c.restore();}},
+ // 細い縦のバーが、音の波形のように揺れる（音は使わない。時刻から決まった揺れ）
+ {axis:'bg',key:'eqBars',name:'ゆれるイコライザ',desc:'細い縦のバーが、音の波形のように決まった揺れで高さを変えながら並びます。',added:'2026-10-19',
+  tags:['graphic','pop','calm','glitch'],w:.9,plan:r=>({n:36+Math.floor(r()*17),seed:Math.floor(r()*1000),sp:.7+r()*.5,mid:.5+(r()-.5)*.1}),
+  draw(c,e,P){const w=e.W/P.n,bw=Math.max(1,w*.46);for(let i=0;i<P.n;i++){const h1=hash(P.seed,i,1),h2=hash(P.seed,i,2),env=.35+.65*Math.sin((i+.5)/P.n*Math.PI),k=.5+.5*Math.sin(e.t*P.sp*(2.2+h1*2.6)+h2*TAU),hh=e.H*(.04+.3*env*k)*(.6+.4*h1);c.fillStyle=rgba(i%5?e.fg:e.accent,.13+.07*k);c.fillRect(i*w+(w-bw)/2,e.H*P.mid-hh/2,bw,hh);}}},
+ // 画面の下から駆け上がって、ふっと止まる
+ {axis:'cam',key:'riseSettle',name:'下から駆け上がる',desc:'文字全体が画面の下から勢いよく駆け上がり、ふっと止まります。',added:'2026-10-19',
+  tags:['impact','pop','emotional','graphic'],w:1,plan:r=>({amp:.7+r()*.3}),get:(e,P)=>({s:1.03,y:e.H*.028*P.amp*(1-outExpo(e.lt/.28))})},
+ // ハートの形の窓が広がって、次の絵へ切り替わる
+ {axis:'trans',key:'heartWindow',name:'ハートの窓で切り替わる',desc:'前の絵の上にハート形の窓が広がり、窓の向こうから次の絵へ切り替わります。',added:'2026-10-19',
+  tags:['pop','emotional','graphic'],w:.9,dur:.4,plan:()=>({}),
+  draw(c,A,B,p,e){c.drawImage(A,0,0);const k=Math.hypot(e.W,e.H)/2/5*1.15*inCubic(p);if(k<.5)return;const cx=e.W*.5,cy=e.H*.5;c.save();c.beginPath();
+   for(let i=0;i<=60;i++){const t=i/60*TAU,x=16*Math.sin(t)**3,y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t),X=cx+x*k,Y=cy-(y-2)*k;i?c.lineTo(X,Y):c.moveTo(X,Y);}c.closePath();c.clip();c.drawImage(B,0,0);c.restore();}},
 ];
