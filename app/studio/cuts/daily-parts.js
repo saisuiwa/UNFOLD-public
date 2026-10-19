@@ -221,4 +221,24 @@ export const DAILY_CUT_PARTS=[
   tags:['pop','emotional','graphic'],w:.9,dur:.4,plan:()=>({}),
   draw(c,A,B,p,e){c.drawImage(A,0,0);const k=Math.hypot(e.W,e.H)/2/5*1.15*inCubic(p);if(k<.5)return;const cx=e.W*.5,cy=e.H*.5;c.save();c.beginPath();
    for(let i=0;i<=60;i++){const t=i/60*TAU,x=16*Math.sin(t)**3,y=13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t),X=cx+x*k,Y=cy-(y-2)*k;i?c.lineTo(X,Y):c.moveTo(X,Y);}c.closePath();c.clip();c.drawImage(B,0,0);c.restore();}},
+ // 星を順に細い線で結ぶ
+ {axis:'deco',key:'starLinks',name:'星をつなぐ線',desc:'文字の上に小さな星が順に現れ、細い線で結ばれて静かに消えます。',added:'2026-10-19',
+  tags:['graphic','calm','emotional'],w:.9,back:true,plan:r=>({n:4+Math.floor(r()*3),seed:Math.floor(r()*1000)}),
+  draw(c,d,P){const pts=Array.from({length:P.n},(_,i)=>({x:d.x0-d.size*.16+(d.w+d.size*.32)*i/(P.n-1),y:d.y0-d.size*(.14+hash(P.seed,i,1)*.22)}));
+   c.save();c.strokeStyle=d.accent;c.lineWidth=Math.max(1,d.size*.012);c.lineCap='round';
+   for(let i=0;i<pts.length-1;i++){const u=clamp(d.a*(pts.length-1)-i);if(u<=0)continue;c.globalAlpha=d.z*.5;c.beginPath();c.moveTo(pts[i].x,pts[i].y);c.lineTo(lerp(pts[i].x,pts[i+1].x,u),lerp(pts[i].y,pts[i+1].y,u));c.stroke();}
+   for(let i=0;i<pts.length;i++){const u=clamp(d.a*pts.length-i);if(u<=0)continue;const {x,y}=pts[i],r=d.size*.055,q=r*.42;c.globalAlpha=d.z*(.3+.35*u);c.beginPath();c.moveTo(x,y-r);c.lineTo(x+q,y-q);c.lineTo(x+r,y);c.lineTo(x+q,y+q);c.lineTo(x,y+r);c.lineTo(x-q,y+q);c.lineTo(x-r,y);c.lineTo(x-q,y-q);c.closePath();c.stroke();}
+   c.restore();}},
+ // やわらかなスポット光が画面を横切る
+ {axis:'bg',key:'spotlightSweep',name:'横切るスポット光',desc:'やわらかな光の輪が画面を横切り、絵の色を残したまま通り過ぎます。',added:'2026-10-19',
+  tags:['calm','emotional','graphic'],w:.9,plan:r=>({speed:.16+r()*.08,phase:r(),y:.32+r()*.36,r:.28+r()*.08}),
+  draw(c,e,P){const u=fract(e.t*P.speed+P.phase),x=(u*1.8-.4)*e.W,y=e.H*P.y,r=Math.min(e.W,e.H)*P.r,g=c.createRadialGradient(x,y,0,x,y,r);
+   g.addColorStop(0,rgba(e.accent,.24));g.addColorStop(.46,rgba(e.accent,.12));g.addColorStop(1,rgba(e.accent,0));c.save();c.fillStyle=g;c.fillRect(x-r,y-r,r*2,r*2);c.restore();}},
+ // 4行3列のマスを、順に淡く点灯させる
+ {axis:'bg',key:'gridPulse12',name:'順に光る十二マス',desc:'4行3列の小さな区画が順に淡く光り、次の区画へ移ります。',added:'2026-10-19',
+  tags:['graphic','glitch','calm'],w:.9,plan:r=>({speed:.2+r()*.08,phase:r()}),
+  draw(c,e,P){const cols=4,rows=3,cw=e.W/cols,ch=e.H/rows,t=fract(e.t*P.speed+P.phase)*cols*rows,step=Math.max(1,Math.min(e.W,e.H)*.003);
+   for(let i=0;i<cols*rows;i++){const d=Math.abs(i-t),dist=Math.min(d,cols*rows-d),pulse=Math.max(0,1-dist),x=(i%cols)*cw,y=Math.floor(i/cols)*ch,gapX=cw*.1,gapY=ch*.1;
+    c.fillStyle=rgba(i%3?e.fg:e.accent,.035+.24*pulse);c.fillRect(x+gapX,y+gapY,cw-gapX*2,ch-gapY*2);c.strokeStyle=rgba(e.fg,.13);c.lineWidth=step;c.strokeRect(x+gapX,y+gapY,cw-gapX*2,ch-gapY*2);}
+  }},
 ];
