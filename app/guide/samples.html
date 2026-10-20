@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル186個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル192個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=3">
 </head>
 <body>
@@ -27,13 +27,13 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>186個</b>、最後に増えたのは 10/20）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>192個</b>、最後に増えたのは 10/20）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>186</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="cutpart" aria-pressed="false">カット割りの部品（STUDIO）<small>52</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>192</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="cutpart" aria-pressed="false">カット割りの部品（STUDIO）<small>58</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
     <article class="method" data-cat="cutpart">
@@ -99,6 +99,72 @@
         <h3><i aria-hidden="true">✂</i>星窓の色反転<span class="new">NEW</span><small>SHAPEINVERT</small></h3>
         <p>星形かハート形の窓が広がり、その輪の中だけ画面の色を反転します。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（FX・画面効果）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/20 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-honeyWave.mp4" role="button" tabindex="0" aria-label="波打つ蜂の巣の動きを再生">
+        <img src="./samples/cut-bg-honeyWave.jpg" alt="波打つ蜂の巣の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>波打つ蜂の巣<span class="new">NEW</span><small>HONEYWAVE</small></h3>
+        <p>六角形の線が蜂の巣のように並び、波が渡るように濃淡がゆれます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/20 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-triPulse.mp4" role="button" tabindex="0" aria-label="明滅する三角タイルの動きを再生">
+        <img src="./samples/cut-bg-triPulse.jpg" alt="明滅する三角タイルの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>明滅する三角タイル<span class="new">NEW</span><small>TRIPULSE</small></h3>
+        <p>三角形のタイルが敷き詰められ、ところどころが順に淡く光ります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/20 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-ringMoire.mp4" role="button" tabindex="0" aria-label="重なる円のモアレの動きを再生">
+        <img src="./samples/cut-bg-ringMoire.jpg" alt="重なる円のモアレの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>重なる円のモアレ<span class="new">NEW</span><small>RINGMOIRE</small></h3>
+        <p>二組の同心円が逆向きにゆっくり動いて、重なりに縞模様が生まれます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/20 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-seigaiha.mp4" role="button" tabindex="0" aria-label="青海波の模様の動きを再生">
+        <img src="./samples/cut-bg-seigaiha.jpg" alt="青海波の模様の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>青海波の模様<span class="new">NEW</span><small>SEIGAIHA</small></h3>
+        <p>半円のうろこを重ねた和柄が、波のきらめきのように淡く明るさを変えます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/20 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-sunflowerSpiral.mp4" role="button" tabindex="0" aria-label="ひまわりの螺旋の動きを再生">
+        <img src="./samples/cut-bg-sunflowerSpiral.jpg" alt="ひまわりの螺旋の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>ひまわりの螺旋<span class="new">NEW</span><small>SUNFLOWERSPIRAL</small></h3>
+        <p>小さな点が黄金角でうずを巻いて並び、ゆっくり回りながら呼吸します。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/20 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-diamondLattice.mp4" role="button" tabindex="0" aria-label="流れるひし形格子の動きを再生">
+        <img src="./samples/cut-bg-diamondLattice.jpg" alt="流れるひし形格子の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>流れるひし形格子<span class="new">NEW</span><small>DIAMONDLATTICE</small></h3>
+        <p>斜めの細い線が交差してひし形の格子をつくり、ゆるやかに流れていきます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/20 追加</span>
       </div>
     </article>

@@ -66,6 +66,12 @@
 ## 作った
 | 日付 | 軸 | キー | 名前 |
 |---|---|---|---|
+| 2026-10-20 | BG | `honeyWave` | 波打つ蜂の巣 |
+| 2026-10-20 | BG | `triPulse` | 明滅する三角タイル |
+| 2026-10-20 | BG | `ringMoire` | 重なる円のモアレ |
+| 2026-10-20 | BG | `seigaiha` | 青海波の模様 |
+| 2026-10-20 | BG | `sunflowerSpiral` | ひまわりの螺旋 |
+| 2026-10-20 | BG | `diamondLattice` | 流れるひし形格子 |
 | 2026-10-18 | IN | `trackIn` | 字間が縮んで弾む |
 | 2026-10-18 | IN / OUT | `splitIn` / `splitDrop` | 斜めの切れ目からせり出す／ずれ落ちる |
 | 2026-10-18 | IN / STAY | `scramble` `slotReel` `maskReveal` / `glyphSwap` | 字の置き換え |
