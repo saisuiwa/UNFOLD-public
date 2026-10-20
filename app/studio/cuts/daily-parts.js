@@ -285,4 +285,33 @@ export const DAILY_CUT_PARTS=[
  {axis:'bg',key:'diamondLattice',name:'流れるひし形格子',desc:'斜めの細い線が交差してひし形の格子をつくり、ゆるやかに流れていきます。',added:'2026-10-20',
   tags:['graphic','calm','pop'],w:1,plan:r=>({gap:.07+r()*.04,sp:.03+r()*.03,ang:.8+r()*.4}),
   draw(c,e,P){const S=Math.min(e.W,e.H),g=S*P.gap,mx=Math.hypot(e.W,e.H);c.lineWidth=Math.max(1,S*.002);for(let s=0;s<2;s++){const a=s?P.ang:-P.ang,ca=Math.cos(a),sa=Math.sin(a),off=(e.t*S*P.sp*(s?1:-1))%g;c.strokeStyle=rgba(s?e.accent:e.fg,s?.16:.2);c.beginPath();for(let d=-mx;d<mx;d+=g){const o=d+off,px=e.W/2-sa*o,py=e.H/2+ca*o;c.moveTo(px-ca*mx,py-sa*mx);c.lineTo(px+ca*mx,py+sa*mx);}c.stroke();}}},
+ // ---- 2026-10-21（幾何模様の背景を中心に、線の構造・描き替え・光柱を追加）
+ {axis:'bg',key:'orthogonalWeave',name:'交差する織り目',desc:'縦横の細線が交互にくぐり、織物のような格子をゆっくり組み替えます。',added:'2026-10-21',
+  tags:['graphic','calm','glitch'],w:1,plan:r=>({gap:.11+r()*.035,phase:r()*TAU,dir:sign(r)}),
+  draw(c,e,P){const S=Math.min(e.W,e.H),g=S*P.gap,off=((e.t*S*.012*P.dir)%g+g)%g,cols=Math.ceil(e.W/g)+3,rows=Math.ceil(e.H/g)+3;c.lineWidth=Math.max(1,S*.0022);c.strokeStyle=rgba(e.fg,.17);c.beginPath();
+   for(let j=-1;j<rows;j++){const y=j*g+off;for(let i=-1;i<cols;i++){const x=i*g+off,k=(i+j)&1,skip=g*.16;c.moveTo(x+(k?skip:0),y);c.lineTo(x+g-(k?0:skip),y);}}c.stroke();
+   c.strokeStyle=rgba(e.accent,.12);c.beginPath();for(let i=-1;i<cols;i++){const x=i*g+off;for(let j=-1;j<rows;j++){const y=j*g+off,k=(i+j)&1,skip=g*.16;c.moveTo(x,y+(k?skip:0));c.lineTo(x,y+g-(k?0:skip));}}c.stroke();
+   c.strokeStyle=rgba(e.fg,.19);for(let j=-1;j<rows;j++)for(let i=-1;i<cols;i++){const x=i*g+off,y=j*g+off,skip=g*.16;c.beginPath();if(((i+j)&1)===0){c.moveTo(x-skip,y);c.quadraticCurveTo(x,y-skip*1.4,x+skip,y);}else{c.moveTo(x,y-skip);c.quadraticCurveTo(x+skip*1.4,y,x,y+skip);}c.stroke();}}},
+ {axis:'bg',key:'stepFrames',name:'広がる段枠',desc:'四角い段枠が中心から順に広がり、線の間隔を保って流れていきます。',added:'2026-10-21',
+  tags:['graphic','calm','impact'],w:1,plan:r=>({n:7+Math.floor(r()*3),speed:.22+r()*.12,phase:r()}),
+  draw(c,e,P){const S=Math.min(e.W,e.H),mx=Math.hypot(e.W,e.H)*.55;c.save();c.lineWidth=Math.max(1,S*.003);for(let i=0;i<P.n;i++){const q=fract(e.t*P.speed+P.phase+i/P.n),r=mx*(.08+.92*q),cut=r*.22,x=e.W/2,y=e.H/2;c.strokeStyle=rgba(i%3?e.fg:e.accent,.18+.08*(1-q));c.beginPath();c.moveTo(x-r+cut,y-r);c.lineTo(x+r-cut,y-r);c.moveTo(x+r,y-r+cut);c.lineTo(x+r,y+r-cut);c.moveTo(x+r-cut,y+r);c.lineTo(x-r+cut,y+r);c.moveTo(x-r,y+r-cut);c.lineTo(x-r,y-r+cut);c.stroke();}c.restore();}},
+ {axis:'bg',key:'chevronPassage',name:'奥へ走る山形',desc:'山形の輪郭が重なって奥へ進み、遠近のリズムをゆっくり描きます。',added:'2026-10-21',
+  tags:['graphic','impact','calm'],w:1,plan:r=>({gap:.09+r()*.04,phase:r()}),
+  draw(c,e,P){const S=Math.min(e.W,e.H),g=S*P.gap,shift=fract(e.t*.11+P.phase)*g;c.save();c.lineWidth=Math.max(1,S*.0025);for(let j=-1;j<Math.ceil(e.H/g)+2;j++){const y=j*g+shift,depth=fract(e.t*.1+P.phase+j*.09),w=e.W*(.24+.72*depth),x=e.W/2;c.strokeStyle=rgba(j%4?e.fg:e.accent,.11+.07*depth);c.beginPath();c.moveTo(x-w,y-g*.48);c.lineTo(x,y+g*.48);c.lineTo(x+w,y-g*.48);c.stroke();}c.restore();}},
+ {axis:'bg',key:'handStripes',name:'描き替わる幾何縞',desc:'斜めの手描き線が数コマごとに描き替わり、細かな揺れをつくります。',added:'2026-10-21',poster:.3,
+  tags:['graphic','glitch','calm'],w:1,plan:r=>({n:15+Math.floor(r()*8),seed:Math.floor(r()*1000),angle:.48+r()*.18}),
+  draw(c,e,P){const S=Math.min(e.W,e.H),frame=Math.floor(e.t*7),ca=Math.cos(P.angle),sa=Math.sin(P.angle),span=Math.hypot(e.W,e.H);c.save();c.lineWidth=Math.max(1,S*.0025);for(let j=-P.n;j<=P.n;j++){const d=(j/P.n)*span*.65,wig=k=>(hash(P.seed,frame,j,k)-.5)*S*.05,x=e.W/2-sa*d,y=e.H/2+ca*d;c.strokeStyle=rgba(j%5?e.fg:e.accent,.12+.05*hash(P.seed,j,1));c.beginPath();for(let k=0;k<=12;k++){const t=k/12*span*1.25,px=x+ca*(t-span*.6)+wig(k),py=y+sa*(t-span*.6)+wig(k+20);k?c.lineTo(px,py):c.moveTo(px,py);}c.stroke();}c.restore();}},
+ {axis:'bg',key:'lightColumns',name:'泡立つ光柱',desc:'透ける光の柱の間を、小さな泡がゆっくり昇っていきます。',added:'2026-10-21',poster:.5,
+  tags:['calm','emotional','graphic'],w:1,plan:r=>({n:4+Math.floor(r()*3),seed:Math.floor(r()*1000),speed:.055+r()*.035}),
+  draw(c,e,P){const S=Math.min(e.W,e.H),seed=P.seed;c.save();for(let j=0;j<P.n;j++){const x=e.W*(j+.5)/P.n+Math.sin(e.t*.35+j*1.7)*S*.035,w=S*(.035+.025*hash(seed,j,1)),g=c.createLinearGradient(x-w,0,x+w,0);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.5,rgba(j%3?e.accent:e.fg,.13));g.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=g;c.fillRect(x-w,0,w*2,e.H);}
+   c.lineWidth=Math.max(1,S*.0025);for(let j=0;j<13;j++){const h1=hash(seed,j,1),h2=hash(seed,j,2),r=S*(.012+.018*h2),y=(1.1-fract(h1+e.t*P.speed*(.6+h2))*1.25)*e.H,x=e.W*(.08+.84*hash(seed,j,3))+Math.sin(e.t*.8+j)*S*.018;c.strokeStyle=rgba(j%3?e.fg:e.accent,.18);c.beginPath();c.arc(x,y,r,0,TAU);c.stroke();c.fillStyle=rgba(e.fg,.1);c.beginPath();c.arc(x-r*.3,y-r*.3,r*.18,0,TAU);c.fill();}c.restore();}},
+ {axis:'deco',key:'measureDots',name:'走る測点',desc:'文字の外側に小さな四角い点が並び、端から順に静かに現れます。',added:'2026-10-21',
+  tags:['graphic','calm','pop'],w:1,back:true,plan:r=>({n:5+Math.floor(r()*3)}),
+  draw(c,d,P){const count=P.n*2,limit=clamp(d.a*1.5)*count,S=d.size,step=Math.max(S*.18,d.w/(P.n+1));c.save();c.lineWidth=Math.max(1,S*.018);for(let j=0;j<count;j++){const u=clamp(limit-j),x=d.cx+(j<P.n?-1:1)*(d.w*.5+S*.22+(j%P.n)*step*.08),y=d.cy+(j%P.n-(P.n-1)/2)*step*.48,r=S*(.035+.012*(j%2));if(u<=0)continue;c.globalAlpha=d.z*.45*u;c.strokeStyle=j%3?d.accent:d.fg;c.strokeRect(x-r,y-r,2*r,2*r);}c.restore();}},
+ {axis:'cam',key:'pendulumRail',name:'左右に往復する',desc:'文字の層が浅い弧を描いて左右へ往復し、中央で向きを切り替えます。',added:'2026-10-21',
+  tags:['calm','graphic','emotional'],w:1,plan:r=>({phase:r()*TAU,cycles:1.5+r()*.5}),
+  get(e,P){const a=e.p*P.cycles*TAU+P.phase,x=Math.sin(a),y=(1-Math.cos(a))*.5-.5;return {s:1.04,x:x*e.W*.023,y:y*e.H*.012,rot:x*.02};}},
+ {axis:'trans',key:'checkerMosaic',name:'市松の小窓',desc:'市松模様の小窓が順に開き、次の絵へすき間なく切り替わります。',added:'2026-10-21',
+  tags:['graphic','impact','pop'],w:1,dur:.42,plan:()=>({cols:10,rows:6}),
+  draw(c,A,B,p,e,P){c.drawImage(A,0,0,e.W,e.H);const u=smooth(p),cw=e.W/P.cols,ch=e.H/P.rows;c.save();for(let y=0;y<P.rows;y++)for(let x=0;x<P.cols;x++){const order=((x+y)&1)*.16+((x+y)/(P.cols+P.rows))*.38,alpha=clamp((u-order)/.28);if(alpha<=0)continue;c.globalAlpha=alpha;c.drawImage(B,x*e.W/P.cols,y*e.H/P.rows,cw+1,ch+1,x*cw,y*ch,cw+1,ch+1);}c.restore();}},
 ];

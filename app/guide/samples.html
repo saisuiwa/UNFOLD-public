@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル192個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル200個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=3">
 </head>
 <body>
@@ -27,15 +27,103 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>192個</b>、最後に増えたのは 10/20）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>200個</b>、最後に増えたのは 10/21）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>192</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="cutpart" aria-pressed="false">カット割りの部品（STUDIO）<small>58</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>200</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="cutpart" aria-pressed="false">カット割りの部品（STUDIO）<small>66</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-orthogonalWeave.mp4" role="button" tabindex="0" aria-label="交差する織り目の動きを再生">
+        <img src="./samples/cut-bg-orthogonalWeave.jpg" alt="交差する織り目の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>交差する織り目<span class="new">NEW</span><small>ORTHOGONALWEAVE</small></h3>
+        <p>縦横の細線が交互にくぐり、織物のような格子をゆっくり組み替えます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/21 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-stepFrames.mp4" role="button" tabindex="0" aria-label="広がる段枠の動きを再生">
+        <img src="./samples/cut-bg-stepFrames.jpg" alt="広がる段枠の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>広がる段枠<span class="new">NEW</span><small>STEPFRAMES</small></h3>
+        <p>四角い段枠が中心から順に広がり、線の間隔を保って流れていきます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/21 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-chevronPassage.mp4" role="button" tabindex="0" aria-label="奥へ走る山形の動きを再生">
+        <img src="./samples/cut-bg-chevronPassage.jpg" alt="奥へ走る山形の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>奥へ走る山形<span class="new">NEW</span><small>CHEVRONPASSAGE</small></h3>
+        <p>山形の輪郭が重なって奥へ進み、遠近のリズムをゆっくり描きます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/21 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-handStripes.mp4" role="button" tabindex="0" aria-label="描き替わる幾何縞の動きを再生">
+        <img src="./samples/cut-bg-handStripes.jpg" alt="描き替わる幾何縞の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>描き替わる幾何縞<span class="new">NEW</span><small>HANDSTRIPES</small></h3>
+        <p>斜めの手描き線が数コマごとに描き替わり、細かな揺れをつくります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/21 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-lightColumns.mp4" role="button" tabindex="0" aria-label="泡立つ光柱の動きを再生">
+        <img src="./samples/cut-bg-lightColumns.jpg" alt="泡立つ光柱の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>泡立つ光柱<span class="new">NEW</span><small>LIGHTCOLUMNS</small></h3>
+        <p>透ける光の柱の間を、小さな泡がゆっくり昇っていきます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/21 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-deco-measureDots.mp4" role="button" tabindex="0" aria-label="走る測点の動きを再生">
+        <img src="./samples/cut-deco-measureDots.jpg" alt="走る測点の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>走る測点<span class="new">NEW</span><small>MEASUREDOTS</small></h3>
+        <p>文字の外側に小さな四角い点が並び、端から順に静かに現れます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（DECO・飾り）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/21 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-cam-pendulumRail.mp4" role="button" tabindex="0" aria-label="左右に往復するの動きを再生">
+        <img src="./samples/cut-cam-pendulumRail.jpg" alt="左右に往復するの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>左右に往復する<span class="new">NEW</span><small>PENDULUMRAIL</small></h3>
+        <p>文字の層が浅い弧を描いて左右へ往復し、中央で向きを切り替えます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（CAM・カメラ）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/21 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-trans-checkerMosaic.mp4" role="button" tabindex="0" aria-label="市松の小窓の動きを再生">
+        <img src="./samples/cut-trans-checkerMosaic.jpg" alt="市松の小窓の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>市松の小窓<span class="new">NEW</span><small>CHECKERMOSAIC</small></h3>
+        <p>市松模様の小窓が順に開き、次の絵へすき間なく切り替わります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（TRANS・つなぎ）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/21 追加</span>
+      </div>
+    </article>
     <article class="method" data-cat="cutpart">
       <div class="shot" data-clip="./samples/cut-enter-wordShuffle.mp4" role="button" tabindex="0" aria-label="字が入れ替わるの動きを再生">
         <img src="./samples/cut-enter-wordShuffle.jpg" alt="字が入れ替わるの途中の絵" loading="lazy" width="480" height="270">
@@ -294,7 +382,7 @@
         <img src="./samples/cut-enter-outlineFlash.jpg" alt="輪郭から閃くの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✂</i>輪郭から閃く<span class="new">NEW</span><small>OUTLINEFLASH</small></h3>
+        <h3><i aria-hidden="true">✂</i>輪郭から閃く<small>OUTLINEFLASH</small></h3>
         <p>字ごとに細い輪郭が現れ、中がアクセント色に閃いて元の色へ戻ります。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（IN・登場）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/18 追加</span>
@@ -305,7 +393,7 @@
         <img src="./samples/cut-hold-singleBlink.jpg" alt="一字だけ点滅の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✂</i>一字だけ点滅<span class="new">NEW</span><small>SINGLEBLINK</small></h3>
+        <h3><i aria-hidden="true">✂</i>一字だけ点滅<small>SINGLEBLINK</small></h3>
         <p>ほとんど静かな行の中で、選ばれた一字だけが小さく明滅します。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（STAY・保持）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/18 追加</span>
@@ -316,7 +404,7 @@
         <img src="./samples/cut-exit-dripAway.jpg" alt="雨だれに溶けるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✂</i>雨だれに溶ける<span class="new">NEW</span><small>DRIPAWAY</small></h3>
+        <h3><i aria-hidden="true">✂</i>雨だれに溶ける<small>DRIPAWAY</small></h3>
         <p>字の下が伸びて雨だれのように垂れ、ぼけながら消えていきます。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（OUT・退場）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/18 追加</span>
@@ -327,7 +415,7 @@
         <img src="./samples/cut-exit-hopAway.jpg" alt="小さく跳ね去るの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✂</i>小さく跳ね去る<span class="new">NEW</span><small>HOPAWAY</small></h3>
+        <h3><i aria-hidden="true">✂</i>小さく跳ね去る<small>HOPAWAY</small></h3>
         <p>字が小さな跳ねを二度重ねながら、少し横へ進んで消えていきます。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（OUT・退場）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/18 追加</span>
@@ -338,7 +426,7 @@
         <img src="./samples/cut-deco-crosshair.jpg" alt="照準の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✂</i>照準<span class="new">NEW</span><small>CROSSHAIR</small></h3>
+        <h3><i aria-hidden="true">✂</i>照準<small>CROSSHAIR</small></h3>
         <p>細い輪と十字が文字の外から近づき、行の中心で静かに止まります。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（DECO・飾り）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/18 追加</span>
@@ -349,7 +437,7 @@
         <img src="./samples/cut-bg-splitColumns.jpg" alt="真ん中が割れる縦線の途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✂</i>真ん中が割れる縦線<span class="new">NEW</span><small>SPLITCOLUMNS</small></h3>
+        <h3><i aria-hidden="true">✂</i>真ん中が割れる縦線<small>SPLITCOLUMNS</small></h3>
         <p>細い縦線が細かく震え、中央のすき間がゆっくり広がって戻ります。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/18 追加</span>
@@ -360,7 +448,7 @@
         <img src="./samples/cut-trans-starWindow.jpg" alt="星窓で切り替わるの途中の絵" loading="lazy" width="480" height="270">
       </div>
       <div class="body">
-        <h3><i aria-hidden="true">✂</i>星窓で切り替わる<span class="new">NEW</span><small>STARWINDOW</small></h3>
+        <h3><i aria-hidden="true">✂</i>星窓で切り替わる<small>STARWINDOW</small></h3>
         <p>前の絵の上に星形の窓が広がり、窓の向こうから次の絵へ切り替わります。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（TRANS・つなぎ）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/18 追加</span>
