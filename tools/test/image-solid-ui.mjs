@@ -9,7 +9,8 @@ const json=Buffer.from(JSON.stringify(data)),n=Math.ceil(json.length/4)*4,glb=Bu
 const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
 try{const page=await browser.newPage({viewport:{width:1500,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
 await page.goto('http://127.0.0.1:8776/app/');await page.waitForFunction(()=>window.unfoldMethods&&window.unfold);
-await page.evaluate(async()=>{const {IMAGE_METHOD_PRESETS}=await import('/app/image-method-presets.js');unfoldMethods.registerCustom({id:'im-solid-ui',...IMAGE_METHOD_PRESETS[0]});});await page.locator('[data-method="im-solid-ui"]').first().click();
+// the test's method has its own code: a saved project finds its methods by their code (method-project.js planImport), so the bundled タイルが落ちて跳ねる's exact code would come back as im-tile-bounce
+await page.evaluate(async()=>{const {IMAGE_METHOD_PRESETS}=await import('/app/image-method-presets.js');const preset=IMAGE_METHOD_PRESETS[0];unfoldMethods.registerCustom({id:'im-solid-ui',...preset,code:{...preset.code,source:preset.code.source+'\n// image-solid-ui'}});});await page.locator('[data-method="im-solid-ui"]').first().click();
 await page.locator('#model-input').setInputFiles({name:'test-knot.glb',mimeType:'model/gltf-binary',buffer:glb});await page.waitForFunction(()=>unfold.state.shape.startsWith('glb-'));const model=await page.evaluate(()=>unfold.state.shape);
 await page.waitForTimeout(1600);await page.screenshot({path:out+'/single-glb.png'});
 const hash=()=>page.evaluate(()=>{unfold.render();const c=document.querySelector('#scene'),o=document.createElement('canvas');o.width=c.width;o.height=c.height;const x=o.getContext('2d');x.drawImage(c,0,0);let h=0;for(const v of x.getImageData(0,0,o.width,o.height).data)h=Math.imul(h^v,16777619);return h});
