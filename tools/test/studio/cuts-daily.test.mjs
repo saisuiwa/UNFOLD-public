@@ -29,6 +29,8 @@ test('every daily part follows the rules of the routine and is joined to its tab
   assert.ok(typeof d.name==='string'&&[...d.name].length>=2&&[...d.name].length<=12,`${id}: name (2-12)`);
   assert.ok(typeof d.desc==='string'&&[...d.desc].length>=10&&[...d.desc].length<=60&&d.desc.endsWith('。'),`${id}: desc (10-60, ends with 。)`);
   assert.match(d.added,/^\d{4}-\d{2}-\d{2}$/,`${id}: added`);
+  // 言い方（部品ラボの言葉辞典が引く）。2026-10-22 から足す部品は必ず付ける
+  if(d.words!==undefined||d.added>='2026-10-22')assert.ok(Array.isArray(d.words)&&d.words.length>=1&&d.words.length<=4&&d.words.every(x=>typeof x==='string'&&x.trim()===x&&[...x].length>=1&&[...x].length<=12)&&new Set(d.words).size===d.words.length,`${id}: words (1-4 different words, 1-12 characters each)`);
   assert.ok(Array.isArray(d.tags)&&d.tags.length&&d.tags.every(t=>MOODS.includes(t)),`${id}: tags`);
   assert.ok(d.w>0&&d.w<=2,`${id}: w`);
   assert.ok(NEEDS[d.axis](d),`${id}: the functions of a ${d.axis} part`);
