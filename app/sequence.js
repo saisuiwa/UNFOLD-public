@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=7';
+import {drawSequenceVisual} from './sequence-renderer.js?v=8';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift} from './sequence-core.js';
 import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';

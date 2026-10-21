@@ -39,9 +39,12 @@ python3 -m http.server 8776 --bind 127.0.0.1
 node tools/test/image-solid-browser.mjs
 node tools/test/image-solid-integration.mjs
 node tools/test/image-solid-ui.mjs
+node tools/test/image-solid-colour-browser.mjs
 ```
 
 They generate a GLB fixture in memory and use isolated browser storage. No user assets are uploaded.
+`image-solid-colour-browser.mjs` checks the 「GLBの色（写真と混ぜる）」 slider with image code: the model's base colour and texture show on the solid,
+and 0 % (or a frame without `modelColor`) looks exactly as before.
 
 GPU bitmap crash mitigation regression (serve repository root on port 8777):
 
