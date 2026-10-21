@@ -44,7 +44,7 @@ export function createOmakasePanel(controller){
  // カット割り: 配色と雰囲気は今までと同じ種から決め、カットの計画を作って、歌詞ごとに入れる（おまかせの背景クリップは、不透明なカット演出の下に隠れるので消す）
  async function applyCut(entry){
   const p=project();
-  if(!p.lyrics.some(l=>String(l.text||'').trim()))throw new Error('歌詞がありません。シーケンスで歌詞を入れてから送ってください。');
+  if(!p.lyrics.some(l=>String(l.text||'').trim()))throw new Error('歌詞がありません。左の「歌詞ファイルを入れる」で入れるか、シーケンスから送ってください。');
   const plan=planOmakase(p,{mood:entry.mood,family:entry.family,sizePct:entry.sizePct,layout:LAYOUT_CENTER,seeds:entry.seeds,extras:[]});
   const result=await makeCutPlan(p,{mood:entry.mood,seed:entry.seeds.text,sizePct:entry.sizePct,palette:plan.palette,cut:entry.cut||{},ensureFonts:ensureCutFonts,measure:measureChar});
   const command=cutCommands(p,result,{palette:entry.parts.color?plan.palette:null,sizePct:entry.sizePct,clearBg:true});
@@ -56,7 +56,7 @@ export function createOmakasePanel(controller){
   if(entry.style==='cut')return applyCut(entry);
   state.cut=null;
   const p=project();
-  if(!p.lyrics.length&&!entry.parts.bg)throw new Error('歌詞がありません。シーケンスで歌詞を入れてから送ってください。');
+  if(!p.lyrics.length&&!entry.parts.bg)throw new Error('歌詞がありません。左の「歌詞ファイルを入れる」で入れるか、シーケンスから送ってください。');
   const plan=planOmakase(p,{mood:entry.mood,family:entry.family,sizePct:entry.sizePct,layout:entry.layout,seeds:entry.seeds,extras:entry.extras||[]});
   let command=omakaseCommands(p,plan,{parts:entry.parts});
   // カット割りで付けた自由文字のカット演出は、ここで外す（歌詞のぶんは omakaseCommands が、動きを選び直す時に外す）

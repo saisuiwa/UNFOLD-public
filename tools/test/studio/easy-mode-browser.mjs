@@ -1,8 +1,8 @@
 // かんたん / 詳細: the same STUDIO screen with the rarely needed controls folded away. かんたん is the default, the choice is remembered,
-// nothing but the display changes (the controls are still there in 詳細, the project is untouched).
+// nothing but the display changes (the controls are still there in 詳細, the project is untouched). The song and the lyric file buttons are in both.
 import assert from 'node:assert/strict';import {withStudioPage} from './browser-helper.mjs';
-const FOLDED_IN_EASY=['開く','ファイル保存','別名で保存','UNFOLD作品を配置','UNFOLD変形を追加','主曲を読み込む','歌詞を入力・同期','再生位置で分割','配置を複製','シーンを追加'];
-const KEPT_IN_EASY=['おまかせ','新しいMV','元に戻す','やり直す','ブラウザに保存','MP4を書き出す','保存した作品','＋ 画像・動画','効果音を追加','文字を追加','光の演出を追加','選択を削除','縦も並べる'];
+const FOLDED_IN_EASY=['開く','ファイル保存','別名で保存','UNFOLD作品を配置','UNFOLD変形を追加','歌詞を入力・同期','再生位置で分割','配置を複製','シーンを追加'];
+const KEPT_IN_EASY=['おまかせ','新しいMV','元に戻す','やり直す','ブラウザに保存','MP4を書き出す','保存した作品','＋ 画像・動画','♪ 歌を入れる','歌詞ファイルを入れる','効果音を追加','文字を追加','光の演出を追加','選択を削除','縦も並べる'];
 await withStudioPage(async page=>{
  const mount=dbName=>page.evaluate(async dbName=>{
   const {createController}=await import('/studio/controller.js'),{openStudioStore}=await import('/studio/store.js'),{mountStudio}=await import('/studio/view.js');
@@ -21,7 +21,7 @@ await withStudioPage(async page=>{
  for(const name of FOLDED_IN_EASY)assert.equal(await visible(name),false,'folded away in かんたん: '+name);
  assert.equal(await page.locator('.lock-controls').isVisible(),false,'the lock buttons are folded away');
  assert.equal(await page.getByTestId('short-panel').isVisible(),false,'the shorts window starts closed');assert.equal(await page.getByTestId('short-open').isVisible(),true,'the shorts button is in the top bar');
- assert.equal(await page.locator('.easy-only').isVisible(),true,'the hint about where the song and lyrics come from');
+ assert.equal(await page.locator('.easy-only').isVisible(),true,'the hint about the song and lyric files');
  // a lyric: the lyric panel and the text stay, the timing and layout numbers fold away
  await page.evaluate(()=>c.select({kind:'lyric',id:'L0'}));
  await page.locator('.studio-lyric-edit').waitFor({state:'visible'});

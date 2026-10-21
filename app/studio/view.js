@@ -1,6 +1,7 @@
 import {mountWorkshop} from './workshop-view.js';
 import {mountTimeline} from './timeline.js';import {mountInspector} from './inspector.js';
 import {displayTime} from './controller.js';
+import {LYRIC_FILE_ACCEPT} from './lyric-file.js';
 export function el(tag,attrs={},...children){const node=document.createElement(tag);for(const [key,value]of Object.entries(attrs)){if(key.startsWith('on'))node.addEventListener(key.slice(2),value);else if(key==='class')node.className=value;else if(key==='text')node.textContent=value;else if(value!==undefined&&value!==false)node.setAttribute(key,value===true?'':value);}for(const c of children)node.append(c instanceof Node?c:document.createTextNode(String(c)));return node;}
 export function mountStudio(root,controller){const act=fn=>()=>Promise.resolve().then(fn).catch(e=>controller.notify(e.name==='AbortError'?'操作を取り消しました':e.message)),button=(text,fn,attrs={})=>el('button',{type:'button',onclick:act(fn),...attrs},text);
  root.classList.add('studio-root');
@@ -23,7 +24,33 @@ export function mountStudio(root,controller){const act=fn=>()=>Promise.resolve()
    const renamed=name.value.trim();if(renamed&&renamed!==p.name)await controller.dispatch({type:'setProjectName',name:renamed});
   }
   const result=await controller.newProject();
-  if(result?.from){backTo=result.from;backFor=controller.get().project.id;backBtn.hidden=false;backBtn.title=`「${backTo.name}」を開きます`;controller.notify(`新しいMVを作りました。前の作品「${backTo.name}」は保存してあります（上の「↩ さっきの作品に戻る」で戻れます）`);}
+  if(result?.from){backTo=result.from;backFor=controller.get().project.id;backBtn.hidden=false;backBtn.title=`「${backTo.name}」を開きます`;}
+  const filled=await fillNew();controller.select(null);
+  const said=[filled?.done.length?`新しいMVに${filled.done.join('、')}を入れました。`:result?.from?'新しいMVを作りました。':'',filled?.failed.length?`入れられなかったもの：${filled.failed.join(' / ')}。左の素材の欄から入れ直せます。`:'',result?.from?`前の作品「${backTo.name}」は保存してあります（上の「↩ さっきの作品に戻る」で戻れます）`:''].filter(Boolean);
+  if(said.length)controller.notify(said.join(' '));
+ }
+ const lyricNote=r=>`歌詞${r.count}行（${r.timed?'時刻つき':'時刻は仮：曲全体に等間隔'}）`+(r.skipped?`。作品の長さを超えた・重なった${r.skipped}行は入れていません`:'')+(r.pending?`。歌詞か見出しか分からない${r.pending}行は入れていません`:'');
+ // 新しいMVの素材: 歌・歌詞ファイル・画像と動画を、ここでまとめて選ぶ（どれも選ばなくてよい。あとで左の素材の欄から入れられる）。
+ // 歌を先に入れて作品の長さを決めてから、歌詞と絵をその長さに合わせて置く。戻り値: 入れたもの・入れられなかったもの（何も選ばなければ null）
+ async function fillNew(){
+  const rows=[],row=(label,testid,accept,{multiple=false,note=''}={})=>{const input=el('input',{type:'file',accept,multiple,hidden:true,'data-testid':testid}),name=el('span',{class:'pick-name'}),clear=el('button',{type:'button',class:'pick-clear',title:'外す','aria-label':label+'を外す',onclick:()=>{input.value='';refresh();}},'✕'),r={input,name,clear,files:()=>[...input.files],node:el('div',{class:'pick-row'},el('span',{class:'pick-label'},label,note?el('small',{},note):''),el('button',{type:'button',class:'pick-choose',onclick:()=>input.click()},'選ぶ…'),name,clear,input)};input.addEventListener('change',()=>refresh());rows.push(r);return r;};
+  const song=row('♪ 歌（MP3 など）','new-song','audio/*',{note:'曲の長さが作品の長さになります'}),lyric=row('歌詞ファイル（LRC / SRT / JSON / TXT）','new-lyrics',LYRIC_FILE_ACCEPT),pics=row('画像・動画','new-media','image/*,video/*',{multiple:true,note:'いくつでも。曲の頭から同じ長さずつ順に並べます'});
+  const choice=el('select',{'aria-label':'動画の元の音声','data-testid':'new-source-audio'},el('option',{value:''},'動画の元の音声を選択'),el('option',{value:'use'},'動画の元の音声を使う'),el('option',{value:'mute'},'動画の元の音声を消す（ミュート）')),choiceRow=el('label',{class:'field',hidden:true},'動画の元の音声',choice);
+  const status=el('p',{class:'hint fill-status',role:'status'}),go=el('button',{type:'button',class:'primary','data-testid':'new-fill-ok'},'この素材で始める'),later=el('button',{type:'button','data-testid':'new-fill-later'},'あとで入れる');
+  let busy=false;
+  function refresh(){for(const r of rows){const f=r.files();r.name.textContent=f.length?f.map(x=>x.name).join('、'):'まだ選んでいません';r.clear.hidden=!f.length||busy;}const video=pics.files().some(f=>f.type.startsWith('video/'));choiceRow.hidden=!video;go.disabled=busy||!rows.some(r=>r.files().length)||(video&&!choice.value);if(!busy)status.textContent=video&&!choice.value?'動画の元の音声を使うか、消すかを選んでください。':'';}
+  choice.addEventListener('change',refresh);
+  const m=modal('fill-new',el('h2',{},'新しいMVの素材'),el('p',{class:'hint'},'入れたいものだけ選んでください。何も選ばなくても始められます（あとから左の素材の欄で入れられます）。'),song.node,lyric.node,pics.node,choiceRow,status,el('div',{class:'dialog-actions'},go,later));
+  refresh();
+  const chosen=await new Promise(resolve=>{go.onclick=()=>resolve(true);later.onclick=()=>resolve(false);m.dialog.addEventListener('cancel',e=>{if(busy)e.preventDefault();else resolve(false);});});
+  if(!chosen){m.close();return null;}
+  busy=true;for(const b of m.dialog.querySelectorAll('button,select'))b.disabled=true;refresh();
+  const done=[],failed=[],step=async(text,fn)=>{status.textContent=text+'…';try{await fn();}catch(e){failed.push(e.name==='AbortError'?'中止しました':e.message||String(e));}};
+  const [songFile]=song.files(),[lyricFile]=lyric.files(),media=pics.files();
+  if(songFile)await step('歌を入れています',async()=>{await controller.importSong(songFile);done.push('歌');});
+  if(lyricFile)await step('歌詞を読んでいます',async()=>{done.push(lyricNote(await controller.importLyricFile(lyricFile)));});
+  if(media.length)await step('画像・動画を並べています',async()=>{const r=await controller.importMediaInTurn(media,{sourceAudio:choice.value||undefined});if(r.placed.length)done.push(`画像・動画${r.placed.length}つ`);failed.push(...r.failed.map(f=>`「${f.name}」${f.message}`));});
+  m.close();return {done,failed};
  }
  async function openSavedList(){
   const projects=await controller.listProjects(),current=controller.get().project.id,list=el('div',{class:'saved-list'});
@@ -46,9 +73,13 @@ export function mountStudio(root,controller){const act=fn=>()=>Promise.resolve()
   const setMode=(value,save=true)=>{root.dataset.mode=value;for(const b of modeSwitch.querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.mode===value));if(save)try{localStorage.setItem(KEY,value);}catch{}};
   modeSwitch.append(button('かんたん',()=>setMode('easy'),{'data-mode':'easy','data-testid':'mode-easy',title:'よく使うものだけを表示します'}),button('詳細',()=>setMode('full'),{'data-mode':'full','data-testid':'mode-full',title:'すべての操作を表示します'}));
   q('.project-bar').append(modeSwitch);setMode(read(),false);
-  q('.import-controls').append(el('p',{class:'hint easy-only'},'曲・歌詞・UNFOLD作品はシーケンスから送ります。ここで直接入れるときは、上の「詳細」に切り替えてください。'));}
+  q('.import-controls').append(el('p',{class:'hint easy-only'},'歌（MP3 など）と歌詞ファイル（LRC / SRT / JSON / TXT）も、ここから入れられます。歌を先に入れると、歌詞と絵が曲の長さに合います。'));}
  q('.view-switch').append(button('横 16:9',()=>controller.setView('wide'),{'data-view':'wide'}),button('縦 9:16',()=>controller.setView('tall'),{'data-view':'tall'}));
- const input=el('input',{type:'file',multiple:true,accept:'image/*,video/*,audio/*',hidden:true});let role='sfx';input.addEventListener('change',act(()=>controller.importMedia([...input.files],{sourceAudio:sourceChoice.value||undefined,role})));const sourceChoice=el('select',{'aria-label':'動画元音声'},el('option',{value:''},'動画元音声を選択'),el('option',{value:'use'},'動画元音声を使う'),el('option',{value:'mute'},'動画元音声をミュート'));const legacyInput=el('input',{type:'file',hidden:true,accept:'.unfold'});legacyInput.onchange=act(()=>controller.insertLegacy(legacyInput.files[0]));q('.import-controls').append(legacyInput,button('UNFOLD作品を配置',()=>legacyInput.click(),{'data-advanced':true}),button('UNFOLD変形を追加',()=>controller.addUnfold(),{'data-advanced':true}),input,button('＋ 画像・動画',()=>{role='sfx';input.accept='image/*,video/*';input.click();}),sourceChoice,button('主曲を読み込む',()=>{role='music';input.accept='audio/*';input.click();},{'data-advanced':true}),button('効果音を追加',()=>{role='sfx';input.accept='audio/*';input.click();}),el('hr'),button('文字を追加',()=>controller.addText()),button('光の演出を追加',()=>controller.addEffect()));
+ // 歌と歌詞ファイル: かんたんでも詳細でも、あとからここで入れられる。もう入っている時は、差し替えてよいか確かめる（元に戻すで戻せる）
+ const songInput=el('input',{type:'file',accept:'audio/*',hidden:true,'data-testid':'song-file'}),lyricInput=el('input',{type:'file',accept:LYRIC_FILE_ACCEPT,hidden:true,'data-testid':'lyric-file'});
+ songInput.addEventListener('change',act(async()=>{const [file]=songInput.files;songInput.value='';if(!file)return;const p=controller.get().project,old=p.audio.find(a=>a.role==='music'),oldName=old&&p.assets[old.assetId]?.name;if(old&&!confirm(`いまの曲${oldName?`「${oldName}」`:''}を、「${file.name}」に差し替えますか？（「元に戻す」で戻せます）`))return;const r=await controller.importSong(file);controller.notify(`歌「${file.name}」を入れました（${lengthText(r.durationUs)}）。`+(r.respread?'時刻が仮の歌詞は、曲の長さに合わせて並べ直しました。':''));}));
+ lyricInput.addEventListener('change',act(async()=>{const [file]=lyricInput.files;lyricInput.value='';if(!file)return;const n=controller.get().project.lyrics.length;if(n&&!confirm(`いまの歌詞（${n}行）を、「${file.name}」の歌詞に置き換えますか？（「元に戻す」で戻せます）`))return;controller.notify(`「${file.name}」から${lyricNote(await controller.importLyricFile(file))}を入れました。`);}));
+ const input=el('input',{type:'file',multiple:true,accept:'image/*,video/*,audio/*',hidden:true});input.addEventListener('change',act(()=>controller.importMedia([...input.files],{sourceAudio:sourceChoice.value||undefined})));const sourceChoice=el('select',{'aria-label':'動画元音声'},el('option',{value:''},'動画元音声を選択'),el('option',{value:'use'},'動画元音声を使う'),el('option',{value:'mute'},'動画元音声をミュート'));const legacyInput=el('input',{type:'file',hidden:true,accept:'.unfold'});legacyInput.onchange=act(()=>controller.insertLegacy(legacyInput.files[0]));q('.import-controls').append(legacyInput,button('UNFOLD作品を配置',()=>legacyInput.click(),{'data-advanced':true}),button('UNFOLD変形を追加',()=>controller.addUnfold(),{'data-advanced':true}),input,songInput,lyricInput,button('＋ 画像・動画',()=>{input.accept='image/*,video/*';input.click();}),sourceChoice,button('♪ 歌を入れる',()=>songInput.click(),{'data-testid':'song-add',title:'曲（MP3 など）を入れます。曲の長さが作品の長さになります（もう曲がある時は差し替えます）'}),button('歌詞ファイルを入れる',()=>lyricInput.click(),{'data-testid':'lyric-file-add',title:'LRC / SRT / JSON / TXT の歌詞を入れます（いまの歌詞と置き換えます）。TXT は時刻が仮になります'}),button('効果音を追加',()=>{input.accept='audio/*';input.click();}),el('hr'),button('文字を追加',()=>controller.addText()),button('光の演出を追加',()=>controller.addEffect()));
  q('.transport-buttons').append(button('先頭',()=>controller.seek(0)),button('再生',()=>controller.play(),{'data-action':'play'}));q('.scrubber').oninput=act(()=>controller.seek(Number(q('.scrubber').value)));
  const music=button('曲 🔒 位置固定 ON',()=>controller.dispatch({type:'setLock',track:'music',locked:!controller.get().project.locks.music}),{'data-testid':'music-lock','aria-pressed':'true'}),lyrics=button('歌詞 🔒 位置固定 ON',()=>controller.dispatch({type:'setLock',track:'lyrics',locked:!controller.get().project.locks.lyrics}),{'data-testid':'lyrics-lock','aria-pressed':'true'});q('.lock-controls').append(music,lyrics);q('.lock-controls').dataset.advanced='';
  // the whole-song export is one button in the top bar (always in the same place); the right panel keeps the shorts and the cancel button

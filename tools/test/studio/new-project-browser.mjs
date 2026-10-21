@@ -29,6 +29,8 @@ await withStudioPage(async page=>{
  // 2) rename the old work and make a new one
  await page.getByTestId('new-project').click();await dlg.waitFor();
  await page.getByTestId('new-project-old-name').fill('ひとりでも（本番）');await page.screenshot({path:'tools/out/studio/new-project-confirm.png'});await page.getByTestId('new-project-ok').click();
+ // then the window for the song, lyric file and pictures (new-mv-materials-browser.mjs): this time nothing is put in
+ await page.locator('dialog.fill-new').waitFor();await page.getByTestId('new-fill-later').click();
  await page.waitForFunction(id=>c.get().project.id!==id&&c.get().project.lyrics.length===0,first,{timeout:10000});
  const back=page.getByTestId('back-to-previous');assert.equal(await back.isVisible(),true,'the way back is offered');
  assert.match(await page.locator('.notice').innerText(),/ひとりでも（本番）/);await page.screenshot({path:'tools/out/studio/new-project-back.png'});
@@ -50,7 +52,8 @@ await withStudioPage(async page=>{
  await page.evaluate(()=>c.newProject());await page.waitForFunction(id=>c.get().project.id!==id,first);
  const emptyId=await page.evaluate(()=>c.get().project.id);
  await page.getByTestId('new-project').click();await page.waitForFunction(id=>c.get().project.id!==id,emptyId,{timeout:10000});
- assert.equal(await page.locator('dialog').count(),0,'no question for an empty work');
+ await page.locator('dialog.fill-new').waitFor();assert.equal(await page.locator('dialog.confirm-new').count(),0,'no question for an empty work (only the materials window)');
+ await page.keyboard.press('Escape');await page.locator('dialog').waitFor({state:'detached'});assert.deepEqual(await page.evaluate(()=>{const p=c.get().project;return [p.audio.length,p.lyrics.length,p.scenes.length];}),[0,0,0],'Escape is あとで入れる');
  assert.deepEqual(errors,[]);
  console.log('new-project-browser: ok');
 },{mode:null});

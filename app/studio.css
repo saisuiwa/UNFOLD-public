@@ -228,3 +228,8 @@ button.danger{border-color:color-mix(in srgb,var(--c-danger) 55%,var(--line));co
 @media(max-width:1419px){.btn-group .group-label{display:none}.btn-group{padding-left:3px}}
 /* 使い方（説明書）へのリンク */
 .help-link{flex:none;display:inline-grid;place-items:center;width:24px;height:24px;font-size:13px;font-weight:700;color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:50%}.help-link:hover{color:var(--ink);border-color:var(--mint)}
+/* 新しいMVの素材: 歌・歌詞ファイル・画像と動画を選ぶ行（選んだファイル名と、外す ✕） */
+.fill-new .pick-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 10px;align-items:center;margin:10px 0;padding:10px 12px;border:1px solid #33494a;border-radius:9px;background:#14211f}
+.fill-new .pick-label{grid-column:1/-1;font-size:13px;font-weight:650;color:#e8f4ef}.fill-new .pick-label small{display:block;margin-top:2px;font-weight:400;font-size:11px;color:#a9c2bb}
+.fill-new .pick-row button{margin:0;min-height:30px;padding:4px 10px}.fill-new .pick-name{font-size:12px;color:#c9d9d4;overflow-wrap:anywhere}.fill-new .pick-clear[hidden]{display:none}
+.fill-new .field[hidden]{display:none}.fill-new .fill-status{min-height:1.7em;margin:6px 0 0;font-size:12px;color:#f2d38a}
