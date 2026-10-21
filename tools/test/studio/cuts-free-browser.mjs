@@ -29,19 +29,20 @@ await withStudioPage(async page=>{
  assert.ok(free.cuts>=1&&Math.abs(free.dur-free.span)<.01,'the plan follows the clip length: '+JSON.stringify(free));
  assert.ok(await page.locator('[data-testid=clip-row]').filter({hasText:'カット演出'}).count()>=0);
  // ---- the compositor draws it. The scene has the red picture under everything, so the cut layers are transparent: the corner stays red.
- const render=(us,viewId='wide',w=480,h=270)=>page.evaluate(async([us,viewId,w,h])=>{
+ // ink: 下にあるもの（赤い絵。何も無ければ、カット自身の背景色 base）とはっきり違う画素。明るい画素だけでは数えない（テープ・リボンの世界は、色の帯に暗い字を書く）
+ const render=(us,viewId='wide',w=480,h=270,base=[208,24,24])=>page.evaluate(async([us,viewId,w,h,base])=>{
   const {createCompositor}=await import('/studio/compositor.js'),{openStudioStore}=await import('/studio/store.js');
   const p=c.get().project,store=await openStudioStore({dbName:'unfold-studio-cutsfree'});
   const comp=createCompositor({assets:store});await comp.prepare(p);
   const f=await comp.render({projectUs:us,viewId,width:w,height:h,epoch:1});const cv=new OffscreenCanvas(w,h),x=cv.getContext('2d');x.drawImage(f.bitmap,0,0);f.close();
-  const px=(a,b)=>Array.from(x.getImageData(a,b,1,1).data),d=x.getImageData(0,0,w,h).data;let bright=0,red=0;for(let i=0;i<d.length;i+=4){if(d[i]+d[i+1]+d[i+2]>450)bright++;if(d[i]>160&&d[i+1]<90&&d[i+2]<90)red++;}
+  const px=(a,b)=>Array.from(x.getImageData(a,b,1,1).data),d=x.getImageData(0,0,w,h).data;let bright=0,red=0,ink=0;for(let i=0;i<d.length;i+=4){if(d[i]+d[i+1]+d[i+2]>450)bright++;if(d[i]>160&&d[i+1]<90&&d[i+2]<90)red++;if(Math.abs(d[i]-base[0])+Math.abs(d[i+1]-base[1])+Math.abs(d[i+2]-base[2])>170)ink++;}
   const blob=await cv.convertToBlob({type:'image/png'}),buf=new Uint8Array(await blob.arrayBuffer());let s='';for(const b of buf)s+=String.fromCharCode(b);
-  comp.dispose();return {corner:px(3,3),mid:px(w>>1,h>>1),bright,red,png:btoa(s)};},[us,viewId,w,h]);
+  comp.dispose();return {corner:px(3,3),mid:px(w>>1,h>>1),bright,red,ink,png:btoa(s)};},[us,viewId,w,h,base]);
  // moments inside the free text clip and before the first lyric (6 s), so that only the free text is on screen; the text can be hidden for an instant while it enters, so take the moment with the most text
  const window_=await page.evaluate(()=>{const f=freeClip(),s=c.get().project.scenes.find(x=>x.id===f.sceneId),from=s.originUs+f.startUs,to=Math.min(s.originUs+f.endUs,5.8e6);return {from,to};});
  assert.ok(window_.from>=1e6&&window_.to>window_.from+.5e6,'room before the lyrics: '+JSON.stringify(window_));
  let freeMid=0,best=-1;
- for(const u of [.15,.3,.45,.6,.75,.9]){const t=Math.round(window_.from+(window_.to-window_.from)*u),r=await render(t);if(r.bright>best){best=r.bright;freeMid=t;}}
+ for(const u of [.15,.3,.45,.6,.75,.9]){const t=Math.round(window_.from+(window_.to-window_.from)*u),r=await render(t);if(r.ink>best){best=r.ink;freeMid=t;}}
  const a=await render(freeMid);
  await writeFile('tools/out/studio/cuts-free-over-picture.png',Buffer.from(a.png,'base64'));
  // 抜き文字（knockout の STAGE）のカットが画面にある時だけは、板が絵全体を覆い、下の赤い絵は字の形からだけ見える（計画の種は毎回変わる）
@@ -51,12 +52,23 @@ await withStudioPage(async page=>{
  const knockoutAt=us=>page.evaluate(async us=>{const {WORLD}=await import('/studio/cuts/worlds.js'),p=c.get().project;
   const items=[...p.lyrics.map(l=>({at:l.startUs,d:l.cut})),...p.clips.filter(k=>k.settings?.cut).map(k=>({at:k.startUs,d:k.settings.cut}))];
   return items.some(({at,d})=>{const lt=(us-at)/1e6,k=d?.cuts?.find(x=>lt>=x.a&&lt<x.b);return !!(k&&WORLD[k.world]?.knockout);});},us);
- const knockout=await knockoutAt(freeMid);
+ // 超デカ文字（megaText の STAGE）は、わざと画面からはみ出す大きさの字なので、隅に字がかかってよい。板は無いので、字のまわりから下の赤い絵が見える
+ const megaTextAt=us=>page.evaluate(us=>{const p=c.get().project;
+  const items=[...p.lyrics.map(l=>({at:l.startUs,d:l.cut})),...p.clips.filter(k=>k.settings?.cut).map(k=>({at:k.startUs,d:k.settings.cut}))];
+  return items.some(({at,d})=>{const lt=(us-at)/1e6,k=d?.cuts?.find(x=>lt>=x.a&&lt<x.b);return k?.world==='megaText';});},us);
+ // 何も下に無い時に自由文字のカットが塗る、カット自身の背景色（[r,g,b]）
+ const bgAt=us=>page.evaluate(us=>{const f=freeClip(),lt=(us-f.startUs)/1e6,cuts=f.settings.cut.cuts,k=cuts.find(x=>lt>=x.a&&lt<x.b)||cuts[0];return [1,3,5].map(i=>parseInt(k.bg.slice(i,i+2),16));},us);
+ const knockout=await knockoutAt(freeMid),mega=!knockout&&await megaTextAt(freeMid);
  if(knockout){assert.ok(!(a.corner[0]>160&&a.corner[1]<90&&a.corner[2]<90),'a knockout plate covers the corner: '+a.corner);
   let red=a.red;for(const d of [-.3e6,-.15e6,.15e6,.3e6]){if(red>200)break;red=Math.max(red,(await render(freeMid+d)).red);}   // 字が隠れている一瞬を避けて、前後でも見る
   assert.ok(red>200,'and the red picture shows through the letters: '+red);}
- else{assert.ok(a.corner[0]>160&&a.corner[1]<90&&a.corner[2]<90,'the red picture shows through the cut layer (transparent): '+a.corner);
-  assert.ok(a.bright>40,'and there is text: '+a.bright);}
+ else if(mega){let red=a.red;for(const d of [-.3e6,-.15e6,.15e6,.3e6]){if(red>200)break;red=Math.max(red,(await render(freeMid+d)).red);}
+  if(!(red>200&&a.ink>40))console.log('over-picture parts:',JSON.stringify(await partsAt(freeMid)));
+  assert.ok(red>200,'超デカ文字 (megaText): the corner may be a letter, but the red picture shows around the letters: '+red);
+  assert.ok(a.ink>40,'and there is text: '+a.ink);}
+ else{if(!(a.corner[0]>160&&a.corner[1]<90&&a.corner[2]<90&&a.ink>40))console.log('over-picture parts:',JSON.stringify(await partsAt(freeMid)));
+  assert.ok(a.corner[0]>160&&a.corner[1]<90&&a.corner[2]<90,'the red picture shows through the cut layer (transparent): '+a.corner);
+  assert.ok(a.ink>40,'and there is text: '+a.ink);}
  // ---- a transparent frame never carries over the pictures before it: one compositor playing many frames in a row draws the same picture at a time as a fresh one
  // (it used to pile up the translucent backgrounds and glows frame after frame, until the picture was washed out)
  const seq=await page.evaluate(async([times,last])=>{
@@ -90,14 +102,17 @@ await withStudioPage(async page=>{
   let red=b.red;for(const d of [-.3e6,-.15e6,.15e6,.3e6]){if(red>200)break;red=Math.max(red,(await render(lyricMid+d)).red);}
   if(!(red>200)){await writeFile('tools/out/studio/cuts-lyric-knockout-fail.png',Buffer.from(b.png,'base64'));console.log('knockout lyric parts:',JSON.stringify(await partsAt(lyricMid)));}
   assert.ok(red>200,'lyrics too (a knockout plate): the picture shows through the letters: '+red);}
+ else if(await megaTextAt(lyricMid)){let red=b.red;for(const d of [-.3e6,-.15e6,.15e6,.3e6]){if(red>200)break;red=Math.max(red,(await render(lyricMid+d)).red);}
+  if(!(red>200))console.log('megaText lyric parts:',JSON.stringify(await partsAt(lyricMid)));
+  assert.ok(red>200,'lyrics too (超デカ文字): the picture shows around the letters: '+red);}
  else assert.ok(b.corner[0]>160&&b.corner[1]<90,'lyrics too: the picture shows through: '+b.corner);
  await writeFile('tools/out/studio/cuts-lyric-over-picture.png',Buffer.from(b.png,'base64'));
  // ---- take the picture away: nothing under the cut layer any more, so it paints its own dark background
  await page.evaluate(async()=>{const img=c.get().project.clips.find(k=>k.kind==='image');await c.dispatch({type:'deleteClip',id:img.id});});
  const d=await render(freeMid);
- assert.ok((knockout||d.corner[0]<110)&&d.corner[3]===255,'with nothing under it, an opaque picture (a dark background, or a knockout plate): '+d.corner);await writeFile('tools/out/studio/cuts-free-alone.png',Buffer.from(d.png,'base64'));
+ assert.ok((knockout||mega||d.corner[0]<110)&&d.corner[3]===255,'with nothing under it, an opaque picture (a dark background, a knockout plate, or 超デカ文字 letters): '+d.corner);await writeFile('tools/out/studio/cuts-free-alone.png',Buffer.from(d.png,'base64'));
  // ---- the same on the tall view
- const t=await render(freeMid,'tall',270,480);assert.ok(t.bright>20,'tall view draws too: '+t.bright);
+ const t=await render(freeMid,'tall',270,480,await bgAt(freeMid));assert.ok(t.ink>20,'tall view draws too: '+t.ink);
  // ---- 自由文字にも付ける off: the clip's plan goes, the lyrics keep theirs
  await page.getByTestId('omakase-cut-free').uncheck();
  await page.waitForFunction(()=>!freeClip().settings?.cut&&c.get().project.lyrics.every(l=>l.cut),null,{timeout:60000});
