@@ -24,7 +24,8 @@ import {HYGIENE_RULES, hygieneProblems} from './lib/public-hygiene.mjs';
 const REPO = fileURLToPath(new URL('..', import.meta.url));
 const RULES = process.env.MIRROR_RULES || join(REPO, 'public-mirror');
 const PUSH = process.argv.includes('--push');
-const NOREPLY = /(@users\.noreply\.github\.com|^noreply@github\.com|^noreply@anthropic\.com)$/;
+// 通してよいコミットのメール：GitHub と Claude の noreply、と、自動の作業が付ける届かない仮のアドレス（.invalid・localhost・空）
+const NOREPLY = /(@users\.noreply\.github\.com|^noreply@github\.com|^noreply@anthropic\.com|@[A-Za-z0-9.-]*\.invalid|@localhost|^)$/;
 
 const git = (cwd, ...args) => execFileSync('git', args, {cwd, encoding: 'utf8', maxBuffer: 1 << 30}).trim();
 const stop = message => { console.error('STOP  ' + message); process.exit(1); };
