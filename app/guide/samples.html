@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル210個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル214個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=3">
 </head>
 <body>
@@ -27,13 +27,13 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>210個</b>、最後に増えたのは 10/22）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>214個</b>、最後に増えたのは 10/22）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>210</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="cutpart" aria-pressed="false">カット割りの部品（STUDIO）<small>76</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>214</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="cutpart" aria-pressed="false">カット割りの部品（STUDIO）<small>80</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
     <article class="method" data-cat="cutpart">
@@ -143,6 +143,50 @@
         <h3><i aria-hidden="true">✂</i>走る光の帯<span class="new">NEW</span><small>SCANBEAM</small></h3>
         <p>カットの頭で、細い光の帯が画面を上から下へ走り、通ったあとに淡い明るさが残ります。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（FX・画面効果）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-deco-brokenOrbits.mp4" role="button" tabindex="0" aria-label="ほどける三輪の動きを再生">
+        <img src="./samples/cut-deco-brokenOrbits.jpg" alt="ほどける三輪の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>ほどける三輪<span class="new">NEW</span><small>BROKENORBITS</small></h3>
+        <p>欠けた三つの不揃いな輪が、文字のまわりを別々の速さで巡ります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（DECO・飾り）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-deco-orbitingGlints.mp4" role="button" tabindex="0" aria-label="軌道の星粒の動きを再生">
+        <img src="./samples/cut-deco-orbitingGlints.jpg" alt="軌道の星粒の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>軌道の星粒<span class="new">NEW</span><small>ORBITINGGLINTS</small></h3>
+        <p>小さな星が文字の外周を巡り、近づくたびに大きく瞬きます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（DECO・飾り）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-depthTorus.mp4" role="button" tabindex="0" aria-label="厚みが回る輪の動きを再生">
+        <img src="./samples/cut-bg-depthTorus.jpg" alt="厚みが回る輪の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>厚みが回る輪<span class="new">NEW</span><small>DEPTHTORUS</small></h3>
+        <p>輪状の細い線が傾いて回り、脈動しながら手前を太く奥を細く見せます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-bg-depthCoil.mp4" role="button" tabindex="0" aria-label="奥へ進む螺旋の動きを再生">
+        <img src="./samples/cut-bg-depthCoil.jpg" alt="奥へ進む螺旋の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>奥へ進む螺旋<span class="new">NEW</span><small>DEPTHCOIL</small></h3>
+        <p>輪のらせんが奥から手前へ進み、遠近に合わせて細さと大きさを変えます。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（BG・背景）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
       </div>
     </article>
