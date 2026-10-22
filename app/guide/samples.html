@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル206個を、動く見本で紹介します。毎日増えます。">
+<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル210個を、動く見本で紹介します。毎日増えます。">
 <link rel="stylesheet" href="./guide.css?v=3">
 </head>
 <body>
@@ -27,13 +27,13 @@
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>206個</b>、最後に増えたのは 10/22）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>210個</b>、最後に増えたのは 10/22）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
   <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">
-      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>206</small></button></li>
-      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="cutpart" aria-pressed="false">カット割りの部品（STUDIO）<small>72</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
+      <li><button class="chip" type="button" data-filter="all" aria-pressed="true">すべて<small>210</small></button></li>
+      <li><button class="chip" type="button" data-filter="method" aria-pressed="false">崩れ方<small>20</small></button></li><li><button class="chip" type="button" data-filter="graphic" aria-pressed="false">グラフィックモーション<small>2</small></button></li><li><button class="chip" type="button" data-filter="image" aria-pressed="false">画像・立体・物理（JavaScript）<small>7</small></button></li><li><button class="chip" type="button" data-filter="codetext" aria-pressed="false">文字モーション（コード）<small>58</small></button></li><li><button class="chip" type="button" data-filter="effect" aria-pressed="false">エフェクト（文字の後ろや周りの装飾）<small>41</small></button></li><li><button class="chip" type="button" data-filter="cutpart" aria-pressed="false">カット割りの部品（STUDIO）<small>76</small></button></li><li><button class="chip" type="button" data-filter="text" aria-pressed="false">文字の動き（かんたん設定）<small>6</small></button></li>
     </ul>
     <div class="mgrid" id="mgrid">
     <article class="method" data-cat="cutpart">
@@ -99,6 +99,50 @@
         <h3><i aria-hidden="true">✂</i>二段に分けて読む<span class="new">NEW</span><small>TWOLINEREAD</small></h3>
         <p>言葉を上段と下段へ分け、細い枠で順番に読み進められるようにします。</p>
         <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（STAGE・文字を載せる台）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-fx-rgbSplit.mp4" role="button" tabindex="0" aria-label="色ずれの動きを再生">
+        <img src="./samples/cut-fx-rgbSplit.jpg" alt="色ずれの途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>色ずれ<span class="new">NEW</span><small>RGBSPLIT</small></h3>
+        <p>カットの頭で赤と青緑の像が左右にずれ、すぐに重なって元の色へ戻ります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（FX・画面効果）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-fx-sliceShift.mp4" role="button" tabindex="0" aria-label="横にずれる帯の動きを再生">
+        <img src="./samples/cut-fx-sliceShift.jpg" alt="横にずれる帯の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>横にずれる帯<span class="new">NEW</span><small>SLICESHIFT</small></h3>
+        <p>カットの頭で絵が横長の帯に切れ、帯ごとに左右へずれてから元の位置へ戻ります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（FX・画面効果）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-fx-zoomGhost.mp4" role="button" tabindex="0" aria-label="ズームの残像の動きを再生">
+        <img src="./samples/cut-fx-zoomGhost.jpg" alt="ズームの残像の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>ズームの残像<span class="new">NEW</span><small>ZOOMGHOST</small></h3>
+        <p>カットの頭で絵の拡大した残像が重なって広がり、すっと元の大きさへ収まります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（FX・画面効果）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
+        <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
+      </div>
+    </article>
+    <article class="method" data-cat="cutpart">
+      <div class="shot" data-clip="./samples/cut-fx-scanBeam.mp4" role="button" tabindex="0" aria-label="走る光の帯の動きを再生">
+        <img src="./samples/cut-fx-scanBeam.jpg" alt="走る光の帯の途中の絵" loading="lazy" width="480" height="270">
+      </div>
+      <div class="body">
+        <h3><i aria-hidden="true">✂</i>走る光の帯<span class="new">NEW</span><small>SCANBEAM</small></h3>
+        <p>カットの頭で、細い光の帯が画面を上から下へ走り、通ったあとに淡い明るさが残ります。</p>
+        <p class="how">STUDIOのおまかせ「✂ カット割り」の部品（FX・画面効果）です。カット割りで作ると、ほかの部品と一緒に自動で混ざります。</p>
         <span class="tag">カット割りの部品（STUDIO）</span><span class="when">10/22 追加</span>
       </div>
     </article>

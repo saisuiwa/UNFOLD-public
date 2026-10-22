@@ -339,5 +339,23 @@ export const DAILY_CUT_PARTS=[
    rows.forEach((row,ri)=>{const w=row.reduce((a,g)=>a+g.w,0),scale=Math.min(1,(F.box.w*.88)/Math.max(1,w)),actual=w*scale;let x=(F.box.w-actual)/2;const y=F.box.h/2+(ri?1:-1)*shift;for(const g of row){const gw=g.w*scale;g.cx=x+gw/2;g.cy=y;g.w=gw;g.size*=scale;g.cell=null;g.rot0=0;x+=gw;}item.alternation.push({y,w:actual});});
    item.bbox={x0:Math.min(...gs.map(g=>g.cx-g.w/2)),x1:Math.max(...gs.map(g=>g.cx+g.w/2)),y0:Math.min(...gs.map(g=>g.cy-g.size/2)),y1:Math.max(...gs.map(g=>g.cy+g.size/2))};},
   xform(c,e,P,F){const s=1+.008*Math.sin(e.lt*TAU*.55+P.phase);c.translate(F.box.cx,F.box.cy);c.scale(s,s);c.translate(-F.box.cx,-F.box.cy);},
-  back(c,e,P,F,item){const rows=item.alternation||[],mid=F.box.cy;c.save();c.lineWidth=Math.max(1,e.H*.003);rows.forEach((r,i)=>{const w=Math.min(F.box.w*.92,r.w+item.size*.56),x=F.box.cx-w/2,y=mid+(r.y-F.box.h/2)-item.size*.56;c.strokeStyle=rgba(i?e.accent:e.fg,.22);c.strokeRect(x,y,w,item.size*1.12);c.fillStyle=rgba(e.accent,.58);const mark=item.size*.22,mx=x+fract(e.lt*.31+P.phase+i*.5)*(w-mark);c.fillRect(mx,y,mark,Math.max(2,item.size*.045));});c.restore();}}
+  back(c,e,P,F,item){const rows=item.alternation||[],mid=F.box.cy;c.save();c.lineWidth=Math.max(1,e.H*.003);rows.forEach((r,i)=>{const w=Math.min(F.box.w*.92,r.w+item.size*.56),x=F.box.cx-w/2,y=mid+(r.y-F.box.h/2)-item.size*.56;c.strokeStyle=rgba(i?e.accent:e.fg,.22);c.strokeRect(x,y,w,item.size*1.12);c.fillStyle=rgba(e.accent,.58);const mark=item.size*.22,mx=x+fract(e.lt*.31+P.phase+i*.5)*(w-mark);c.fillRect(mx,y,mark,Math.max(2,item.size*.045));});c.restore();}},
+ // ---- 2026-10-22 画面効果
+ {axis:'fx',key:'rgbSplit',name:'色ずれ',desc:'カットの頭で赤と青緑の像が左右にずれ、すぐに重なって元の色へ戻ります。',added:'2026-10-22',words:['色ずれ','RGBずれ','色収差'],
+  tags:['glitch','impact','pop'],w:1.2,dur:.32,poster:.08,plan:r=>({d:.012+r()*.014,dy:(r()-.5)*.006,dir:r()<.5?-1:1}),
+  apply(c,e,P,k){if(k<=.001||!e.tmp)return;const W=e.W,H=e.H,t=e.tmp('rgbSrc',W,H),x=t.getContext('2d');x.globalCompositeOperation='copy';x.drawImage(c.canvas,0,0);x.globalCompositeOperation='source-over';
+   const tint=(n,col)=>{const u=e.tmp(n,W,H),g=u.getContext('2d');g.globalCompositeOperation='copy';g.drawImage(t,0,0);g.globalCompositeOperation='multiply';g.fillStyle=col;g.fillRect(0,0,W,H);g.globalCompositeOperation='destination-in';g.drawImage(t,0,0);g.globalCompositeOperation='source-over';return u;};
+   const R=tint('rgbR','#ff0000'),B=tint('rgbC','#00ffff'),d=Math.min(W,H)*P.d*k*P.dir,dy=Math.min(W,H)*P.dy*k;
+   c.save();c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);c.globalCompositeOperation='lighter';c.drawImage(R,-d,-dy);c.drawImage(B,d,dy);c.restore();}},
+ {axis:'fx',key:'sliceShift',name:'横にずれる帯',desc:'カットの頭で絵が横長の帯に切れ、帯ごとに左右へずれてから元の位置へ戻ります。',added:'2026-10-22',words:['帯ずれ','グリッチ','横ずれ'],
+  tags:['glitch','impact'],w:1.2,dur:.36,poster:.1,plan:r=>({n:7+Math.floor(r()*7),seed:Math.floor(r()*1000),amp:.05+r()*.05}),
+  apply(c,e,P,k){if(k<=.001||!e.tmp)return;const W=e.W,H=e.H,t=e.tmp('sliceSrc',W,H),x=t.getContext('2d');x.globalCompositeOperation='copy';x.drawImage(c.canvas,0,0);x.globalCompositeOperation='source-over';
+   const step=Math.floor(e.t*18);c.save();c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,W,H);let y=0;for(let i=0;i<P.n;i++){const h=H*(.5+hash(P.seed,i,1))/P.n*(P.n/(P.n*.5+.25*P.n+.0001))*.667,hh=i===P.n-1?H-y:Math.min(h,H-y);if(hh<=0)break;const off=(hash(P.seed+step,i,2)-.5)*2*W*P.amp*k;c.drawImage(t,0,y,W,hh,off,y,W,hh);y+=hh;}if(y<H)c.drawImage(t,0,y,W,H-y,0,y,W,H-y);c.restore();}},
+ {axis:'fx',key:'zoomGhost',name:'ズームの残像',desc:'カットの頭で絵の拡大した残像が重なって広がり、すっと元の大きさへ収まります。',added:'2026-10-22',words:['ズームブラー','残像','ズーム'],
+  tags:['impact','pop','graphic'],w:1.1,dur:.34,poster:.1,plan:r=>({s:.07+r()*.06,n:4}),
+  apply(c,e,P,k){if(k<=.001||!e.tmp)return;const W=e.W,H=e.H,t=e.tmp('zoomSrc',W,H),x=t.getContext('2d');x.globalCompositeOperation='copy';x.drawImage(c.canvas,0,0);x.globalCompositeOperation='source-over';
+   c.save();c.setTransform(1,0,0,1,0,0);for(let i=P.n;i>=1;i--){const s=1+P.s*k*i/P.n;c.globalAlpha=.22*k;c.drawImage(t,W*(1-s)/2,H*(1-s)/2,W*s,H*s);}c.restore();}},
+ {axis:'fx',key:'scanBeam',name:'走る光の帯',desc:'カットの頭で、細い光の帯が画面を上から下へ走り、通ったあとに淡い明るさが残ります。',added:'2026-10-22',words:['光の帯','スキャン','走査線'],
+  tags:['graphic','calm','impact'],w:1,dur:.45,poster:.15,plan:r=>({w:.05+r()*.04,up:r()<.3}),
+  apply(c,e,P,k){if(k<=.001)return;const W=e.W,H=e.H,u=1-clamp(k),bw=H*P.w,pos=-bw+(P.up?1-outCubic(u):outCubic(u))*(H+bw*2),a=.16*clamp(k*1.6);c.save();c.setTransform(1,0,0,1,0,0);const g=c.createLinearGradient(0,pos-bw,0,pos+bw);g.addColorStop(0,rgba(e.fg,0));g.addColorStop(.5,rgba(e.fg,a));g.addColorStop(1,rgba(e.fg,0));c.fillStyle=g;c.fillRect(0,pos-bw,W,bw*2);c.fillStyle=rgba(e.accent,a*.9);c.fillRect(0,pos-Math.max(1,H*.003),W,Math.max(2,H*.006));c.restore();}},
 ];
