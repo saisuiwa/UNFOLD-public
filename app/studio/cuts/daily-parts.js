@@ -316,4 +316,28 @@ export const DAILY_CUT_PARTS=[
  {axis:'trans',key:'checkerMosaic',name:'市松の小窓',desc:'市松模様の小窓が順に開き、次の絵へすき間なく切り替わります。',added:'2026-10-21',words:['市松','チェッカー','小窓'],
   tags:['graphic','impact','pop'],w:1,dur:.42,plan:()=>({cols:10,rows:6}),
   draw(c,A,B,p,e,P){c.drawImage(A,0,0,e.W,e.H);const u=smooth(p),cw=e.W/P.cols,ch=e.H/P.rows;c.save();for(let y=0;y<P.rows;y++)for(let x=0;x<P.cols;x++){const order=((x+y)&1)*.16+((x+y)/(P.cols+P.rows))*.38,alpha=clamp((u-order)/.28);if(alpha<=0)continue;c.globalAlpha=alpha;c.drawImage(B,x*e.W/P.cols,y*e.H/P.rows,cw+1,ch+1,x*cw,y*ch,cw+1,ch+1);}c.restore();}},
+ // ---- 2026-10-22
+ {axis:'enter',key:'looseType',name:'間をずらして登場',desc:'文字が少しずつ違う間をあけながら順に現れます。',added:'2026-10-22',words:['不規則','まばらに','間をあけて'],
+  tags:['graphic','calm','glitch'],w:1,inDur:D=>clamp(D*.44,.25,.5),plan:r=>({phase:r()*TAU,jitter:.18+r()*.12}),
+  glyph(g,i,n,p,E,P){const base=n>1?i/(n-1):0,wave=Math.sin(i*2.399+P.phase)-Math.sin(P.phase),at=.08+.82*clamp(base+P.jitter*wave/Math.max(1,n-1)),q=clamp((p-at)/.09);return q<=0?{hide:true}:{a:clamp(q*3)};}},
+ {axis:'hold',key:'centerTintPulse',name:'一字に色が差す',desc:'行の中央の一字だけがアクセント色に染まり、静かに明滅します。',added:'2026-10-22',words:['一字が光る','色が差す','中央が明滅'],
+  tags:['graphic','calm','emotional'],w:.9,plan:r=>({rate:.42+r()*.22,phase:r()*TAU}),
+  glyph(g,i,n,p,E,P){if(i!==Math.floor((n-1)/2))return null;const u=.5-.5*Math.cos(E.lt*P.rate*TAU+P.phase);return u>.06?{paint:{u,color:'accent'}}:null;}},
+ {axis:'exit',key:'lineUnzip',name:'両端へほどける',desc:'行の中央から字が左右へほどけて、端へ向かって薄く消えます。',added:'2026-10-22',words:['左右へほどける','中央から消える','端へ散る'],
+  tags:['graphic','impact','glitch'],w:1,outDur:D=>clamp(D*.3,.18,.4),plan:r=>({distance:.7+r()*.45}),
+  glyph(g,i,n,p,E,P){const q=local(p,i,n,.42),mid=(E.bbox.x0+E.bbox.x1)/2,side=g.cx<mid?-1:1,edge=Math.abs(g.cx-mid)/Math.max(1,(E.bbox.x1-E.bbox.x0)*.5);return {dx:side*E.size*P.distance*(.16+.5*edge)*inCubic(q),dy:Math.sin(i*1.7)*E.size*.08*q,rot:side*4*q,a:1-smooth(q)};}},
+ {axis:'deco',key:'dialTicks',name:'二重の目盛り輪',desc:'字の外側に細い二重の輪と目盛りが回り、計器のような気配を添えます。',added:'2026-10-22',words:['目盛り輪','二重の輪','計器の輪'],
+  tags:['graphic','calm','emotional'],w:1,back:true,plan:r=>({count:32,phase:r()*TAU,dir:sign(r)}),
+  draw(c,d,P){const rx=Math.max(d.w*.53,d.h*.78),ry=d.h*.72,turn=d.lt*.24*P.dir+P.phase;c.save();c.globalAlpha*=d.a*d.z*.34;c.lineWidth=Math.max(1,d.size*.012);c.strokeStyle=d.accent;c.beginPath();c.ellipse(d.cx,d.cy,rx,ry,0,.12,TAU*.84);c.stroke();c.globalAlpha*=.72;c.beginPath();c.ellipse(d.cx,d.cy,rx+d.size*.12,ry+d.size*.12,0,Math.PI*.98,Math.PI*1.98);c.stroke();for(let i=0;i<P.count;i++){const a=turn+i/P.count*TAU,major=i%4===0,r0=1,r1=major?1.14:1.07;c.globalAlpha=d.a*d.z*(major?.32:.19);c.beginPath();c.moveTo(d.cx+Math.cos(a)*rx*r0,d.cy+Math.sin(a)*ry*r0);c.lineTo(d.cx+Math.cos(a)*rx*r1,d.cy+Math.sin(a)*ry*r1);c.stroke();}c.restore();}},
+ {axis:'cam',key:'verticalSway',name:'縦にゆれる視点',desc:'画面全体が縦に小さくゆれ、ゆっくり元の高さへ戻ります。',added:'2026-10-22',words:['縦にゆれる','視点が上下','小さく往復'],
+  tags:['calm','emotional','graphic'],w:1,plan:r=>({phase:r()*TAU,speed:.55+r()*.3}),
+  get(e,P){const a=e.p*TAU*P.speed+P.phase;return {s:1.025,x:Math.sin(a*.5)*e.W*.004,y:Math.sin(a)*e.H*.018,rot:0};}},
+ {axis:'world',key:'twoLineRead',name:'二段に分けて読む',desc:'言葉を上段と下段へ分け、細い枠で順番に読み進められるようにします。',added:'2026-10-22',words:['二段','二行で','上下に分ける'],
+  tags:['graphic','calm','emotional'],w:.9,fits:n=>n<=36,plan:r=>({phase:r()*TAU}),
+  frame(P,{W,H,D,exitOK}){return {box:{cx:W/2,cy:H/2,w:W*.84,h:H*.72},mode:'wrap',maxWidth:.96,delay:clamp(D*.06,0,.08)};},
+  arrange(item){const F=item.worldFrame,gs=item.glyphs,n=gs.length;if(!n)return;const preferred=new Set(['、','。','，','．','！','？','は','が','を','に','へ','で','と','も','の','や']),target=Math.max(1,Math.min(n-1,Math.round(n*.4))),choices=Array.from({length:Math.max(0,n-1)},(_,i)=>i+1),split=choices.reduce((best,i)=>{const score=Math.abs(i-target)-(preferred.has(gs[i-1].ch) ? 1 : 0);return score<best.score?{i,score}:best;},{i:target,score:Infinity}).i,rows=[gs.slice(0,split),gs.slice(split)].filter(row=>row.length),shift=rows.length>1?Math.min(item.size*.9,F.box.h*.24):0;item.alternation=[];
+   rows.forEach((row,ri)=>{const w=row.reduce((a,g)=>a+g.w,0),scale=Math.min(1,(F.box.w*.88)/Math.max(1,w)),actual=w*scale;let x=(F.box.w-actual)/2;const y=F.box.h/2+(ri?1:-1)*shift;for(const g of row){const gw=g.w*scale;g.cx=x+gw/2;g.cy=y;g.w=gw;g.size*=scale;g.cell=null;g.rot0=0;x+=gw;}item.alternation.push({y,w:actual});});
+   item.bbox={x0:Math.min(...gs.map(g=>g.cx-g.w/2)),x1:Math.max(...gs.map(g=>g.cx+g.w/2)),y0:Math.min(...gs.map(g=>g.cy-g.size/2)),y1:Math.max(...gs.map(g=>g.cy+g.size/2))};},
+  xform(c,e,P,F){const s=1+.008*Math.sin(e.lt*TAU*.55+P.phase);c.translate(F.box.cx,F.box.cy);c.scale(s,s);c.translate(-F.box.cx,-F.box.cy);},
+  back(c,e,P,F,item){const rows=item.alternation||[],mid=F.box.cy;c.save();c.lineWidth=Math.max(1,e.H*.003);rows.forEach((r,i)=>{const w=Math.min(F.box.w*.92,r.w+item.size*.56),x=F.box.cx-w/2,y=mid+(r.y-F.box.h/2)-item.size*.56;c.strokeStyle=rgba(i?e.accent:e.fg,.22);c.strokeRect(x,y,w,item.size*1.12);c.fillStyle=rgba(e.accent,.58);const mark=item.size*.22,mx=x+fract(e.lt*.31+P.phase+i*.5)*(w-mark);c.fillRect(mx,y,mark,Math.max(2,item.size*.045));});c.restore();}}
 ];
