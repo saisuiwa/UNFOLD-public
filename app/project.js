@@ -72,7 +72,7 @@ async function toJSON(state) {
   const ref = async obj => { if (!obj) return null; const a = await assetOf(obj); assets.set(a.id, a); return a.id; };
   const slides = [];
   for (const s of state.slides) {
-    slides.push({ name: s.name, hold: s.hold ?? null, fx: s.fx ?? null, cam: s.cam ?? null, img: await ref(s.img),
+    slides.push({ name: s.name, hold: s.hold ?? null, fx: s.fx ?? null, cam: s.cam ?? null, frame: s.frame ?? null, img: await ref(s.img),
       lyric: s.lyric ? { text: s.lyric.text, k: s.lyric.k ?? null, seed: s.lyric.seed, lineId: s.lyric.lineId ?? null, img: await ref(s.lyric.img) } : null });
   }
   const audio = state.audio ? { name: state.audio.name, asset: await ref(state.audio.owner) } : null;

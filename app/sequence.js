@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=8';
+import {drawSequenceVisual} from './sequence-renderer.js?v=9';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift} from './sequence-core.js';
 import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';
@@ -54,7 +54,9 @@ import { CAM_EASES, CAM_PRESETS, CAM_RANGES, camEnds, camLife, camValues, cleanC
 import { openMethodMenu } from './method-menu.js';
 import { methodButtons, syncMethodTiles } from './method-tiles.js';
 import { putHandoff } from './studio-handoff.js?v=1';
-import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=10';
+import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=11';
+import { cleanFrame, croppedCanvas, framePlacement, needsFrame, describeFrame, frameFromChoice } from './slide-frame.js?v=1';
+import { askSlideFrame } from './slide-frame-dialog.js?v=1';
 
 const $ = id => document.getElementById(id);
 // every method (the built-in ones and the ones users add) is listed in method-registry.js
@@ -121,14 +123,14 @@ let planeW, planeH;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
 
 // --------------------------------------------------------------- slides --
-function fitCanvas(img, bg) {
+// frame: the slide's own way of sitting in the frame (slide-frame.js). Without one, "画面いっぱいに表示" decides for the whole project.
+function fitCanvas(img, bg, frame) {
   const c = document.createElement('canvas');
   c.width = CANVAS_W; c.height = CANVAS_H;
   const x = c.getContext('2d');
   x.fillStyle = bg; x.fillRect(0, 0, c.width, c.height);
-  const s = (seq.fill ? Math.max : Math.min)(c.width / img.width, c.height / img.height);
-  const w = img.width * s, h = img.height * s;
-  x.drawImage(img, (c.width - w) / 2, (c.height - h) / 2, w, h);
+  const p = framePlacement(img.width, img.height, frame, seq.fill, c.width, c.height);
+  x.drawImage(img, p.sx, p.sy, p.sw, p.sh, p.dx, p.dy, p.dw, p.dh);
   return c;
 }
 function makeTexture(canvas) {
@@ -142,26 +144,30 @@ export async function addImageFromUrl(url, name) {
   return addImageBlob(blob, name || url.split('/').pop());
 }
 async function imageOf(blob) { const img = await imageFromBlob(blob); registerAsset(img, blob); return img; }
-export async function addImageBlob(blob, name) { addSlide(await imageOf(blob), name); }
+export async function addImageBlob(blob, name, frame) { addSlide(await imageOf(blob), name, frame); }
 function newTransition(i) {
   const shapes = Object.keys(BUILTIN);
   return { method: BUILTIN_KEYS[i % BUILTIN_KEYS.length], shape: shapes[i % shapes.length], method2: '', text: '', font: 'gothic', beats: 8, viewX: 0, viewY: 0 };
 }
-export function addSlide(img, name) {
-  seq.slides.push({ id: ++slideSerial, name, img });
+export function addSlide(img, name, frame) {
+  const slide = { id: ++slideSerial, name, img };
+  const own = cleanFrame(frame); if (own) slide.frame = own;
+  seq.slides.push(slide);
   while (seq.transitions.length < seq.slides.length - 1) seq.transitions.push(newTransition(seq.transitions.length));
   refreshUI();
 }
 function dropTexture(s) { s.texture?.dispose(); s.texture = s.canvas = null; }
-function rebuildBackgrounds() { seq.slides.forEach(dropTexture); }
+function rebuildBackgrounds() { seq.slides.forEach(s => { dropTexture(s); s.thumb = null; }); }   // the small pictures in the timeline are made from the same canvas
 const liveCards = [];   // lyric cards are big: keep only the few near the playhead on the GPU
 function slideCanvas(s) {
   if (!s.canvas) {
     s.canvas = s.lyric ? drawLyricCard({ ...seq.lyricOpts, text: s.lyric.text, kind: s.lyric.k, img: s.lyric.img, seed: s.lyric.seed, bg: seq.bg })
-      : fitCanvas(s.img, seq.bg);
+      : fitCanvas(s.img, seq.bg, s.frame);
   }
   return s.canvas;
 }
+// the kept part of a cut-out picture as a canvas of its own (null when the slide has no crop)
+const croppedSource = s => s.img && s.frame?.crop ? croppedCanvas(s.img, s.frame) : null;
 function slideTexture(s) {
   if (!s.texture) s.texture = makeTexture(slideCanvas(s));
   if (s.lyric) {
@@ -261,7 +267,7 @@ async function ensureShape(tr, i) {
   } else if (tr.shape === 'silA' || tr.shape === 'silB') {
     const slide = silSlide(tr, i);
     if (!slide) return;
-    const src = slide.img || slide.lyric?.img || slideCanvas(slide);
+    const src = croppedSource(slide) || slide.img || slide.lyric?.img || slideCanvas(slide);   // a cut-out picture makes its silhouette from the part that is kept
     const iw = src.naturalWidth || src.width, ih = src.naturalHeight || src.height;
     const sc = Math.min(CANVAS_W / iw, CANVAS_H / ih), dw = iw * sc / CANVAS_W, dh = ih * sc / CANVAS_H;
     const place = { x: -dw / 2 * planeW, y: dh / 2 * planeH, w: dw * planeW, h: dh * planeH };
@@ -686,11 +692,12 @@ export async function buildLyricMV() {
   const duration = seq.audioBuffer ? seq.audioBuffer.duration : seq.audio.duration;
   await loadCardFonts(lines, seq.lyricOpts.font);
   const L = layoutLyricMV(lines, { bpm: seq.bpm, phase: seq.phase, snap: seq.lyricOpts.snap, transBeats: seq.lyricOpts.transBeats, duration, images, seed: 7 });
+  const framesOf = new Map(seq.slides.filter(s => s.img && s.frame).map(s => [s.img, s.frame]));   // a picture keeps the way it was cut out
   seq.slides.forEach(dropTexture);
   liveCards.length = 0;
   seq.slides = L.slides.map((sl, i) => sl.kind === 'lyric'
     ? { id: ++slideSerial, name: sl.text.replace(/\//g, ' '), lyric: { text: sl.text, k: sl.k, img: sl.img, seed: i + 1, lineId: lines[sl.line]?.id }, hold: L.holds[i] }
-    : { id: ++slideSerial, name: '画像', img: sl.img || blankImage(), hold: L.holds[i] });
+    : { id: ++slideSerial, name: '画像', img: sl.img || blankImage(), ...(framesOf.has(sl.img) ? { frame: structuredClone(framesOf.get(sl.img)) } : {}), hold: L.holds[i] });
   seq.transitions = L.transitions.map(t => ({ ...t, font: seq.lyricOpts.font }));
   seq.offset = 0; $('seq-offset').value = 0;
   seq.t = 0; seq.link = true; seq.selection = null;
@@ -1011,6 +1018,12 @@ function inspectSlide(box, title, i, s) {
   const hold = document.createElement('input');
   hold.type = 'number'; hold.min = 0; hold.step = 'any'; hold.value = +(s.hold ?? seq.holdBeats).toFixed(2);
   field(box, '見せる長さ（拍）', hold).onchange = () => edit(() => { s.hold = Math.max(0, Number(hold.value) || 0); });
+  if (!s.lyric && s.img) {
+    const adjust = document.createElement('button'); adjust.className = 'btn'; adjust.textContent = '切り抜き・収め方を調整…';
+    adjust.onclick = () => adjustFrame(i);
+    const how = document.createElement('span'); how.className = 'hint'; how.textContent = describeFrame(s.frame, seq.fill); how.dataset.role = 'frame-state';
+    const wrap = document.createElement('div'); wrap.className = 'row wrap'; wrap.append(adjust, how); box.append(wrap);
+  }
   if (s.lyric) {
     const tx = document.createElement('input'); tx.value = s.lyric.text; tx.maxLength = 48;
     field(box, '歌詞（/ で改行）', tx).onchange = () => edit(() => setLyricText(s.lyric.lineId, tx.value, s));
@@ -1142,7 +1155,7 @@ function inspectLyric(box, title, i, l) {
 function snapshot() {
   return {
     lyricDocument:seq.lyricDocument&&structuredClone(seq.lyricDocument),lyricMotion:{...seq.lyricMotion},audioBlob:seq.audioBlob,audioOwner:seq.audioOwner,audioName:seq.audioName,audioBuffer:seq.audioBuffer,
-    slides: seq.slides.map(s => ({ id: s.id, name: s.name, img: s.img, lyric: s.lyric && { ...s.lyric }, hold: s.hold, thumb: s.thumb, fx: s.fx && { ...s.fx }, cam: s.cam && structuredClone(s.cam) })),
+    slides: seq.slides.map(s => ({ id: s.id, name: s.name, img: s.img, frame: s.frame && structuredClone(s.frame), lyric: s.lyric && { ...s.lyric }, hold: s.hold, thumb: s.thumb, fx: s.fx && { ...s.fx }, cam: s.cam && structuredClone(s.cam) })),
     transitions: structuredClone(seq.transitions), lyrics: structuredClone(seq.lyrics),
     offset: seq.offset, bpm: seq.bpm, phase: seq.phase, holdBeats: seq.holdBeats, link: seq.link,
   };
@@ -1156,13 +1169,13 @@ function restore(snap) {
   const old = new Map(seq.slides.map(s => [s.id, s]));
   seq.slides = snap.slides.map(x => {
     const o = old.get(x.id);
-    if (o && o.img === x.img && (o.lyric?.text ?? null) === (x.lyric?.text ?? null) && o.lyric?.img === x.lyric?.img) {
+    if (o && o.img === x.img && (o.lyric?.text ?? null) === (x.lyric?.text ?? null) && o.lyric?.img === x.lyric?.img && JSON.stringify(o.frame ?? null) === JSON.stringify(x.frame ?? null)) {
       o.hold = x.hold; o.name = x.name; o.lyric = x.lyric && { ...x.lyric };
       if (x.fx) o.fx = { ...x.fx }; else delete o.fx;
       if (x.cam) o.cam = structuredClone(x.cam); else delete o.cam;
       return o;
     }
-    return { ...x, lyric: x.lyric && { ...x.lyric }, fx: x.fx && { ...x.fx }, cam: x.cam && structuredClone(x.cam) };
+    return { ...x, frame: x.frame && structuredClone(x.frame), lyric: x.lyric && { ...x.lyric }, fx: x.fx && { ...x.fx }, cam: x.cam && structuredClone(x.cam) };
   });
   for (const [id, o] of old) if (!seq.slides.includes(o)) dropTexture(o);
   seq.transitions = structuredClone(snap.transitions); seq.lyrics = structuredClone(snap.lyrics);
@@ -1262,23 +1275,57 @@ function moveSlide(from, to) {
   seq.selection = { kind: 'slide', i: to > from ? to - 1 : to };
   endEdit();
 }
+const sizeOfImage = im => [im.naturalWidth || im.width, im.naturalHeight || im.height];
+// A picture far from the 16:9 frame is cut off when it fills the frame (the default). So before pictures are added, each one of that kind
+// asks how it should sit: whole, or cut out. One frame (undefined = the project-wide setting) per picture; null when the person backed out.
+async function askFrames(imgs) {
+  const wanted = imgs.map(([im]) => needsFrame(...sizeOfImage(im), CANVAS_W, CANVAS_H));
+  const total = wanted.filter(Boolean).length, out = [];
+  let same = null, asked = 0;
+  for (let k = 0; k < imgs.length; k++) {
+    if (!wanted[k]) { out.push(undefined); continue; }
+    const [img, name] = imgs[k], [w, h] = sizeOfImage(img);
+    if (same) { out.push(frameFromChoice(same, w, h, CANVAS_W, CANVAS_H)); continue; }
+    const answer = await askSlideFrame({ img, name, bg: seq.bg, fill: seq.fill, W: CANVAS_W, H: CANVAS_H, position: ++asked, total });
+    if (!answer) return null;
+    out.push(answer.frame);
+    if (answer.rest) same = answer.choice;
+  }
+  return out;
+}
 async function replaceSlide(i, file) {
   const s = seq.slides[i];
   if (!s) return;
   const img = await imageOf(file);
+  let frame;
+  if (!s.lyric) { const asked = await askFrames([[img, file.name]]); if (!asked) return; frame = asked[0]; }
   beginEdit();
-  if (s.lyric) s.lyric = { ...s.lyric, img }; else { s.img = img; s.name = file.name; }
+  if (s.lyric) s.lyric = { ...s.lyric, img }; else { s.img = img; s.name = file.name; delete s.frame; if (frame) s.frame = frame; }   // the old picture's cut-out does not fit the new one
   s.id = ++slideSerial; s.thumb = null; dropTexture(s);   // a new id also refreshes silhouettes made from it
   endEdit();
   notice('差し替えたよ');
 }
+// the slide panel's "切り抜き・収め方を調整": the same dialog as at import, starting from what the slide has now
+async function adjustFrame(i) {
+  const s = seq.slides[i];
+  if (!s?.img || seq.recording) return;
+  const answer = await askSlideFrame({ img: s.img, name: s.name, bg: seq.bg, fill: seq.fill, W: CANVAS_W, H: CANVAS_H, initial: s.frame, adjust: true });
+  if (!answer || seq.slides[i] !== s) return;
+  edit(() => {
+    if (answer.frame) s.frame = answer.frame; else delete s.frame;
+    s.id = ++slideSerial; s.thumb = null; dropTexture(s);   // a new id also refreshes silhouettes made from it
+  });
+  notice('収め方を変えたよ');
+}
 async function insertImages(files, at) {
   const imgs = [];
   for (const f of files) imgs.push([await imageOf(f), f.name]);
+  const frames = await askFrames(imgs);
+  if (!frames) return;
   beginEdit();
-  for (const [img, name] of imgs) {
+  for (const [k, [img, name]] of imgs.entries()) {
     const n = seq.slides.length;
-    seq.slides.splice(at, 0, { id: ++slideSerial, name, img });
+    seq.slides.splice(at, 0, { id: ++slideSerial, name, img, ...(frames[k] ? { frame: frames[k] } : {}) });
     if (n > 0) seq.transitions.splice(at === n ? n - 1 : at, 0, newTransition(at));
     at++;
   }
@@ -1287,7 +1334,7 @@ async function insertImages(files, at) {
 function duplicateSlide(i) {
   beginEdit();
   const s = seq.slides[i];
-  seq.slides.splice(i + 1, 0, { id: ++slideSerial, name: s.name, img: s.img, lyric: s.lyric && { ...s.lyric, lineId: null }, hold: s.hold, fx: s.fx && { ...s.fx }, cam: s.cam && structuredClone(s.cam) });
+  seq.slides.splice(i + 1, 0, { id: ++slideSerial, name: s.name, img: s.img, frame: s.frame && structuredClone(s.frame), lyric: s.lyric && { ...s.lyric, lineId: null }, hold: s.hold, fx: s.fx && { ...s.fx }, cam: s.cam && structuredClone(s.cam) });
   seq.transitions.splice(i, 0, { ...seq.transitions[Math.min(i, seq.transitions.length - 1)] || newTransition(i) });
   endEdit();
 }
@@ -1378,6 +1425,7 @@ async function restoreProject(json, blobs) {
     const s = { id: ++slideSerial, name: x.name, hold: x.hold ?? undefined };
     const ownFx = cleanFx(x.fx, FX_KEYS); if (ownFx) s.fx = ownFx;
     const ownCam = cleanCam(x.cam); if (ownCam) s.cam = ownCam;
+    const ownFrame = cleanFrame(x.frame); if (ownFrame && !x.lyric) s.frame = ownFrame;
     if (x.lyric) s.lyric = { text: x.lyric.text, k: x.lyric.k ?? undefined, seed: x.lyric.seed, lineId: x.lyric.lineId, img: await img(x.lyric.img) };
     else s.img = (await img(x.img)) || blankImage();
     slides.push(s);
@@ -1484,8 +1532,12 @@ function notice(msg) {
 async function addFiles(files) {
   files = files.filter(f => /^image\//.test(f.type));
   if (!files.length) return;
+  const imgs = [];
+  for (const f of files) imgs.push([await imageOf(f), f.name]);
+  const frames = await askFrames(imgs);
+  if (!frames) return;
   beginEdit();
-  for (const f of files) await addImageBlob(f, f.name);
+  for (const [k, [img, name]] of imgs.entries()) addSlide(img, name, frames[k]);
   await prepareShapes();
   renderAt(seq.t);
 }
@@ -1534,7 +1586,7 @@ function wire() {
   $('seq-tiles').oninput = e => { seq.tiles = Number(e.target.value) / 100; applyTileSize(); updateSliderNotes(); renderAt(seq.t); scheduleSave(); };
   $('seq-shuffle').onclick = async () => { shuffleTransitions(); await prepareShapes(); refreshUI(); };
   $('seq-sil').onchange = e => { seq.silSens = Number(e.target.value) / 100; dropSilhouettes(); renderAt(seq.t); };
-  $('seq-fill').onchange = e => { seq.fill = e.target.checked; rebuildBackgrounds(); renderAt(seq.t); };
+  $('seq-fill').onchange = e => { seq.fill = e.target.checked; rebuildBackgrounds(); refreshUI(); renderAt(seq.t); };   // refreshUI: the panel says how a slide follows this setting
   $('seq-bg').oninput = e => { seq.bg = e.target.value; rebuildBackgrounds(); refreshUI(); };
   lyricControls=createLyricControls({getState:lyricState,onAction:lyricAction});$('pane-lyric').append(lyricControls.element);if(location.hash==='#lyric')showTab('lyric');
   $('seq-with-audio').onchange=e=>{seq.withAudio=e.target.checked;scheduleSave()};

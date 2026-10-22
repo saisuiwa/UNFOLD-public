@@ -10,6 +10,7 @@ import {concealAmount,swapCurve,mixFx} from './fx-mix.js';
 import {camLife,camValues,lifeProgress,legacyKenBurns,mixCam} from './camera-work.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {imageTarget} from './image-method-target.js';
+import {framePlacement,cleanFrame} from './slide-frame.js?v=1';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import {BUILTIN_IDS as METHOD_IDS} from './method-registry.js';
 import {assembleVertex} from './custom-method.js';
@@ -174,9 +175,9 @@ export function createSequenceRenderer({assets,resolveMethod,resolveModel}={}){
  const isFlatShape=()=>false,shapeKey=tr=>tr.shape==='none'?'sphere':tr.shape;
  const method=id=>resolveMethod?.(id)||seq.methods?.find(m=>m.id===id);
  const imageLayerAt=i=>imageLayers[i]??=createImageMethodLayer(renderer,{resolveMethod:method,resolveFontBytes:async key=>{const id=seq.fontAssets?.[key];if(id){const b=await assets.get(id);if(!b)throw new StudioError('MISSING_ASSET');return b.arrayBuffer();}if(/^(file:|local:)/.test(key||''))throw new StudioError('MISSING_ASSET');const r=await fetch(new URL('./vendor/motion-fonts/'+(key||'gothic')+'.ttf',import.meta.url));if(!r.ok)throw new StudioError('MISSING_ASSET');return r.arrayBuffer();}});
- function fitCanvas(img,bg){const c=document.createElement('canvas');c.width=CANVAS_W;c.height=CANVAS_H;const x=c.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,c.width,c.height);const ratio=(seq.fill?Math.max:Math.min)(c.width/img.width,c.height/img.height);x.drawImage(img,(c.width-img.width*ratio)/2,(c.height-img.height*ratio)/2,img.width*ratio,img.height*ratio);return c;}
+ function fitCanvas(img,bg,frame){const c=document.createElement('canvas');c.width=CANVAS_W;c.height=CANVAS_H;const x=c.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,c.width,c.height);const p=framePlacement(img.width,img.height,cleanFrame(frame),seq.fill,c.width,c.height);x.drawImage(img,p.sx,p.sy,p.sw,p.sh,p.dx,p.dy,p.dw,p.dh);return c;}
  function makeTexture(c){const t=new THREE.CanvasTexture(c);t.minFilter=t.magFilter=THREE.LinearFilter;t.generateMipmaps=false;t.colorSpace=THREE.SRGBColorSpace;return t;}
- const slideCanvas=s=>s.canvas??=fitCanvas(s.img,seq.bg),slideTexture=s=>s.texture??=makeTexture(slideCanvas(s));
+ const slideCanvas=s=>s.canvas??=fitCanvas(s.img,seq.bg,s.frame),slideTexture=s=>s.texture??=makeTexture(slideCanvas(s));
  function setMaterialTextures(a,b){const u=mesh.material.uniforms;u.uImage.value=slideTexture(a);u.uImageB.value=slideTexture(b||a);}
  function layoutTimes(){const c=compileSequenceTiming(seq);return {slides:c.segments.filter(s=>s.tr<0).map(s=>({start:s.startUs/1e6,end:s.endUs/1e6})),transitions:c.segments.filter(s=>s.tr>=0).map(s=>({start:s.startUs/1e6,end:s.endUs/1e6})),total:c.durationUs/1e6};}
 function gridGeometry(targets) {

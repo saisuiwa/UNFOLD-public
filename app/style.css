@@ -180,3 +180,9 @@
 /* colour shapes (colour-shapes.js): icon and name in the shape's own colours */
 .shapes button b.colour-name{font-weight:700}
 .colour-name{background:var(--colour-grad);-webkit-background-clip:text;background-clip:text;color:transparent!important;-webkit-text-fill-color:transparent}
+
+/* how the picture sits in the output frame (slide-frame-dialog.js): what it does now, and the button that opens the dialog again */
+.frame-row{display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin-top:2px}
+.frame-row[hidden]{display:none}
+.frame-row .hint{margin:0}
+.frame-row .text-button{padding:0}

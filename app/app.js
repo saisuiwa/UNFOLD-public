@@ -28,6 +28,8 @@ import {createSafety} from './method-safety.js';
 import {createTrial} from './method-trial.js';
 import {createEnabler} from './method-verify.js';
 import {downloadMethodFile,exportMethod,importMethodFile,importMethodText,pickMethodFile} from './method-transfer.js';
+import {cleanFrame,croppedCanvas,describeFrame,needsFrame} from './slide-frame.js?v=1';
+import {askSlideFrame} from './slide-frame-dialog.js?v=1';
 import {openMethodMenu} from './method-menu.js';
 import {grainSingleNote,tileSingleNote} from './slider-notes.js?v=2';
 import {applyTiles,tilesAcross} from './tile-size.js?v=1';
@@ -41,7 +43,7 @@ let activeGroup=loadActive('unfold-glb-tab');   // the GLB tab in use (the same 
 const customShapes=new Map(),colourShapes=new Map(),savedModels=new Map();let customSerial=0,importing=false;
 const $=id=>document.getElementById(id);
 const loadShot=()=>{try{return cleanShot(JSON.parse(localStorage.getItem('unfold-single-shot')||'null'))}catch{return cleanShot()}};
-const state={imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+const state={fit:'cover',imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
@@ -98,7 +100,7 @@ function render(){
  if(spin){mesh.rotation.set(state.viewX*orientation,state.viewY*orientation,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
  const fx=effectsAt(state.t,state.duration,state);
  const imageSize=u.uSize.value,frameW=camera.right-camera.left,frameH=camera.top-camera.bottom;
- const fillZoom=Math.max(frameW/imageSize.x,frameH/imageSize.y);
+ const fillZoom=(state.fit==='contain'?Math.min:Math.max)(frameW/imageSize.x,frameH/imageSize.y);   // 'contain': the whole picture stays in view, the rest is the background colour
  // how far the camera eases out while the picture is torn up, handing over to the 3D-solid setting as it forms (0 = stays filling the frame)
  const flat=1-(m.distort*state.pullback*(1-m.form)+m.form*(fillsFrame(state.shape)?0:state.formPullback));
  camera.zoom=(1+(fillZoom-1)*flat)*fx.zoom;camera.position.x=fx.x;camera.position.y=fx.y;camera.rotation.z=fx.roll;camera.updateProjectionMatrix();
@@ -241,14 +243,27 @@ async function loadModel(file){
  finally{importing=false;disabled.forEach(([el,was])=>el.disabled=was);$('model-input').value='';}
 }
 
-async function loadImage(file){
+// How the picture sits in the output frame. loaded: the whole picture (at most 4096 px) and what was chosen, for the 「切り抜き・収め方を調整」 button.
+// A part that was cut out becomes the source itself; 'cover' fills the output, 'contain' keeps all of it in view (the rest is the background colour).
+const FRAME_SIZES={'16:9':[1920,1080],'1:1':[1080,1080],'9:16':[1080,1920]};
+const frameSize=()=>FRAME_SIZES[state.ratio]||FRAME_SIZES['16:9'];
+let loaded=null;
+function useImage(whole,name,frame){
+ const f=cleanFrame(frame);state.fit=f?.fit??'cover';loaded={canvas:whole,name,frame:f};
+ setSource(croppedCanvas(whole,f),name);showFrameState();
+}
+function showFrameState(){$('frame-row').hidden=!loaded;if(loaded)$('frame-state').textContent=loaded.frame?describeFrame(loaded.frame,true):'画面いっぱい'}
+// ask: only for what a person does on the page (choosing or dropping a file). A script calling unfold.loadImage() is never stopped by a dialog.
+async function loadImage(file,{ask=false}={}){
  if(state.recording||importing)return;if(!file)return;
  if(!['image/png','image/jpeg','image/webp'].includes(file.type)){notice('PNG・JPG・WebPの画像を選んでね。');return}
  if(file.size>20*1024*1024){notice('20 MB以下の画像を選んでね。');return}
  const url=URL.createObjectURL(file);const img=new Image();
  try{img.src=url;await img.decode();if(img.naturalWidth*img.naturalHeight>80e6)throw new Error('大きすぎる画像です');
   const scale=Math.min(1,4096/Math.max(img.naturalWidth,img.naturalHeight));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.naturalWidth*scale));c.height=Math.max(1,Math.round(img.naturalHeight*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);
-  state.playing=false;state.previewRange=false;state.t=0;state.viewX=state.viewY=0;setSource(c,file.name);notice(scale<1?'画像を読み込みました。長辺4096pxに調整しています。':'画像を読み込みました。再生で動きを確認できるよ。');
+  let frame;
+  if(ask){const [W,H]=frameSize();if(needsFrame(c.width,c.height,W,H)){const answer=await askSlideFrame({img:c,name:file.name,bg:state.bg,fill:true,W,H});if(!answer)return;frame=answer.frame}}
+  state.playing=false;state.previewRange=false;state.t=0;state.viewX=state.viewY=0;useImage(c,file.name,frame);notice(scale<1?'画像を読み込みました。長辺4096pxに調整しています。':'画像を読み込みました。再生で動きを確認できるよ。');
  }catch{notice('画像を読み込めませんでした。別のPNG・JPG・WebPを試してね。')}finally{URL.revokeObjectURL(url);$('image-input').value=''}
 }
 function wireControls(){
@@ -323,14 +338,20 @@ function wireControls(){
  $('mark-start').onclick=()=>{state.customStart=Math.min(.95,state.t);state.startMode='custom';$('start-mode').value='custom';state.playing=false;updateRange();render()};
  $('mystery').onchange=e=>{state.mystery=e.target.checked;updateRange();render()};
  $('preview-range').onclick=()=>{state.previewRange=true;state.playing=true;setTime(getRange().from)};
- $('ratio').onchange=e=>{state.ratio=e.target.value;$('stage').className=state.ratio==='1:1'?'square':state.ratio==='9:16'?'portrait':'';updateResolution();resize()};
+ $('ratio').onchange=e=>{state.ratio=e.target.value;$('stage').className=state.ratio==='1:1'?'square':state.ratio==='9:16'?'portrait':'';updateResolution();resize();
+  if(loaded&&state.fit==='cover'&&needsFrame(sourceCanvas.width,sourceCanvas.height,...frameSize()))notice('出力の形と画像の形が違うので、見切れることがあるよ。「切り抜き・収め方を調整」で直せます。')};
  $('quality').onchange=updateResolution;
  function setBg(color){state.bg=color;$('custom-bg').value=color;document.querySelectorAll('[data-bg]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.bg===color));render()}
  document.querySelectorAll('[data-bg]').forEach(b=>b.onclick=()=>setBg(b.dataset.bg));$('custom-bg').oninput=e=>setBg(e.target.value);
- $('image-input').onchange=e=>loadImage(e.target.files[0]);$('demo').onclick=()=>{state.t=chaosTime(.56,state.chaosLength);state.playing=false;setSource(makeSample(),'カラーテスト・サンプル')};
+ $('image-input').onchange=e=>loadImage(e.target.files[0],{ask:true});$('demo').onclick=()=>{state.t=chaosTime(.56,state.chaosLength);state.playing=false;loaded=null;state.fit='cover';showFrameState();setSource(makeSample(),'カラーテスト・サンプル')};
+ $('frame-adjust').onclick=async()=>{
+  if(!loaded||state.recording)return;const [W,H]=frameSize();
+  const answer=await askSlideFrame({img:loaded.canvas,name:loaded.name,bg:state.bg,fill:true,W,H,initial:loaded.frame,adjust:true});
+  if(!answer)return;useImage(loaded.canvas,loaded.name,answer.frame);notice('収め方を変えたよ');
+ };
  $('dropzone').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('image-input').click()}};
  for(const event of ['dragenter','dragover'])$('dropzone').addEventListener(event,e=>{e.preventDefault();$('dropzone').classList.add('dragover')});
- $('dropzone').ondragleave=()=>$('dropzone').classList.remove('dragover');$('dropzone').ondrop=e=>{e.preventDefault();$('dropzone').classList.remove('dragover');loadImage(e.dataTransfer.files[0])};
+ $('dropzone').ondragleave=()=>$('dropzone').classList.remove('dragover');$('dropzone').ondrop=e=>{e.preventDefault();$('dropzone').classList.remove('dragover');loadImage(e.dataTransfer.files[0],{ask:true})};
  window.addEventListener('dragover',e=>e.preventDefault());window.addEventListener('drop',e=>e.preventDefault());
  $('play').onclick=()=>{if(state.t>=1)state.t=state.previewRange?getRange().from:0;state.playing=!state.playing;render()};$('restart').onclick=()=>{state.playing=false;state.previewRange=false;setTime(0)};
  $('timeline').oninput=e=>{state.playing=false;state.previewRange=false;setTime(Number(e.target.value)/1000)};
