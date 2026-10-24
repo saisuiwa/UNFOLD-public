@@ -88,7 +88,6 @@ try{
   {n:4,label:'並べる所（絵・音声・歌詞）',box:grow(await box(page,'.tl-body'),-2),at:'in'},
   {n:5,label:'◆＝絵と絵の間の変化',box:grow(await box(page,'.tl-trans')),at:'bl'},
   {n:6,label:'書き出し・読み込み・新規・保存先',box:grow(union(await box(page,page.locator('.tl-bar').getByRole('button',{name:'書き出し'})),await box(page,page.locator('.tl-bar').getByRole('button',{name:/保存先/})))),at:'tr'},
-  {n:7,label:'STUDIOへ送る',box:grow(await box(page,'#studio-entry')),at:'tr'},
  ]);
  // ◆を選ぶと、右に設定が出る
  await page.locator('.tl-trans').first().click();await page.waitForTimeout(1200);

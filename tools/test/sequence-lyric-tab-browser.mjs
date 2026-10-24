@@ -13,7 +13,7 @@ try{
  assert.equal(await page.locator('.audio-pick').count(),0);
  const tabs=await page.locator('.tabs [data-tab]').allTextContents();
  assert.deepEqual(tabs.map(t=>t.trim()),['03 選択中','04 見た目','05 曲・歌詞','動画保存・GLB追加']);
- assert.match((await page.locator('#studio-entry').textContent()).trim(),/^06 STUDIO/);
+ assert.equal(await page.locator('#studio-entry').count(),0,'the way into STUDIO is closed (the page is kept for older works)');
  await page.locator('.tabs [data-tab="lyric"]').click();
  assert.equal(await page.locator('#lm-quick').count(),0,'the per-lyric panel is STUDIO\'s now');
  for(const label of ['読みやすく','元気に','やわらかく'])assert.equal(await page.getByRole('button',{name:label,exact:true}).count(),0,label);
