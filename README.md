@@ -4,7 +4,13 @@
 >
 > ライセンス：MIT（`LICENSE`）。改変や、ほかのアプリへの組み込みも自由ですが、無保証です。`app/vendor/` の同梱ライブラリとフォント（three.js・troika・GSAP・Rapier・p5.js・Mediabunny・各書体など）と、それらを束ねた `app/vendor/*-worker.js` は、それぞれのライセンス（同じフォルダの `*-LICENSE.txt`・`*-NOTICE.txt`）に従います。
 
-## 現在の公開版：STUDIO（2026-10-10）
+## 2026-10-25：毎日の部品とカット割りのエンジンは MOTION LAB へ
+
+- STUDIO の入口を閉じた（2026-10-24）のに続いて、カット割りのエンジンと毎日の部品の正本を、非公開の MOTION LAB に移した。MOTION LAB は、もう UNFOLD からエンジンを写さない。
+- UNFOLD の `app/studio/` は、前の STUDIO の作品を開くための写しとして残す（毎日の部品は 2026-10-24 の分まで）。手順書 `docs/daily-samples-routine.md` の ③ と、`docs/cut-parts-concept.md`・`docs/cut-parts-wishlist.md`・`docs/daily-samples-log.md` に、引っ越し先を書いた。
+- MV づくりは、シーケンスで曲と歌詞まで入れて `.unfold` に保存し、MOTION LAB の「作品を開く」で開く。
+
+## 前の公開版：STUDIO（2026-10-10。2026-10-24 に入口を閉じた）
 
 [STUDIOを開く](https://unfold.saisuiwa.com/studio)。曲・歌詞を固定した共通時間軸に、画像・短動画・文字・p5演出・UNFOLDを重ね、横MVと別配置の縦ショートを作れます。旧シーケンスの「05 STUDIO」からも入れます。
 
