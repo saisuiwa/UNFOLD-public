@@ -1,6 +1,6 @@
 // Shared motion settings for a single clip and one sequence transition.
 import { easeP } from './camera-work.js?v=1';
-import { cleanSolidMotion } from './solid-motion.js?v=2';
+import { cleanSolidMotion } from './solid-motion.js?v=3';
 export const DIRECTIONS = [['right','右'],['left','左'],['up','上'],['down','下'],['up-right','右上（斜め）'],['up-left','左上（斜め）'],['down-right','右下（斜め）'],['down-left','左下（斜め）'],['none','回転なし']];
 const finite=(x,lo,hi,d)=>typeof x==='number'&&Number.isFinite(x)?Math.max(lo,Math.min(hi,x)):d;
 const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};

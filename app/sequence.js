@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=15';
+import {drawSequenceVisual} from './sequence-renderer.js?v=16';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift,SOLID_PTS} from './sequence-core.js?v=3';
 import {unstretchSolid} from './solid-length.js?v=2';
 import {attachWorkshopLink} from './workshop-link.js';
@@ -15,8 +15,8 @@ import {createLyricOverlay} from './lyric-overlay.js?v=18';
 import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=4';
 import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPreviewTime} from './lyric-timing.js?v=3';
 import {audioBlock} from './lyric-audio-range.js?v=2';
-import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=27';
-import { createShotControls } from './shot-motion-controls.js?v=5';
+import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=28';
+import { createShotControls } from './shot-motion-controls.js?v=6';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.

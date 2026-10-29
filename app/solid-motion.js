@@ -5,10 +5,13 @@
 // value = { kind: 'none' | one of SOLID_MOTIONS, amount: 0.2–2 (1 = as designed) }
 // The rhythm counts beats: the ◆'s tempo in a sequence, a fixed 120 BPM in the single clip. Every motion swings around rest (no full turns),
 // so a half-formed solid only moves half as far and nothing jumps.
+// 振り向いて寄る is the one story-like motion: it follows the solid's life instead of the beat — sideways while it forms, it turns to face you,
+// then comes closer — so a figure can look away and then at the viewer. life: 0 = the solid has just become whole, 1 = it starts to fall apart.
 
 export const SOLID_MOTIONS = [
   ['sway', 'ゆらゆら'], ['float', 'ふわふわ'], ['boing', 'ぽよん'], ['hop', 'ぴょんぴょん'], ['shiver', 'ぶるぶる'], ['pendulum', 'ぶらんこ'],
   ['figure8', '8の字に飛ぶ'], ['heartbeat', 'ドキドキ'], ['lookaround', 'きょろきょろ'], ['flutter', 'ひらひら舞う'], ['approach', 'ぐいっと寄る'], ['jelly', 'ぷるぷる'],
+  ['turnaround', '振り向いて寄る'],
 ];
 const IDS = SOLID_MOTIONS.map(([id]) => id);
 export const SINGLE_BEAT_SEC = 0.5;
@@ -20,7 +23,7 @@ const SUITS = {
   'c-broom': ['flutter', 'figure8', 'sway'], 'c-cauldron': ['jelly', 'boing', 'shiver'], 'c-witch-hat': ['flutter', 'float', 'hop'],
   'c-tombstone': ['shiver', 'sway', 'boing'],
   heart: ['heartbeat', 'boing'], 'c-hearts': ['heartbeat', 'float'], 'c-balloons': ['float', 'sway'], 'c-icecream': ['jelly', 'boing'],
-  'c-snowman': ['sway', 'hop'], 'c-macarons': ['boing', 'hop'], 'c-donut': ['boing', 'jelly'], pegasus: ['figure8', 'float'], human: ['lookaround', 'hop'],
+  'c-snowman': ['sway', 'hop'], 'c-macarons': ['boing', 'hop'], 'c-donut': ['boing', 'jelly'], pegasus: ['figure8', 'float'], human: ['turnaround', 'lookaround', 'hop'],
 };
 
 const clampNum = (x, lo, hi, d) => typeof x === 'number' && Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : d;
@@ -40,6 +43,7 @@ export function pickSolidMotion(shape, current = 'none', random = Math.random) {
 const TAU = Math.PI * 2, BOTTOM = -1.5, TOP = 1.7;
 const frac = x => x - Math.floor(x);
 const bump = (d, c, w) => Math.exp(-(((d - c) / w) ** 2));
+const ease = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 // squash / stretch that keeps the volume: stretch y by sy, x and z follow
 const squash = sy => ({sx: 1 / Math.sqrt(sy), sy, sz: 1 / Math.sqrt(sy)});
 
@@ -58,6 +62,8 @@ const POSES = {
   flutter: b => { const ph = TAU * b / 4; return {ry: 0.9 * Math.sin(ph), x: 0.15 * Math.sin(ph), y: 0.18 * Math.sin(2 * ph), rz: 0.12 * Math.sin(ph + 0.8)}; },
   approach: b => { const k = 0.5 - 0.5 * Math.cos(TAU * b / 4), sc = 1 + 0.25 * k; return {z: 0.6 * k, sx: sc, sy: sc, sz: sc}; },
   jelly: b => { const d = frac(b); return {...squash(1 + 0.12 * Math.exp(-3.5 * d) * Math.sin(TAU * 3 * d)), pivot: BOTTOM}; },
+  // a quarter-ish turn away while it forms, turning to face you in the first half of its life, then closer in the second half
+  turnaround: (b, s, life) => { const near = ease(.55, .92, life), k = 1 + 0.3 * near; return {ry: 1.2 * (1 - ease(.08, .45, life)), z: 0.7 * near, sx: k, sy: k, sz: k, y: 0.03 * Math.sin(TAU * b / 4)}; },
 };
 
 // rotation matrix of world-axis tilts applied x, then y, then z (R = Rz·Ry·Rx), as rows
@@ -74,17 +80,22 @@ function quaternion(m) {
 }
 
 // -> null when it does not move (none, or no solid yet), else {quaternion [x,y,z,w] to put before the solid's own turn, position, scale}.
-// sec: seconds since the change began; beatSec: one beat; weight: how far the solid has formed (0–1).
-export function solidMotionAt(value, sec, beatSec, weight) {
+// sec: seconds since the change began; beatSec: one beat; weight: how far the solid has formed (0–1); life: where the solid is in its whole span
+// (0 = just whole, 1 = about to fall apart; see solidLife), used by 振り向いて寄る.
+export function solidMotionAt(value, sec, beatSec, weight, life = 1) {
   const v = cleanSolidMotion(value), w = clampNum(weight, 0, 1, 0) * v.amount;
   if (v.kind === 'none' || w === 0) return null;
-  const s = Math.max(0, clampNum(sec, 0, 1e6, 0)), p = POSES[v.kind](s / clampNum(beatSec, 0.05, 10, SINGLE_BEAT_SEC), s);
+  const s = Math.max(0, clampNum(sec, 0, 1e6, 0)), p = POSES[v.kind](s / clampNum(beatSec, 0.05, 10, SINGLE_BEAT_SEC), s, clampNum(life, 0, 1, 1));
   const scale = [p.sx ?? 1, p.sy ?? 1, p.sz ?? 1].map(k => Math.max(0.3, 1 + (k - 1) * w));
   const r = rotation((p.rx ?? 0) * w, (p.ry ?? 0) * w, (p.rz ?? 0) * w), py = (p.pivot ?? 0) * scale[1];
   // turn and scale around the pivot (a point on the vertical axis) instead of the middle: shift by pivot − R·(S·pivot)
   const position = [(p.x ?? 0) * w - r[0][1] * py, (p.y ?? 0) * w + (p.pivot ?? 0) - r[1][1] * py, (p.z ?? 0) * w - r[2][1] * py];
   return {quaternion: quaternion(r), position, scale};
 }
+
+// where the solid is in its whole span, from the curves' own time (the whole-solid span of solid-length.js: [.45, .60] in the sequence,
+// [.53, .70] in the single clip) -> 0..1
+export const solidLife = (curveTime, [a, b]) => Math.min(1, Math.max(0, (curveTime - a) / (b - a)));
 
 // Image-code methods draw the solid in their own worker, which only takes the solid's turn (rootQuaternion) and the camera. The shift and the
 // size are handed over through the camera instead: viewing the solid moved by M is viewing it unmoved from M⁻¹·camera. The worker cannot squash

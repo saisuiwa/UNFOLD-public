@@ -4,13 +4,13 @@ import {encodeCanvasVideo} from './frame-video.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import {usesImageLabel} from './image-label.js?v=1';
-import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=27';
-import { solidMotionAt, motionCamera, SINGLE_BEAT_SEC } from './solid-motion.js?v=2';
-import { createShotControls } from './shot-motion-controls.js?v=5';
+import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=28';
+import { solidMotionAt, motionCamera, solidLife, SINGLE_BEAT_SEC } from './solid-motion.js?v=3';
+import { createShotControls } from './shot-motion-controls.js?v=6';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
 import * as THREE from './vendor/three.module.min.js';
-import {motionAt,exportRange,chaosTime,smooth,vertexShader,fragmentShader} from './motion.js?v=33';
+import {motionAt,exportRange,chaosTime,warpTime,smooth,vertexShader,fragmentShader} from './motion.js?v=33';
 import {presetNames,presetTargets} from './shape-presets.js?v=6';
 import {importModel} from './model-import.js?v=13';
 import {listModels,getModel,saveModel,deleteModel,updateModel} from './model-library.js?v=4';
@@ -100,7 +100,7 @@ function render(){
  const spin=rotationAt(state.shot.rotation,state.t,'single');
  if(spin){mesh.rotation.set(state.viewX*orientation,state.viewY*orientation,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
  // 立体の動き: the solid sways / hops… as one piece while it is formed (none = stays where it is)
- const sm=solidMotionAt(state.shot.motion,state.t*state.duration,SINGLE_BEAT_SEC,m.form);
+ const sm=solidMotionAt(state.shot.motion,state.t*state.duration,SINGLE_BEAT_SEC,m.form,solidLife(warpTime(state.t,state.chaosLength,state.solidLength),[.53,.70]));
  if(sm){mesh.quaternion.premultiply(shotQuat.fromArray(sm.quaternion));mesh.position.fromArray(sm.position);mesh.scale.fromArray(sm.scale)}else{mesh.position.set(0,0,0);mesh.scale.set(1,1,1)}
  const fx=effectsAt(state.t,state.duration,state);
  const imageSize=u.uSize.value,frameW=camera.right-camera.left,frameH=camera.top-camera.bottom;

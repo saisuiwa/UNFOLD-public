@@ -90,3 +90,13 @@ test('image-code methods get the shift and size through the camera: moving the c
   const M = [2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, .5, .25, 0, 1];
   assert.ok(close(mul(M, out), cam.world, 1e-12));
 });
+
+test('振り向いて寄る follows the solid\'s life: sideways first, then facing you, then closer', async () => {
+  const {solidLife} = await import('../../app/solid-motion.js');
+  const at = life => solidMotionAt({kind: 'turnaround'}, 1, .5, 1, life);
+  const yaw = q => 2 * Math.atan2(q[1], q[3]);   // the turn around the vertical axis (the other tilts are tiny)
+  assert.ok(yaw(at(0).quaternion) > 1, 'sideways at the start');
+  assert.ok(Math.abs(yaw(at(.5).quaternion)) < .02 && Math.abs(at(.5).scale[0] - 1) < 1e-9, 'facing you, normal size, in the middle');
+  assert.ok(at(1).scale[0] > 1.25 && at(1).position[2] > .6, 'closer at the end');
+  assert.equal(solidLife(.40, [.45, .60]), 0); assert.ok(Math.abs(solidLife(.525, [.45, .60]) - .5) < 1e-12); assert.equal(solidLife(.9, [.45, .60]), 1);
+});

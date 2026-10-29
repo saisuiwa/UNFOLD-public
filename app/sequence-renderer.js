@@ -5,8 +5,8 @@ import {applyTiles,tilesAcross} from './tile-size.js';
 import {particleParts} from './model-layout.js';
 import {SceneBlur} from './effects.js';
 import {cleanRenderLook,applyRenderLook,syncPerspective} from './render-look.js';
-import {cleanShot,rotationAt,blendCameraMove} from './shot-motion.js?v=27';
-import {solidMotionAt,motionCamera} from './solid-motion.js?v=2';
+import {cleanShot,rotationAt,blendCameraMove} from './shot-motion.js?v=28';
+import {solidMotionAt,motionCamera,solidLife} from './solid-motion.js?v=3';
 import {concealAmount,swapCurve,mixFx} from './fx-mix.js';
 import {camLife,camValues,lifeProgress,legacyKenBurns,mixCam} from './camera-work.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
@@ -119,7 +119,7 @@ export function drawSequenceVisual(ctx,sec) {
   const spin=tr&&(tr.shape!=='none'||imageCode)?rotationAt(shot.rotation,L.u,'sequence'):null;
   if(spin){mesh.rotation.set((tr.viewX||0)*orientation,(tr.viewY||0)*orientation,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
   // 立体の動き: the solid sways / hops… on the beat while it is formed, counted from the start of this ◆
-  const sm=tr&&tr.shape!=='none'?solidMotionAt(shot.motion,L.u*tr.beats*beatSec(),beatSec(),c.form):null;
+  const sm=tr&&tr.shape!=='none'?solidMotionAt(shot.motion,L.u*tr.beats*beatSec(),beatSec(),c.form,solidLife(uw,[.45,.60])):null;
   if(sm){mesh.quaternion.premultiply(shotQuat.fromArray(sm.quaternion));mesh.position.fromArray(sm.position);mesh.scale.fromArray(sm.scale)}else{mesh.position.set(0,0,0);mesh.scale.set(1,1,1)}
   // camera: push-in with the shape, a pulse on every beat while it is 3D
   const bp = (sec + seq.offset - seq.phase) / beatSec(), frac = bp - Math.floor(bp);
