@@ -12,8 +12,9 @@ export function warpTime(t,hold=0,solid=0){const d=solidShift(hold);let w=t;if(d
 export function chaosTime(w,hold=0,solid=0){w=unstretchSolid(w,solid,SOLID_PTS);const d=solidShift(hold);if(!d)return w;const s=.32+d;return w<.32?w*(s/.32):s+(w-.32)*((1-s)/.68);}
 export function motionAt(t,hold=0,solid=0){
   t=Math.max(0,Math.min(1,t));
-  const d=solidShift(hold),w=warpTime(t,hold,solid),restore=1-smooth(.70,.94,w);
-  return {distort:smooth(.08,.30+d*.6,t)*restore,form:smooth(.32,.53,w)*restore,turn:smooth(.48,.70,w)*Math.PI*1.7*restore,phase:t<.08?0:w<.32?1:w<.70?2:3};
+  // the turn keeps its own pace (the time before 立体の長さ), like the sequence's
+  const d=solidShift(hold),w=warpTime(t,hold,solid),w0=solid?warpTime(t,hold):w,restore=1-smooth(.70,.94,w);
+  return {distort:smooth(.08,.30+d*.6,t)*restore,form:smooth(.32,.53,w)*restore,turn:smooth(.48,.70,w0)*Math.PI*1.7*(1-smooth(.70,.94,w0)),phase:t<.08?0:w<.32?1:w<.70?2:3};
 }
 export function exportRange(mode,customStart,duration,hold=0,solid=0){
  const starts={all:0,chaos:chaosTime(.30,hold,solid),solid:chaosTime(.56,hold,solid)};

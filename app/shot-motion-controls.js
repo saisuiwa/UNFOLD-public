@@ -14,7 +14,9 @@ export function createShotControls({value,onChange,getDuration=()=>10,getImage=(
  const amountRow=document.createElement('label');amountRow.className='solid-motion-amount';const aCap=document.createElement('span');aCap.textContent='動きの大きさ';
  const amount=document.createElement('input');amount.type='range';amount.min=20;amount.max=200;amount.step=10;amount.dataset.shot='motion.amount';amount.setAttribute('aria-label','動きの大きさ');
  const aVal=document.createElement('output');amountRow.append(aCap,amount,aVal);
- motion.append(mTitle,kind,dice,amountRow);
+ // 回転させない: the solid faces one way for the whole change (the same as 回転方向を指定する + 回転なし + 0 turns in the folded settings)
+ const still=document.createElement('button');still.type='button';still.className='solid-motion-still';still.textContent='回転させない';still.title='立体を回さずに、向きを変えないまま見せます（もう一度押すと元の回転に戻ります）';
+ motion.append(mTitle,kind,dice,still,amountRow);
  const note=document.createElement('p');note.className='solid-motion-note';note.textContent='立体になっている間だけ、形ごと揺れたり跳ねたりします。シーケンスでは曲の拍に合わせて動きます。';motion.append(note);
  const root=document.createElement('details');root.className='shot-controls';wrap.append(motion,root);
  const summary=document.createElement('summary');summary.textContent='回転方向・カメラの移動';root.append(summary);
@@ -53,7 +55,9 @@ export function createShotControls({value,onChange,getDuration=()=>10,getImage=(
  kind.onchange=()=>set('motion.kind',kind.value);
  amount.oninput=()=>{aVal.textContent=amount.value+'%'};amount.onchange=()=>set('motion.amount',Number(amount.value)/100);
  dice.onclick=()=>set('motion.kind',pickSolidMotion(getShape(),state.motion.kind));
- function sync(){kind.value=state.motion.kind;amount.value=Math.round(state.motion.amount*100);aVal.textContent=amount.value+'%';amountRow.hidden=state.motion.kind==='none';for(const [path,e]of fields){if(e.type==='checkbox')e.checked=get(path);else e.value=get(path)}for(const [key,e]of times){e.max=getDuration();e.value=+(state.camera[key]/100*getDuration()).toFixed(2)}for(const e of row.children)e.setAttribute('aria-pressed',e.dataset.endpoint===endpoint?'true':'false');const xy=p=>[fit.x+(p.x+.5)*fit.width,fit.y+(.5-p.y)*fit.height];const [ax,ay]=xy(state.camera.from),[bx,by]=xy(state.camera.to);a.setAttribute('cx',ax);a.setAttribute('cy',ay);b.setAttribute('cx',bx);b.setAttribute('cy',by);at.setAttribute('x',Math.max(4,Math.min(286,ax+8)));at.setAttribute('y',Math.max(14,Math.min(174,ay-8)));bt.setAttribute('x',Math.max(4,Math.min(286,bx+8)));bt.setAttribute('y',Math.max(14,Math.min(174,by+18)));line.setAttribute('d',`M${ax} ${ay}L${bx} ${by}`);}
+ const isStill=()=>{const r=state.rotation;return r.enabled&&r.inDirection==='none'&&r.outDirection==='none'};
+ still.onclick=()=>set('rotation',isStill()?{...state.rotation,enabled:false}:{...state.rotation,enabled:true,inDirection:'none',outDirection:'none',inTurns:0,outTurns:0});
+ function sync(){kind.value=state.motion.kind;amount.value=Math.round(state.motion.amount*100);aVal.textContent=amount.value+'%';amountRow.hidden=state.motion.kind==='none';still.setAttribute('aria-pressed',isStill()?'true':'false');still.textContent=isStill()?'回転させない（ON）':'回転させない';for(const [path,e]of fields){if(e.type==='checkbox')e.checked=get(path);else e.value=get(path)}for(const [key,e]of times){e.max=getDuration();e.value=+(state.camera[key]/100*getDuration()).toFixed(2)}for(const e of row.children)e.setAttribute('aria-pressed',e.dataset.endpoint===endpoint?'true':'false');const xy=p=>[fit.x+(p.x+.5)*fit.width,fit.y+(.5-p.y)*fit.height];const [ax,ay]=xy(state.camera.from),[bx,by]=xy(state.camera.to);a.setAttribute('cx',ax);a.setAttribute('cy',ay);b.setAttribute('cx',bx);b.setAttribute('cy',by);at.setAttribute('x',Math.max(4,Math.min(286,ax+8)));at.setAttribute('y',Math.max(14,Math.min(174,ay-8)));bt.setAttribute('x',Math.max(4,Math.min(286,bx+8)));bt.setAttribute('y',Math.max(14,Math.min(174,by+18)));line.setAttribute('d',`M${ax} ${ay}L${bx} ${by}`);}
  root.addEventListener('toggle',()=>{if(root.open){const image=getImage();if(image?.toDataURL){fit=cameraPadRect(image.width,image.height);picture.setAttribute('href',image.toDataURL('image/jpeg',.7));}sync()}});
  sync();return {element:wrap,setValue(value){state=cleanShot(value);sync()},get value(){return structuredClone(state)}};
 }

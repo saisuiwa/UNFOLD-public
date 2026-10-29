@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {smooth,vertexShader,particleFragment} from './motion.js?v=32';
+import {smooth,vertexShader,particleFragment} from './motion.js?v=33';
 import {presetNames,presetTargets} from './shape-presets.js';
 import {applyTiles,tilesAcross} from './tile-size.js';
 import {particleParts} from './model-layout.js';
@@ -17,7 +17,7 @@ import {BUILTIN_IDS as METHOD_IDS} from './method-registry.js';
 import {assembleVertex} from './custom-method.js';
 import {importModel} from './model-import.js?v=13';
 import {isColourShape,fillsFrame,loadColourShape} from './colour-shapes.js?v=3';
-import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves as curves,warpTime} from './sequence-core.js?v=2';
+import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves as curves,warpTime} from './sequence-core.js?v=3';
 import {StudioError} from './studio/model.js';
 import {checkAbort} from './studio/file.js';
 import {layerFrame} from './studio/image-layer.js';

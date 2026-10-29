@@ -57,3 +57,10 @@ test('the single clip still finds the middle of the solid (preview jump / export
     assert.ok(motionAt(t, .5, len).form > .99, `form at the preview point (${len})`);
   }
 });
+
+test('the turn keeps its own pace with a long solid (it is not crowded into the solid\'s last moments)', () => {
+  for (const hold of [0, .5, 1]) for (const len of [.5, 1]) for (const u of steps(200)) {
+    assert.equal(sequenceCurves(u, hold, len).spin, sequenceCurves(u, hold, 0).spin, `sequence spin at ${u}`);
+    assert.equal(motionAt(u, hold, len).turn, motionAt(u, hold, 0).turn, `single turn at ${u}`);
+  }
+});

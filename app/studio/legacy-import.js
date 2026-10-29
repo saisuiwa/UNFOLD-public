@@ -1,4 +1,4 @@
-import {compileSequenceTiming} from '../sequence-core.js?v=2';
+import {compileSequenceTiming} from '../sequence-core.js?v=3';
 import {createProject,newLayout,assertProject,StudioError,clone} from './model.js';
 import {blobHash} from './assets.js';
 import {checkAbort} from './file.js';
