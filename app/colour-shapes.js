@@ -21,6 +21,17 @@ export const COLOUR_SHAPES = [
   {id: 'c-dominoes', name: 'ドミノ', icon: '▮', file: 'dominoes.glb', colors: ['#ff1744', '#76ff03', '#2979ff']},
   {id: 'c-confetti', name: '紙吹雪', icon: '✲', file: 'confetti.glb', fit: 'frame', colors: ['#ff1744', '#ffea00', '#00e5ff', '#d500f9']},
   {id: 'c-hearts', name: 'ハート吹雪', icon: '♥', file: 'hearts.glb', fit: 'frame', colors: ['#ff1744', '#ff80ab', '#e040fb']},
+  // Halloween: textured GLBs made with Tripo from reference images (models/tripo/ハロウィン, 参考画像/ハロウィン), drawn with their own textures
+  {id: 'c-pumpkin', name: 'かぼちゃ', icon: '◉', file: 'halloween/pumpkin.glb', colors: ['#ff8a1f', '#ffb347', '#5cb85c']},
+  {id: 'c-ghost', name: 'おばけ', icon: '☁', file: 'halloween/ghost.glb', colors: ['#fafafa', '#ff9eb5', '#c9c9d6']},
+  {id: 'c-witch-hat', name: '魔女の帽子', icon: '▲', file: 'halloween/witch_hat.glb', colors: ['#8e44ad', '#ff8a1f', '#ffd54f']},
+  {id: 'c-black-cat', name: '黒猫', icon: '◕', file: 'halloween/black_cat.glb', colors: ['#3a3a48', '#ffc107', '#ff8a1f']},
+  {id: 'c-bat', name: 'コウモリ', icon: '☾', file: 'halloween/bat.glb', colors: ['#9c6ade', '#c39bf0', '#ff9eb5']},
+  {id: 'c-skull', name: 'ドクロ', icon: '☠', file: 'halloween/skull.glb', colors: ['#f5ede0', '#ff8fb1', '#ffc107']},
+  {id: 'c-broom', name: 'ほうき', icon: '⟋', file: 'halloween/broom.glb', colors: ['#a0632d', '#ffd166', '#8e44ad']},
+  {id: 'c-cauldron', name: '魔女の大鍋', icon: '◡', file: 'halloween/cauldron.glb', colors: ['#3a3a48', '#7ddc1f', '#ff7b9c']},
+  {id: 'c-candy-bucket', name: 'お菓子バケツ', icon: '◎', file: 'halloween/candy_bucket.glb', colors: ['#ff8a1f', '#ff4f9a', '#4fc3f7']},
+  {id: 'c-tombstone', name: 'お墓', icon: '⌂', file: 'halloween/tombstone.glb', colors: ['#9e9e9e', '#66bb6a', '#ff8a1f']},
 ];
 const BY_ID = new Map(COLOUR_SHAPES.map(s => [s.id, s]));
 

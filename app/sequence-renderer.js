@@ -1,11 +1,12 @@
 import * as THREE from './vendor/three.module.min.js';
-import {smooth,vertexShader,particleFragment} from './motion.js?v=31';
+import {smooth,vertexShader,particleFragment} from './motion.js?v=32';
 import {presetNames,presetTargets} from './shape-presets.js';
 import {applyTiles,tilesAcross} from './tile-size.js';
 import {particleParts} from './model-layout.js';
 import {SceneBlur} from './effects.js';
 import {cleanRenderLook,applyRenderLook,syncPerspective} from './render-look.js';
-import {cleanShot,rotationAt,blendCameraMove} from './shot-motion.js';
+import {cleanShot,rotationAt,blendCameraMove} from './shot-motion.js?v=27';
+import {solidMotionAt,motionCamera} from './solid-motion.js?v=2';
 import {concealAmount,swapCurve,mixFx} from './fx-mix.js';
 import {camLife,camValues,lifeProgress,legacyKenBurns,mixCam} from './camera-work.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
@@ -15,8 +16,8 @@ import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js'
 import {BUILTIN_IDS as METHOD_IDS} from './method-registry.js';
 import {assembleVertex} from './custom-method.js';
 import {importModel} from './model-import.js?v=13';
-import {isColourShape,fillsFrame,loadColourShape} from './colour-shapes.js?v=2';
-import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves as curves,warpTime} from './sequence-core.js';
+import {isColourShape,fillsFrame,loadColourShape} from './colour-shapes.js?v=3';
+import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves as curves,warpTime} from './sequence-core.js?v=2';
 import {StudioError} from './studio/model.js';
 import {checkAbort} from './studio/file.js';
 import {layerFrame} from './studio/image-layer.js';
@@ -52,7 +53,7 @@ const defaults = {
   audioBuffer: null, audioOwner: null, audioName: '', withAudio: true, phase: 0, link: false, selection: null,
   fx: { blur: 0, bloom: 0, neon: 0, neonColor: '', glass: 0, chroma: 0, glitch: 0, scan: 0, grain: 0, vignette: 0, bokeh: 0 },
   cam: { persp: 0, kenburns: 0, handheld: 0, tilt: 0, orbit: 0 },
-  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0, detail: 1, modelColor: 0, tiles: .5, depth: 1, fill: true, silSens: 0.5,
+  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0, solidLength: 0, detail: 1, modelColor: 0, tiles: .5, depth: 1, fill: true, silSens: 0.5,
   playing: false, t: 0, audio: null, recording: false,
 };
 export function drawSequenceVisual(ctx,sec) {
@@ -64,8 +65,8 @@ export function drawSequenceVisual(ctx,sec) {
   const u = mesh.material.uniforms;
   let c = { distort: 0, form: 0, conceal: 0, swap: 0, spin: 0 };
   let tr = null;
-  if (L.tr >= 0) { tr = seq.transitions[L.tr]; c = curves(L.u, seq.chaosLength); }
-  const uw = warpTime(L.u, seq.chaosLength);   // the solid's part of the change (picture swap, look) runs on this later time
+  if (L.tr >= 0) { tr = seq.transitions[L.tr]; c = curves(L.u, seq.chaosLength, seq.solidLength); }
+  const uw = warpTime(L.u, seq.chaosLength, seq.solidLength);   // the solid's part of the change (picture swap, look) runs on this later time
   const imageCode=imageTransition(tr);if(tr?.shape === 'none')c.form=0;
   // no solid + "pass through": one gesture — A breaks away, B flies in from the other side (no pause in the middle)
   const flow = imageCode?'return':tr?.shape === 'none' ? (tr.flow ?? 'through') : '';
@@ -117,6 +118,9 @@ export function drawSequenceVisual(ctx,sec) {
     (isPreset && !isText ? .2 : .35) * c.form + turn + (tr?.viewY || 0) * c.form + (tr ? cm.orbit * 2.2 * (L.u - .5) * c.form : 0), 0);
   const spin=tr&&(tr.shape!=='none'||imageCode)?rotationAt(shot.rotation,L.u,'sequence'):null;
   if(spin){mesh.rotation.set((tr.viewX||0)*orientation,(tr.viewY||0)*orientation,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
+  // 立体の動き: the solid sways / hops… on the beat while it is formed, counted from the start of this ◆
+  const sm=tr&&tr.shape!=='none'?solidMotionAt(shot.motion,L.u*tr.beats*beatSec(),beatSec(),c.form):null;
+  if(sm){mesh.quaternion.premultiply(shotQuat.fromArray(sm.quaternion));mesh.position.fromArray(sm.position);mesh.scale.fromArray(sm.scale)}else{mesh.position.set(0,0,0);mesh.scale.set(1,1,1)}
   // camera: push-in with the shape, a pulse on every beat while it is 3D
   const bp = (sec + seq.offset - seq.phase) / beatSec(), frac = bp - Math.floor(bp);
   const beatKick = Math.exp(-frac * 7) * seq.pulse * (c.distort > 0.02 ? 1 : 0);
@@ -155,7 +159,7 @@ export function drawSequenceVisual(ctx,sec) {
   sceneBlur.render(scene, view, imageCode?0:fx.blur, imageCode?0:fx.glitch, imageCode?0:fx.chroma, sec, imageCode?{}:{ ...fx, neonColor: seq.fx.neonColor });
   if(imageCode){
    const duration=tr.beats*beatSec(),f=imageFrame(L.u*duration,duration,seq.strength,{form:c.form}),mix=tr.method2?smooth(.30,.62,L.u):0,fade=smoothImage(L.u/.025)*smoothImage((1-L.u)/.025),keys=[tr.method,tr.method2];
-   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={params:tr.label?{label:tr.label}:undefined,target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText,texture:geo.userData.layout?.texture}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,modelColor:seq.modelColor??0,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,camera:imageCamera(view),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
+   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={params:tr.label?{label:tr.label}:undefined,target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText,texture:geo.userData.layout?.texture}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,modelColor:seq.modelColor??0,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,camera:motionCamera(imageCamera(view),sm),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
   }else{
    // holding a picture: if the change after it is image code, its worker is started now (imageLayer.warm), so a quick change is not spent waiting for it
    const next=L.tr<0?seq.transitions[L.i]:null,nextKeys=next&&next.shape==='none'&&seq.slides[L.i+1]?[next.method,next.method2]:[];

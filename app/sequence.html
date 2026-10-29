@@ -225,7 +225,7 @@
   .insp-where .btn { margin-left:6px; }
 </style>
 <link rel="stylesheet" href="./method-editor.css?v=3">
-<link rel="stylesheet" href="./shot-motion.css?v=1">
+<link rel="stylesheet" href="./shot-motion.css?v=2">
 <link rel="stylesheet" href="./lyric-controls.css?v=4">
 <link rel="stylesheet" href="./panel-resize.css?v=2">
 </head>
@@ -284,6 +284,7 @@
     <h2>見た目</h2>
     <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>崩れの強さ</label><input id="seq-strength" type="range" min="0" max="100" value="80"></div>
     <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>ぐちゃぐちゃの長さ</label><input id="seq-chaos" type="range" min="0" max="100" value="50" title="立体化が始まるまでの、ぐちゃぐちゃの時間。0%で今までどおり（崩れの途中で立体化が始まる）。右に動かすほど、崩れきってから立体になります。50%を超えると、焦げ穴と炎のようにゆっくり進む崩れも、燃えきってから立体になります。変化全体の長さは変わりません"></div>
+    <div class="row" data-phase="form"><label><span class="phase-dot form"></span>立体の長さ</label><input id="seq-solid" type="range" min="0" max="100" value="0" title="立体のままでいる時間。0%で今までどおり。右に動かすほど、立体ができる・崩れるのが速くなって、そのぶん立体のまま長く見せます（立体の動き・回転がよく見えます）。変化全体の長さは変わりません"></div>
     <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>ぐちゃぐちゃ中の引き</label><input id="seq-pullback" type="range" min="0" max="100" value="100" title="0%で画面いっぱいのまま崩れる。100%で今までどおり小さく引く"></div>
     <div class="row" data-phase="form"><label><span class="phase-dot form"></span>立体化中の引き</label><input id="seq-form-pullback" type="range" min="0" max="100" value="100" title="0%で立体になっても画面いっぱいのまま。100%で今までどおり小さく引く"></div>
     <div class="row" data-phase="chaos"><label><span class="phase-dot chaos"></span>粒の細かさ（GLB・文字）</label><input id="seq-detail" type="range" min="0" max="100" value="100" title="銀河・塵・雪など粒で崩すときの粒の大きさ。0%でプリセットと同じ、100%でモデルの面そのまま"></div>
@@ -333,7 +334,7 @@
 <section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
 </main>
 <div id="seq-notice"></div>
-<script type="module" src="./sequence.js?v=122"></script>
+<script type="module" src="./sequence.js?v=127"></script>
 <script type="module" src="./panel-resize.js?v=1"></script>
 </body>
 </html>

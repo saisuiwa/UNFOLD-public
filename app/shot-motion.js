@@ -1,5 +1,6 @@
 // Shared motion settings for a single clip and one sequence transition.
 import { easeP } from './camera-work.js?v=1';
+import { cleanSolidMotion } from './solid-motion.js?v=2';
 export const DIRECTIONS = [['right','右'],['left','左'],['up','上'],['down','下'],['up-right','右上（斜め）'],['up-left','左上（斜め）'],['down-right','右下（斜め）'],['down-left','左下（斜め）'],['none','回転なし']];
 const finite=(x,lo,hi,d)=>typeof x==='number'&&Number.isFinite(x)?Math.max(lo,Math.min(hi,x)):d;
 const obj=x=>x&&typeof x==='object'&&!Array.isArray(x)?x:{};
@@ -7,7 +8,8 @@ const direction=(v,d)=>DIRECTIONS.some(([k])=>k===v)?v:d;
 export function cleanRotation(value){const x=obj(value);return {enabled:x.enabled===true,inDirection:direction(x.inDirection,'right'),outDirection:direction(x.outDirection,'left'),inTurns:Math.round(finite(x.inTurns,0,3,1)),outTurns:Math.round(finite(x.outTurns,0,3,1))};}
 const point=value=>{const x=obj(value);return {x:finite(x.x,-1,1,0),y:finite(x.y,-1,1,0),zoom:finite(x.zoom,.5,4,1)}};
 export function cleanCameraMove(value){const x=obj(value),start=finite(x.start,8,85,10);return {enabled:x.enabled===true,from:point(x.from),to:point(x.to),start,end:finite(x.end,start+1,92,80),ease:['smooth','out','in','linear'].includes(x.ease)?x.ease:'smooth'};}
-export function cleanShot(value){const x=obj(value);return {rotation:cleanRotation(x.rotation),camera:cleanCameraMove(x.camera)}};
+// motion: the solid's own movement while it is whole (solid-motion.js)
+export function cleanShot(value){const x=obj(value);return {rotation:cleanRotation(x.rotation),camera:cleanCameraMove(x.camera),motion:cleanSolidMotion(x.motion)}};
 const smooth=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
 function axisFor(direction){
  const y=direction.includes('right')?1:direction.includes('left')?-1:0;

@@ -1,5 +1,6 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=9';
-import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift} from './sequence-core.js';
+import {drawSequenceVisual} from './sequence-renderer.js?v=14';
+import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift,SOLID_PTS} from './sequence-core.js?v=2';
+import {unstretchSolid} from './solid-length.js?v=2';
 import {attachWorkshopLink} from './workshop-link.js';
 import {imageTarget} from './image-method-target.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
@@ -14,23 +15,23 @@ import {createLyricOverlay} from './lyric-overlay.js?v=18';
 import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=4';
 import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPreviewTime} from './lyric-timing.js?v=3';
 import {audioBlock} from './lyric-audio-range.js?v=2';
-import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=26';
-import { createShotControls } from './shot-motion-controls.js?v=3';
+import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=27';
+import { createShotControls } from './shot-motion-controls.js?v=4';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
 import * as THREE from './vendor/three.module.min.js';
-import { smooth, vertexShader, particleFragment } from './motion.js?v=31';
+import { smooth, vertexShader, particleFragment } from './motion.js?v=32';
 import { presetNames, presetTargets } from './shape-presets.js?v=6';
 import { createTextShape, validateText } from './text-shape.js?v=11';
-import { SceneBlur } from './effects.js?v=33';
+import { SceneBlur } from './effects.js?v=34';
 import { WebMWriter, opusHead } from './webm-writer.js?v=2';
 import { MP4Writer } from './mp4-writer.js?v=1';
 import { FONTS, createMaskTextShape, createSilhouetteShape } from './mask-shape.js?v=7';
 import { parseTimings, timingsToJSON, detectBeat, drawLyricCard, loadCardFonts, layoutLyricMV } from './lyric-mv.js?v=10';
 import { importModel } from './model-import.js?v=13';
 import { listModels, getModel, saveModel, deleteModel, updateModel } from './model-library.js?v=4';
-import { COLOUR_SHAPES, isColourShape, colourShape, loadColourShape, paintColourLabel } from './colour-shapes.js?v=2';
+import { COLOUR_SHAPES, isColourShape, colourShape, loadColourShape, paintColourLabel } from './colour-shapes.js?v=3';
 import { grainSequenceNote, tileSequenceNote } from './slider-notes.js?v=2';
 import { applyTiles, tilesAcross } from './tile-size.js?v=1';
 import { ALL, UNGROUPED, cleanGroupName, groupOf, groupSelect, inGroup, loadActive, renderTabs, saveActive, validActive, wantsTabs } from './model-groups.js?v=1';
@@ -105,7 +106,7 @@ export const seq = {
   audioBuffer: null, audioOwner: null, audioName: '', withAudio: true, phase: 0, link: false, selection: null,
   fx: { blur: 0, bloom: 0, neon: 0, neonColor: '', glass: 0, chroma: 0, glitch: 0, scan: 0, grain: 0, vignette: 0, bokeh: 0 },
   cam: { persp: 0, kenburns: 0, handheld: 0, tilt: 0, orbit: 0 },
-  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0.5, detail: 1, modelColor: 1, tiles: .5, depth: 1, fill: true, silSens: 0.5,
+  bpm: 98, holdBeats: 4, offset: 0, bg: '#111718', push: 0.25, pulse: 0.5, strength: 0.8, pullback: 1, formPullback: 1, chaosLength: 0.5, solidLength: 0, detail: 1, modelColor: 1, tiles: .5, depth: 1, fill: true, silSens: 0.5,
   playing: false, t: 0, audio: null, recording: false,
 };
 
@@ -381,7 +382,8 @@ function updateTransport(sec, L) {
 const PHASE_LABELS = { chaos: 'ぐちゃぐちゃ', form: '立体化' };
 // where curves() has form / distort above half (percent of the change); the solid's part moves later with 「ぐちゃぐちゃの長さ」
 function phaseBands() {
-  const d = chaosShift(seq.chaosLength), s = .2 + d, back = u => s + (u - .2) * (1 - s) / .8;   // u' -> real u
+  // u' -> real u: undo 「立体の長さ」 first, then 「ぐちゃぐちゃの長さ」
+  const d = chaosShift(seq.chaosLength), s = .2 + d, back = c => { const u = unstretchSolid(c, seq.solidLength, SOLID_PTS); return s + (u - .2) * (1 - s) / .8; };
   return [['chaos', 0, +(back(.325) * 100).toFixed(1)], ['form', +(back(.325) * 100).toFixed(1), +(back(.73) * 100).toFixed(1)], ['chaos', +(back(.73) * 100).toFixed(1), +(back(.83) * 100).toFixed(1)]];
 }
 function phaseOf(L) {
@@ -1124,7 +1126,7 @@ function inspectTransition(box, title, i, tr) {
   const bt = document.createElement('input');
   bt.type = 'number'; bt.min = 0.5; bt.max = 64; bt.step = 'any'; bt.value = +tr.beats.toFixed(2);
   field(box, '変形の長さ（拍）', bt).onchange = () => edit(() => { tr.beats = Math.max(0.5, Number(bt.value) || 8); });
-  const shotControls=createShotControls({value:tr.shot,getDuration:()=>tr.beats*beatSec(),getImage:()=>seq.slides[i]?slideCanvas(seq.slides[i]):null,onChange:value=>{if(seq.recording){shotControls.setValue(tr.shot);return;}beginEdit();tr.shot=cleanShot(value);timeline?.render();renderAt(seq.t);scheduleSave();}});
+  const shotControls=createShotControls({value:tr.shot,getDuration:()=>tr.beats*beatSec(),getImage:()=>seq.slides[i]?slideCanvas(seq.slides[i]):null,getShape:()=>tr.shape,onChange:value=>{if(seq.recording){shotControls.setValue(tr.shot);return;}beginEdit();tr.shot=cleanShot(value);timeline?.render();renderAt(seq.t);scheduleSave();}});
   box.append(shotControls.element);
   // this ◆'s own effects: they take over while the change is happening
   fxOverrideSection(box, tr, { heading: 'この◆だけの演出', note: 'この◆が崩れている間と立体の間だけ、画像ごとの設定（なければ全体の設定）をここの値に置きかえます。止まっている画像には効きません（それは「この画像だけの演出」）。' });
@@ -1356,7 +1358,7 @@ function stateForSave() {
   return {
     lyricDocument:seq.lyricDocument,
     settings: { lyricMotion:cleanLyricSettings(seq.lyricMotion), bpm: seq.bpm, phase: seq.phase, holdBeats: seq.holdBeats, offset: seq.offset, bg: seq.bg, push: seq.push, pulse: seq.pulse,
-      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, chaosLength: seq.chaosLength, detail: seq.detail, modelColor: seq.modelColor, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook) },
+      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, chaosLength: seq.chaosLength, solidLength: seq.solidLength, detail: seq.detail, modelColor: seq.modelColor, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook) },
     slides: seq.slides, transitions: seq.transitions, lyrics: seq.lyrics,
     audio: seq.audioOwner ? { owner: seq.audioOwner, name: seq.audioName } : null,
     methods: collectMethods(seq.transitions, getCustom),     // goes into .unfold files only (exportFile); the autosave ignores it
@@ -1411,6 +1413,7 @@ async function restoreProject(json, blobs) {
   seq.renderLook = cleanRenderLook(st.renderLook);
   for (const k of ['bpm', 'phase', 'holdBeats', 'offset', 'bg', 'push', 'pulse', 'strength', 'pullback', 'formPullback', 'detail', 'tiles', 'depth', 'fill', 'silSens', 'withAudio', 'link']) if (st[k] !== undefined) seq[k] = st[k];
   seq.chaosLength = Number.isFinite(st.chaosLength) ? Math.max(0, Math.min(1, st.chaosLength)) : 0;   // a project saved before this setting keeps its timing
+  seq.solidLength = Number.isFinite(st.solidLength) ? Math.max(0, Math.min(1, st.solidLength)) : 0;   // 立体の長さ: 0 = as before
   seq.modelColor = Number.isFinite(st.modelColor) ? Math.max(0, Math.min(1, st.modelColor)) : 0;   // a project saved before GLB colours keeps showing only the picture
   if (st.lyricOpts) seq.lyricOpts = { ...seq.lyricOpts, ...st.lyricOpts };
   if (st.fx) seq.fx = { ...seq.fx, ...st.fx };
@@ -1434,7 +1437,7 @@ async function restoreProject(json, blobs) {
   seq.lyrics = json.lyrics || [];
   if (json.audio?.asset && blobs.get(json.audio.asset)) await loadAudio(blobs.get(json.audio.asset), json.audio.name, json.audio.asset,{restoring:true});
   else {seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';seq.audioBlob=null;seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; ($('seq-audio-name')||{}).textContent = '';}
-  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-offset', 'offset', 1], ['seq-push', 'push', 100], ['seq-pulse', 'pulse', 100], ['seq-strength', 'strength', 100], ['seq-pullback', 'pullback', 100], ['seq-form-pullback', 'formPullback', 100], ['seq-chaos', 'chaosLength', 100], ['seq-detail', 'detail', 100], ['seq-model-color', 'modelColor', 100], ['seq-tiles', 'tiles', 100], ['seq-sil', 'silSens', 100]]) $(id).value = +(seq[key] * scale).toFixed(2);
+  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-offset', 'offset', 1], ['seq-push', 'push', 100], ['seq-pulse', 'pulse', 100], ['seq-strength', 'strength', 100], ['seq-pullback', 'pullback', 100], ['seq-form-pullback', 'formPullback', 100], ['seq-chaos', 'chaosLength', 100], ['seq-solid', 'solidLength', 100], ['seq-detail', 'detail', 100], ['seq-model-color', 'modelColor', 100], ['seq-tiles', 'tiles', 100], ['seq-sil', 'silSens', 100]]) $(id).value = +(seq[key] * scale).toFixed(2);
   $('seq-fill').checked = seq.fill; $('seq-bg').value = seq.bg; $('seq-with-audio').checked = seq.withAudio;
   $('lyr-style').value = seq.lyricOpts.style; $('lyr-trans').value = seq.lyricOpts.transBeats; $('lyr-snap').checked = seq.lyricOpts.snap;
   $('lyr-text').value = seq.lyrics.map(l => l.t).join('\n');
@@ -1556,7 +1559,7 @@ function wire() {
   for (const ev of ['dragenter', 'dragover']) dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); });
   dz.ondragleave = () => dz.classList.remove('over');
   dz.ondrop = e => { e.preventDefault(); dz.classList.remove('over'); addFiles([...e.dataTransfer.files]); };
-  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-push', 'push', .01], ['seq-pulse', 'pulse', .01], ['seq-strength', 'strength', .01], ['seq-pullback', 'pullback', .01], ['seq-form-pullback', 'formPullback', .01], ['seq-chaos', 'chaosLength', .01]]) {
+  for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-push', 'push', .01], ['seq-pulse', 'pulse', .01], ['seq-strength', 'strength', .01], ['seq-pullback', 'pullback', .01], ['seq-form-pullback', 'formPullback', .01], ['seq-chaos', 'chaosLength', .01], ['seq-solid', 'solidLength', .01]]) {
     $(id).oninput = e => { seq[key] = Number(e.target.value) * scale; refreshUI(); };
   }
   $('seq-detail').oninput = e => { seq.detail = Number(e.target.value) / 100; applyParticleDetail(); renderAt(seq.t); scheduleSave(); };
@@ -1579,7 +1582,7 @@ function wire() {
     if (seq.recording) return;
     stopPlay();
     const L = locate(seq.t);
-    if (L.tr < 0 || curves(L.u, seq.chaosLength).form < .05) { notice('立体化の位置に移動すると、ドラッグで向きを変えられるよ。'); return; }
+    if (L.tr < 0 || curves(L.u, seq.chaosLength, seq.solidLength).form < .05) { notice('立体化の位置に移動すると、ドラッグで向きを変えられるよ。'); return; }
     const tr = seq.transitions[L.tr];
     drag = { x: e.clientX, y: e.clientY, viewX: tr.viewX || 0, viewY: tr.viewY || 0, index: L.tr };
     canvas.setPointerCapture(e.pointerId);

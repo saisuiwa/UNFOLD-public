@@ -1,19 +1,22 @@
 import {shapeTargetGLSL} from './shape-target.js';
 import { renderLookFragment } from './render-look.js?v=2';
+import { stretchSolid, unstretchSolid } from './solid-length.js?v=2';
 export const smooth = (a,b,x) => {const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)};
 // ぐちゃぐちゃの長さ (hold 0..1, the same slider as the sequence's, sequence-core.js chaosShift): the solid starts later, so a slow effect such as
 // 電撃で消失 or 焦げ穴と炎 (they run until about 64 % of the change) can finish first. The solid's start moves from 32 % (hold 0, as before) to 66 % (hold 1);
 // the solid's part after it is squeezed into the rest. warpTime: real time -> the classic time of the solid's part; chaosTime is its inverse.
 export const solidShift=hold=>{const h=Math.max(0,Math.min(1,Number(hold)||0));return (h<=.5?h*.2:.1+(h-.5)*.7)*(.34/.45);};
-export function warpTime(t,hold=0){const d=solidShift(hold);if(!d)return t;const s=.32+d;return t<s?t*(.32/s):.32+(t-s)*(.68/(1-s));}
-export function chaosTime(w,hold=0){const d=solidShift(hold);if(!d)return w;const s=.32+d;return w<.32?w*(s/.32):s+(w-.32)*((1-s)/.68);}
-export function motionAt(t,hold=0){
+// 立体の長さ (solid 0..1, solid-length.js): inside the solid's part, the forming and the falling apart get quicker and the whole solid stays longer.
+const SOLID_PTS=[.32,.53,.70,.94];
+export function warpTime(t,hold=0,solid=0){const d=solidShift(hold);let w=t;if(d){const s=.32+d;w=t<s?t*(.32/s):.32+(t-s)*(.68/(1-s));}return stretchSolid(w,solid,SOLID_PTS);}
+export function chaosTime(w,hold=0,solid=0){w=unstretchSolid(w,solid,SOLID_PTS);const d=solidShift(hold);if(!d)return w;const s=.32+d;return w<.32?w*(s/.32):s+(w-.32)*((1-s)/.68);}
+export function motionAt(t,hold=0,solid=0){
   t=Math.max(0,Math.min(1,t));
-  const d=solidShift(hold),w=warpTime(t,hold),restore=1-smooth(.70,.94,w);
+  const d=solidShift(hold),w=warpTime(t,hold,solid),restore=1-smooth(.70,.94,w);
   return {distort:smooth(.08,.30+d*.6,t)*restore,form:smooth(.32,.53,w)*restore,turn:smooth(.48,.70,w)*Math.PI*1.7*restore,phase:t<.08?0:w<.32?1:w<.70?2:3};
 }
-export function exportRange(mode,customStart,duration,hold=0){
- const starts={all:0,chaos:chaosTime(.30,hold),solid:chaosTime(.56,hold)};
+export function exportRange(mode,customStart,duration,hold=0,solid=0){
+ const starts={all:0,chaos:chaosTime(.30,hold,solid),solid:chaosTime(.56,hold,solid)};
  const from=mode==='custom'?Math.min(.95,Math.max(0,Number(customStart)||0)):(starts[mode]??0);
  return {from,to:1,seconds:Math.max(0,Number(duration)||0)*(1-from)};
 }

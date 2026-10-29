@@ -1,8 +1,22 @@
-import { cleanShot, DIRECTIONS, cameraPadRect, cameraPadPoint } from './shot-motion.js?v=26';
+import { cleanShot, DIRECTIONS, cameraPadRect, cameraPadPoint } from './shot-motion.js?v=27';
+import { SOLID_MOTIONS, pickSolidMotion } from './solid-motion.js?v=2';
 const NS='http://www.w3.org/2000/svg';
-export function createShotControls({value,onChange,getDuration=()=>10,getImage=()=>null}={}){
+// getShape: the shape the solid takes now, so 🎲 can pick a motion that suits it
+export function createShotControls({value,onChange,getDuration=()=>10,getImage=()=>null,getShape=()=>''}={}){
  let state=cleanShot(value),endpoint='from',fit={x:0,y:0,width:320,height:180};
- const root=document.createElement('details');root.className='shot-controls';
+ // 「立体の動き」 sits above the folded rotation / camera settings, so the 🎲 is always in sight
+ const wrap=document.createElement('div');wrap.className='solid-motion-wrap';
+ const motion=document.createElement('div');motion.className='solid-motion';
+ const mTitle=document.createElement('span');mTitle.className='solid-motion-title';mTitle.textContent='立体の動き';
+ const kind=document.createElement('select');kind.dataset.shot='motion.kind';kind.setAttribute('aria-label','立体の動き');
+ for(const [v,label]of [['none','なし（いつもの回転だけ）'],...SOLID_MOTIONS]){const o=document.createElement('option');o.value=v;o.textContent=label;kind.append(o)}
+ const dice=document.createElement('button');dice.type='button';dice.className='solid-motion-dice';dice.textContent='🎲 おまかせ';dice.title='形に合う動きを選びます（押すたびに別の動き）';
+ const amountRow=document.createElement('label');amountRow.className='solid-motion-amount';const aCap=document.createElement('span');aCap.textContent='動きの大きさ';
+ const amount=document.createElement('input');amount.type='range';amount.min=20;amount.max=200;amount.step=10;amount.dataset.shot='motion.amount';amount.setAttribute('aria-label','動きの大きさ');
+ const aVal=document.createElement('output');amountRow.append(aCap,amount,aVal);
+ motion.append(mTitle,kind,dice,amountRow);
+ const note=document.createElement('p');note.className='solid-motion-note';note.textContent='立体になっている間だけ、形ごと揺れたり跳ねたりします。シーケンスでは曲の拍に合わせて動きます。';motion.append(note);
+ const root=document.createElement('details');root.className='shot-controls';wrap.append(motion,root);
  const summary=document.createElement('summary');summary.textContent='回転方向・カメラの移動';root.append(summary);
  const body=document.createElement('div');body.className='shot-body';root.append(body);
  const fields=new Map();
@@ -35,8 +49,11 @@ export function createShotControls({value,onChange,getDuration=()=>10,getImage=(
  text('p','この区間のカメラ位置・ズーム・傾きはここを優先します。冒頭と最後は元の構図へ戻ります。ズーム中も指定位置を中心に捉えます。');
  const presets=document.createElement('div');presets.className='shot-actions';body.append(presets);
  for(const [label,cam]of [['左端から右斜め上へ',{from:{x:-.4,y:0,zoom:1.5},to:{x:.25,y:.3,zoom:2}}],['狙った位置へ寄る',{from:{x:0,y:0,zoom:1},to:{x:.2,y:.15,zoom:2}}],['中央で寄って戻す',{from:{x:0,y:0,zoom:1},to:{x:0,y:0,zoom:2}}]]){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{state.camera={...state.camera,...cam,enabled:true};sync();onChange?.(structuredClone(state))};presets.append(b)}
- const reset=document.createElement('button');reset.type='button';reset.textContent='回転・カメラを元の動きに戻す';reset.onclick=()=>{state=cleanShot();sync();onChange?.(structuredClone(state))};body.append(reset);
- function sync(){for(const [path,e]of fields){if(e.type==='checkbox')e.checked=get(path);else e.value=get(path)}for(const [key,e]of times){e.max=getDuration();e.value=+(state.camera[key]/100*getDuration()).toFixed(2)}for(const e of row.children)e.setAttribute('aria-pressed',e.dataset.endpoint===endpoint?'true':'false');const xy=p=>[fit.x+(p.x+.5)*fit.width,fit.y+(.5-p.y)*fit.height];const [ax,ay]=xy(state.camera.from),[bx,by]=xy(state.camera.to);a.setAttribute('cx',ax);a.setAttribute('cy',ay);b.setAttribute('cx',bx);b.setAttribute('cy',by);at.setAttribute('x',Math.max(4,Math.min(286,ax+8)));at.setAttribute('y',Math.max(14,Math.min(174,ay-8)));bt.setAttribute('x',Math.max(4,Math.min(286,bx+8)));bt.setAttribute('y',Math.max(14,Math.min(174,by+18)));line.setAttribute('d',`M${ax} ${ay}L${bx} ${by}`);}
+ const reset=document.createElement('button');reset.type='button';reset.textContent='回転・カメラを元の動きに戻す';reset.onclick=()=>{state=cleanShot({motion:state.motion});sync();onChange?.(structuredClone(state))};body.append(reset);
+ kind.onchange=()=>set('motion.kind',kind.value);
+ amount.oninput=()=>{aVal.textContent=amount.value+'%'};amount.onchange=()=>set('motion.amount',Number(amount.value)/100);
+ dice.onclick=()=>set('motion.kind',pickSolidMotion(getShape(),state.motion.kind));
+ function sync(){kind.value=state.motion.kind;amount.value=Math.round(state.motion.amount*100);aVal.textContent=amount.value+'%';amountRow.hidden=state.motion.kind==='none';for(const [path,e]of fields){if(e.type==='checkbox')e.checked=get(path);else e.value=get(path)}for(const [key,e]of times){e.max=getDuration();e.value=+(state.camera[key]/100*getDuration()).toFixed(2)}for(const e of row.children)e.setAttribute('aria-pressed',e.dataset.endpoint===endpoint?'true':'false');const xy=p=>[fit.x+(p.x+.5)*fit.width,fit.y+(.5-p.y)*fit.height];const [ax,ay]=xy(state.camera.from),[bx,by]=xy(state.camera.to);a.setAttribute('cx',ax);a.setAttribute('cy',ay);b.setAttribute('cx',bx);b.setAttribute('cy',by);at.setAttribute('x',Math.max(4,Math.min(286,ax+8)));at.setAttribute('y',Math.max(14,Math.min(174,ay-8)));bt.setAttribute('x',Math.max(4,Math.min(286,bx+8)));bt.setAttribute('y',Math.max(14,Math.min(174,by+18)));line.setAttribute('d',`M${ax} ${ay}L${bx} ${by}`);}
  root.addEventListener('toggle',()=>{if(root.open){const image=getImage();if(image?.toDataURL){fit=cameraPadRect(image.width,image.height);picture.setAttribute('href',image.toDataURL('image/jpeg',.7));}sync()}});
- sync();return {element:root,setValue(value){state=cleanShot(value);sync()},get value(){return structuredClone(state)}};
+ sync();return {element:wrap,setValue(value){state=cleanShot(value);sync()},get value(){return structuredClone(state)}};
 }
