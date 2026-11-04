@@ -59,7 +59,8 @@
 - Worker `unfold-glb`（`unfold-glb.saisuiwa.workers.dev` と `glb.saisuiwa.com`）。94個の GLB が載っていて、全ファイルのバイト数が手元（`models/tripo-publish/`）と一致することを確認済み。
 - `models/tripo-publish/`：94個の GLB（`animal/whale.glb` のようにグループ別・英語名）、`manifest.json`、`_headers`（どのサイトからでも読める CORS・キャッシュ・`.glb` の種類）。
 - 説明ページ `https://unfold.saisuiwa.com/guide/glb.html` は、`https://glb.saisuiwa.com/manifest.json` が読めると「UNFOLDに追加」を使えるようにする（読めない間は「準備中」と出る）。
-- GLBを足す／直すとき：`models/tripo-publish/` に置いて `manifest.json` と `app/guide/glb-catalog.json`（サムネは `app/guide/thumbs/`）を更新 → `unfold-glb` の New deployment で、フォルダごとアップロード → `unfold` 側も更新。
+- **2026-11-05 からカラー版**：置いているのは `models/tripo-publish-color/`（94個とも Tripo で 2K のテクスチャつき、形は前と同じ）。灰色の前の版は `models/tripo-publish/` に残してある。記録は `docs/publication-glb-colour-shelf-2026-11-05.md`。
+- GLBを足す／直すとき：`models/tripo-publish-color/` に置いて `manifest.json` と `app/guide/glb-catalog.json`（サムネは `app/guide/thumbs/`。Git 管理外なので、配布物を組み立てる時に入れる）を更新 → `unfold-glb` を Wrangler で出す（`releases/unfold-glb-colour-shelf-2026-11-05/wrangler.json` をまねて、`assets.directory` を置き場のフォルダに向ける。約650MBでも1回で上がる）→ `unfold` 側も更新。ダッシュボードから置く方法（下）も使える。
 - 新しく置くとき：ダッシュボード → Workers & Pages → **作成** → 「静的ファイルをアップロード」→ 名前 `unfold-glb` → `models/tripo-publish` フォルダを選ぶ → 展開 → そのWorkerの「ドメイン」で `glb.saisuiwa.com` を追加。
 - **Tripo のプランは確認済み（2026-10-04）：有料プランで作ったもの。** 有料プランで作った3Dモデルは、配布も含めて自由に使える（https://www.tripo3d.ai/help/privacy-policy/how-to-use-tripo-models-commercially ）。ただし、今の94個のうち、無料のトライアルや無料プランの時期に作ったものがあれば、その分は Tripo に権利が残るので、心配なら該当のものを外す。
 - 置く作業の方法メモ（Claude がやった）：Claude の道具は1回約10MBまでしか渡せないので、GLB（約414MB）を2個ずつ47回に分けて、アップロード画面のページ内にためてから、最後に一度にまとめて渡した。作者が手で置くなら、フォルダを選ぶだけ。
