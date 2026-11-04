@@ -97,7 +97,8 @@ async function addMany(list) {
     const [lib, imp, thumbs] = await load();
     for (const [i, m] of list.entries()) {
       setStatus(`追加中… ${i + 1}/${list.length}　${m.name}`);
-      const res = await fetch(GLB_BASE + m.file, { mode: 'cors' });
+      // ?v= skips a grey copy a browser may still cache from before the shelf got its colours (the host ignores the query)
+      const res = await fetch(GLB_BASE + m.file + '?v=colour', { mode: 'cors' });
       if (!res.ok) throw new Error(`${m.name} をダウンロードできませんでした（${res.status}）`);
       const buffer = await res.arrayBuffer();
       const data = await imp.importModel(buffer);
