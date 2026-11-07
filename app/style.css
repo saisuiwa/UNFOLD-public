@@ -187,4 +187,4 @@
 .frame-row .hint{margin:0}
 .frame-row .text-button{padding:0}
 /* 「崩れ方と形をおまかせ」: right under 02, in the same lime as 立体の動き's 🎲 */
-.omakase-btn{display:block;width:100%;margin:2px 0 12px;padding:11px 12px;border:0;border-radius:8px;background:var(--lime,#d9f878);color:#101a16;font:inherit;font-size:15px;font-weight:700;letter-spacing:.02em;cursor:pointer;box-shadow:0 2px 0 #9fb84f}.omakase-btn:hover{filter:brightness(1.06)}.omakase-btn:active{transform:translateY(1px);box-shadow:0 1px 0 #9fb84f}.omakase-btn:disabled{opacity:.5;cursor:wait}
+.omakase-btn{display:block;width:100%;margin:2px 0 12px;padding:11px 12px;border:0;border-radius:8px;background:var(--lime,#d9f878);color:#101a16;font:inherit;font-size:15px;font-weight:700;letter-spacing:.02em;cursor:pointer;box-shadow:0 2px 0 #9fb84f}.omakase-btn:hover{background:#e4ffa0;border:0}.omakase-btn:active{transform:translateY(1px);box-shadow:0 1px 0 #9fb84f}.omakase-btn:disabled{opacity:.5;cursor:wait}

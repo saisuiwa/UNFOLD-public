@@ -21,6 +21,9 @@ try {
     return { afterTitle: title?.classList.contains('section-title') && /02/.test(title.textContent), beforeGrid: grid?.id === 'methods', bg: getComputedStyle(b).backgroundColor, text: b.textContent }; });
   need(place.afterTitle && place.beforeGrid, `1枚モード: the button is right under 02 (${JSON.stringify(place)})`);
   need(place.bg === 'rgb(217, 248, 120)', `1枚モード: the button is lime (${place.bg})`);
+  await page.hover('#omakase');
+  const hoverBg = await page.evaluate(() => getComputedStyle(document.getElementById('omakase')).backgroundColor);
+  need(hoverBg === 'rgb(228, 255, 160)', `1枚モード: still lime with the pointer on it (${hoverBg})`);
   const seen = new Set();
   let before = await page.evaluate(() => [unfold.state.method, unfold.state.shape]);
   for (let i = 0; i < 6; i++) {
@@ -64,6 +67,9 @@ try {
   const sp = await seq.evaluate(() => { const b = document.getElementById('seq-shuffle'); return { afterHint: b.previousElementSibling?.id === 'seq-methods-hint', beforeGrid: b.nextElementSibling?.id === 'seq-methods', bg: getComputedStyle(b).backgroundColor, text: b.textContent }; });
   need(sp.afterHint && sp.beforeGrid, `シーケンス: the button is right under 02's hint (${JSON.stringify(sp)})`);
   need(sp.bg === 'rgb(217, 248, 120)' && /🎲/.test(sp.text), `シーケンス: lime with 🎲 (${sp.bg} ${sp.text})`);
+  await seq.hover('#seq-shuffle');
+  const seqHover = await seq.evaluate(() => getComputedStyle(document.getElementById('seq-shuffle')).backgroundColor);
+  need(seqHover === 'rgb(217, 248, 120)', `シーケンス: still lime with the pointer on it (${seqHover})`);
   const plan = () => seq.evaluate(() => JSON.stringify(unfoldSeq.seq.transitions.map(t => [t.method, t.shape])));
   const p0 = await plan();
   await seq.click('#seq-shuffle'); await seq.waitForTimeout(1500);
