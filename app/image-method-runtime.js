@@ -1,7 +1,7 @@
 import {validateImageTarget} from './image-method-target.js';
 import {cleanImageCode} from './image-method-format.js';
 import {getCodeMotionFont} from './lyric-fonts.js';
-const bundleURL=new URL('./vendor/image-method-worker.js?v=3',import.meta.url);
+const bundleURL=new URL('./vendor/image-method-worker.js?v=4',import.meta.url);
 const bridge=`<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob:; worker-src blob:; connect-src blob: data:; img-src blob: data:"><script>
 let worker,port,url;addEventListener('message',e=>{if(e.source!==parent||port||!e.ports[0])return;port=e.ports[0];url=URL.createObjectURL(new Blob([e.data.bundle],{type:'text/javascript'}));worker=new Worker(url);worker.onmessage=e=>port.postMessage(e.data,e.data.bitmap?[e.data.bitmap]:[]);worker.onerror=e=>port.postMessage({fatal:e.message||'Worker error'});port.onmessage=e=>{const m=e.data;if(m.type==='terminate'){worker.terminate();URL.revokeObjectURL(url);port.close();return}const t=m.payload?.target;worker.postMessage(m,m.type==='prepare'?[m.payload.imageA,m.payload.imageB,m.payload.fontBytes,...(t?[t.positions.buffer,t.uv.buffer,t.color?.buffer,t.modelUv?.buffer,t.texture?.image].filter(Boolean):[])]:[])};port.start();port.postMessage({ready:true})});<\/script>`;
 let bundled;

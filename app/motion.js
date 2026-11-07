@@ -471,7 +471,8 @@ vec4 lineDrawing(vec4 c,float k){
   return vec4(col,c.a*a);
 }
 vec4 particleLook(vec4 c){
-  if(vModelColor.a>.001){vec3 own=vModelColor.rgb;if(vModelUv.z>.5)own*=texture2D(uModelTex,vModelUv.xy).rgb;c.rgb=mix(c.rgb,own,vModelColor.a);}
+  // the GLB's colour is opaque: it fills the picture's transparent parts too, or a cut-out picture leaves holes in the solid
+  if(vModelColor.a>.001){vec3 own=vModelColor.rgb;if(vModelUv.z>.5)own*=texture2D(uModelTex,vModelUv.xy).rgb;c.rgb=mix(c.rgb,own,vModelColor.a);c.a=mix(c.a,1.,vModelColor.a);}
   float k=smoothstep(.02,.55,vPMix);
   if(vPKind>.5&&k>0.){
     if(vPKind>8.5)c=lineDrawing(c,vPMix);

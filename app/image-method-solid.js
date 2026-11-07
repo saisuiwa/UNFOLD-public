@@ -51,7 +51,7 @@ export function createImageSolid(target,pieces,root,textures,size){
  gl_Position=projectionMatrix*mv;
  }`,fragmentShader:`uniform sampler2D a,b,modelTex;uniform float mixImage,form;varying vec2 vUv;varying vec3 vPosition;varying float vVisibility;varying vec4 vModelColor;varying vec3 vModelUv;
  void main(){gl_FragColor=mix(texture2D(a,vUv),texture2D(b,vUv),mixImage);
- if(vModelColor.a>.001){vec3 own=vModelColor.rgb;if(vModelUv.z>.5)own*=texture2D(modelTex,vModelUv.xy).rgb;gl_FragColor.rgb=mix(gl_FragColor.rgb,own,vModelColor.a);}
+ if(vModelColor.a>.001){vec3 own=vModelColor.rgb;if(vModelUv.z>.5)own*=texture2D(modelTex,vModelUv.xy).rgb;gl_FragColor.rgb=mix(gl_FragColor.rgb,own,vModelColor.a);gl_FragColor.a=mix(gl_FragColor.a,1.,vModelColor.a);}   // opaque, so a cut-out picture leaves no holes
  gl_FragColor.a*=vVisibility;
  vec3 normal=normalize(cross(dFdx(vPosition),dFdy(vPosition)));
  gl_FragColor.rgb*=mix(1.,.65+.35*abs(normal.z),form);
