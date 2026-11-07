@@ -1,16 +1,18 @@
-// Builds app/guide/samples.html (the samples page) from the samples in app/: the method / graphic samples of the editor and the text motions of the lyrics.
+// Builds app/guide/samples.html (the samples page) from the samples in app/: the method / graphic samples of the editor and the JavaScript image methods
+// (only PUBLIC_GROUPS; the text samples are not listed on the site since 2026-11-08).
 // The previews (app/guide/samples/<id>.jpg and .mp4) come from tools/make_sample_previews.mjs.
 //   node tools/build_guide_samples.mjs           write the page
 //   node tools/build_guide_samples.mjs --check   write nothing; exit 1 if the page on disk is not what the samples say (the daily check uses this)
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { AXIS_NAMES, AXIS_HINT_NAMES, GROUPS, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
+import { AXIS_NAMES, AXIS_HINT_NAMES, GROUPS as ALL_GROUPS, PUBLIC_GROUPS, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
+const GROUPS = ALL_GROUPS.filter(([key]) => PUBLIC_GROUPS.includes(key));
 
 const OUT = fileURLToPath(new URL('../app/guide/samples.html', import.meta.url));
 const esc = text => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const SYMBOLS = { text: '文', codetext: '文', effect: '✦', cutpart: '✂' };
 
-const items = catalog().map((item, order) => ({ ...item, order })).sort((a, b) => b.added.localeCompare(a.added) || a.order - b.order);   // newest day first; within a day the groups keep their order
+const items = catalog().filter(item => PUBLIC_GROUPS.includes(item.group)).map((item, order) => ({ ...item, order })).sort((a, b) => b.added.localeCompare(a.added) || a.order - b.order);   // newest day first; within a day the groups keep their order
 const latest = items.reduce((day, item) => (item.added > day ? item.added : day), '0000-00-00');
 const FIRST_BATCH = '2026-10-04';                      // what was there when this page was made is never "new"
 const isNew = item => item.added > FIRST_BATCH && (Date.parse(`${latest}T00:00:00Z`) - Date.parse(`${item.added}T00:00:00Z`)) / 864e5 < 3;   // within 3 days of the newest one
@@ -46,8 +48,8 @@ const page = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>UNFOLD サンプル集 — 自作メソッドと文字の動き</title>
-<meta name="description" content="UNFOLDの自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプル${total}個を、動く見本で紹介します。毎日増えます。">
+<title>UNFOLD サンプル集 — 自作メソッド</title>
+<meta name="description" content="UNFOLDの自作メソッド（GLSLの崩れ方・グラフィック、JavaScriptの画像メソッド）のサンプル${total}個を、動く見本で紹介します。">
 <link rel="stylesheet" href="./guide.css?v=3">
 </head>
 <body>
@@ -58,9 +60,7 @@ const page = `<!doctype html>
     <a href="./manual.html">使い方</a>
     <a href="./methods.html">メソッド集</a>
     <a href="./samples.html" aria-current="page">サンプル集</a>
-    <a href="./motions.html">モーション集</a>
     <a href="./glb.html">GLB置き場</a>
-  <a href="../lyric-sync/index.html">歌詞タイミング</a>
   <a href="../workshop.html">メソッド工房</a></nav>
   <span class="spacer"></span>
   <a class="btn small" href="../">1枚モード</a>
@@ -70,8 +70,8 @@ const page = `<!doctype html>
 <main>
   <div class="eyebrow">SAMPLES</div>
   <h1 style="font-size:clamp(28px,4.4vw,42px);margin:8px 0 14px">サンプル集</h1>
-  <p class="lede">自作メソッド（GLSL・JavaScriptの画像メソッド）と、歌詞の文字の動き（コードモーション・かんたん設定）のサンプルです。毎日少しずつ増えます（いまは <b>${total}個</b>、最後に増えたのは ${day(latest)}）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
-  <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>と<b>文字モーション（コード）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。<br><b>文字の動き（かんたん設定）</b>：シーケンスの「05 歌詞・曲」で歌詞の行を開き、「動き」から選びます。</p>
+  <p class="lede">自作メソッド（GLSLの崩れ方・グラフィック、JavaScriptの画像メソッド）のサンプルです（いまは <b>${total}個</b>、最後に増えたのは ${day(latest)}）。カードにマウスを載せる（スマホはタップ）と動きます。</p>
+  <p class="note"><b>崩れ方・グラフィック（GLSL）</b>：「1枚モード」の「ぐちゃぐちゃにする」か、シーケンスの崩れ方の最後にある「＋自作メソッド」を開き、「GLSLで作る」を選んで、「プリセット…」から選ぶとコードが入ります。<br><b>画像・立体・物理（JavaScript）</b>：<a href="../workshop.html">メソッド工房</a>のサンプルブロックから選びます。コードを書き換えて、自分のメソッドとして追加できます。</p>
 
   <section style="margin-top:34px">
     <ul class="chips" aria-label="分類で絞り込む">

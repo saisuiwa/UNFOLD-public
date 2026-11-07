@@ -8,7 +8,7 @@ import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js'
 import {usesImageLabel} from './image-label.js?v=1';
 import {applyLyricStyle,setWordColor} from './lyric-style.js';
 import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument,lyricSrtFile} from './lyric-project.js?v=13';
-import {createLyricControls} from './lyric-controls.js?v=29';
+import {createLyricControls} from './lyric-controls.js?v=30';
 import {assignLyricMotions,cleanMotion,plainLyricView} from './lyric-motion.js?v=28';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
 import {createLyricOverlay} from './lyric-overlay.js?v=18';

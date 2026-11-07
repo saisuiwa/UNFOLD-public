@@ -179,6 +179,8 @@ node tools/make_sample_previews.mjs          # 足りないプレビュー（JPG
 node tools/build_guide_samples.mjs           # app/guide/samples.html を作り直す
 ```
 
+2026-11-08 から、サイトのサンプル集とメソッド工房に載るのは「崩れ方」「グラフィックモーション」「画像・立体・物理」だけです（`tools/lib/samples-catalog.mjs` の `PUBLIC_GROUPS`）。カット割りの部品は、これまでどおり作ってプレビューも作りますが、サンプル集には出ません（STUDIO と毎日の確かめでは使います）。`build_guide_samples.mjs` は、部品だけ足した日はページが変わらなくて正常です。
+
 できた `app/guide/samples/*.jpg` を **Read で開いて見てください**（全部。部品は8枚前後あるので、`magick a.jpg b.jpg … +append` で横に並べて1枚にして見るとよい）。
 
 - 何かが映っていて、動きの特徴が分かる（真っ黒・真っ白・ほぼ元のまま・ほぼ空、は作り直し）。

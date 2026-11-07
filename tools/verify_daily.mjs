@@ -18,7 +18,7 @@ import { TEXT_MOTIONS } from '../app/lyric-motion.js';
 import { versionedImport, versionedImportGrep } from './lib/module-version.mjs';
 import { launchBrowser } from './lib/browser.mjs';
 import { startStaticServer } from './lib/static-server.mjs';
-import { CUT_PARTS_FROM, DAILY_GROUPS, DAILY_CUT_PARTS_MIN, MAX_BYTES, PREVIEW_DIR, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
+import { CUT_PARTS_FROM, DAILY_GROUPS, DAILY_CUT_PARTS_MIN, MAX_BYTES, PREVIEW_DIR, PUBLIC_GROUPS, catalog, previewFiles, sizeOf } from './lib/samples-catalog.mjs';
 
 const REPO = fileURLToPath(new URL('../', import.meta.url));
 const FIRST_BATCH = '2026-10-04';                                   // the samples that were there before the daily routine (same as in build_guide_samples.mjs)
@@ -156,7 +156,7 @@ try {
   // what is missing in a clean clone on purpose: the old method gallery's videos, the GLB thumbnails, the browser's own favicon request
   const expectedMissing = path => path === '/favicon.ico' || path.startsWith('/guide/methods/') || /^\/guide\/(glb|thumbs?)\//.test(path);
 
-  const PAGES = ['/index.html', '/sequence.html', '/workshop.html', '/guide/', '/guide/methods.html', '/guide/samples.html', '/guide/motions.html', '/guide/code-motions.html', '/guide/glb.html'];
+  const PAGES = ['/index.html', '/sequence.html', '/workshop.html', '/guide/', '/guide/manual.html', '/guide/methods.html', '/guide/samples.html', '/guide/glb.html'];   // モーション集・歌詞タイミング are off the site since 2026-11-08
   await step('every page opens without errors and without missing files', async () => {
     const problems = [];
     for (const path of PAGES) {
@@ -289,7 +289,7 @@ try {
     need(!found.length, found.slice(0, 8).join('\n'));
   });
 
-  const kindOf = { method: 'glsl', graphic: 'glsl', image: 'image', codetext: 'text', effect: 'effect' }, inWorkshop = recent.filter(i => kindOf[i.group]);   // the preset text motions are not in the workshop
+  const kindOf = { method: 'glsl', graphic: 'glsl', image: 'image' }, inWorkshop = recent.filter(i => kindOf[i.group]);   // the workshop shows the GLSL and image samples only (its text / effect tabs are off since 2026-11-08)
   await step(`the method workshop lists the new samples and runs each one itself (${inWorkshop.length})`, async () => {
     const page = await newPage({ width: 1440, height: 1000 });
     await page.goto(`${server.url}/workshop.html`, { waitUntil: 'load' });
@@ -322,7 +322,8 @@ try {
       withPreview: [...document.querySelectorAll('.method .shot[data-clip] img')].length,
       groups: Object.fromEntries([...document.querySelectorAll('.method')].reduce((m, c) => m.set(c.dataset.cat, (m.get(c.dataset.cat) || 0) + 1), new Map())),
     }));
-    need(info.cards === items.length && info.withPreview === items.length, `${info.cards} cards, ${info.withPreview} with a preview, ${items.length} samples`);
+    const listed = items.filter(i => PUBLIC_GROUPS.includes(i.group));   // the samples page lists the public groups only
+    need(info.cards === listed.length && info.withPreview === listed.length, `${info.cards} cards, ${info.withPreview} with a preview, ${listed.length} samples`);
     const shot = page.locator('.shot[data-clip]').first();
     const box = await shot.boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

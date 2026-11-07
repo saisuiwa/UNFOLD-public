@@ -11,6 +11,7 @@ const syncLabelField=()=>{document.getElementById('label-field').hidden=!(draft?
 import {createWorkshopPreview,testImage} from './workshop-preview.js';
 import {savedWorkshopItems,addWorkshopItem,announceWorkshopItem,workshopFile,importedDrafts,WORKSHOP_EXAMPLES} from './workshop-library.js';
 const $=id=>document.getElementById(id),node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});
+const HIDDEN_VIEWS=new Set(['text','effect']);
 const samples=[...SAMPLES.map(s=>({key:'sample:glsl:'+s.key,kind:'glsl',name:s.name,source:s.source})),...IMAGE_METHOD_PRESETS.map((s,i)=>({key:'sample:image:'+i,kind:'image',name:s.name,source:s.code.source,params:s.code.params,shape:s.previewShape||'sphere',thumb:s.thumbnail})),...CODE_MOTION_PRESETS.map((s,i)=>({key:'sample:text:'+i,kind:'text',name:s.name,source:s.source,...(s.shelf==='effect'?{shelf:'effect'}:{})})),...WORKSHOP_EXAMPLES];
 const contentKey=d=>JSON.stringify([d.kind,d.name,d.source,d.params,d.motion,d.shape,d.strength,d.words,d.font,d.color,d.accent]);
 let saving=false;
@@ -126,6 +127,7 @@ addEventListener('visibilitychange',()=>{if(document.hidden)stop('非表示に�
 function syncSampleShelves(){for(const x of Object.values(state.drafts)){const base=x&&original(x.key);if(!base)continue;if(base.shelf)x.shelf=base.shelf;else delete x.shelf}}
 async function boot(){try{state=readDrafts(localStorage);syncSampleShelves()}catch(e){storageOK=false;libraryError=e.message}try{saved=await savedWorkshopItems()}catch(e){libraryError+=' '+e.message}try{for(const m of await listModels())$('shape').append(new Option('GLB：'+m.name,m.id))}catch(e){libraryError+=' GLB一覧を読み込めません。'}
  for(const key of ['a','b','reference'])try{await showAsset(key,await assets.get(key),false)}catch(e){libraryError+=' 保存した画像を読み込めません。'}
- select(state.drafts[state.active]||samples[0]);document.querySelector('main').inert=false;if(libraryError)notice(libraryError,'error');requestAnimationFrame(tick);
+ // 文字モーション・エフェクト are off the workshop since 2026-11-08 (they moved on to MOTION LAB): a draft left open in one of them opens the first sample instead
+ const last=state.drafts[state.active];select(last&&!HIDDEN_VIEWS.has(viewOf(last))?last:samples[0]);document.querySelector('main').inert=false;if(libraryError)notice(libraryError,'error');requestAnimationFrame(tick);
 }
 boot().catch(e=>notice(e.message,'error'));

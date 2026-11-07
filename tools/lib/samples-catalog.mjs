@@ -17,6 +17,10 @@ import { AXES, AXIS_HINTS } from '../../app/studio/cuts/kit.js';
 
 export const PREVIEW_DIR = fileURLToPath(new URL('../../app/guide/samples/', import.meta.url));
 export const GROUPS = [...SAMPLE_GROUPS, ['image', '画像・立体・物理（JavaScript）'], ['codetext', '文字モーション（コード）'], ['effect', 'エフェクト（文字の後ろや周りの装飾）'], ['cutpart', 'カット割りの部品（STUDIO）'], ['text', '文字の動き（かんたん設定）']];
+// the groups shown on the site (samples page, method workshop). The text ones (文字モーション・エフェクト・カット割りの部品・文字の動き) moved on to
+// MOTION LAB and were taken off UNFOLD's site on 2026-11-08 at the author's request; they stay in the catalog (STUDIO still uses the cut parts, and
+// the daily routine still adds and checks them), they are just not listed.
+export const PUBLIC_GROUPS = ['method', 'graphic', 'image'];
 export const DAILY_GROUPS = ['method', 'image', 'cutpart'];                                   // what the routine adds every day: one method, one image method, many cut parts
 export const CUT_PARTS_FROM = '2026-10-18';                                                   // the first day of the cut part quota (before it: one codetext a day)
 export const DAILY_CUT_PARTS_MIN = 6;                                                          // the fewest cut parts a day (the routine aims at about 8)
