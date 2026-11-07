@@ -4,9 +4,9 @@ import {encodeCanvasVideo} from './frame-video.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import {usesImageLabel} from './image-label.js?v=1';
-import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=28';
-import { solidMotionAt, motionCamera, solidLife, SINGLE_BEAT_SEC } from './solid-motion.js?v=3';
-import { createShotControls } from './shot-motion-controls.js?v=6';
+import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
+import { solidMotionAt, motionCamera, solidLife, SINGLE_BEAT_SEC } from './solid-motion.js?v=4';
+import { createShotControls } from './shot-motion-controls.js?v=7';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
 import * as THREE from './vendor/three.module.min.js';
@@ -336,6 +336,10 @@ function wireControls(){
    state.viewX=state.viewY=0;state.t=chaosTime(.56,state.chaosLength,state.solidLength);state.previewRange=false;}
   setChoice('shapes','shape',id)});
  for(const [id,key] of [['intensity','strength'],['pullback','pullback'],['form-pullback','formPullback'],['depth','depth']])$(id).addEventListener('input',e=>{state[key]=Number(e.target.value)/100;$(id+'-value').textContent=e.target.value+'%';render()});
+ // 🎲 崩れ方と形をおまかせ: another built-in method and another shape (built-in, colour or one you added), through the same buttons as a click
+ $('omakase').onclick=()=>{if(state.recording||importing)return;const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const keys=methodButtons($('methods')).map(b=>b.dataset.method).filter(k=>BUILTIN_KEYS.includes(k)&&k!==state.method);if(keys.length)setChoice('methods','method',pick(keys));
+  const shapes=[...document.querySelectorAll('#shapes [data-shape],#imported-shapes [data-shape]')].filter(b=>b.dataset.shape!==state.shape&&!b.disabled&&!b.hidden);if(shapes.length)pick(shapes).click()};
  $('randomize').onclick=()=>{state.seed=Math.floor(Math.random()*999);$('seed-label').textContent='SEED '+String(state.seed).padStart(3,'0');render()};
  $('duration').onchange=e=>{state.duration=Number(e.target.value);shotControls.setValue(state.shot);updateRange();render()};
  $('start-mode').onchange=e=>{state.startMode=e.target.value;state.playing=false;state.previewRange=false;setTime(getRange().from);updateRange()};

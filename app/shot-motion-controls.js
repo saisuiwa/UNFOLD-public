@@ -1,5 +1,5 @@
-import { cleanShot, DIRECTIONS, cameraPadRect, cameraPadPoint } from './shot-motion.js?v=28';
-import { SOLID_MOTIONS, pickSolidMotion } from './solid-motion.js?v=3';
+import { cleanShot, DIRECTIONS, cameraPadRect, cameraPadPoint } from './shot-motion.js?v=29';
+import { SOLID_MOTIONS, pickSolidMotion } from './solid-motion.js?v=4';
 const NS='http://www.w3.org/2000/svg';
 // getShape: the shape the solid takes now, so 🎲 can pick a motion that suits it
 export function createShotControls({value,onChange,getDuration=()=>10,getImage=()=>null,getShape=()=>''}={}){

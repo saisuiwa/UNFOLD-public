@@ -223,6 +223,9 @@
   .insp-where { margin:6px 0 10px; padding:8px 10px; border:1px dashed var(--accent); border-radius:8px; font-size:12px; line-height:1.6; background:rgba(217,248,120,.06); }
   .insp-where[hidden] { display:none; }
   .insp-where .btn { margin-left:6px; }
+  /* 「崩れ方と形をおまかせ」: right under 02, in the same lime as 立体の動き's 🎲 */
+  .omakase-btn { display:block; width:100%; margin:2px 0 10px; padding:11px 12px; border:0; border-radius:8px; background:#d9f878; color:#101a16; font:inherit; font-size:15px; font-weight:700; letter-spacing:.02em; cursor:pointer; box-shadow:0 2px 0 #9fb84f; }
+  .omakase-btn:hover { filter:brightness(1.06); } .omakase-btn:active { transform:translateY(1px); box-shadow:0 1px 0 #9fb84f; }
 </style>
 <link rel="stylesheet" href="./method-editor.css?v=3">
 <link rel="stylesheet" href="./shot-motion.css?v=3">
@@ -246,9 +249,9 @@
   <section>
     <div class="sec-title"><h2><span>02</span> ぐちゃぐちゃにする</h2><span class="tag" id="seq-methods-tag">37 METHODS</span></div>
     <p class="hint" id="seq-methods-hint">タイムラインの◆を選んでからクリック。⇧＋クリックで「戻り方」に。</p>
+    <button type="button" class="omakase-btn" id="seq-shuffle" title="すべての◆の崩れ方と立体の形を、ばらばらに選び直します（押すたびに別の組み合わせ）">🎲 崩れ方と形をおまかせ</button>
     <div class="choice-grid" id="seq-methods" role="group" aria-label="崩れ方"></div>
     <div class="quarantine" id="seq-quarantine" hidden></div>
-    <div class="row"><button class="btn" id="seq-shuffle">⤨ 崩れ方と形をおまかせ</button></div>
   </section>
 </aside>
 <section class="stage-wrap">
@@ -334,7 +337,7 @@
 <section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
 </main>
 <div id="seq-notice"></div>
-<script type="module" src="./sequence.js?v=131"></script>
+<script type="module" src="./sequence.js?v=132"></script>
 <script type="module" src="./panel-resize.js?v=1"></script>
 </body>
 </html>

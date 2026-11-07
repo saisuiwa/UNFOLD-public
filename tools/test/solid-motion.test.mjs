@@ -51,6 +51,17 @@ test('a half-formed solid moves less, and the weight fades the motion out smooth
   }
 });
 
+// ぽよん・ぷるぷる etc. hit on the beat on purpose; the 12 added on 2026-11-08 are all meant to be seamless
+const ADDED = ['wobble', 'nod', 'bow', 'tilt', 'groove', 'stretch', 'stomp', 'peekaboo', 'swim', 'orbit', 'roll', 'glitch'];
+test('the added motions are smooth: no jump anywhere, also where a repeat ends and the next one starts', () => {
+  assert.equal(ids.length, 25);
+  assert.ok(ADDED.every(id => ids.includes(id)));
+  for (const id of ADDED) for (let beat = 0; beat <= 16; beat += .25) for (const w of [.5, 1]) {
+    const sec = beat * .5, a = solidMotionAt({kind: id}, Math.max(0, sec - 1e-5), .5, w), b = solidMotionAt({kind: id}, sec + 1e-5, .5, w);
+    assert.ok(close(a.position, b.position, 2e-3) && close(a.scale, b.scale, 2e-3) && close(a.quaternion, b.quaternion, 2e-3), `${id} jumps at beat ${beat}`);
+  }
+});
+
 test('the rhythm follows the beat: twice the tempo, the same pose at half the time', () => {
   const a = solidMotionAt({kind: 'sway'}, 1, .5, 1), b = solidMotionAt({kind: 'sway'}, .5, .25, 1);
   assert.ok(close(a.quaternion, b.quaternion) && close(a.position, b.position));
@@ -67,15 +78,17 @@ test('the swing turns around the bottom: the bottom point of the solid stays put
 });
 
 test('🎲 picks a motion that suits the shape, never the same one twice in a row', () => {
-  assert.deepEqual(suggestSolidMotions('c-ghost'), ['sway', 'float', 'flutter']);
+  assert.deepEqual(suggestSolidMotions('c-ghost'), ['sway', 'float', 'flutter', 'peekaboo']);
   for (let i = 0; i < 20; i++) {
     const r = () => i / 20;
     const g = pickSolidMotion('c-ghost', 'sway', r);
-    assert.ok(['float', 'flutter'].includes(g), g);
-    const any = pickSolidMotion('sphere', 'hop', r);
+    assert.ok(['float', 'flutter', 'peekaboo'].includes(g), g);
+    const any = pickSolidMotion('cube', 'hop', r);
     assert.ok(ids.includes(any) && any !== 'hop', any);
   }
   assert.ok(suggestSolidMotions('c-ghost').concat(suggestSolidMotions('c-bat'), suggestSolidMotions('heart')).every(id => ids.includes(id)));
+  for (const shape of ['c-ghost', 'c-black-cat', 'c-pumpkin', 'c-skull', 'c-tombstone', 'c-donut', 'pegasus', 'human', 'sphere', 'apple'])
+    assert.ok(suggestSolidMotions(shape).every(id => ids.includes(id)), shape);
 });
 
 test('image-code methods get the shift and size through the camera: moving the camera by M⁻¹ shows the same picture', async () => {
