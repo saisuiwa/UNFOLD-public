@@ -8,7 +8,7 @@ import {createImageMethodRuntime} from './image-method-runtime.js';
 import {createCodeMotionRuntime} from './code-motion-runtime.js';
 import {IMAGE_RUNTIME,imageFrame} from './image-method-format.js';
 import {previewTarget} from './image-method-target.js';
-import {getModel} from './model-library.js?v=4';
+import {getModel} from './model-library.js?v=5';
 import {importModel} from './model-import.js?v=13';
 import {getCodeMotionFont} from './lyric-fonts.js';
 import {codeFrameInput} from './code-motion-layer.js';

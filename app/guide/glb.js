@@ -1,6 +1,6 @@
 // GLB shelf: lists the catalogue (glb-catalog.json, thumbnails next to it), and adds a model to this browser's library
 // (the same IndexedDB the app pages read) by downloading it from the GLB host. Nothing is uploaded anywhere.
-import { listModels } from '../model-library.js?v=4';
+import { listModels } from '../model-library.js?v=5';
 import { ALL, UNGROUPED } from '../model-groups.js?v=1';
 
 const MAX_SAVED = 100;
@@ -14,13 +14,22 @@ const GLB_BASE = (() => {
 
 const $ = id => document.getElementById(id);
 const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch { /* not remembered */ } } };
-let catalog = null, host = 'checking', have = new Set(), tab = store.get('unfold-glb-shelf-tab') ?? ALL, query = '', busy = false;
+let catalog = null, host = 'checking', have = new Set(), grey = new Map(), tab = store.get('unfold-glb-shelf-tab') ?? ALL, query = '', busy = false;
 
 const fmtMB = b => (b / 1048576).toFixed(1) + 'MB';
 const setStatus = (text, cls = '') => { const s = $('status'); s.textContent = text; s.className = 'status ' + cls; };
 
+// have: names already in this browser. grey: shelf id → saved copies that are the old grey (untextured) file of
+// that shelf model — same name and exactly its old byte size, so a GLB of your own with the same name is never touched.
 async function refreshHave() {
-  try { have = new Set((await listModels()).map(m => m.name)); } catch { have = new Set(); }
+  let saved = [];
+  try { saved = await listModels(); } catch { /* no library */ }
+  have = new Set(saved.map(m => m.name));
+  grey = new Map();
+  for (const m of catalog?.models || []) {
+    const old = saved.filter(s => s.name === m.name && m.greyBytes && s.bytes === m.greyBytes);
+    if (old.length) grey.set(m.id, old);
+  }
 }
 
 async function checkHost() {
@@ -58,9 +67,17 @@ function card(m) {
   const meta = document.createElement('div'); meta.className = 'meta'; meta.textContent = `${fmtMB(m.bytes)} ・ ${Math.round(m.triangles / 10000)}万面`;
   const acts = document.createElement('div'); acts.className = 'acts';
   const add = document.createElement('button'); add.type = 'button'; add.className = 'btn lime small';
-  const done = have.has(m.name);
-  add.textContent = done ? '追加済み ✓' : 'UNFOLDに追加'; add.disabled = done || host !== 'ok' || busy;
-  add.onclick = () => addMany([m]);
+  const done = have.has(m.name), old = grey.has(m.id);
+  if (old) {
+    el.classList.add('grey');
+    const note = document.createElement('div'); note.className = 'meta oldnote'; note.textContent = '入っているのは色なしの古い版';
+    meta.after(note);
+    add.textContent = '色つきに入れ替え'; add.disabled = host !== 'ok' || busy;
+    add.onclick = () => replaceMany([m]);
+  } else {
+    add.textContent = done ? '追加済み ✓' : 'UNFOLDに追加'; add.disabled = done || host !== 'ok' || busy;
+    add.onclick = () => addMany([m]);
+  }
   acts.append(add); body.append(h, meta, acts); el.append(img, body);
   return el;
 }
@@ -76,11 +93,53 @@ function render() {
   all.disabled = busy;
   all.textContent = `${tab === ALL ? '表示中の' : 'このグループの'}${todo.length}個を全部追加`;
   all.onclick = () => addMany(todo);
+  const olds = list.filter(m => grey.has(m.id));
+  const swap = $('replaceAll');
+  swap.hidden = !(host === 'ok' && olds.length > 0);
+  swap.disabled = busy;
+  swap.textContent = `${tab === ALL ? '表示中の' : 'このグループの'}色なし${olds.length}個を色つきに入れ替え`;
+  swap.onclick = () => replaceMany(olds);
 }
 
 let modules = null;
+
+async function download(m, imp, thumbs) {
+  // ?v= skips a grey copy a browser may still cache from before the shelf got its colours (the host ignores the query)
+  const res = await fetch(GLB_BASE + m.file + '?v=colour', { mode: 'cors' });
+  if (!res.ok) throw new Error(`${m.name} をダウンロードできませんでした（${res.status}）`);
+  const buffer = await res.arrayBuffer();
+  const data = await imp.importModel(buffer);
+  let thumb = ''; try { thumb = thumbs.modelThumb(data.target); } catch (e) { console.warn('thumbnail:', e); }
+  return { buffer, data, thumb };
+}
+
+// Put the colour file into the saved grey copies in place: no delete + re-add, no 100-model limit, and the works that
+// use those models keep them (the saved id does not change).
+async function replaceMany(list) {
+  list = list.filter(m => grey.has(m.id));
+  if (busy || !list.length) return;
+  const total = list.reduce((s, m) => s + m.bytes, 0);
+  if (list.length > 3 && !confirm(`色なしの${list.length}個を、色つき（約${fmtMB(total)}）に入れ替えます。使っている作品はそのまま色つきになります。よろしいですか？`)) return;
+  busy = true; render();
+  let ok = 0;
+  try {
+    const [lib, imp, thumbs] = await load();
+    for (const [i, m] of list.entries()) {
+      setStatus(`入れ替え中… ${i + 1}/${list.length}　${m.name}`);
+      const { buffer, data, thumb } = await download(m, imp, thumbs);
+      for (const saved of grey.get(m.id)) await lib.replaceModelFile(saved.id, buffer, data.originalTriangles, thumb);
+      ok++;
+    }
+    setStatus(`${ok}個を色つきに入れ替えました。開いているUNFOLDのページは、開き直すと色つきになります。`, 'ok');
+  } catch (e) {
+    console.error(e);
+    setStatus(`入れ替えられませんでした：${e.message || e}（${ok}個は入れ替え済み）`, 'err');
+  } finally {
+    busy = false; await refreshHave(); render();
+  }
+}
 async function load() {
-  modules ??= await Promise.all([import('../model-library.js?v=4'), import('../model-import.js?v=13'), import('../model-thumb.js?v=1')]);
+  modules ??= await Promise.all([import('../model-library.js?v=5'), import('../model-import.js?v=13'), import('../model-thumb.js?v=1')]);
   return modules;
 }
 
@@ -97,12 +156,7 @@ async function addMany(list) {
     const [lib, imp, thumbs] = await load();
     for (const [i, m] of list.entries()) {
       setStatus(`追加中… ${i + 1}/${list.length}　${m.name}`);
-      // ?v= skips a grey copy a browser may still cache from before the shelf got its colours (the host ignores the query)
-      const res = await fetch(GLB_BASE + m.file + '?v=colour', { mode: 'cors' });
-      if (!res.ok) throw new Error(`${m.name} をダウンロードできませんでした（${res.status}）`);
-      const buffer = await res.arrayBuffer();
-      const data = await imp.importModel(buffer);
-      let thumb = ''; try { thumb = thumbs.modelThumb(data.target); } catch (e) { console.warn('thumbnail:', e); }
+      const { buffer, data, thumb } = await download(m, imp, thumbs);
       await lib.saveModel(m.name, buffer, data.originalTriangles, thumb, m.group);
       have.add(m.name); ok++;
     }
@@ -121,6 +175,8 @@ async function addMany(list) {
   } catch (e) { setStatus('一覧を読み込めませんでした。ページを開き直してね。', 'err'); return; }
   await Promise.all([refreshHave(), checkHost()]);
   $('q').addEventListener('input', e => { query = e.target.value; render(); });
-  setStatus(host === 'ok' ? `${catalog.models.length}個の形があります。` : `${catalog.models.length}個の形があります（ファイルは準備中）。`);
+  const olds = [...grey.keys()].length;
+  setStatus((host === 'ok' ? `${catalog.models.length}個の形があります。` : `${catalog.models.length}個の形があります（ファイルは準備中）。`)
+    + (olds ? `前に入れた色なしの版が${olds}個あります。「色つきに入れ替え」で、そのまま色つきにできます。` : ''));
   render();
 })();

@@ -114,6 +114,8 @@ pre { background:#101415; border:1px solid var(--line); border-radius:10px; padd
 .glb .acts { display:flex; gap:6px; margin-top:auto; flex-wrap:wrap; }
 .glb .acts .btn { flex:1; padding:5px 8px; font-size:12px; white-space:nowrap; }
 .glb.added { border-color:var(--lime); }
+.glb.grey { border-color:#c9a23a; }
+.glb .oldnote { color:#e0bd5c; }
 .status { font-size:13px; color:var(--muted); min-height:1.5em; }
 .status.ok { color:var(--lime); }
 .status.err { color:#ffb3a0; }

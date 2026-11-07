@@ -38,7 +38,8 @@
    "groupId": "animal",
    "file": "animal/whale.glb",
    "bytes": 6912196,
-   "triangles": 193732
+   "triangles": 193732,
+   "greyBytes": 4650832
   },
   {
    "id": "pegasus",
@@ -47,7 +48,8 @@
    "groupId": "animal",
    "file": "animal/pegasus.glb",
    "bytes": 6862496,
-   "triangles": 196748
+   "triangles": 196748,
+   "greyBytes": 4718612
   },
   {
    "id": "dragon",
@@ -56,7 +58,8 @@
    "groupId": "animal",
    "file": "animal/dragon.glb",
    "bytes": 7506044,
-   "triangles": 198363
+   "triangles": 198363,
+   "greyBytes": 4761536
   },
   {
    "id": "bird",
@@ -65,7 +68,8 @@
    "groupId": "animal",
    "file": "animal/bird.glb",
    "bytes": 6758224,
-   "triangles": 192956
+   "triangles": 192956,
+   "greyBytes": 4631912
   },
   {
    "id": "phoenix",
@@ -74,7 +78,8 @@
    "groupId": "animal",
    "file": "animal/phoenix.glb",
    "bytes": 7337316,
-   "triangles": 194287
+   "triangles": 194287,
+   "greyBytes": 4662752
   },
   {
    "id": "koi",
@@ -83,7 +88,8 @@
    "groupId": "animal",
    "file": "animal/koi.glb",
    "bytes": 6779616,
-   "triangles": 198688
+   "triangles": 198688,
+   "greyBytes": 4769776
   },
   {
    "id": "butterfly",
@@ -92,7 +98,8 @@
    "groupId": "animal",
    "file": "animal/butterfly.glb",
    "bytes": 7243128,
-   "triangles": 191048
+   "triangles": 191048,
+   "greyBytes": 4586416
   },
   {
    "id": "jellyfish",
@@ -101,7 +108,8 @@
    "groupId": "animal",
    "file": "animal/jellyfish.glb",
    "bytes": 6494708,
-   "triangles": 186536
+   "triangles": 186536,
+   "greyBytes": 4477584
   },
   {
    "id": "crane",
@@ -110,7 +118,8 @@
    "groupId": "animal",
    "file": "animal/crane.glb",
    "bytes": 6452780,
-   "triangles": 192778
+   "triangles": 192778,
+   "greyBytes": 4627412
   },
   {
    "id": "swan",
@@ -119,7 +128,8 @@
    "groupId": "animal",
    "file": "animal/swan.glb",
    "bytes": 6516196,
-   "triangles": 196898
+   "triangles": 196898,
+   "greyBytes": 4726092
   },
   {
    "id": "owl",
@@ -128,7 +138,8 @@
    "groupId": "animal",
    "file": "animal/owl.glb",
    "bytes": 7055060,
-   "triangles": 190662
+   "triangles": 190662,
+   "greyBytes": 4576784
   },
   {
    "id": "stag",
@@ -137,7 +148,8 @@
    "groupId": "animal",
    "file": "animal/stag.glb",
    "bytes": 7144068,
-   "triangles": 196848
+   "triangles": 196848,
+   "greyBytes": 4725072
   },
   {
    "id": "fox",
@@ -146,7 +158,8 @@
    "groupId": "animal",
    "file": "animal/fox.glb",
    "bytes": 7019036,
-   "triangles": 197924
+   "triangles": 197924,
+   "greyBytes": 4751112
   },
   {
    "id": "cat",
@@ -155,7 +168,8 @@
    "groupId": "animal",
    "file": "animal/cat.glb",
    "bytes": 7182468,
-   "triangles": 195726
+   "triangles": 195726,
+   "greyBytes": 4698560
   },
   {
    "id": "rabbit",
@@ -164,7 +178,8 @@
    "groupId": "animal",
    "file": "animal/rabbit.glb",
    "bytes": 6969288,
-   "triangles": 195572
+   "triangles": 195572,
+   "greyBytes": 4695328
   },
   {
    "id": "seahorse",
@@ -173,7 +188,8 @@
    "groupId": "animal",
    "file": "animal/seahorse.glb",
    "bytes": 6918444,
-   "triangles": 197504
+   "triangles": 197504,
+   "greyBytes": 4740928
   },
   {
    "id": "octopus",
@@ -182,7 +198,8 @@
    "groupId": "animal",
    "file": "animal/octopus.glb",
    "bytes": 6971516,
-   "triangles": 197944
+   "triangles": 197944,
+   "greyBytes": 4751868
   },
   {
    "id": "dolphin",
@@ -191,7 +208,8 @@
    "groupId": "animal",
    "file": "animal/dolphin.glb",
    "bytes": 6273476,
-   "triangles": 190702
+   "triangles": 190702,
+   "greyBytes": 4578096
   },
   {
    "id": "turtle",
@@ -200,7 +218,8 @@
    "groupId": "animal",
    "file": "animal/turtle.glb",
    "bytes": 6948484,
-   "triangles": 191528
+   "triangles": 191528,
+   "greyBytes": 4597968
   },
   {
    "id": "shark",
@@ -209,7 +228,8 @@
    "groupId": "animal",
    "file": "animal/shark.glb",
    "bytes": 6370840,
-   "triangles": 190532
+   "triangles": 190532,
+   "greyBytes": 4573348
   },
   {
    "id": "wolf",
@@ -218,7 +238,8 @@
    "groupId": "animal",
    "file": "animal/wolf.glb",
    "bytes": 6903524,
-   "triangles": 197689
+   "triangles": 197689,
+   "greyBytes": 4745620
   },
   {
    "id": "lion",
@@ -227,7 +248,8 @@
    "groupId": "animal",
    "file": "animal/lion.glb",
    "bytes": 7047612,
-   "triangles": 195922
+   "triangles": 195922,
+   "greyBytes": 4702692
   },
   {
    "id": "unicorn",
@@ -236,7 +258,8 @@
    "groupId": "animal",
    "file": "animal/unicorn.glb",
    "bytes": 6879876,
-   "triangles": 197131
+   "triangles": 197131,
+   "greyBytes": 4727524
   },
   {
    "id": "peacock",
@@ -245,7 +268,8 @@
    "groupId": "animal",
    "file": "animal/peacock.glb",
    "bytes": 8390316,
-   "triangles": 197364
+   "triangles": 197364,
+   "greyBytes": 4717208
   },
   {
    "id": "flamingo",
@@ -254,7 +278,8 @@
    "groupId": "animal",
    "file": "animal/flamingo.glb",
    "bytes": 6792944,
-   "triangles": 197258
+   "triangles": 197258,
+   "greyBytes": 4735248
   },
   {
    "id": "hummingbird",
@@ -263,7 +288,8 @@
    "groupId": "animal",
    "file": "animal/hummingbird.glb",
    "bytes": 6713456,
-   "triangles": 196330
+   "triangles": 196330,
+   "greyBytes": 4712704
   },
   {
    "id": "elephant",
@@ -272,7 +298,8 @@
    "groupId": "animal",
    "file": "animal/elephant.glb",
    "bytes": 6950792,
-   "triangles": 191498
+   "triangles": 191498,
+   "greyBytes": 4597192
   },
   {
    "id": "horse",
@@ -281,7 +308,8 @@
    "groupId": "animal",
    "file": "animal/horse.glb",
    "bytes": 6902084,
-   "triangles": 197242
+   "triangles": 197242,
+   "greyBytes": 4732828
   },
   {
    "id": "tiger",
@@ -290,7 +318,8 @@
    "groupId": "animal",
    "file": "animal/tiger.glb",
    "bytes": 6787720,
-   "triangles": 187454
+   "triangles": 187454,
+   "greyBytes": 4500016
   },
   {
    "id": "penguin",
@@ -299,7 +328,8 @@
    "groupId": "animal",
    "file": "animal/penguin.glb",
    "bytes": 6920688,
-   "triangles": 190874
+   "triangles": 190874,
+   "greyBytes": 4581220
   },
   {
    "id": "eagle",
@@ -308,7 +338,8 @@
    "groupId": "animal",
    "file": "animal/eagle.glb",
    "bytes": 6680900,
-   "triangles": 196706
+   "triangles": 196706,
+   "greyBytes": 4722004
   },
   {
    "id": "trex",
@@ -317,7 +348,8 @@
    "groupId": "animal",
    "file": "animal/trex.glb",
    "bytes": 7280992,
-   "triangles": 198307
+   "triangles": 198307,
+   "greyBytes": 4760580
   },
   {
    "id": "rose",
@@ -326,7 +358,8 @@
    "groupId": "plant",
    "file": "plant/rose.glb",
    "bytes": 6561664,
-   "triangles": 193455
+   "triangles": 193455,
+   "greyBytes": 4646476
   },
   {
    "id": "sakura",
@@ -335,7 +368,8 @@
    "groupId": "plant",
    "file": "plant/sakura.glb",
    "bytes": 7067176,
-   "triangles": 190060
+   "triangles": 190060,
+   "greyBytes": 4562672
   },
   {
    "id": "sunflower",
@@ -344,7 +378,8 @@
    "groupId": "plant",
    "file": "plant/sunflower.glb",
    "bytes": 6845044,
-   "triangles": 191243
+   "triangles": 191243,
+   "greyBytes": 4587324
   },
   {
    "id": "lotus",
@@ -353,7 +388,8 @@
    "groupId": "plant",
    "file": "plant/lotus.glb",
    "bytes": 6514600,
-   "triangles": 188702
+   "triangles": 188702,
+   "greyBytes": 4529708
   },
   {
    "id": "bigtree",
@@ -362,7 +398,8 @@
    "groupId": "plant",
    "file": "plant/bigtree.glb",
    "bytes": 7394764,
-   "triangles": 190428
+   "triangles": 190428,
+   "greyBytes": 4570852
   },
   {
    "id": "rocket",
@@ -371,7 +408,8 @@
    "groupId": "vehicle",
    "file": "vehicle/rocket.glb",
    "bytes": 6506212,
-   "triangles": 192979
+   "triangles": 192979,
+   "greyBytes": 4632456
   },
   {
    "id": "bicycle",
@@ -380,7 +418,8 @@
    "groupId": "vehicle",
    "file": "vehicle/bicycle.glb",
    "bytes": 7941028,
-   "triangles": 191876
+   "triangles": 191876,
+   "greyBytes": 4590472
   },
   {
    "id": "vintagecar",
@@ -389,7 +428,8 @@
    "groupId": "vehicle",
    "file": "vehicle/vintagecar.glb",
    "bytes": 6833360,
-   "triangles": 185043
+   "triangles": 185043,
+   "greyBytes": 4439188
   },
   {
    "id": "sailboat",
@@ -398,7 +438,8 @@
    "groupId": "vehicle",
    "file": "vehicle/sailboat.glb",
    "bytes": 8026532,
-   "triangles": 190628
+   "triangles": 190628,
+   "greyBytes": 4523564
   },
   {
    "id": "hotairballoon",
@@ -407,7 +448,8 @@
    "groupId": "vehicle",
    "file": "vehicle/hotairballoon.glb",
    "bytes": 6793872,
-   "triangles": 196234
+   "triangles": 196234,
+   "greyBytes": 4707692
   },
   {
    "id": "guitar",
@@ -416,7 +458,8 @@
    "groupId": "music",
    "file": "music/guitar.glb",
    "bytes": 6785452,
-   "triangles": 190516
+   "triangles": 190516,
+   "greyBytes": 4571224
   },
   {
    "id": "violin",
@@ -425,7 +468,8 @@
    "groupId": "music",
    "file": "music/violin.glb",
    "bytes": 7101168,
-   "triangles": 192375
+   "triangles": 192375,
+   "greyBytes": 4614756
   },
   {
    "id": "piano",
@@ -434,7 +478,8 @@
    "groupId": "music",
    "file": "music/piano.glb",
    "bytes": 6542192,
-   "triangles": 184882
+   "triangles": 184882,
+   "greyBytes": 4435580
   },
   {
    "id": "saxophone",
@@ -443,7 +488,8 @@
    "groupId": "music",
    "file": "music/saxophone.glb",
    "bytes": 7407144,
-   "triangles": 194371
+   "triangles": 194371,
+   "greyBytes": 4659752
   },
   {
    "id": "microphone",
@@ -452,7 +498,8 @@
    "groupId": "music",
    "file": "music/microphone.glb",
    "bytes": 6823496,
-   "triangles": 190778
+   "triangles": 190778,
+   "greyBytes": 4578840
   },
   {
    "id": "headphones",
@@ -461,7 +508,8 @@
    "groupId": "music",
    "file": "music/headphones.glb",
    "bytes": 6658404,
-   "triangles": 194604
+   "triangles": 194604,
+   "greyBytes": 4671312
   },
   {
    "id": "turntable",
@@ -470,7 +518,8 @@
    "groupId": "music",
    "file": "music/turntable.glb",
    "bytes": 6228880,
-   "triangles": 184935
+   "triangles": 184935,
+   "greyBytes": 4438712
   },
   {
    "id": "cassette",
@@ -479,7 +528,8 @@
    "groupId": "music",
    "file": "music/cassette.glb",
    "bytes": 7113580,
-   "triangles": 168485
+   "triangles": 168485,
+   "greyBytes": 4043624
   },
   {
    "id": "boombox",
@@ -488,7 +538,8 @@
    "groupId": "music",
    "file": "music/boombox.glb",
    "bytes": 6777908,
-   "triangles": 173715
+   "triangles": 173715,
+   "greyBytes": 4170296
   },
   {
    "id": "drumkit",
@@ -497,7 +548,8 @@
    "groupId": "music",
    "file": "music/drumkit.glb",
    "bytes": 7346784,
-   "triangles": 194514
+   "triangles": 194514,
+   "greyBytes": 4663596
   },
   {
    "id": "archer",
@@ -506,7 +558,8 @@
    "groupId": "person",
    "file": "person/archer.glb",
    "bytes": 6904376,
-   "triangles": 196458
+   "triangles": 196458,
+   "greyBytes": 4714420
   },
   {
    "id": "dancer",
@@ -515,7 +568,8 @@
    "groupId": "person",
    "file": "person/dancer.glb",
    "bytes": 6662860,
-   "triangles": 196296
+   "triangles": 196296,
+   "greyBytes": 4711192
   },
   {
    "id": "singer",
@@ -524,7 +578,8 @@
    "groupId": "person",
    "file": "person/singer.glb",
    "bytes": 6960268,
-   "triangles": 190252
+   "triangles": 190252,
+   "greyBytes": 4565580
   },
   {
    "id": "sprint",
@@ -533,7 +588,8 @@
    "groupId": "person",
    "file": "person/sprint.glb",
    "bytes": 6837872,
-   "triangles": 199122
+   "triangles": 199122,
+   "greyBytes": 4778668
   },
   {
    "id": "reach",
@@ -542,7 +598,8 @@
    "groupId": "person",
    "file": "person/reach.glb",
    "bytes": 6828116,
-   "triangles": 198140
+   "triangles": 198140,
+   "greyBytes": 4755264
   },
   {
    "id": "gunwoman",
@@ -551,7 +608,8 @@
    "groupId": "person",
    "file": "person/gunwoman.glb",
    "bytes": 7172144,
-   "triangles": 190906
+   "triangles": 190906,
+   "greyBytes": 4579900
   },
   {
    "id": "kneel",
@@ -560,7 +618,8 @@
    "groupId": "person",
    "file": "person/kneel.glb",
    "bytes": 6761444,
-   "triangles": 192764
+   "triangles": 192764,
+   "greyBytes": 4625140
   },
   {
    "id": "jump",
@@ -569,7 +628,8 @@
    "groupId": "person",
    "file": "person/jump.glb",
    "bytes": 6737348,
-   "triangles": 192246
+   "triangles": 192246,
+   "greyBytes": 4613840
   },
   {
    "id": "guitarist",
@@ -578,7 +638,8 @@
    "groupId": "person",
    "file": "person/guitarist.glb",
    "bytes": 7048276,
-   "triangles": 198666
+   "triangles": 198666,
+   "greyBytes": 4766960
   },
   {
    "id": "skater",
@@ -587,7 +648,8 @@
    "groupId": "person",
    "file": "person/skater.glb",
    "bytes": 6771472,
-   "triangles": 195334
+   "triangles": 195334,
+   "greyBytes": 4688360
   },
   {
    "id": "swordswoman",
@@ -596,7 +658,8 @@
    "groupId": "person",
    "file": "person/swordswoman.glb",
    "bytes": 6692848,
-   "triangles": 194106
+   "triangles": 194106,
+   "greyBytes": 4658336
   },
   {
    "id": "couple",
@@ -605,7 +668,8 @@
    "groupId": "person",
    "file": "person/couple.glb",
    "bytes": 6831360,
-   "triangles": 192993
+   "triangles": 192993,
+   "greyBytes": 4632288
   },
   {
    "id": "sitting",
@@ -614,7 +678,8 @@
    "groupId": "person",
    "file": "person/sitting.glb",
    "bytes": 7008512,
-   "triangles": 196279
+   "triangles": 196279,
+   "greyBytes": 4706332
   },
   {
    "id": "dj",
@@ -623,7 +688,8 @@
    "groupId": "person",
    "file": "person/dj.glb",
    "bytes": 6751052,
-   "triangles": 193762
+   "triangles": 193762,
+   "greyBytes": 4649488
   },
   {
    "id": "astronaut",
@@ -632,7 +698,8 @@
    "groupId": "person",
    "file": "person/astronaut.glb",
    "bytes": 6660960,
-   "triangles": 191563
+   "triangles": 191563,
+   "greyBytes": 4597720
   },
   {
    "id": "robot",
@@ -641,7 +708,8 @@
    "groupId": "person",
    "file": "person/robot.glb",
    "bytes": 6719480,
-   "triangles": 193540
+   "triangles": 193540,
+   "greyBytes": 4644668
   },
   {
    "id": "castle",
@@ -650,7 +718,8 @@
    "groupId": "object",
    "file": "object/castle.glb",
    "bytes": 7705108,
-   "triangles": 198159
+   "triangles": 198159,
+   "greyBytes": 4751884
   },
   {
    "id": "lantern",
@@ -659,7 +728,8 @@
    "groupId": "object",
    "file": "object/lantern.glb",
    "bytes": 6479448,
-   "triangles": 187336
+   "triangles": 187336,
+   "greyBytes": 4497272
   },
   {
    "id": "crown",
@@ -668,7 +738,8 @@
    "groupId": "object",
    "file": "object/crown.glb",
    "bytes": 7536136,
-   "triangles": 192080
+   "triangles": 192080,
+   "greyBytes": 4608640
   },
   {
    "id": "lighthouse",
@@ -677,7 +748,8 @@
    "groupId": "object",
    "file": "object/lighthouse.glb",
    "bytes": 7213692,
-   "triangles": 190930
+   "triangles": 190930,
+   "greyBytes": 4579100
   },
   {
    "id": "hourglass",
@@ -686,7 +758,8 @@
    "groupId": "object",
    "file": "object/hourglass.glb",
    "bytes": 6697500,
-   "triangles": 189782
+   "triangles": 189782,
+   "greyBytes": 4555764
   },
   {
    "id": "treasurechest",
@@ -695,7 +768,8 @@
    "groupId": "object",
    "file": "object/treasurechest.glb",
    "bytes": 7485868,
-   "triangles": 188103
+   "triangles": 188103,
+   "greyBytes": 4513616
   },
   {
    "id": "umbrella",
@@ -704,7 +778,8 @@
    "groupId": "object",
    "file": "object/umbrella.glb",
    "bytes": 6107420,
-   "triangles": 190640
+   "triangles": 190640,
+   "greyBytes": 4576112
   },
   {
    "id": "balloons",
@@ -713,7 +788,8 @@
    "groupId": "object",
    "file": "object/balloons.glb",
    "bytes": 6177952,
-   "triangles": 194618
+   "triangles": 194618,
+   "greyBytes": 4671712
   },
   {
    "id": "paperplane",
@@ -722,7 +798,8 @@
    "groupId": "object",
    "file": "object/paperplane.glb",
    "bytes": 5971008,
-   "triangles": 190474
+   "triangles": 190474,
+   "greyBytes": 4572592
   },
   {
    "id": "origamicrane",
@@ -731,7 +808,8 @@
    "groupId": "object",
    "file": "object/origamicrane.glb",
    "bytes": 6227716,
-   "triangles": 190876
+   "triangles": 190876,
+   "greyBytes": 4582332
   },
   {
    "id": "camera",
@@ -740,7 +818,8 @@
    "groupId": "object",
    "file": "object/camera.glb",
    "bytes": 7001356,
-   "triangles": 181579
+   "triangles": 181579,
+   "greyBytes": 4357292
   },
   {
    "id": "moon",
@@ -749,7 +828,8 @@
    "groupId": "object",
    "file": "object/moon.glb",
    "bytes": 6071556,
-   "triangles": 191856
+   "triangles": 191856,
+   "greyBytes": 4605808
   },
   {
    "id": "wings",
@@ -758,7 +838,8 @@
    "groupId": "object",
    "file": "object/wings.glb",
    "bytes": 6685452,
-   "triangles": 189870
+   "triangles": 189870,
+   "greyBytes": 4557584
   },
   {
    "id": "bigwave",
@@ -767,7 +848,8 @@
    "groupId": "object",
    "file": "object/bigwave.glb",
    "bytes": 7252368,
-   "triangles": 190906
+   "triangles": 190906,
+   "greyBytes": 4582908
   },
   {
    "id": "key",
@@ -776,7 +858,8 @@
    "groupId": "object",
    "file": "object/key.glb",
    "bytes": 7201244,
-   "triangles": 198678
+   "triangles": 198678,
+   "greyBytes": 4769160
   },
   {
    "id": "pocketwatch",
@@ -785,7 +868,8 @@
    "groupId": "object",
    "file": "object/pocketwatch.glb",
    "bytes": 6773084,
-   "triangles": 188912
+   "triangles": 188912,
+   "greyBytes": 4532696
   },
   {
    "id": "crystal",
@@ -794,7 +878,8 @@
    "groupId": "object",
    "file": "object/crystal.glb",
    "bytes": 7034780,
-   "triangles": 197924
+   "triangles": 197924,
+   "greyBytes": 4751404
   },
   {
    "id": "feather",
@@ -803,7 +888,8 @@
    "groupId": "object",
    "file": "object/feather.glb",
    "bytes": 6695856,
-   "triangles": 188040
+   "triangles": 188040,
+   "greyBytes": 4512036
   },
   {
    "id": "heart",
@@ -812,7 +898,8 @@
    "groupId": "object",
    "file": "object/heart.glb",
    "bytes": 6161360,
-   "triangles": 198276
+   "triangles": 198276,
+   "greyBytes": 4759856
   },
   {
    "id": "pattern",
@@ -821,7 +908,8 @@
    "groupId": "object",
    "file": "object/pattern.glb",
    "bytes": 6605296,
-   "triangles": 191594
+   "triangles": 191594,
+   "greyBytes": 4597476
   },
   {
    "id": "eye",
@@ -830,7 +918,8 @@
    "groupId": "character",
    "file": "character/eye.glb",
    "bytes": 7144852,
-   "triangles": 191040
+   "triangles": 191040,
+   "greyBytes": 4584412
   },
   {
    "id": "lounge",
@@ -839,7 +928,8 @@
    "groupId": "character",
    "file": "character/lounge.glb",
    "bytes": 7297752,
-   "triangles": 186697
+   "triangles": 186697,
+   "greyBytes": 4475080
   },
   {
    "id": "guitargirl",
@@ -848,7 +938,8 @@
    "groupId": "character",
    "file": "character/guitargirl.glb",
    "bytes": 7065776,
-   "triangles": 191655
+   "triangles": 191655,
+   "greyBytes": 4595580
   },
   {
    "id": "swords",
@@ -857,7 +948,8 @@
    "groupId": "character",
    "file": "character/swords.glb",
    "bytes": 6912604,
-   "triangles": 188026
+   "triangles": 188026,
+   "greyBytes": 4511024
   },
   {
    "id": "bikegirl",
@@ -866,7 +958,8 @@
    "groupId": "character",
    "file": "character/bikegirl.glb",
    "bytes": 7481528,
-   "triangles": 191604
+   "triangles": 191604,
+   "greyBytes": 4590540
   },
   {
    "id": "boy",
@@ -875,7 +968,8 @@
    "groupId": "character",
    "file": "character/boy.glb",
    "bytes": 6912996,
-   "triangles": 186402
+   "triangles": 186402,
+   "greyBytes": 4467980
   }
  ]
 }

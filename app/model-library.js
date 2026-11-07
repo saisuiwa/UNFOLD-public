@@ -65,6 +65,22 @@ export async function saveModel(name, buffer, triangles, thumb, group = '') {
   return meta;
 }
 
+// Swap a saved model's file for a new version of it (e.g. the colour copy of a shelf GLB). The id, name, group and
+// order stay, so works and sequences that already use this model keep pointing at it.
+export function replaceModelFile(id, buffer, triangles, thumb) {
+  return transact([META, FILES], 'readwrite', (tx, done) => {
+    const store = tx.objectStore(META);
+    store.get(id).onsuccess = event => {
+      const meta = event.target.result;
+      if (!meta) { done(undefined); return; }
+      Object.assign(meta, { bytes: buffer.byteLength, triangles, thumb, replacedAt: Date.now() });
+      store.put(meta);
+      tx.objectStore(FILES).put({ id, buffer });
+      done(meta);
+    };
+  });
+}
+
 // Merge fields (e.g. a thumbnail made later) into a saved model's metadata.
 export function updateModel(id, patch) {
   return transact([META], 'readwrite', (tx, done) => {

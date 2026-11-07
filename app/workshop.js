@@ -2,7 +2,7 @@ import {SAMPLES,aiTemplate} from './method-samples.js?v=14';
 import {IMAGE_METHOD_PRESETS} from './image-method-presets.js';
 import {CODE_MOTION_PRESETS,codeMotionPrompt} from './code-motion-presets.js';
 import {LYRIC_PALETTES} from './lyric-style.js';
-import {listModels} from './model-library.js?v=4';
+import {listModels} from './model-library.js?v=5';
 import {readDrafts,writeDrafts,sampleEdited,colorFormats,loadWorkshopImage,assetStore,viewOf} from './workshop-data.js';
 import {effectPrompt} from './effect-prompt.js';
 import {usesImageLabel} from './image-label.js?v=1';
