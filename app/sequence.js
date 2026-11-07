@@ -7,16 +7,16 @@ import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
 import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js';
 import {usesImageLabel} from './image-label.js?v=1';
 import {applyLyricStyle,setWordColor} from './lyric-style.js';
-import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument} from './lyric-project.js?v=12';
-import {createLyricControls} from './lyric-controls.js?v=28';
+import {cleanLyricSettings,convertLegacyLyrics,lyricTimingFile,lyricTimingDocument,lyricSrtFile} from './lyric-project.js?v=13';
+import {createLyricControls} from './lyric-controls.js?v=29';
 import {assignLyricMotions,cleanMotion,plainLyricView} from './lyric-motion.js?v=28';
 import {extractAudioLyrics,createImportGate} from './audio-lyrics.js?v=2';
 import {createLyricOverlay} from './lyric-overlay.js?v=18';
-import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=4';
+import {parseLyrics,importTimedLyrics,resolveUnknown,lyricRuns,SECTION_LABELS,cleanLyricDocument} from './lyric-document.js?v=5';
 import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPreviewTime} from './lyric-timing.js?v=3';
 import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
-import { createShotControls } from './shot-motion-controls.js?v=7';
+import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
@@ -54,7 +54,7 @@ import { cleanFx, concealAmount, mixFx, swapCurve } from './fx-mix.js';
 import { CAM_EASES, CAM_PRESETS, CAM_RANGES, camEnds, camLife, camValues, cleanCam, legacyKenBurns, lifeProgress, mixCam } from './camera-work.js?v=1';
 import { openMethodMenu } from './method-menu.js';
 import { methodButtons, syncMethodTiles } from './method-tiles.js';
-import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=11';
+import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=12';
 import { cleanFrame, croppedCanvas, framePlacement, needsFrame, describeFrame, frameFromChoice } from './slide-frame.js?v=1';
 import { askSlideFrame } from './slide-frame-dialog.js?v=1';
 
@@ -601,12 +601,12 @@ export async function loadAudio(blob,name='',assetId,{restoring=false}={}){
  const ctx=new AudioContext({sampleRate:48000});let buffer;try{buffer=await ctx.decodeAudioData(await blob.arrayBuffer())}finally{ctx.close()}
  const result=await extraction;if(!audioGate.isCurrent(token)||seq.recording)return;if(!restoring)beginEdit();stopPlay();seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL=URL.createObjectURL(blob);seq.audio=new Audio(audioURL);seq.audioBlob=blob;seq.audioBuffer=buffer;seq.audioOwner={};registerAsset(seq.audioOwner,blob,assetId);seq.audioName=name;($('seq-audio-name')||{}).textContent=name;lyricExtraction=result;
  lyricStatus=result?.warnings?.join('\n')||'曲を読み込みました。';
- if(result?.candidates.length){if(!seq.lyricDocument?.sourceText.trim()&&!seq.lyrics.length&&revision===lyricRevision)applyCandidate(result.candidates[0]);else lyricStatus='埋め込み歌詞が見つかりました。取り込む場合は候補を選んでください。';}else if(result)lyricStatus+=' 埋め込み歌詞はありません。';
+ if(result?.candidates.length){if(!seq.lyricDocument?.sourceText.trim()&&!seq.lyrics.length&&revision===lyricRevision)applyCandidate(result.candidates[0]);else lyricStatus='埋め込み歌詞が見つかりました。取り込む場合は候補を選んでください。';}else if(result)lyricStatus+=' この曲のファイルには歌詞が入っていません（歌詞を下に1行ずつ書くと、「歌詞を曲に合わせる（自動）」で時刻を付けられます）。';
  refreshUI();
 }
 function syncOverlayLyrics(){if(seq.lyricDocument)seq.lyrics=getTimings(seq.lyricDocument,seq.audioBuffer?.duration||12).events.map(e=>({id:e.id,s:e.start,e:e.end,t:e.kind==='section'?'▸ '+(SECTION_LABELS[e.section]||e.raw):e.text,k:e.section,isBoundary:e.kind==='section'}));}
-function lyricState(){return {document:seq.lyricDocument,audioName:seq.audioName,audioDuration:seq.audioBuffer?.duration||0,playing:seq.playing,recording:seq.recording,songSec:seq.t+seq.offset,offset:seq.offset,lyricMotion:seq.lyricMotion,extraction:lyricExtraction,status:[lyricStatus,lyricFontStatus].filter(Boolean).join('\n'),tapping:lyricTapping,tapCurrent:lyricTap?.current(),selectedId:lyricSelectedId,legacy:!seq.lyricDocument&&seq.slides.some(s=>s.lyric)};}
-function applyCandidate(c){const d=c.synced?importTimedLyrics(c.lines,'embedded'):parseLyrics(c.text,seq.lyricDocument);setLyricDocument(assignLyricMotions(d,{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7,plain:true}));lyricStatus=c.synced?'時刻付き歌詞を取り込みました。':'歌詞を取り込みました。タイミングは仮配置です。';}
+function lyricState(){return {document:seq.lyricDocument,audioName:seq.audioName,audioDuration:seq.audioBuffer?.duration||0,audioBuffer:seq.audioBuffer,playing:seq.playing,recording:seq.recording,songSec:seq.t+seq.offset,offset:seq.offset,lyricMotion:seq.lyricMotion,extraction:lyricExtraction,status:[lyricStatus,lyricFontStatus].filter(Boolean).join('\n'),tapping:lyricTapping,tapCurrent:lyricTap?.current(),selectedId:lyricSelectedId,legacy:!seq.lyricDocument&&seq.slides.some(s=>s.lyric)};}
+function applyCandidate(c){const d=c.synced?importTimedLyrics(c.lines,'embedded'):parseLyrics(c.text,seq.lyricDocument);setLyricDocument(assignLyricMotions(d,{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7,plain:true}));lyricStatus=c.synced?'曲に入っていた時刻付きの歌詞を取り込みました。':'曲に入っていた歌詞を取り込みました。タイミングは仮です。「3 曲に合わせる」の「歌詞を曲に合わせる（自動）」で、歌に合わせた時刻を付けられます。';}
 function showLyricPreview(id,replay=false){
  const t=getTimings(seq.lyricDocument,seq.audioBuffer?.duration||12).events.find(e=>e.id===id&&e.kind==='line');if(!t)return;
  const start=Math.max(0,t.start-seq.offset),end=Math.min(totalSeconds(),t.end-seq.offset);if(end<=start){lyricStatus='この歌詞は動画の時間外です。開始時刻・曲の開始位置を確認してください。';lyricControls?.refresh();return}
@@ -622,6 +622,15 @@ export async function lyricAction(a){
  if(a.type==='recipe-apply'){if(!seq.lyricDocument?.events.some(e=>e.kind==='line'))throw Error('先に歌詞を入れてください。');const motion=cleanMotion(a.motion);if(!motion.recipe)throw Error('文字モーションを選んでください。');lyricRevision++;edit(()=>{const d=structuredClone(seq.lyricDocument);for(const e of d.events)if(e.kind==='line'&&!e.locked)e.motion=structuredClone(motion);d.enabled=true;setLyricDocument(d)});return}
  if(a.type==='text-edit'){lyricRevision++;return}
  if(a.type==='audio'){await loadAudio(a.file,a.file.name);return}
+ // 曲を外す: the song goes, the lyrics and their times stay (one Undo brings the song back)
+ if(a.type==='remove-audio'){if(!seq.audioBlob&&!seq.audioBuffer)return;audioGate.invalidate();edit(()=>{stopPlay();seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';seq.audioBlob=null;seq.audio=seq.audioBuffer=seq.audioOwner=null;seq.audioName='';($('seq-audio-name')||{}).textContent='';lyricExtraction=null});seq.t=Math.min(seq.t,totalSeconds());lyricStatus='曲を外しました。歌詞と時刻はそのままです（元に戻すで、曲も戻せます）。';refreshUI();return}
+ // 歌詞を曲に合わせる（自動）: the heard lines get their start / end; the headings that hide the lyrics (間奏・アウトロ) start where the line before them ends
+ if(a.type==='auto-timing'){const by=new Map((a.lines||[]).filter(l=>Number.isFinite(l.s)).map(l=>[l.id,l]));if(!by.size||!seq.lyricDocument)return;lyricRevision++;lyricTap=null;lyricTapping=false;
+  edit(()=>{const d=structuredClone(seq.lyricDocument);let lastEnd=null;for(const e of d.events){const l=by.get(e.id);
+   if(e.kind==='line'&&l){e.s=Math.max(0,l.s);e.e=Number.isFinite(l.e)?Math.max(e.s,l.e):null;e.timingSource='auto';lastEnd=e.e??e.s}
+   else if(e.kind==='section'&&e.decision==='instruction'&&['instrumental','outro'].includes(e.section)){e.s=lastEnd;e.e=null;e.timingSource=lastEnd==null?'none':'auto'}
+   else if(e.kind==='section'&&e.section==='intro'){e.s=null;e.e=null;e.timingSource='none'}}
+   setLyricDocument(d)});lyricStatus='';refreshUI();return}
  if(a.type==='text'){if(a.value===(seq.lyricDocument?.sourceText||''))return;lyricRevision++;lyricTap=null;lyricTapping=false;edit(()=>setLyricDocument(assignLyricMotions(parseLyrics(a.value,seq.lyricDocument),{style:seq.lyricDocument?.style||'readable',seed:seq.lyricDocument?.seed||7,preserveExisting:true,plain:true})));return}
  if(a.type==='import'){const value=await a.file.text();let restored=null;if(/\.json$/i.test(a.file.name))restored=lyricTimingDocument(JSON.parse(value));lyricRevision++;edit(()=>setLyricDocument(restored||assignLyricMotions(/\.(json|lrc|srt)$/i.test(a.file.name)?importTimedLyrics(parseTimings(value,a.file.name),'file'):parseLyrics(value),{style:'readable',seed:7,plain:true})));return}
  if(a.type==='candidate'){const c=lyricExtraction?.candidates.find(c=>c.id===a.id);if(c){lyricRevision++;edit(()=>applyCandidate(c))}return}
@@ -649,6 +658,7 @@ export async function lyricAction(a){
  if(a.type==='tap-back'&&lyricTap){seek(Math.max(0,lyricTap.back()-seq.offset));const d=lyricTap.stop();lyricTap.resume();setLyricDocument(d,{fromTap:true});startPlay()}
  if(a.type==='tap-stop'&&lyricTap){setLyricDocument(lyricTap.stop(),{fromTap:true});lyricTapping=false;stopPlay();endEdit()}
  if(a.type==='save-timing'&&seq.lyricDocument)download('lyrics-timing.json',lyricTimingFile(seq.lyricDocument,seq.audioBuffer?.duration||12));
+ if(a.type==='save-srt'){if(!seq.lyricDocument?.events.some(e=>e.kind==='line'&&e.decision==='lyric'))throw Error('先に歌詞を入れてください。');const name=(seq.audioName||'lyrics').replace(/\.[^.]+$/,'')||'lyrics';download(name+'.srt',lyricSrtFile(seq.lyricDocument,seq.audioBuffer?.duration||12),'application/x-subrip;charset=utf-8');lyricStatus=`${name}.srt を保存しました（時刻は曲の秒）。`}
  if(a.type==='tempo'){if(!seq.audioBuffer)throw new Error('先に曲を入れてください。');const r=detectBeat(seq.audioBuffer);edit(()=>{seq.lyricMotion={bpm:r.bpm,phase:r.phase}});lyricStatus='文字モーションのテンポを更新しました。'}
  if(a.type==='export')showTab('export');
  if(a.type==='convert')await convertLyricProject();
@@ -742,9 +752,9 @@ function endTap() {
   $('lyr-tap-overlay').hidden = true;
   renderLyricRows();
 }
-function download(name, text) {
+function download(name, text, type = 'application/json') {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  a.href = URL.createObjectURL(new Blob([text], { type }));
   a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
@@ -1126,6 +1136,14 @@ function inspectTransition(box, title, i, tr) {
   const bt = document.createElement('input');
   bt.type = 'number'; bt.min = 0.5; bt.max = 64; bt.step = 'any'; bt.value = +tr.beats.toFixed(2);
   field(box, '変形の長さ（拍）', bt).onchange = () => edit(() => { tr.beats = Math.max(0.5, Number(bt.value) || 8); });
+  // a short ◆ changes fast: say how long it is in seconds, and offer the length most of the other ◆ have (8 beats when there are none)
+  const others = seq.transitions.filter((_, j) => j !== i).map(x => +x.beats.toFixed(2)), counts = new Map();
+  for (const b of others) counts.set(b, (counts.get(b) || 0) + 1);
+  const usual = others.length ? [...counts].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0][0] : 8;
+  const lenNote = document.createElement('p'); lenNote.className = 'hint len-note' + (tr.beats < usual * .75 ? ' len-short' : '');
+  lenNote.textContent = `今は約${(tr.beats * beatSec()).toFixed(1)}秒（${+tr.beats.toFixed(2)}拍）。短いほど速く崩れて立体になります。${others.length ? 'ほかの◆でいちばん多い長さは' : 'はじめの長さは'}${usual}拍（約${(usual * beatSec()).toFixed(1)}秒）。`;
+  box.append(lenNote);
+  if (Math.abs(tr.beats - usual) > 1e-6) { const back = document.createElement('button'); back.type = 'button'; back.className = 'btn len-reset'; back.textContent = `↺ 変形の長さを${usual}拍に戻す`; back.onclick = () => edit(() => { tr.beats = usual; }); box.append(back); }
   const shotControls=createShotControls({value:tr.shot,getDuration:()=>tr.beats*beatSec(),getImage:()=>seq.slides[i]?slideCanvas(seq.slides[i]):null,getShape:()=>tr.shape,onChange:value=>{if(seq.recording){shotControls.setValue(tr.shot);return;}beginEdit();tr.shot=cleanShot(value);timeline?.render();renderAt(seq.t);scheduleSave();}});
   box.append(shotControls.element);
   // this ◆'s own effects: they take over while the change is happening

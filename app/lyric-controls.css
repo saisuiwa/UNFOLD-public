@@ -13,3 +13,7 @@
 .lm-kanji-row{display:grid;gap:2px;padding:5px 6px;border-bottom:1px solid #223130}
 .lm-kanji-row .before{color:#9aa9a2}
 .lm-kanji-row.changed .after{color:#d9f878}
+/* 歌詞を曲に合わせる（自動）: lavender like MOTION LAB's; while it listens it turns into 止める (data-busy) */
+.lm-controls .lm-auto{background:#c9b8ff;color:#191426;border-color:#c9b8ff;font-weight:700}.lm-controls .lm-auto:hover{background:#d8cbff}.lm-controls .lm-auto[data-busy]{background:transparent;color:#c9b8ff}
+.lm-controls .lm-remove{color:#f3a7b5;border-color:#7a3d4a;background:transparent}.lm-controls .lm-remove:hover{background:#3a1d24}.lm-controls .lm-remove[hidden]{display:none}
+.lm-auto-status:empty{display:none}

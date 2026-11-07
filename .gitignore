@@ -14,6 +14,9 @@
 !/app/**/*.html
 !/app/**/*.json
 !/app/**/*.txt
+# the in-browser Whisper for 歌詞を曲に合わせる（自動）(app/lyric-auto, the same files as MOTION LAB's site/lab/vendor)
+!/app/lyric-auto/vendor/*.mjs
+!/app/lyric-auto/vendor/*.wasm
 # the colour shapes that come with the app (app/colour-shapes.js; tools/make_colour_samples.py makes them)
 !/app/assets/models/*.glb
 # textured colour shapes made with Tripo (the Halloween set)

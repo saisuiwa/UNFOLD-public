@@ -16,7 +16,11 @@ export function createShotControls({value,onChange,getDuration=()=>10,getImage=(
  const aVal=document.createElement('output');amountRow.append(aCap,amount,aVal);
  // 回転させない: the solid faces one way for the whole change (the same as 回転方向を指定する + 回転なし + 0 turns in the folded settings)
  const still=document.createElement('button');still.type='button';still.className='solid-motion-still';still.textContent='回転させない';still.title='立体を回さずに、向きを変えないまま見せます（もう一度押すと元の回転に戻ります）';
- motion.append(mTitle,kind,dice,still,amountRow);
+ // what this clip changes from the plain movement, and one button that puts all of it back (the camera move sits folded below, so a
+ // fast zoom set there was hard to find)
+ const changes=document.createElement('p');changes.className='solid-motion-changes';changes.setAttribute('role','status');
+ const resetAll=document.createElement('button');resetAll.type='button';resetAll.className='solid-motion-reset';resetAll.textContent='↺ 動きを全部元に戻す';resetAll.title='立体の動き・回転・カメラの移動を、何も変えていない元の動きに戻します（元に戻すで、前の設定に戻せます）';
+ motion.append(mTitle,kind,dice,still,amountRow,changes,resetAll);
  const note=document.createElement('p');note.className='solid-motion-note';note.textContent='立体になっている間だけ、形ごと揺れたり跳ねたりします。シーケンスでは曲の拍に合わせて動きます。';motion.append(note);
  const root=document.createElement('details');root.className='shot-controls';wrap.append(motion,root);
  const summary=document.createElement('summary');summary.textContent='回転方向・カメラの移動';root.append(summary);
@@ -52,12 +56,19 @@ export function createShotControls({value,onChange,getDuration=()=>10,getImage=(
  const presets=document.createElement('div');presets.className='shot-actions';body.append(presets);
  for(const [label,cam]of [['左端から右斜め上へ',{from:{x:-.4,y:0,zoom:1.5},to:{x:.25,y:.3,zoom:2}}],['狙った位置へ寄る',{from:{x:0,y:0,zoom:1},to:{x:.2,y:.15,zoom:2}}],['中央で寄って戻す',{from:{x:0,y:0,zoom:1},to:{x:0,y:0,zoom:2}}]]){const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=()=>{state.camera={...state.camera,...cam,enabled:true};sync();onChange?.(structuredClone(state))};presets.append(b)}
  const reset=document.createElement('button');reset.type='button';reset.textContent='回転・カメラを元の動きに戻す';reset.onclick=()=>{state=cleanShot({motion:state.motion});sync();onChange?.(structuredClone(state))};body.append(reset);
+ resetAll.onclick=()=>{state=cleanShot({});sync();onChange?.(structuredClone(state))};
  kind.onchange=()=>set('motion.kind',kind.value);
  amount.oninput=()=>{aVal.textContent=amount.value+'%'};amount.onchange=()=>set('motion.amount',Number(amount.value)/100);
  dice.onclick=()=>set('motion.kind',pickSolidMotion(getShape(),state.motion.kind));
  const isStill=()=>{const r=state.rotation;return r.enabled&&r.inDirection==='none'&&r.outDirection==='none'};
  still.onclick=()=>set('rotation',isStill()?{...state.rotation,enabled:false}:{...state.rotation,enabled:true,inDirection:'none',outDirection:'none',inTurns:0,outTurns:0});
- function sync(){kind.value=state.motion.kind;amount.value=Math.round(state.motion.amount*100);aVal.textContent=amount.value+'%';amountRow.hidden=state.motion.kind==='none';still.setAttribute('aria-pressed',isStill()?'true':'false');still.textContent=isStill()?'回転させない（ON）':'回転させない';for(const [path,e]of fields){if(e.type==='checkbox')e.checked=get(path);else e.value=get(path)}for(const [key,e]of times){e.max=getDuration();e.value=+(state.camera[key]/100*getDuration()).toFixed(2)}for(const e of row.children)e.setAttribute('aria-pressed',e.dataset.endpoint===endpoint?'true':'false');const xy=p=>[fit.x+(p.x+.5)*fit.width,fit.y+(.5-p.y)*fit.height];const [ax,ay]=xy(state.camera.from),[bx,by]=xy(state.camera.to);a.setAttribute('cx',ax);a.setAttribute('cy',ay);b.setAttribute('cx',bx);b.setAttribute('cy',by);at.setAttribute('x',Math.max(4,Math.min(286,ax+8)));at.setAttribute('y',Math.max(14,Math.min(174,ay-8)));bt.setAttribute('x',Math.max(4,Math.min(286,bx+8)));bt.setAttribute('y',Math.max(14,Math.min(174,by+18)));line.setAttribute('d',`M${ax} ${ay}L${bx} ${by}`);}
+ const sec=p=>+(p/100*getDuration()).toFixed(2);
+ function describeChanges(){const out=[],m=state.motion,r=state.rotation,c=state.camera;
+  if(m.kind!=='none')out.push(`立体の動き「${SOLID_MOTIONS.find(([v])=>v===m.kind)?.[1]||m.kind}」${m.amount!==1?`（大きさ ${Math.round(m.amount*100)}%）`:''}`);
+  if(r.enabled)out.push(isStill()?'回転させない':'回転の向き・回数');
+  if(c.enabled)out.push(`カメラの移動（${sec(c.start)}〜${sec(c.end)}秒、ズーム ${c.from.zoom}→${c.to.zoom}倍）`);
+  return out;}
+ function sync(){const changed=describeChanges();changes.hidden=resetAll.hidden=!changed.length;changes.textContent=changed.length?'元の動きから変えているもの：'+changed.join('・'):'';kind.value=state.motion.kind;amount.value=Math.round(state.motion.amount*100);aVal.textContent=amount.value+'%';amountRow.hidden=state.motion.kind==='none';still.setAttribute('aria-pressed',isStill()?'true':'false');still.textContent=isStill()?'回転させない（ON）':'回転させない';for(const [path,e]of fields){if(e.type==='checkbox')e.checked=get(path);else e.value=get(path)}for(const [key,e]of times){e.max=getDuration();e.value=+(state.camera[key]/100*getDuration()).toFixed(2)}for(const e of row.children)e.setAttribute('aria-pressed',e.dataset.endpoint===endpoint?'true':'false');const xy=p=>[fit.x+(p.x+.5)*fit.width,fit.y+(.5-p.y)*fit.height];const [ax,ay]=xy(state.camera.from),[bx,by]=xy(state.camera.to);a.setAttribute('cx',ax);a.setAttribute('cy',ay);b.setAttribute('cx',bx);b.setAttribute('cy',by);at.setAttribute('x',Math.max(4,Math.min(286,ax+8)));at.setAttribute('y',Math.max(14,Math.min(174,ay-8)));bt.setAttribute('x',Math.max(4,Math.min(286,bx+8)));bt.setAttribute('y',Math.max(14,Math.min(174,by+18)));line.setAttribute('d',`M${ax} ${ay}L${bx} ${by}`);}
  root.addEventListener('toggle',()=>{if(root.open){const image=getImage();if(image?.toDataURL){fit=cameraPadRect(image.width,image.height);picture.setAttribute('href',image.toDataURL('image/jpeg',.7));}sync()}});
  sync();return {element:wrap,setValue(value){state=cleanShot(value);sync()},get value(){return structuredClone(state)}};
 }

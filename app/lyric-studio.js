@@ -3,7 +3,7 @@ import {savedLyricFonts,lyricFontLabel} from './lyric-fonts.js';
 import {createFontPicker} from './lyric-font-picker.js';
 import {BUILTIN_MOTIONS,LAYOUTS,ENTRANCES,SUSTAINS,EXITS,normalizeRecipe} from './lyric-recipe.js';
 import {cleanMotion} from './lyric-motion.js?v=28';
-import {lyricRuns} from './lyric-document.js?v=4';
+import {lyricRuns} from './lyric-document.js?v=5';
 import {createMotionLibrary,buildMotionFile,parseMotionFile,motionAIPrompt} from './lyric-library.js';
 import {createLyricPainter,prepareMotionFont} from './lyric-painter.js?v=14';
 const node=(tag,text)=>Object.assign(document.createElement(tag),text==null?{}:{textContent:text});
