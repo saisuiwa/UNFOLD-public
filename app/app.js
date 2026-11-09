@@ -169,7 +169,7 @@ function syncImageControls(){
  let lab=$('image-label-control');if(!lab){lab=document.createElement('label');lab.id='image-label-control';lab.className='range-label';lab.style.display='block';const input=document.createElement('input');input.id='image-label-input';input.type='text';input.maxLength=100;input.autocomplete='off';input.spellcheck=false;input.style.cssText='width:100%;margin-top:8px;box-sizing:border-box';let t=0;input.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{state.imageLabel=input.value.trim();render()},400)};lab.append('表示する文字',input);$('methods').after(lab)}
  const labelMethod=code&&usesImageLabel(getCustom(state.method)?.code?.source);lab.hidden=!labelMethod;if(labelMethod)$('image-label-input').placeholder=getCustom(state.method)?.code?.params?.label||'UNFOLD';
  let hint=$('image-shape-note');if(!hint){hint=document.createElement('p');hint.id='image-shape-note';hint.className='hint';$('pane-shape').prepend(hint)}hint.hidden=!code;hint.textContent='画像片が選んだ立体・GLBへ集まり、画像へ戻ります。「立体化する」をオフにすると物理演出だけになります。';
- for(const id of ['tile-size','randomize','mystery','fx-blur','fx-chroma','fx-glitch','fx-bloom','fx-neon','fx-glass','fx-scan','fx-grain','fx-vignette','fx-bokeh'])if($(id))$(id).disabled=code;
+ for(const id of ['tile-size','randomize','mystery','mystery-shape','fx-blur','fx-chroma','fx-glitch','fx-bloom','fx-neon','fx-glass','fx-scan','fx-grain','fx-vignette','fx-bokeh'])if($(id))$(id).disabled=code;
  $('intensity').min=code?0:10;$('tab-shape').textContent='03 立体';
  const chapter=document.querySelector('.chapters [data-time="0.60"] b');if(chapter)chapter.textContent=!state.imageSolid?(code?'コード演出':'崩れたまま'):'立体化';
 }
@@ -404,7 +404,9 @@ function wireControls(){
  $('start-mode').onchange=e=>{state.startMode=e.target.value;state.playing=false;state.previewRange=false;setTime(getRange().from);updateRange()};
  $('custom-start').oninput=e=>{state.customStart=Number(e.target.value)/100;state.playing=false;setTime(state.customStart);updateRange()};
  $('mark-start').onclick=()=>{state.customStart=Math.min(.95,state.t);state.startMode='custom';$('start-mode').value='custom';state.playing=false;updateRange();render()};
- $('mystery').onchange=e=>{state.mystery=e.target.checked;updateRange();render()};
+ $('mystery').onchange=e=>{state.mystery=e.target.checked;$('mystery-shape').checked=state.mystery;updateRange();render()};
+ // the same switch in 03 立体 (it is about how the picture sits on the solid; the one in 動画保存 is hard to find)
+ $('mystery-shape').checked=state.mystery;$('mystery-shape').onchange=e=>{$('mystery').checked=e.target.checked;$('mystery').dispatchEvent(new Event('change'))};
  $('preview-range').onclick=()=>{state.previewRange=true;state.playing=true;setTime(getRange().from)};
  $('ratio').onchange=e=>{state.ratio=e.target.value;$('stage').className=state.ratio==='1:1'?'square':state.ratio==='9:16'?'portrait':'';updateResolution();resize();
   if(loaded&&state.fit==='cover'&&needsFrame(sourceCanvas.width,sourceCanvas.height,...frameSize()))notice('出力の形と画像の形が違うので、見切れることがあるよ。「切り抜き・収め方を調整」で直せます。')};
