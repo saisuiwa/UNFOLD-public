@@ -96,11 +96,11 @@ function resize(){
 }
 function setCamera(aspect){const height=Math.max(5.4,6.8/aspect);camera.left=-height*aspect/2;camera.right=height*aspect/2;camera.top=height/2;camera.bottom=-height/2;camera.updateProjectionMatrix()}
 function render(){
- if(!mesh)return;const imageCode=isImageMethodKey(state.method),m=motionAt(state.t,state.chaosLength,state.solidLength),u=mesh.material.uniforms;if(imageCode&&!state.imageSolid)m.form=0;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
+ if(!mesh)return;const imageCode=isImageMethodKey(state.method),m=motionAt(state.t,state.chaosLength,state.solidLength),u=mesh.material.uniforms;if(!state.imageSolid){m.form=0;if(!imageCode)m.turn=0}/* 立体化しない: the picture stays broken up and comes back, for every method */;const pick=variants.pick(state.method);if(mesh.material!==pick.material)mesh.material=pick.material;safety?.beforeDraw(pick.used);u.uTime.value=state.t*state.duration;u.uDraw.value=state.t<.5?1-smooth(.1,.42,state.t):smooth(.58,.92,state.t);
  u.uDistort.value=imageCode?0:m.distort;u.uForm.value=m.form;u.uStrength.value=state.strength;u.uDepth.value=state.depth;u.uModelColor.value=state.modelColor;u.uModelTex.value=shapeOf(state.shape)?.data.texture??null;u.uSeed.value=state.seed;u.uMethod.value=pick.uMethod;u.uMethod2.value=pick.uMethod2;u.uShape.value=shapeIds[state.shape]??0;
  u.uPreset.value=(presetNames.includes(state.shape)||shapeOf(state.shape))?1:0;u.uProject.value=shapeOf(state.shape)?.kind==='text'?1:0;u.uConceal.value=!imageCode&&state.mystery?smooth(.08,.24,state.t)*(1-smooth(.80,.94,state.t)):0;
  // All camera motion fades out with deformation, guaranteeing a flat identical final image.
- const preset=u.uPreset.value===1,orientation=imageCode&&!state.imageSolid?m.distort:m.form;
+ const preset=u.uPreset.value===1,orientation=!state.imageSolid?m.distort:m.form;
  const isText=shapeOf(state.shape)?.kind==='text';
  const base=preset?(state.shape==='pegasus'?-.30:.20):.42;
  mesh.rotation.set(((preset?-.06:-.18)+state.viewX)*orientation,isText?(.12+state.viewY)*orientation:(base+state.viewY)*orientation+m.turn-(preset?motionAt(.56).turn*m.form:0),0);renderer.setClearColor(state.bg,1);
@@ -135,8 +135,8 @@ function render(){
 }
 function updateTransport(m=motionAt(state.t,state.chaosLength,state.solidLength)){
  $('timeline').value=Math.round(state.t*1000);$('current-time').textContent=(state.t*state.duration).toFixed(1).padStart(4,'0');$('total-time').textContent=state.duration.toFixed(1)+' s';
- const titles=['01 / 元の画像','02 / ぐちゃぐちゃ',isImageMethodKey(state.method)&&!state.imageSolid?'03 / コード演出':'03 / 立体化','04 / 元どおり'];$('phase-badge').textContent=titles[m.phase];
- $('stage-caption').textContent=['ここから、変化がはじまる。','かたちをほどいて、自由に。',isImageMethodKey(state.method)&&!state.imageSolid?'画像片が動く、コードの演出。':'平面から、もうひとつのかたちへ。','最後は、最初の一枚へ。'][m.phase];
+ const titles=['01 / 元の画像','02 / ぐちゃぐちゃ',!state.imageSolid?(isImageMethodKey(state.method)?'03 / コード演出':'03 / 崩れたまま'):'03 / 立体化','04 / 元どおり'];$('phase-badge').textContent=titles[m.phase];
+ $('stage-caption').textContent=['ここから、変化がはじまる。','かたちをほどいて、自由に。',!state.imageSolid?(isImageMethodKey(state.method)?'画像片が動く、コードの演出。':'崩れたまま、ただよう。'):'平面から、もうひとつのかたちへ。','最後は、最初の一枚へ。'][m.phase];
  document.querySelectorAll('.chapters button').forEach((b,i)=>b.classList.toggle('current',i===m.phase));
  $('play').textContent=state.playing?'Ⅱ':'▶';$('play').setAttribute('aria-label',state.playing?'一時停止':'再生');
 }
@@ -152,14 +152,14 @@ function showInspectorPane(name){
 function updateSliderNotes(){const g=$('particle-detail-note'),t=$('tile-size-note');if(g)g.textContent=grainSingleNote({method:state.method,shapeHasGrain:!!shapeOf(state.shape)}).text;if(t)t.textContent=tileSingleNote({method:state.method},state.tiles).text}
 function syncImageControls(){
  const code=isImageMethodKey(state.method);document.querySelector('#pane-shape .form-section').hidden=false;
- let toggle=$('image-solid');if(!toggle){const label=document.createElement('label');label.id='image-solid-control';label.className='range-label';toggle=document.createElement('input');toggle.id='image-solid';toggle.type='checkbox';toggle.onchange=()=>{state.imageSolid=toggle.checked;syncImageControls();render()};label.append(toggle,' 立体化する');document.querySelector('#pane-shape .form-section').prepend(label)}toggle.checked=state.imageSolid;$('image-solid-control').hidden=!code;
+ let toggle=$('image-solid');if(!toggle){const label=document.createElement('label');label.id='image-solid-control';label.className='range-label';toggle=document.createElement('input');toggle.id='image-solid';toggle.type='checkbox';toggle.onchange=()=>{state.imageSolid=toggle.checked;syncImageControls();render()};label.append(toggle,' 立体化する（オフ：立体にしないで、崩れたまま元の絵に戻る）');document.querySelector('#pane-shape .form-section').prepend(label)}toggle.checked=state.imageSolid;$('image-solid-control').hidden=false;   // for every method (it used to show only with image code, and hid itself while off)
  // 「表示する文字」: for image code that shows words (params.label, e.g. 爆砕と再誕). Empty = the method's own words. Re-prepared after a short pause in typing.
  let lab=$('image-label-control');if(!lab){lab=document.createElement('label');lab.id='image-label-control';lab.className='range-label';lab.style.display='block';const input=document.createElement('input');input.id='image-label-input';input.type='text';input.maxLength=100;input.autocomplete='off';input.spellcheck=false;input.style.cssText='width:100%;margin-top:8px;box-sizing:border-box';let t=0;input.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{state.imageLabel=input.value.trim();render()},400)};lab.append('表示する文字',input);$('methods').after(lab)}
  const labelMethod=code&&usesImageLabel(getCustom(state.method)?.code?.source);lab.hidden=!labelMethod;if(labelMethod)$('image-label-input').placeholder=getCustom(state.method)?.code?.params?.label||'UNFOLD';
  let hint=$('image-shape-note');if(!hint){hint=document.createElement('p');hint.id='image-shape-note';hint.className='hint';$('pane-shape').prepend(hint)}hint.hidden=!code;hint.textContent='画像片が選んだ立体・GLBへ集まり、画像へ戻ります。「立体化する」をオフにすると物理演出だけになります。';
  for(const id of ['tile-size','randomize','mystery','fx-blur','fx-chroma','fx-glitch','fx-bloom','fx-neon','fx-glass','fx-scan','fx-grain','fx-vignette','fx-bokeh'])if($(id))$(id).disabled=code;
  $('intensity').min=code?0:10;$('tab-shape').textContent='03 立体';
- const chapter=document.querySelector('.chapters [data-time="0.60"] b');if(chapter)chapter.textContent=code&&!state.imageSolid?'コード演出':'立体化';
+ const chapter=document.querySelector('.chapters [data-time="0.60"] b');if(chapter)chapter.textContent=!state.imageSolid?(code?'コード演出':'崩れたまま'):'立体化';
 }
 function setChoice(container,key,value){
  const wasImage=isImageMethodKey(state.method);state[key]=value;
@@ -300,6 +300,8 @@ async function useCutout(source){
  $('frame-cutout-status').textContent=fits?'切り抜きを絵の人物の位置に合わせました。絵が崩れはじめると、人物が額縁から出てきます。':'絵と色が合いませんでした。この絵から切り抜いた物か確かめてね（いちばん近い位置で使っています）。';
  return at;
 }
+// the GPU stopped drawing (Chrome's GPU process went down or reset): the canvas stays black, so say so and offer a reload
+function showContextLost(){const box=$('stage-error');if(!box)return;box.hidden=false;box.replaceChildren();const p=document.createElement('p');p.textContent='描画が止まりました（Chrome の GPU が止まったみたい）。「ページを開き直す」で戻ります。絵は入れ直してね。開き直しても真っ暗なら、Chrome を一度終了して開き直してね。';const b=document.createElement('button');b.type='button';b.className='stage-reload';b.textContent='ページを開き直す';b.onclick=()=>location.reload();box.append(p,b)}
 function wireControls(){
  for(const [id,label] of FRAME_STYLES)$('frame-style').append(new Option(label,id));for(const [id,label] of FRAME_TILTS)$('frame-tilt').append(new Option(label,id));
  syncFrameControls=()=>{const f=state.frameStage;$('frame-on').checked=f.enabled;$('frame-body').hidden=!f.enabled;$('frame-style').value=f.style;$('frame-pop').value=Math.round(f.pop*100);$('frame-pop-value').textContent=Math.round(f.pop*100)+'%';$('frame-size').value=Math.round(f.size*100);$('frame-size-value').textContent=Math.round(f.size*100)+'%';$('frame-tilt').value=f.tilt;$('frame-tilt-amount').value=Math.round(f.tiltAmount*100);$('frame-tilt-amount-value').textContent=Math.round(f.tiltAmount*100)+'%';$('frame-tilt-amount-row').hidden=f.tilt==='none';const has=!!frameStage?.hasCutout;$('frame-cutout-remove').hidden=!has;$('frame-cutout-add').textContent=has?'切り抜きを入れ替える':'＋ 切り抜きを選ぶ';if(!has)$('frame-cutout-status').textContent=''};
@@ -309,7 +311,7 @@ function wireControls(){
  $('frame-cutout-add').onclick=()=>$('frame-cutout-input').click();
  $('frame-cutout-input').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file||state.recording)return;$('frame-cutout-status').textContent='切り抜きの位置を探しています…';try{await useCutout(file)}catch(err){$('frame-cutout-status').textContent=err.message||'切り抜きを読み込めませんでした。'}};
  $('frame-cutout-remove').onclick=()=>{frameStage.setCutout(null);syncFrameControls();render()};
- syncFrameControls();
+ syncFrameControls();syncImageControls();   // 「立体化する」 is there from the start (it used to appear only after choosing a method)
  const tabs=[...document.querySelectorAll('.inspector-tabs [data-tab]')];
  tabs.forEach((button,index)=>{
   button.onclick=()=>showInspectorPane(button.dataset.tab);
@@ -499,7 +501,7 @@ async function startImageExport(format){
 }
 let previous=performance.now();function tick(now){if(state.playing&&!state.recording&&!document.hidden)safety?.tick(now-previous);const dt=Math.min((now-previous)/1000,.1);previous=now;if(state.playing&&!state.recording){state.t+=dt/state.duration;if(state.t>1){if(state.loop){const from=state.previewRange?getRange().from:0;state.t=from+(state.t-1)%(1-from)}else{state.t=1;state.playing=false}}render()}requestAnimationFrame(tick)}
 try{
- renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,alpha:false,preserveDrawingBuffer:true});$('scene').addEventListener('webglcontextlost',()=>safety?.contextLost());renderer.outputColorSpace=THREE.SRGBColorSpace;sceneBlur=new SceneBlur(renderer);
+ renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,alpha:false,preserveDrawingBuffer:true});$('scene').addEventListener('webglcontextlost',e=>{e.preventDefault();safety?.contextLost();showContextLost()});renderer.outputColorSpace=THREE.SRGBColorSpace;sceneBlur=new SceneBlur(renderer);
  scene=new THREE.Scene();camera=new THREE.OrthographicCamera(-4.8,4.8,2.7,-2.7,.1,100);camera.position.z=10;
  frameStage=createFrameStage(THREE);frameStage.setStyle(state.frameStage.style);scene.add(frameStage.back);
  setSource(makeSample(),'カラーテスト・サンプル');wireControls();loadSavedModels();detectFormats();updateRange();resize();requestAnimationFrame(tick);
