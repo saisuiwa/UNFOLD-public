@@ -5,7 +5,8 @@
 // 額縁の傾き: カメラが額縁のまわりを少し回り込む（額縁・絵・立体・人物がいっしょに傾くので、ずれない）。遠近感のあるカメラで描くので、手前に出た立体や人物と
 // 額縁の奥行きの差が見える。崩れはじめから入って、元どおりに戻る時に正面へ戻る（最初と最後の1枚は、今までどおりまっすぐ）。
 // value = { enabled, style: FRAME_STYLES のどれか, pop: 立体が飛び出す大きさ 0–1（0.4 = 1.4倍）, size: 額縁が画面に占める大きさ 0.5–0.95,
-//           tilt: FRAME_TILTS のどれか, tiltAmount: 傾きの大きさ 0–1（0.5 で約13度）, personMove: PERSON_MOVES のどれか（飛び出した人物の、額縁とは別の動き） }
+//           tilt: FRAME_TILTS のどれか, tiltAmount: 傾きの大きさ 0–1（0.5 で約13度）, personMove: PERSON_MOVES のどれか（飛び出した人物の、額縁とは別の動き）,
+//           solidX / solidY: 立体をずらす -1–1（絵の幅・高さの半分まで。立体になるにつれてずれ、元の絵に戻る時に真ん中へ帰る） }
 
 export const FRAME_STYLES = [['gold', '金の額'], ['wood', '木の額'], ['black', '黒の細い額'], ['white', '白いマットの額']];
 const STYLE_IDS = FRAME_STYLES.map(([id]) => id);
@@ -17,7 +18,8 @@ const num = (x, lo, hi, d) => typeof x === 'number' && Number.isFinite(x) ? Math
 export function cleanFrameStage(value) {
   const v = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   return { enabled: v.enabled === true, style: STYLE_IDS.includes(v.style) ? v.style : 'gold', pop: Math.round(num(v.pop, 0, 1, .4) * 100) / 100, size: Math.round(num(v.size, .5, .95, .78) * 100) / 100,
-    tilt: TILT_IDS.includes(v.tilt) ? v.tilt : 'none', tiltAmount: Math.round(num(v.tiltAmount, 0, 1, .5) * 100) / 100, personMove: MOVE_IDS.includes(v.personMove) ? v.personMove : 'pop' };
+    tilt: TILT_IDS.includes(v.tilt) ? v.tilt : 'none', tiltAmount: Math.round(num(v.tiltAmount, 0, 1, .5) * 100) / 100, personMove: MOVE_IDS.includes(v.personMove) ? v.personMove : 'pop',
+    solidX: Math.round(num(v.solidX, -1, 1, 0) * 100) / 100, solidY: Math.round(num(v.solidY, -1, 1, 0) * 100) / 100 };
 }
 
 // the frame's width around the picture (world units, from the picture's shorter side), and the room left for its shadow on the wall
@@ -34,6 +36,8 @@ export function frameZoom(viewW, viewH, w, h, style, size) {
 export const personOut = (distort, form) => { const x = Math.min(1, Math.max(distort, form) * 1.6); return x * x * (3 - 2 * x); };
 // the solid's size against the frame: 1 + pop as it forms (the frame stays, so the solid grows past it)
 export const solidPop = (pop, form) => 1 + pop * form;
+// where the solid moves to (world units) as it forms: solidX / solidY of half the picture's width / height (so two things can come out side by side)
+export const solidShift = (x, y, w, h, form) => [num(x, -1, 1, 0) * w * .5 * form, num(y, -1, 1, 0) * h * .5 * form, 0];
 
 // the camera's turn around the frame (radians): yaw = to the right (the right side comes closer), pitch = up (the top comes closer);
 // sec: seconds into the clip, w: how far into the change (0 = the picture is whole, so the camera is straight)

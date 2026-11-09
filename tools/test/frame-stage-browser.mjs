@@ -99,6 +99,18 @@ try {
     await page.locator('[data-method="crumple"]').first().click();
   }
 
+  // 立体を左右にずらす: the solid moves right as it forms, the whole picture is as before
+  const centreX = img => { let sx = 0, n = 0; for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) { const i = (y * img.w + x) * 4; if (Math.abs(img.d[i] - bg[0]) + Math.abs(img.d[i + 1] - bg[1]) + Math.abs(img.d[i + 2] - bg[2]) > 40 && !(img.d[i] > 120 && img.d[i + 1] > 80 && img.d[i + 2] < 110 && img.d[i] - img.d[i + 2] > 60)) { sx += x; n++; } } return sx / Math.max(1, n) / img.w; };
+  await page.click('#frame-cutout-remove');
+  const midSolid = await look(.62), flatBefore = await look(.02);
+  await page.evaluate(() => { const r = document.getElementById('frame-solid-x'); r.value = 80; r.dispatchEvent(new Event('input')); });
+  need(await page.evaluate(() => unfold.state.frameStage.solidX === .8 && document.getElementById('frame-solid-x-value').textContent === '80%'), 'the slider sets 立体を左右にずらす');
+  const midRight = await look(.62);
+  need(centreX(midRight) > centreX(midSolid) + .08, `the solid moves right (${centreX(midSolid).toFixed(2)} → ${centreX(midRight).toFixed(2)})`);
+  need(diff(await look(.02), flatBefore) < .01 && diff(await look(.995), await (async () => { await page.click('#frame-solid-reset'); return look(.995); })()) < .01, 'the whole picture at the start and the end is as before');
+  need(await page.evaluate(() => unfold.state.frameStage.solidX === 0), '真ん中に戻す puts it back');
+  await page.evaluate(async () => unfold.useCutout(window.__cut));
+
   // 額縁の傾き: straight while the picture is whole (the first and last frames are as before), turned while it changes
   const straightFlat = await look(.02), straightBreak = await look(.3);
   await page.selectOption('#frame-tilt', 'rightFront');

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, borderOf, frameZoom, personOut, solidPop, tiltAt, pickTilt, personPose, pickPersonMove } from '../../app/frame-stage.js';
+import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, borderOf, frameZoom, personOut, solidPop, tiltAt, pickTilt, personPose, pickPersonMove, solidShift } from '../../app/frame-stage.js';
 import { bestOffset } from '../../app/cutout-align.js';
 
 test('the frame settings are cleaned: off by default, a known style, pop 0–1, size 0.5–0.95', () => {
-  assert.deepEqual(cleanFrameStage(), { enabled: false, style: 'gold', pop: .4, size: .78, tilt: 'none', tiltAmount: .5, personMove: 'pop' });
-  assert.deepEqual(cleanFrameStage({ enabled: 'yes', style: 'neon', pop: 3, size: .1, tilt: 'spin', tiltAmount: 9 }), { enabled: false, style: 'gold', pop: 1, size: .5, tilt: 'none', tiltAmount: 1, personMove: 'pop' });
-  assert.deepEqual(cleanFrameStage({ enabled: true, style: 'wood', pop: .25, size: .9, tilt: 'orbit', tiltAmount: .3, personMove: 'nudge' }), { enabled: true, style: 'wood', pop: .25, size: .9, tilt: 'orbit', tiltAmount: .3, personMove: 'nudge' });
+  assert.deepEqual(cleanFrameStage(), { enabled: false, style: 'gold', pop: .4, size: .78, tilt: 'none', tiltAmount: .5, personMove: 'pop', solidX: 0, solidY: 0 });
+  assert.deepEqual(cleanFrameStage({ enabled: 'yes', style: 'neon', pop: 3, size: .1, tilt: 'spin', tiltAmount: 9 }), { enabled: false, style: 'gold', pop: 1, size: .5, tilt: 'none', tiltAmount: 1, personMove: 'pop', solidX: 0, solidY: 0 });
+  assert.deepEqual(cleanFrameStage({ enabled: true, style: 'wood', pop: .25, size: .9, tilt: 'orbit', tiltAmount: .3, personMove: 'nudge', solidX: .6, solidY: -2 }), { enabled: true, style: 'wood', pop: .25, size: .9, tilt: 'orbit', tiltAmount: .3, personMove: 'nudge', solidX: .6, solidY: -1 });
   assert.deepEqual(FRAME_STYLES.map(([id]) => id), ['gold', 'wood', 'black', 'white']);
 });
 
@@ -71,4 +71,10 @@ test('the person lands exactly on the picture with every move, and each move doe
 
 test('🎲 for the person picks another move', () => {
   for (let i = 0; i < 20; i++) { const m = pickPersonMove('pop', () => i / 20); assert.ok(m !== 'pop' && PERSON_MOVES.some(([id]) => id === m), m); }
+});
+
+test('the solid moves aside only as it forms, up to half the picture', () => {
+  assert.ok(solidShift(.8, -.5, 6, 4, 0).every(v => v === 0), 'not moved while the picture is whole');
+  assert.deepEqual(solidShift(1, -1, 6, 4, 1), [3, -2, 0]);
+  assert.deepEqual(solidShift(.5, 0, 6, 4, .5), [.75, 0, 0]);
 });
