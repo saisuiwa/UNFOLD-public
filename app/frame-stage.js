@@ -5,17 +5,19 @@
 // 額縁の傾き: カメラが額縁のまわりを少し回り込む（額縁・絵・立体・人物がいっしょに傾くので、ずれない）。遠近感のあるカメラで描くので、手前に出た立体や人物と
 // 額縁の奥行きの差が見える。崩れはじめから入って、元どおりに戻る時に正面へ戻る（最初と最後の1枚は、今までどおりまっすぐ）。
 // value = { enabled, style: FRAME_STYLES のどれか, pop: 立体が飛び出す大きさ 0–1（0.4 = 1.4倍）, size: 額縁が画面に占める大きさ 0.5–0.95,
-//           tilt: FRAME_TILTS のどれか, tiltAmount: 傾きの大きさ 0–1（0.5 で約13度） }
+//           tilt: FRAME_TILTS のどれか, tiltAmount: 傾きの大きさ 0–1（0.5 で約13度）, personMove: PERSON_MOVES のどれか（飛び出した人物の、額縁とは別の動き） }
 
 export const FRAME_STYLES = [['gold', '金の額'], ['wood', '木の額'], ['black', '黒の細い額'], ['white', '白いマットの額']];
 const STYLE_IDS = FRAME_STYLES.map(([id]) => id);
 export const FRAME_TILTS = [['none', 'なし（正面のまま）'], ['sway', 'ゆっくり左右に振れる'], ['topBack', '上が奥へ倒れる'], ['rightFront', '右が手前に来る'], ['leftFront', '左が手前に来る'], ['orbit', 'ぐるっと回り込む']];
 const TILT_IDS = FRAME_TILTS.map(([id]) => id);
+export const PERSON_MOVES = [['pop', '飛び出したまま'], ['forward', 'ゆっくり前へ'], ['counter', '額縁と逆に動く'], ['nudge', '前に出て、少し下がる'], ['float', 'ふわふわ漂う']];
+const MOVE_IDS = PERSON_MOVES.map(([id]) => id);
 const num = (x, lo, hi, d) => typeof x === 'number' && Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : d;
 export function cleanFrameStage(value) {
   const v = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   return { enabled: v.enabled === true, style: STYLE_IDS.includes(v.style) ? v.style : 'gold', pop: Math.round(num(v.pop, 0, 1, .4) * 100) / 100, size: Math.round(num(v.size, .5, .95, .78) * 100) / 100,
-    tilt: TILT_IDS.includes(v.tilt) ? v.tilt : 'none', tiltAmount: Math.round(num(v.tiltAmount, 0, 1, .5) * 100) / 100 };
+    tilt: TILT_IDS.includes(v.tilt) ? v.tilt : 'none', tiltAmount: Math.round(num(v.tiltAmount, 0, 1, .5) * 100) / 100, personMove: MOVE_IDS.includes(v.personMove) ? v.personMove : 'pop' };
 }
 
 // the frame's width around the picture (world units, from the picture's shorter side), and the room left for its shadow on the wall
@@ -57,6 +59,28 @@ export function orbitCamera(cam, target, { yaw, pitch }, roll = 0) {
   cam.lookAt(target); if (roll) cam.rotateZ(roll); cam.updateMatrixWorld();
   return cam;
 }
+
+// the cut-out person's pose (x, y in picture widths / heights, z in picture heights toward you, s = size, rx ry rz radians).
+// out: how far it is out of the frame (0 = in the picture: everything 0, s 1), hold: 0→1 across the time it is out, sec: seconds,
+// tilt: the camera's turn (tiltAt) for 額縁と逆に動く. Every value is multiplied by `out`, so the person always lands exactly on the picture.
+const ease = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+export function personPose(move, out, hold = 0, sec = 0, tilt = { yaw: 0, pitch: 0 }) {
+  const o = num(out, 0, 1, 0), h = num(hold, 0, 1, 0), base = { s: 1 + .32 * o, x: -.02 * o, y: .06 * o, z: .35 * o, rx: 0, ry: 0, rz: 0 };
+  if (!o) return { s: 1, x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 };
+  switch (move) {
+    case 'forward': { const g = ease(h); return { ...base, s: 1 + o * (.14 + .26 * g), y: o * (.03 + .05 * g), z: o * (.1 + .45 * g) }; }
+    case 'counter': {
+      // turn the other way from the frame: further than the camera turned (so it looks turned against the frame), and shift against it;
+      // with no tilt, a slow swing of its own
+      const yaw = tilt.yaw || .2 * Math.sin(2 * Math.PI * sec / 5), pitch = tilt.pitch || 0;
+      return { ...base, ry: o * 2.2 * yaw, rx: -o * 2.2 * pitch, x: base.x - o * .55 * yaw, y: base.y + o * .3 * pitch };
+    }
+    case 'nudge': { const back = ease((h - .3) / .45); return { ...base, s: 1 + o * (.38 - .12 * back), z: o * (.5 - .26 * back), y: o * (.07 - .03 * back) }; }
+    case 'float': { const a = 2 * Math.PI * sec; return { ...base, y: base.y + o * .03 * Math.sin(a / 3.2), rz: o * .035 * Math.sin(a / 4.1), ry: o * .12 * Math.sin(a / 5.3) }; }
+    default: return base;
+  }
+}
+export function pickPersonMove(current, random = Math.random) { const pool = MOVE_IDS.filter(id => id !== current); return pool[Math.min(pool.length - 1, Math.floor(random() * pool.length))]; }
 
 // the frame as a picture: a board with a w × h hole (k pixels per world unit), its bevel lit from the top left, and its soft shadow on the wall
 export function drawFrame(style, w, h, k = 200) {
@@ -133,13 +157,15 @@ export function createFrameStage(THREE) {
     },
     get hasCutout() { return !!cut; },
     // enabled: the frame is on; out: personOut(); camera: the scene camera (the person is drawn with it)
-    update({ enabled, out }) {
+    update({ enabled, out, hold = 0, sec = 0, tilt, move = 'pop' }) {
       back.visible = enabled; frame.visible = enabled;
       const show = enabled && !!cut; shadow.visible = person.visible = show;
       if (!show) return;
-      const s = 1 + .32 * out;
-      person.scale.set(size.w * s, size.h * s, 1); person.position.set(-.02 * size.w * out, .06 * size.h * out, .35 * size.h * out);   // in front of the frame (seen with a tilted camera)
-      shadow.scale.set(size.w * (1 + .06 * out), size.h * (1 + .06 * out), 1); shadow.position.set(.05 * size.w * out, -.05 * size.h * out, 0); shadow.material.opacity = .34 * out;
+      const p = personPose(move, out, hold, sec, tilt);   // in front of the frame (z), so a tilted camera sees it move against the frame
+      person.scale.set(size.w * p.s, size.h * p.s, 1); person.position.set(p.x * size.w, p.y * size.h, p.z * size.h); person.rotation.set(p.rx, p.ry, p.rz);
+      // the shadow on the wall: further off and softer the further out the person is
+      const far = Math.min(1.6, out + p.z * .6);
+      shadow.scale.set(size.w * (1 + .06 * far), size.h * (1 + .06 * far), 1); shadow.position.set(p.x * size.w + .05 * size.w * far, p.y * size.h * .5 - .05 * size.h * far, 0); shadow.material.opacity = .34 * out;
     },
     dispose() { for (const m of [frame, shadow, person]) { m.material.map?.dispose(); m.material.dispose(); m.geometry.dispose(); } },
   };

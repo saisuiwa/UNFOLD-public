@@ -6,7 +6,7 @@ import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js'
 import {usesImageLabel} from './image-label.js?v=1';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { solidMotionAt, motionCamera, solidLife, SINGLE_BEAT_SEC } from './solid-motion.js?v=4';
-import { FRAME_STYLES, FRAME_TILTS, cleanFrameStage, createFrameStage, frameZoom, personOut, solidPop, tiltAt, pickTilt, orbitCamera } from './frame-stage.js?v=3';
+import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, createFrameStage, frameZoom, personOut, solidPop, tiltAt, pickTilt, pickPersonMove, orbitCamera } from './frame-stage.js?v=5';
 import { alignCutout } from './cutout-align.js?v=1';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
@@ -111,7 +111,8 @@ function render(){
  if(sm){mesh.quaternion.premultiply(shotQuat.fromArray(sm.quaternion));mesh.position.fromArray(sm.position);mesh.scale.fromArray(sm.scale)}else{mesh.position.set(0,0,0);mesh.scale.set(1,1,1)}
  // 額縁から飛び出す: the frame stays where it is and the solid grows past it as it forms; the cut-out person steps out as the picture breaks
  const framed=state.frameStage.enabled,pop=framed?solidPop(state.frameStage.pop,m.form):1;if(pop!==1){mesh.scale.multiplyScalar(pop);mesh.position.multiplyScalar(pop)}
- frameStage?.update({enabled:framed,out:personOut(m.distort,m.form)});
+ const outNow=personOut(m.distort,m.form),tiltNow=framed&&state.frameStage.tilt!=='none'?tiltAt(state.frameStage.tilt,state.frameStage.tiltAmount,state.t*state.duration,outNow):{yaw:0,pitch:0};
+ frameStage?.update({enabled:framed,out:outNow,hold:Math.min(1,Math.max(0,(state.t-.1)/.7)),sec:state.t*state.duration,tilt:tiltNow,move:state.frameStage.personMove});
  const fx=effectsAt(state.t,state.duration,state);
  const imageSize=u.uSize.value,frameW=camera.right-camera.left,frameH=camera.top-camera.bottom;
  const fillZoom=(state.fit==='contain'?Math.min:Math.max)(frameW/imageSize.x,frameH/imageSize.y);   // 'contain': the whole picture stays in view, the rest is the background colour
@@ -125,7 +126,7 @@ function render(){
  // 額縁の傾き: a perspective camera turns a little around the frame while the picture is changing (straight again when it is whole)
  const tilting=framed&&state.frameStage.tilt!=='none',ownPersp=state.renderLook.enabled?state.renderLook.perspective:0;
  const straight=syncPerspective(camera,perspCam,ownPersp>0?ownPersp:tilting?.5:0);
- const view=tilting?orbitCamera(straight,orbitTarget.set(camera.position.x,camera.position.y,0),tiltAt(state.frameStage.tilt,state.frameStage.tiltAmount,state.t*state.duration,personOut(m.distort,m.form)),camera.rotation.z):straight;
+ const view=tilting?orbitCamera(straight,orbitTarget.set(camera.position.x,camera.position.y,0),tiltNow,camera.rotation.z):straight;
  const imageFade=imageCode?smoothImage(state.t/.025)*smoothImage((1-state.t)/.025):0;mesh.visible=!(imageCode&&framed&&imageFade>=1);   // in the frame the worker draws on a clear background, so the GLSL copy under it must not show
  u.uGlass.value=imageCode?0:fx.glass;sceneBlur.render(scene,view,imageCode?0:fx.blur,imageCode?0:fx.glitch,imageCode?0:fx.chroma,fx.seconds,imageCode?{}:fx);
  imageInput=null;
@@ -303,11 +304,11 @@ async function useCutout(source){
 // the GPU stopped drawing (Chrome's GPU process went down or reset): the canvas stays black, so say so and offer a reload
 function showContextLost(){const box=$('stage-error');if(!box)return;box.hidden=false;box.replaceChildren();const p=document.createElement('p');p.textContent='描画が止まりました（Chrome の GPU が止まったみたい）。「ページを開き直す」で戻ります。絵は入れ直してね。開き直しても真っ暗なら、Chrome を一度終了して開き直してね。';const b=document.createElement('button');b.type='button';b.className='stage-reload';b.textContent='ページを開き直す';b.onclick=()=>location.reload();box.append(p,b)}
 function wireControls(){
- for(const [id,label] of FRAME_STYLES)$('frame-style').append(new Option(label,id));for(const [id,label] of FRAME_TILTS)$('frame-tilt').append(new Option(label,id));
- syncFrameControls=()=>{const f=state.frameStage;$('frame-on').checked=f.enabled;$('frame-body').hidden=!f.enabled;$('frame-style').value=f.style;$('frame-pop').value=Math.round(f.pop*100);$('frame-pop-value').textContent=Math.round(f.pop*100)+'%';$('frame-size').value=Math.round(f.size*100);$('frame-size-value').textContent=Math.round(f.size*100)+'%';$('frame-tilt').value=f.tilt;$('frame-tilt-amount').value=Math.round(f.tiltAmount*100);$('frame-tilt-amount-value').textContent=Math.round(f.tiltAmount*100)+'%';$('frame-tilt-amount-row').hidden=f.tilt==='none';const has=!!frameStage?.hasCutout;$('frame-cutout-remove').hidden=!has;$('frame-cutout-add').textContent=has?'切り抜きを入れ替える':'＋ 切り抜きを選ぶ';if(!has)$('frame-cutout-status').textContent=''};
+ for(const [id,label] of FRAME_STYLES)$('frame-style').append(new Option(label,id));for(const [id,label] of FRAME_TILTS)$('frame-tilt').append(new Option(label,id));for(const [id,label] of PERSON_MOVES)$('frame-person-move').append(new Option(label,id));
+ syncFrameControls=()=>{const f=state.frameStage;$('frame-on').checked=f.enabled;$('frame-body').hidden=!f.enabled;$('frame-style').value=f.style;$('frame-pop').value=Math.round(f.pop*100);$('frame-pop-value').textContent=Math.round(f.pop*100)+'%';$('frame-size').value=Math.round(f.size*100);$('frame-size-value').textContent=Math.round(f.size*100)+'%';$('frame-tilt').value=f.tilt;$('frame-tilt-amount').value=Math.round(f.tiltAmount*100);$('frame-tilt-amount-value').textContent=Math.round(f.tiltAmount*100)+'%';$('frame-tilt-amount-row').hidden=f.tilt==='none';$('frame-person-move').value=f.personMove;const has=!!frameStage?.hasCutout;$('frame-cutout-remove').hidden=!has;$('frame-cutout-add').textContent=has?'切り抜きを入れ替える':'＋ 切り抜きを選ぶ';if(!has)$('frame-cutout-status').textContent=''};
  $('frame-on').onchange=e=>setFrameStage({enabled:e.target.checked});$('frame-style').onchange=e=>setFrameStage({style:e.target.value});
  $('frame-pop').oninput=e=>setFrameStage({pop:Number(e.target.value)/100});$('frame-size').oninput=e=>setFrameStage({size:Number(e.target.value)/100});
- $('frame-tilt').onchange=e=>setFrameStage({tilt:e.target.value});$('frame-tilt-dice').onclick=()=>setFrameStage({tilt:pickTilt(state.frameStage.tilt)});$('frame-tilt-amount').oninput=e=>setFrameStage({tiltAmount:Number(e.target.value)/100});
+ $('frame-tilt').onchange=e=>setFrameStage({tilt:e.target.value});$('frame-tilt-dice').onclick=()=>setFrameStage({tilt:pickTilt(state.frameStage.tilt)});$('frame-tilt-amount').oninput=e=>setFrameStage({tiltAmount:Number(e.target.value)/100});$('frame-person-move').onchange=e=>setFrameStage({personMove:e.target.value});$('frame-person-dice').onclick=()=>setFrameStage({personMove:pickPersonMove(state.frameStage.personMove)});
  $('frame-cutout-add').onclick=()=>$('frame-cutout-input').click();
  $('frame-cutout-input').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file||state.recording)return;$('frame-cutout-status').textContent='切り抜きの位置を探しています…';try{await useCutout(file)}catch(err){$('frame-cutout-status').textContent=err.message||'切り抜きを読み込めませんでした。'}};
  $('frame-cutout-remove').onclick=()=>{frameStage.setCutout(null);syncFrameControls();render()};

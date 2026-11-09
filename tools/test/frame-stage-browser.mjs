@@ -74,6 +74,20 @@ try {
   need(diff(cutBreak, noCutBreak) > .02, `as the picture breaks the person steps out in front (${(diff(cutBreak, noCutBreak) * 100).toFixed(1)}% pixels differ)`);
   if (shots) { await page.evaluate(() => { unfold.setTime(.3); unfold.render(); }); await page.locator('#stage').screenshot({ path: `${shots}/frame-person.png` }); }
 
+  // the person's own move: every move still lands exactly on the picture while it is whole, and the moves differ while it is out
+  const moves = await page.evaluate(() => [...document.getElementById('frame-person-move').options].map(o => o.value));
+  need(moves.join() === 'pop,forward,counter,nudge,float', `the person's moves are listed (${moves})`);
+  const outLooks = [];
+  for (const move of moves) {
+    await page.selectOption('#frame-person-move', move);
+    need(diff(await look(.02), onFlat) < .01, `${move}: still exactly on the picture while it is whole`);
+    outLooks.push(await look(.6));
+  }
+  need(outLooks.slice(1).every(l => diff(l, outLooks[0]) > .005), 'each move puts the person somewhere else while it is out');
+  await page.click('#frame-person-dice');
+  need(await page.evaluate(() => unfold.state.frameStage.personMove !== 'float'), `🎲 picks another move (${await page.evaluate(() => unfold.state.frameStage.personMove)})`);
+  await page.selectOption('#frame-person-move', 'pop');
+
   // a JavaScript image method: its worker draws on a clear background, so the frame still shows
   const shatter = await page.evaluate(() => unfoldMethods.listCustom().find(r => r.name === '爆砕と再誕')?.id);
   need(!!shatter, '爆砕と再誕 is bundled');
