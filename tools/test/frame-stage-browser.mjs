@@ -76,7 +76,7 @@ try {
 
   // the person's own move: every move still lands exactly on the picture while it is whole, and the moves differ while it is out
   const moves = await page.evaluate(() => [...document.getElementById('frame-person-move').options].map(o => o.value));
-  need(moves.join() === 'pop,forward,counter,nudge,float', `the person's moves are listed (${moves})`);
+  need(moves.join() === 'pop,forward,counter,nudge,float,stay', `the person's moves are listed (${moves})`);
   const outLooks = [];
   for (const move of moves) {
     await page.selectOption('#frame-person-move', move);
@@ -127,6 +127,28 @@ try {
   await page.click('#frame-on');
   const offAgain = await look(.02);
   need(diff(offAgain, offFlat) < .01, `turning it off draws exactly what was drawn before (${(diff(offAgain, offFlat) * 100).toFixed(2)}% differ)`);
+  // 人物（切り抜き） without the frame: the cut-out is still in (it no longer needs the frame), the person stays where she is while the
+  // rest breaks, and the breaking picture carries no copy of her (the person-free background)
+  need(await page.evaluate(() => !document.getElementById('frame-cutout-remove').hidden), 'the cut-out stays in with the frame off (its own section)');
+  need(await page.evaluate(() => !!document.querySelector('#person-section #frame-cutout-add') && !document.getElementById('person-section').closest('#frame-body')), 'the cut-out has its own section, outside the frame settings');
+  const stayFlat = await look(.02);
+  need(diff(stayFlat, offFlat) < .01, `the whole picture is as before with the cut-out in (${(diff(stayFlat, offFlat) * 100).toFixed(2)}% differ)`);
+  const stayBreak = await look(.3);
+  await page.click('#frame-cutout-remove');
+  const plainBreak = await look(.3);
+  need(diff(stayBreak, plainBreak) > .02, `the person stays on screen while the picture breaks (${(diff(stayBreak, plainBreak) * 100).toFixed(1)}% differ from no cut-out)`);
+  // the person stays put: the red body is still where it was in the picture (the middle of the frame, 640 of 1200)
+  const redAt = img => { let sx = 0, n = 0; for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) { const i = (y * img.w + x) * 4; if (img.d[i] > 150 && img.d[i + 1] < 90 && img.d[i + 2] < 90) { sx += x; n++; } } return { x: sx / Math.max(1, n) / img.w, n }; };
+  await page.evaluate(async () => unfold.useCutout(window.__cut));
+  const r = redAt(await look(.6));
+  need(r.n > 200 && Math.abs(r.x - 640 / 1200) < .05, `the person stays where she was (${r.x.toFixed(3)}, ${r.n} red pixels)`);
+  // with the person-free background, the breaking picture is not red where she was; without it, it is (a copy breaks behind her)
+  await page.evaluate(() => { document.getElementById('person-plate').click(); });
+  const withCopy = await look(.3);
+  await page.evaluate(() => { document.getElementById('person-plate').click(); });
+  const noCopy = await look(.3);
+  need(redAt(withCopy).n > redAt(noCopy).n, `崩れる時は、人物のいない背景で崩す: fewer red pieces behind her (${redAt(noCopy).n} vs ${redAt(withCopy).n} without it)`);
+  need(diff(await look(.995), offFlat) < .01, 'the last frame is the real picture again');
   need(!problems.length, `no page errors ${problems.join(' | ')}`);
   await page.evaluate(() => localStorage.removeItem('unfold-single-frame'));
 } finally {

@@ -66,7 +66,7 @@ test('the person lands exactly on the picture with every move, and each move doe
   assert.ok(personPose('nudge', 1, .2).z > personPose('nudge', 1, 1).z && personPose('nudge', 1, 1).z > 0, '前に出て、少し下がる: out first, then back a little (still out)');
   const f = [0, 1, 2, 3].map(sec => personPose('float', 1, .5, sec).y);
   assert.ok(new Set(f.map(v => v.toFixed(4))).size > 2, 'ふわふわ漂う moves over time');
-  for (const [id] of PERSON_MOVES) for (const hold of [0, .5, 1]) { const p = personPose(id, 1, hold, 1.3, tilt); assert.ok(p.s >= 1 && p.s <= 1.5 && p.z >= 0 && p.z <= .6, `${id} stays a sensible size (${p.s.toFixed(2)}, z ${p.z.toFixed(2)})`); }
+  for (const [id] of PERSON_MOVES) for (const hold of [0, .5, 1]) { const p = personPose(id, 1, hold, 1.3, tilt); if (id === 'stay') { assert.ok(p.s < 1.05 && p.z < .1 && p.x === 0, 'その場に残る barely moves'); continue; } assert.ok(p.s >= 1 && p.s <= 1.5 && p.z >= 0 && p.z <= .6, `${id} stays a sensible size (${p.s.toFixed(2)}, z ${p.z.toFixed(2)})`); }
 });
 
 test('🎲 for the person picks another move', () => {

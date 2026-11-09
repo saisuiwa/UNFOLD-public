@@ -12,7 +12,7 @@ export const FRAME_STYLES = [['gold', '金の額'], ['wood', '木の額'], ['bla
 const STYLE_IDS = FRAME_STYLES.map(([id]) => id);
 export const FRAME_TILTS = [['none', 'なし（正面のまま）'], ['sway', 'ゆっくり左右に振れる'], ['topBack', '上が奥へ倒れる'], ['rightFront', '右が手前に来る'], ['leftFront', '左が手前に来る'], ['orbit', 'ぐるっと回り込む']];
 const TILT_IDS = FRAME_TILTS.map(([id]) => id);
-export const PERSON_MOVES = [['pop', '飛び出したまま'], ['forward', 'ゆっくり前へ'], ['counter', '額縁と逆に動く'], ['nudge', '前に出て、少し下がる'], ['float', 'ふわふわ漂う']];
+export const PERSON_MOVES = [['pop', '飛び出したまま'], ['forward', 'ゆっくり前へ'], ['counter', '額縁と逆に動く'], ['nudge', '前に出て、少し下がる'], ['float', 'ふわふわ漂う'], ['stay', 'その場に残る']];
 const MOVE_IDS = PERSON_MOVES.map(([id]) => id);
 const num = (x, lo, hi, d) => typeof x === 'number' && Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : d;
 export function cleanFrameStage(value) {
@@ -80,6 +80,8 @@ export function personPose(move, out, hold = 0, sec = 0, tilt = { yaw: 0, pitch:
       return { ...base, ry: o * 2.2 * yaw, rx: -o * 2.2 * pitch, x: base.x - o * .55 * yaw, y: base.y + o * .3 * pitch };
     }
     case 'nudge': { const back = ease((h - .3) / .45); return { ...base, s: 1 + o * (.38 - .12 * back), z: o * (.5 - .26 * back), y: o * (.07 - .03 * back) }; }
+    // その場に残る (and always without the frame): the person stays where she is while the background breaks around her, just a breath of life
+    case 'stay': return { s: 1 + .03 * o, x: 0, y: o * .012 * Math.sin(2 * Math.PI * sec / 3.4), z: .08 * o, rx: 0, ry: 0, rz: 0 };
     case 'float': { const a = 2 * Math.PI * sec; return { ...base, y: base.y + o * .03 * Math.sin(a / 3.2), rz: o * .035 * Math.sin(a / 4.1), ry: o * .12 * Math.sin(a / 5.3) }; }
     default: return base;
   }
@@ -133,6 +135,35 @@ export function drawFrame(style, w, h, k = 200) {
   return { canvas: c, width: W / k, height: H / k };
 }
 
+// the picture without the person: where the cut-out is, each row is filled from the colours on its left and right, softened, so the pieces
+// that break away (and the solid they make) carry no copy of the person. Both canvases are the picture's size.
+export function cleanPlate(source, cut) {
+  const W = source.width, H = source.height, ctx = c => c.getContext('2d', { willReadFrequently: true });
+  const src = ctx(source).getImageData(0, 0, W, H), alpha = ctx(cut).getImageData(0, 0, W, H).data, d = src.data;
+  // the mask, a little wider than the person (hair edges)
+  const m0 = new Uint8Array(W * H); for (let i = 0; i < W * H; i++) m0[i] = alpha[i * 4 + 3] > 20 ? 1 : 0;
+  const r = Math.max(2, Math.round(Math.max(W, H) / 250)), m1 = new Uint8Array(W * H), mask = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) { let last = -1e9; for (let x = 0; x < W; x++) { if (m0[y * W + x]) last = x; if (x - last <= r) m1[y * W + x] = 1; } last = 1e9; for (let x = W - 1; x >= 0; x--) { if (m0[y * W + x]) last = x; if (last - x <= r) m1[y * W + x] = 1; } }
+  for (let x = 0; x < W; x++) { let last = -1e9; for (let y = 0; y < H; y++) { if (m1[y * W + x]) last = y; if (y - last <= r) mask[y * W + x] = 1; } last = 1e9; for (let y = H - 1; y >= 0; y--) { if (m1[y * W + x]) last = y; if (last - y <= r) mask[y * W + x] = 1; } }
+  const fill = new Uint8ClampedArray(d), avg = (y, x0, x1) => { let n = 0, c = [0, 0, 0]; for (let x = Math.max(0, x0); x <= Math.min(W - 1, x1); x++) { const i = (y * W + x) * 4; c[0] += d[i]; c[1] += d[i + 1]; c[2] += d[i + 2]; n++; } return n ? c.map(v => v / n) : null; };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W;) {
+    if (!mask[y * W + x]) { x++; continue; }
+    let e = x; while (e < W && mask[y * W + e]) e++;
+    const L = x > 0 ? avg(y, x - 5, x - 1) : null, R = e < W ? avg(y, e, e + 4) : null, a = L || R, b = R || L;
+    if (a) for (let k = x; k < e; k++) { const t = e - x > 1 ? (k - x) / (e - x - 1) : .5, i = (y * W + k) * 4; for (let c = 0; c < 3; c++) fill[i + c] = a[c] + (b[c] - a[c]) * t; fill[i + 3] = 255; }
+    x = e;
+  }
+  const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const filled = canvas(W, H); ctx(filled).putImageData(new ImageData(fill, W, H), 0, 0);
+  // soften the rows (they streak), and keep the softened fill only inside the (feathered) mask
+  const soft = canvas(W, H), s = soft.getContext('2d'); s.filter = `blur(${Math.max(3, Math.round(Math.max(W, H) / 160))}px)`; s.drawImage(filled, 0, 0); s.filter = 'none';
+  const mk = canvas(W, H), mi = new ImageData(W, H); for (let i = 0; i < W * H; i++) mi.data[i * 4 + 3] = mask[i] ? 255 : 0; ctx(mk).putImageData(mi, 0, 0);
+  const feather = canvas(W, H), f = feather.getContext('2d'); f.filter = `blur(${r}px)`; f.drawImage(mk, 0, 0);
+  s.globalCompositeOperation = 'destination-in'; s.drawImage(feather, 0, 0);
+  const out = canvas(W, H), o = out.getContext('2d'); o.drawImage(source, 0, 0); o.drawImage(soft, 0, 0);
+  return out;
+}
+
 // the person's shadow on the wall and the picture: the cut-out made black and soft
 export function shadowOf(cut) {
   const c = document.createElement('canvas'); c.width = cut.width; c.height = cut.height; const x = c.getContext('2d');
@@ -147,29 +178,31 @@ export function createFrameStage(THREE) {
   const frame = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material(null)); frame.renderOrder = -100; back.add(frame);
   const shadow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material(null, 0)); shadow.renderOrder = -90; back.add(shadow);
   const person = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material(null)); front.add(person);
-  let size = { w: 1, h: 1 }, style = '', cut = null;
+  let size = { w: 1, h: 1 }, style = '', cut = null, plate = null;
   function redraw() { const f = drawFrame(style, size.w, size.h); frame.material.map?.dispose(); frame.material.map = texture(f.canvas); frame.material.needsUpdate = true; frame.scale.set(f.width, f.height, 1); }
   return {
     back, front,
     setPicture(w, h) { size = { w, h }; if (style) redraw(); person.scale.set(w, h, 1); shadow.scale.set(w, h, 1); },
     setStyle(s) { if (s !== style) { style = s; redraw(); } },
     // cutCanvas: the cut-out placed on a canvas the same size as the picture (so it sits exactly on it), or null
-    setCutout(cutCanvas) {
-      cut = cutCanvas; for (const m of [person, shadow]) { m.material.map?.dispose(); m.material.map = null; }
+    setCutout(cutCanvas, source = null) {
+      cut = cutCanvas; plate = cut && source ? cleanPlate(source, cut) : null; for (const m of [person, shadow]) { m.material.map?.dispose(); m.material.map = null; }
       if (cut) { person.material.map = texture(cut); shadow.material.map = texture(shadowOf(cut)); }
       person.material.needsUpdate = shadow.material.needsUpdate = true;
     },
     get hasCutout() { return !!cut; },
+    get plate() { return plate; },   // the picture without the person (null without a cut-out)
     // enabled: the frame is on; out: personOut(); camera: the scene camera (the person is drawn with it)
+    // enabled: the frame is on (without it the person stays where she is: その場に残る)
     update({ enabled, out, hold = 0, sec = 0, tilt, move = 'pop' }) {
-      back.visible = enabled; frame.visible = enabled;
-      const show = enabled && !!cut; shadow.visible = person.visible = show;
+      frame.visible = enabled;
+      const show = !!cut; shadow.visible = person.visible = show;
       if (!show) return;
-      const p = personPose(move, out, hold, sec, tilt);   // in front of the frame (z), so a tilted camera sees it move against the frame
+      const p = personPose(enabled ? move : 'stay', out, hold, sec, tilt);   // in front of the frame (z), so a tilted camera sees it move against the frame
       person.scale.set(size.w * p.s, size.h * p.s, 1); person.position.set(p.x * size.w, p.y * size.h, p.z * size.h); person.rotation.set(p.rx, p.ry, p.rz);
       // the shadow on the wall: further off and softer the further out the person is
       const far = Math.min(1.6, out + p.z * .6);
-      shadow.scale.set(size.w * (1 + .06 * far), size.h * (1 + .06 * far), 1); shadow.position.set(p.x * size.w + .05 * size.w * far, p.y * size.h * .5 - .05 * size.h * far, 0); shadow.material.opacity = .34 * out;
+      shadow.scale.set(size.w * (1 + .06 * far), size.h * (1 + .06 * far), 1); shadow.position.set(p.x * size.w + .05 * size.w * far, p.y * size.h * .5 - .05 * size.h * far, 0); shadow.material.opacity = (enabled ? .34 : .2) * out;
     },
     dispose() { for (const m of [frame, shadow, person]) { m.material.map?.dispose(); m.material.dispose(); m.geometry.dispose(); } },
   };

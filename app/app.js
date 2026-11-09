@@ -6,8 +6,9 @@ import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js'
 import {usesImageLabel} from './image-label.js?v=1';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { solidMotionAt, motionCamera, solidLife, SINGLE_BEAT_SEC } from './solid-motion.js?v=4';
-import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, createFrameStage, frameZoom, personOut, solidPop, solidShift, tiltAt, pickTilt, pickPersonMove, orbitCamera } from './frame-stage.js?v=6';
+import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, createFrameStage, frameZoom, personOut, solidPop, solidShift, tiltAt, pickTilt, pickPersonMove, orbitCamera } from './frame-stage.js?v=7';
 import { alignCutout } from './cutout-align.js?v=1';
+import { BACKDROPS, cleanSolidStage, createSolidStage } from './solid-stage.js?v=1';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
@@ -49,8 +50,10 @@ const loadShot=()=>{try{return cleanShot(JSON.parse(localStorage.getItem('unfold
 // 額縁から飛び出す (frame-stage.js): the settings stay in this browser; the cut-out does not (it belongs to one picture)
 const loadFrameStage=()=>{try{return cleanFrameStage(JSON.parse(localStorage.getItem('unfold-single-frame')||'null'))}catch{return cleanFrameStage()}};
 const saveFrameStage=()=>{try{localStorage.setItem('unfold-single-frame',JSON.stringify(state.frameStage))}catch{}};
-let frameStage=null,syncFrameControls=null;
-const state={fit:'cover',imageSolid:true,shot:loadShot(),frameStage:loadFrameStage(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,solidLength:0,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+let frameStage=null,syncFrameControls=null,solidStage=null;
+const loadSolidStage=()=>{try{return cleanSolidStage(JSON.parse(localStorage.getItem('unfold-single-stage')||'null'))}catch{return cleanSolidStage()}};
+const saveSolidStage=()=>{try{localStorage.setItem('unfold-single-stage',JSON.stringify(state.stage))}catch{}};
+const state={fit:'cover',imageSolid:true,personPlate:true,stage:loadSolidStage(),shot:loadShot(),frameStage:loadFrameStage(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,solidLength:0,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
@@ -113,26 +116,33 @@ function render(){
  const framed=state.frameStage.enabled,pop=framed?solidPop(state.frameStage.pop,m.form):1;if(pop!==1){mesh.scale.multiplyScalar(pop);mesh.position.multiplyScalar(pop)}
  const shift=framed?solidShift(state.frameStage.solidX,state.frameStage.solidY,u.uSize.value.x,u.uSize.value.y,m.form):[0,0,0],shifted=shift[0]!==0||shift[1]!==0;if(shifted){mesh.position.x+=shift[0];mesh.position.y+=shift[1]}
  const outNow=personOut(m.distort,m.form),tiltNow=framed&&state.frameStage.tilt!=='none'?tiltAt(state.frameStage.tilt,state.frameStage.tiltAmount,state.t*state.duration,outNow):{yaw:0,pitch:0};
+ // 人物（切り抜き）: while the picture is changing, it breaks up without the person (she is drawn on her own, last); whole again = the real picture
+ const plate=state.personPlate?frameStage?.plate:null,wantImage=plate&&outNow>.02?plate:sourceCanvas;if(texture&&texture.image!==wantImage){texture.image=wantImage;texture.needsUpdate=true}
  frameStage?.update({enabled:framed,out:outNow,hold:Math.min(1,Math.max(0,(state.t-.1)/.7)),sec:state.t*state.duration,tilt:tiltNow,move:state.frameStage.personMove});
  const fx=effectsAt(state.t,state.duration,state);
  const imageSize=u.uSize.value,frameW=camera.right-camera.left,frameH=camera.top-camera.bottom;
  const fillZoom=(state.fit==='contain'?Math.min:Math.max)(frameW/imageSize.x,frameH/imageSize.y);   // 'contain': the whole picture stays in view, the rest is the background colour
  // how far the camera eases out while the picture is torn up, handing over to the 3D-solid setting as it forms (0 = stays filling the frame)
  const flat=1-(m.distort*state.pullback*(1-m.form)+m.form*(fillsFrame(state.shape)?0:state.formPullback));
- const baseZoom=framed?frameZoom(frameW,frameH,imageSize.x,imageSize.y,state.frameStage.style,state.frameStage.size):1+(fillZoom-1)*flat;   // in the frame: the whole frame stays in view, the camera does not pull back
+ const staying=!framed&&!!frameStage?.hasCutout;   // 人物を残す: the camera does not pull back, so the person stays her size and the solid forms around her
+ const baseZoom=framed?frameZoom(frameW,frameH,imageSize.x,imageSize.y,state.frameStage.style,state.frameStage.size):staying?fillZoom:1+(fillZoom-1)*flat;   // in the frame: the whole frame stays in view, the camera does not pull back
  camera.zoom=baseZoom*fx.zoom;camera.position.x=fx.x;camera.position.y=fx.y;camera.rotation.z=fx.roll;camera.updateProjectionMatrix();
  const move=blendCameraMove({x:camera.position.x,y:camera.position.y,zoom:camera.zoom,roll:camera.rotation.z},state.shot.camera,state.t,{width:imageSize.x,height:imageSize.y,zoom:baseZoom});
  camera.zoom=move.zoom;camera.position.x=move.x;camera.position.y=move.y;camera.rotation.z=move.roll;camera.updateProjectionMatrix();
+ // 立体の舞台: while it is a solid, a blurred picture behind it and a floor with its shadow under it (fit to what the camera sees)
+ const staged=state.stage.enabled;
+ if(solidStage){const z=camera.zoom,src=state.stage.backdrop==='none'?null:state.stage.backdrop==='plate'?(frameStage?.plate||sourceCanvas):sourceCanvas;solidStage.setBackdrop(src,state.stage.blur);
+  solidStage.update({enabled:staged,form:m.form,floor:state.stage.floor,view:{left:camera.position.x+camera.left/z,right:camera.position.x+camera.right/z,top:camera.position.y+camera.top/z,bottom:camera.position.y+camera.bottom/z},solid:{x:mesh.position.x,y:mesh.position.y,radius:imageSize.y*.5*mesh.scale.y}})}
  applyRenderLook(u,state.renderLook);
  // 額縁の傾き: a perspective camera turns a little around the frame while the picture is changing (straight again when it is whole)
  const tilting=framed&&state.frameStage.tilt!=='none',ownPersp=state.renderLook.enabled?state.renderLook.perspective:0;
  const straight=syncPerspective(camera,perspCam,ownPersp>0?ownPersp:tilting?.5:0);
  const view=tilting?orbitCamera(straight,orbitTarget.set(camera.position.x,camera.position.y,0),tiltNow,camera.rotation.z):straight;
- const imageFade=imageCode?smoothImage(state.t/.025)*smoothImage((1-state.t)/.025):0;mesh.visible=!(imageCode&&framed&&imageFade>=1);   // in the frame the worker draws on a clear background, so the GLSL copy under it must not show
+ const imageFade=imageCode?smoothImage(state.t/.025)*smoothImage((1-state.t)/.025):0;mesh.visible=!(imageCode&&(framed||staged)&&imageFade>=1);   // in the frame the worker draws on a clear background, so the GLSL copy under it must not show
  u.uGlass.value=imageCode?0:fx.glass;sceneBlur.render(scene,view,imageCode?0:fx.blur,imageCode?0:fx.glitch,imageCode?0:fx.chroma,fx.seconds,imageCode?{}:fx);
  imageInput=null;
- if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={params:state.imageLabel?{label:state.imageLabel}:undefined,target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText,texture:shapeOf(state.shape)?.data.texture}):null,id:state.method,imageA:sourceCanvas,imageB:sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,modelColor:state.modelColor,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,...(framed?{bgAlpha:0}:{}),camera:motionCamera(imageCamera(view),pop===1&&!shifted?sm:{quaternion:[0,0,0,1],position:(sm?sm.position.map(v=>v*pop):[0,0,0]).map((v,i)=>v+shift[i]),scale:(sm?.scale||[1,1,1]).map(v=>v*pop)}),rootQuaternion:mesh.quaternion.toArray()}};const fade=imageFade;if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
- if(framed&&frameStage?.hasCutout){const old=renderer.autoClear;renderer.autoClear=false;renderer.setRenderTarget(null);renderer.render(frameStage.front,view);renderer.autoClear=old}   // the person: last, in front of the solid
+ if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={params:state.imageLabel?{label:state.imageLabel}:undefined,target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText,texture:shapeOf(state.shape)?.data.texture}):null,id:state.method,imageA:plate||sourceCanvas,imageB:plate||sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,modelColor:state.modelColor,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,...(framed||staged?{bgAlpha:0}:{}),camera:motionCamera(imageCamera(view),pop===1&&!shifted?sm:{quaternion:[0,0,0,1],position:(sm?sm.position.map(v=>v*pop):[0,0,0]).map((v,i)=>v+shift[i]),scale:(sm?.scale||[1,1,1]).map(v=>v*pop)}),rootQuaternion:mesh.quaternion.toArray()}};const fade=imageFade;if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
+ if(frameStage?.hasCutout){const old=renderer.autoClear;renderer.autoClear=false;renderer.setRenderTarget(null);renderer.render(frameStage.front,view);renderer.autoClear=old}   // the person: last, in front of the solid
  safety?.afterDraw();updateTransport(m);
 }
 function updateTransport(m=motionAt(state.t,state.chaosLength,state.solidLength)){
@@ -297,9 +307,9 @@ async function useCutout(source){
  const d=px.getImageData(0,0,probe.width,probe.height).data;let clear=0;for(let i=3;i<d.length;i+=4)if(d[i]<40)clear++;
  if(clear<d.length/4*.03)throw Error('透明な所がない画像です。人物だけを切り抜いた透過PNGを選んでね。');
  const at=alignCutout(sourceCanvas,img),c=document.createElement('canvas');c.width=sourceCanvas.width;c.height=sourceCanvas.height;c.getContext('2d').drawImage(img,at.x,at.y,img.width/at.s,img.height/at.s);
- frameStage.setCutout(c);
- const fits=at.err<30;if(!state.frameStage.enabled)setFrameStage({enabled:true});else{syncFrameControls?.();render()}
- $('frame-cutout-status').textContent=fits?'切り抜きを絵の人物の位置に合わせました。絵が崩れはじめると、人物が額縁から出てきます。':'絵と色が合いませんでした。この絵から切り抜いた物か確かめてね（いちばん近い位置で使っています）。';
+ frameStage.setCutout(c,sourceCanvas);
+ const fits=at.err<30;syncFrameControls?.();render();
+ $('frame-cutout-status').textContent=fits?(state.frameStage.enabled?'切り抜きを絵の人物の位置に合わせました。絵が崩れはじめると、人物が額縁から出てきます。':'切り抜きを絵の人物の位置に合わせました。人物はその場に残って、まわりの背景だけが崩れます。'):'絵と色が合いませんでした。この絵から切り抜いた物か確かめてね（いちばん近い位置で使っています）。';
  return at;
 }
 // the GPU stopped drawing (Chrome's GPU process went down or reset): the canvas stays black, so say so and offer a reload
@@ -313,6 +323,12 @@ function wireControls(){
  $('frame-cutout-add').onclick=()=>$('frame-cutout-input').click();
  $('frame-cutout-input').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file||state.recording)return;$('frame-cutout-status').textContent='切り抜きの位置を探しています…';try{await useCutout(file)}catch(err){$('frame-cutout-status').textContent=err.message||'切り抜きを読み込めませんでした。'}};
  $('frame-cutout-remove').onclick=()=>{frameStage.setCutout(null);syncFrameControls();render()};
+ $('person-plate').onchange=e=>{state.personPlate=e.target.checked;render()};
+ for(const [id,label] of BACKDROPS)$('stage-backdrop').append(new Option(label,id));
+ const syncStage=()=>{const g=state.stage;$('stage-on').checked=g.enabled;$('stage-body').hidden=!g.enabled;$('stage-backdrop').value=g.backdrop;$('stage-blur').value=Math.round(g.blur*100);$('stage-blur-value').textContent=Math.round(g.blur*100)+'%';$('stage-floor').checked=g.floor};
+ const setStage=patch=>{state.stage=cleanSolidStage({...state.stage,...patch});saveSolidStage();syncStage();render()};
+ $('stage-on').onchange=e=>setStage({enabled:e.target.checked});$('stage-backdrop').onchange=e=>setStage({backdrop:e.target.value});$('stage-blur').oninput=e=>setStage({blur:Number(e.target.value)/100});$('stage-floor').onchange=e=>setStage({floor:e.target.checked});
+ syncStage();window.unfoldStage={set:setStage};
  syncFrameControls();syncImageControls();   // 「立体化する」 is there from the start (it used to appear only after choosing a method)
  const tabs=[...document.querySelectorAll('.inspector-tabs [data-tab]')];
  tabs.forEach((button,index)=>{
@@ -505,7 +521,7 @@ let previous=performance.now();function tick(now){if(state.playing&&!state.recor
 try{
  renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,alpha:false,preserveDrawingBuffer:true});$('scene').addEventListener('webglcontextlost',e=>{e.preventDefault();safety?.contextLost();showContextLost()});renderer.outputColorSpace=THREE.SRGBColorSpace;sceneBlur=new SceneBlur(renderer);
  scene=new THREE.Scene();camera=new THREE.OrthographicCamera(-4.8,4.8,2.7,-2.7,.1,100);camera.position.z=10;
- frameStage=createFrameStage(THREE);frameStage.setStyle(state.frameStage.style);scene.add(frameStage.back);
+ frameStage=createFrameStage(THREE);frameStage.setStyle(state.frameStage.style);scene.add(frameStage.back);solidStage=createSolidStage(THREE);scene.add(solidStage.group);
  setSource(makeSample(),'カラーテスト・サンプル');wireControls();loadSavedModels();detectFormats();updateRange();resize();requestAnimationFrame(tick);
  attachWorkshopLink({notify:notice,apply:(item,target,activate)=>{if(state.recording)throw Error('書き出しが終わってから適用してください。');if(item.kind==='text')throw Error('文字モーションはシーケンスの歌詞に使えます。');const method=activate();if(method.code&&item.workshop?.shape==='none')state.imageSolid=false;setChoice('methods','method',method.id);}});
  window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
