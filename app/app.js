@@ -6,6 +6,8 @@ import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js'
 import {usesImageLabel} from './image-label.js?v=1';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { solidMotionAt, motionCamera, solidLife, SINGLE_BEAT_SEC } from './solid-motion.js?v=4';
+import { FRAME_STYLES, FRAME_TILTS, cleanFrameStage, createFrameStage, frameZoom, personOut, solidPop, tiltAt, pickTilt, orbitCamera } from './frame-stage.js?v=3';
+import { alignCutout } from './cutout-align.js?v=1';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
@@ -44,11 +46,15 @@ let activeGroup=loadActive('unfold-glb-tab');   // the GLB tab in use (the same 
 const customShapes=new Map(),colourShapes=new Map(),savedModels=new Map();let customSerial=0,importing=false;
 const $=id=>document.getElementById(id);
 const loadShot=()=>{try{return cleanShot(JSON.parse(localStorage.getItem('unfold-single-shot')||'null'))}catch{return cleanShot()}};
-const state={fit:'cover',imageSolid:true,shot:loadShot(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,solidLength:0,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+// 額縁から飛び出す (frame-stage.js): the settings stay in this browser; the cut-out does not (it belongs to one picture)
+const loadFrameStage=()=>{try{return cleanFrameStage(JSON.parse(localStorage.getItem('unfold-single-frame')||'null'))}catch{return cleanFrameStage()}};
+const saveFrameStage=()=>{try{localStorage.setItem('unfold-single-frame',JSON.stringify(state.frameStage))}catch{}};
+let frameStage=null,syncFrameControls=null;
+const state={fit:'cover',imageSolid:true,shot:loadShot(),frameStage:loadFrameStage(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,solidLength:0,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
-const perspCam=new THREE.PerspectiveCamera();
+const perspCam=new THREE.PerspectiveCamera(),orbitTarget=new THREE.Vector3();
 let renderer,scene,camera,mesh,variants,methodEditor,methodPersistence,safety,methodEnabler,texture,sourceCanvas,noticeTimer,recordJob=null,lastVideoUrl=null,sceneBlur;
 function notice(message){$('notice').textContent=message;$('notice').classList.add('show');clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').classList.remove('show'),4500)}
 function makeSample(){
@@ -80,6 +86,7 @@ function setSource(canvas,name){
  if(mesh){mesh.geometry.dispose();mesh.material.dispose();scene.remove(mesh)}
  const uniforms={uImage:{value:texture},uSize:{value:new THREE.Vector2(w,h)},uDistort:{value:0},uForm:{value:0},uStrength:{value:.75},uDepth:{value:1},uSeed:{value:28},uMethod:{value:0},uMethod2:{value:0},uMethodMix:{value:0},uProject:{value:0},uTime:{value:0},uDraw:{value:1},uThrough:{value:0},uFade:{value:1},uGlass:{value:0},uShape:{value:0},uPreset:{value:0},uConceal:{value:0},uModelColor:{value:state.modelColor},uModelTex:{value:null}};
  mesh=new THREE.Mesh(geometryFor(w,h),(variants?.dispose(),variants=createVariants({renderer,vertexShader,fragmentShader,uniforms,onReady:()=>render()}),variants.base));mesh.frustumCulled=false;scene.add(mesh);
+ frameStage?.setPicture(w,h);if(frameStage?.hasCutout){frameStage.setCutout(null);syncFrameControls?.()}
  const thumb=document.createElement('canvas');thumb.width=140;thumb.height=Math.round(140/aspect);thumb.getContext('2d').drawImage(canvas,0,0,thumb.width,thumb.height);$('thumbnail').src=thumb.toDataURL();$('image-name').textContent=name;
  $('image-size').textContent=`${canvas.width} × ${canvas.height} · クリックして変更`;render();
 }
@@ -102,19 +109,28 @@ function render(){
  // 立体の動き: the solid sways / hops… as one piece while it is formed (none = stays where it is)
  const sm=solidMotionAt(state.shot.motion,state.t*state.duration,SINGLE_BEAT_SEC,m.form,solidLife(warpTime(state.t,state.chaosLength,state.solidLength),[.53,.70]));
  if(sm){mesh.quaternion.premultiply(shotQuat.fromArray(sm.quaternion));mesh.position.fromArray(sm.position);mesh.scale.fromArray(sm.scale)}else{mesh.position.set(0,0,0);mesh.scale.set(1,1,1)}
+ // 額縁から飛び出す: the frame stays where it is and the solid grows past it as it forms; the cut-out person steps out as the picture breaks
+ const framed=state.frameStage.enabled,pop=framed?solidPop(state.frameStage.pop,m.form):1;if(pop!==1){mesh.scale.multiplyScalar(pop);mesh.position.multiplyScalar(pop)}
+ frameStage?.update({enabled:framed,out:personOut(m.distort,m.form)});
  const fx=effectsAt(state.t,state.duration,state);
  const imageSize=u.uSize.value,frameW=camera.right-camera.left,frameH=camera.top-camera.bottom;
  const fillZoom=(state.fit==='contain'?Math.min:Math.max)(frameW/imageSize.x,frameH/imageSize.y);   // 'contain': the whole picture stays in view, the rest is the background colour
  // how far the camera eases out while the picture is torn up, handing over to the 3D-solid setting as it forms (0 = stays filling the frame)
  const flat=1-(m.distort*state.pullback*(1-m.form)+m.form*(fillsFrame(state.shape)?0:state.formPullback));
- camera.zoom=(1+(fillZoom-1)*flat)*fx.zoom;camera.position.x=fx.x;camera.position.y=fx.y;camera.rotation.z=fx.roll;camera.updateProjectionMatrix();
- const move=blendCameraMove({x:camera.position.x,y:camera.position.y,zoom:camera.zoom,roll:camera.rotation.z},state.shot.camera,state.t,{width:imageSize.x,height:imageSize.y,zoom:1+(fillZoom-1)*flat});
+ const baseZoom=framed?frameZoom(frameW,frameH,imageSize.x,imageSize.y,state.frameStage.style,state.frameStage.size):1+(fillZoom-1)*flat;   // in the frame: the whole frame stays in view, the camera does not pull back
+ camera.zoom=baseZoom*fx.zoom;camera.position.x=fx.x;camera.position.y=fx.y;camera.rotation.z=fx.roll;camera.updateProjectionMatrix();
+ const move=blendCameraMove({x:camera.position.x,y:camera.position.y,zoom:camera.zoom,roll:camera.rotation.z},state.shot.camera,state.t,{width:imageSize.x,height:imageSize.y,zoom:baseZoom});
  camera.zoom=move.zoom;camera.position.x=move.x;camera.position.y=move.y;camera.rotation.z=move.roll;camera.updateProjectionMatrix();
  applyRenderLook(u,state.renderLook);
- const view=syncPerspective(camera,perspCam,state.renderLook.enabled?state.renderLook.perspective:0);
+ // 額縁の傾き: a perspective camera turns a little around the frame while the picture is changing (straight again when it is whole)
+ const tilting=framed&&state.frameStage.tilt!=='none',ownPersp=state.renderLook.enabled?state.renderLook.perspective:0;
+ const straight=syncPerspective(camera,perspCam,ownPersp>0?ownPersp:tilting?.5:0);
+ const view=tilting?orbitCamera(straight,orbitTarget.set(camera.position.x,camera.position.y,0),tiltAt(state.frameStage.tilt,state.frameStage.tiltAmount,state.t*state.duration,personOut(m.distort,m.form)),camera.rotation.z):straight;
+ const imageFade=imageCode?smoothImage(state.t/.025)*smoothImage((1-state.t)/.025):0;mesh.visible=!(imageCode&&framed&&imageFade>=1);   // in the frame the worker draws on a clear background, so the GLSL copy under it must not show
  u.uGlass.value=imageCode?0:fx.glass;sceneBlur.render(scene,view,imageCode?0:fx.blur,imageCode?0:fx.glitch,imageCode?0:fx.chroma,fx.seconds,imageCode?{}:fx);
  imageInput=null;
- if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={params:state.imageLabel?{label:state.imageLabel}:undefined,target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText,texture:shapeOf(state.shape)?.data.texture}):null,id:state.method,imageA:sourceCanvas,imageB:sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,modelColor:state.modelColor,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,camera:motionCamera(imageCamera(view),sm),rootQuaternion:mesh.quaternion.toArray()}};const fade=smoothImage(state.t/.025)*smoothImage((1-state.t)/.025);if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
+ if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={params:state.imageLabel?{label:state.imageLabel}:undefined,target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText,texture:shapeOf(state.shape)?.data.texture}):null,id:state.method,imageA:sourceCanvas,imageB:sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,modelColor:state.modelColor,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,...(framed?{bgAlpha:0}:{}),camera:motionCamera(imageCamera(view),pop===1?sm:{quaternion:[0,0,0,1],position:sm?sm.position.map(v=>v*pop):[0,0,0],scale:(sm?.scale||[1,1,1]).map(v=>v*pop)}),rootQuaternion:mesh.quaternion.toArray()}};const fade=imageFade;if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
+ if(framed&&frameStage?.hasCutout){const old=renderer.autoClear;renderer.autoClear=false;renderer.setRenderTarget(null);renderer.render(frameStage.front,view);renderer.autoClear=old}   // the person: last, in front of the solid
  safety?.afterDraw();updateTransport(m);
 }
 function updateTransport(m=motionAt(state.t,state.chaosLength,state.solidLength)){
@@ -270,7 +286,30 @@ async function loadImage(file,{ask=false}={}){
   state.playing=false;state.previewRange=false;state.t=0;state.viewX=state.viewY=0;useImage(c,file.name,frame);notice(scale<1?'画像を読み込みました。長辺4096pxに調整しています。':'画像を読み込みました。再生で動きを確認できるよ。');
  }catch{notice('画像を読み込めませんでした。別のPNG・JPG・WebPを試してね。')}finally{URL.revokeObjectURL(url);$('image-input').value=''}
 }
+// 額縁から飛び出す: settings, and the cut-out person (a transparent PNG cut from this picture), placed where it sits on the picture
+function setFrameStage(patch){state.frameStage=cleanFrameStage({...state.frameStage,...patch});frameStage?.setStyle(state.frameStage.style);saveFrameStage();syncFrameControls?.();render()}
+async function useCutout(source){
+ let img=source;
+ if(source instanceof Blob){if(!['image/png','image/webp'].includes(source.type))throw Error('透過PNG（またはWebP）の切り抜きを選んでね。');img=await createImageBitmap(source)}
+ const probe=document.createElement('canvas');probe.width=Math.min(256,img.width);probe.height=Math.max(1,Math.round(probe.width*img.height/img.width));const px=probe.getContext('2d',{willReadFrequently:true});px.drawImage(img,0,0,probe.width,probe.height);
+ const d=px.getImageData(0,0,probe.width,probe.height).data;let clear=0;for(let i=3;i<d.length;i+=4)if(d[i]<40)clear++;
+ if(clear<d.length/4*.03)throw Error('透明な所がない画像です。人物だけを切り抜いた透過PNGを選んでね。');
+ const at=alignCutout(sourceCanvas,img),c=document.createElement('canvas');c.width=sourceCanvas.width;c.height=sourceCanvas.height;c.getContext('2d').drawImage(img,at.x,at.y,img.width/at.s,img.height/at.s);
+ frameStage.setCutout(c);
+ const fits=at.err<30;if(!state.frameStage.enabled)setFrameStage({enabled:true});else{syncFrameControls?.();render()}
+ $('frame-cutout-status').textContent=fits?'切り抜きを絵の人物の位置に合わせました。絵が崩れはじめると、人物が額縁から出てきます。':'絵と色が合いませんでした。この絵から切り抜いた物か確かめてね（いちばん近い位置で使っています）。';
+ return at;
+}
 function wireControls(){
+ for(const [id,label] of FRAME_STYLES)$('frame-style').append(new Option(label,id));for(const [id,label] of FRAME_TILTS)$('frame-tilt').append(new Option(label,id));
+ syncFrameControls=()=>{const f=state.frameStage;$('frame-on').checked=f.enabled;$('frame-body').hidden=!f.enabled;$('frame-style').value=f.style;$('frame-pop').value=Math.round(f.pop*100);$('frame-pop-value').textContent=Math.round(f.pop*100)+'%';$('frame-size').value=Math.round(f.size*100);$('frame-size-value').textContent=Math.round(f.size*100)+'%';$('frame-tilt').value=f.tilt;$('frame-tilt-amount').value=Math.round(f.tiltAmount*100);$('frame-tilt-amount-value').textContent=Math.round(f.tiltAmount*100)+'%';$('frame-tilt-amount-row').hidden=f.tilt==='none';const has=!!frameStage?.hasCutout;$('frame-cutout-remove').hidden=!has;$('frame-cutout-add').textContent=has?'切り抜きを入れ替える':'＋ 切り抜きを選ぶ';if(!has)$('frame-cutout-status').textContent=''};
+ $('frame-on').onchange=e=>setFrameStage({enabled:e.target.checked});$('frame-style').onchange=e=>setFrameStage({style:e.target.value});
+ $('frame-pop').oninput=e=>setFrameStage({pop:Number(e.target.value)/100});$('frame-size').oninput=e=>setFrameStage({size:Number(e.target.value)/100});
+ $('frame-tilt').onchange=e=>setFrameStage({tilt:e.target.value});$('frame-tilt-dice').onclick=()=>setFrameStage({tilt:pickTilt(state.frameStage.tilt)});$('frame-tilt-amount').oninput=e=>setFrameStage({tiltAmount:Number(e.target.value)/100});
+ $('frame-cutout-add').onclick=()=>$('frame-cutout-input').click();
+ $('frame-cutout-input').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file||state.recording)return;$('frame-cutout-status').textContent='切り抜きの位置を探しています…';try{await useCutout(file)}catch(err){$('frame-cutout-status').textContent=err.message||'切り抜きを読み込めませんでした。'}};
+ $('frame-cutout-remove').onclick=()=>{frameStage.setCutout(null);syncFrameControls();render()};
+ syncFrameControls();
  const tabs=[...document.querySelectorAll('.inspector-tabs [data-tab]')];
  tabs.forEach((button,index)=>{
   button.onclick=()=>showInspectorPane(button.dataset.tab);
@@ -462,7 +501,8 @@ let previous=performance.now();function tick(now){if(state.playing&&!state.recor
 try{
  renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,alpha:false,preserveDrawingBuffer:true});$('scene').addEventListener('webglcontextlost',()=>safety?.contextLost());renderer.outputColorSpace=THREE.SRGBColorSpace;sceneBlur=new SceneBlur(renderer);
  scene=new THREE.Scene();camera=new THREE.OrthographicCamera(-4.8,4.8,2.7,-2.7,.1,100);camera.position.z=10;
+ frameStage=createFrameStage(THREE);frameStage.setStyle(state.frameStage.style);scene.add(frameStage.back);
  setSource(makeSample(),'カラーテスト・サンプル');wireControls();loadSavedModels();detectFormats();updateRange();resize();requestAnimationFrame(tick);
  attachWorkshopLink({notify:notice,apply:(item,target,activate)=>{if(state.recording)throw Error('書き出しが終わってから適用してください。');if(item.kind==='text')throw Error('文字モーションはシーケンスの歌詞に使えます。');const method=activate();if(method.code&&item.workshop?.shape==='none')state.imageSolid=false;setChoice('methods','method',method.id);}});
- window.unfold={state,motionAt,setTime,render,loadImage,outputSize};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
+ window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
 }catch(e){console.error(e);$('stage-error').hidden=false;$('stage-error').textContent='3D表示を開始できませんでした。WebGL対応のChromeまたはSafariで開いてね。（原因: '+String(e?.message||e).slice(0,160)+'）';$('export').disabled=$('export-top').disabled=true}

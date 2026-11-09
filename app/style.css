@@ -188,3 +188,9 @@
 .frame-row .text-button{padding:0}
 /* 「崩れ方と形をおまかせ」: right under 02, in the same lime as 立体の動き's 🎲 */
 .omakase-btn{display:block;width:100%;margin:2px 0 12px;padding:11px 12px;border:0;border-radius:8px;background:var(--lime,#d9f878);color:#101a16;font:inherit;font-size:15px;font-weight:700;letter-spacing:.02em;cursor:pointer;box-shadow:0 2px 0 #9fb84f}.omakase-btn:hover{background:#e4ffa0;border:0}.omakase-btn:active{transform:translateY(1px);box-shadow:0 1px 0 #9fb84f}.omakase-btn:disabled{opacity:.5;cursor:wait}
+/* 額縁から飛び出す (frame-stage.js) */
+.frame-toggle{display:flex;gap:8px;align-items:center;margin:4px 0 10px;font-size:13px;cursor:pointer}.frame-toggle input{accent-color:var(--lime,#d9f878);width:16px;height:16px}
+.frame-select{width:100%;margin:2px 0 10px;padding:8px;border-radius:6px;border:1px solid var(--line,#343a3a);background:#141a1b;color:inherit;font:inherit}
+.frame-cutout{margin:12px 0 6px;padding:10px;border:1px dashed #4b5b50;border-radius:8px}.frame-cutout b{font-size:13px}.frame-buttons{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.frame-btn{font:inherit;font-size:13px;font-weight:700;padding:8px 12px;border-radius:6px;border:0;background:#9ed8f3;color:#0f1a1f;cursor:pointer}.frame-btn:hover{background:#b9e4f7}.frame-btn.subtle{background:transparent;color:#f3a7b5;border:1px solid #7a3d4a;font-weight:400}.frame-btn.subtle:hover{background:#3a1d24}.frame-btn[hidden]{display:none}
+.frame-tilt-row{display:flex;gap:6px;align-items:center}.frame-tilt-row .frame-select{flex:1;margin:2px 0 10px}.frame-dice{font:inherit;font-size:13px;font-weight:700;padding:8px 10px;margin:2px 0 10px;border:0;border-radius:6px;background:var(--lime,#d9f878);color:#101a16;cursor:pointer;white-space:nowrap}.frame-dice:hover{background:#e4ffa0}#frame-tilt-amount-row[hidden]{display:none}
