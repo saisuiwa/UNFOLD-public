@@ -1,14 +1,33 @@
 // 立体の舞台（1枚モード、2026-11-09）: 絵が立体になっている間だけ、立体の後ろにぼかした絵（背景）、下に床と接地の影を出す。
 // 立体が「どこかに置かれている」ように見せる。絵が元のままの間（最初と最後）は何も出ない（立体になる割合 form で出入りする）。
 //   描く順番: 背景（いちばん奥）→ 床 → 影 → 額縁 → 絵の粒・立体。どれも奥行きを書かない板で、画面（カメラの見える範囲）に合わせて置く。
-// value = { enabled, backdrop: 'picture' | 'plate' | 'none'（絵をぼかして／人物のいない背景をぼかして／背景色のまま）, blur: 0–1, floor: 床と影を出すか }
+// めまいショット（ドリーズーム）: カメラが立体に近づきながらレンズを広げる（逆も）。立体の大きさは変わらず、背景だけが遠ざかる（迫る）。
+// 立体は手前の面（z=0）にあるので、遠近感の強さを変えても大きさが変わらない。背景は、奥にある物として大きさを計算して変える。
+// value = { enabled, backdrop: 'picture' | 'plate' | 'none'（絵をぼかして／人物のいない背景をぼかして／背景色のまま）, blur: 0–1, floor: 床と影を出すか,
+//           vertigo: VERTIGOS のどれか, vertigoAmount: 0–1 }
 
 export const BACKDROPS = [['picture', '絵をぼかして後ろに'], ['plate', '人物のいない背景をぼかして（切り抜きがある時）'], ['none', '背景色のまま']];
 const BACKDROP_IDS = BACKDROPS.map(([id]) => id);
+export const VERTIGOS = [['none', 'なし'], ['in', '寄りながら引く（背景が遠ざかる）'], ['out', '引きながら寄る（背景が迫る）']];
+const VERTIGO_IDS = VERTIGOS.map(([id]) => id);
 const num = (x, lo, hi, d) => typeof x === 'number' && Number.isFinite(x) ? Math.min(hi, Math.max(lo, x)) : d;
 export function cleanSolidStage(value) {
   const v = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-  return { enabled: v.enabled === true, backdrop: BACKDROP_IDS.includes(v.backdrop) ? v.backdrop : 'picture', blur: Math.round(num(v.blur, 0, 1, .5) * 100) / 100, floor: v.floor !== false };
+  return { enabled: v.enabled === true, backdrop: BACKDROP_IDS.includes(v.backdrop) ? v.backdrop : 'picture', blur: Math.round(num(v.blur, 0, 1, .5) * 100) / 100, floor: v.floor !== false,
+    vertigo: VERTIGO_IDS.includes(v.vertigo) ? v.vertigo : 'none', vertigoAmount: Math.round(num(v.vertigoAmount, 0, 1, .7) * 100) / 100 };
+}
+
+// めまいショット: the perspective strength for render-look's syncPerspective (0 = flat, 1 = closest and widest) and how much larger the
+// backdrop is drawn (1 = just covering the view, at the widest lens). q: 0→1 across the time the solid is there, form: 0–1.
+// The camera's distance for a strength k is 0.5 / tan((10 + 30k)° / 2) view heights (as syncPerspective places it); the backdrop is taken to be
+// BACK view heights behind the solid, so it is seen at distance / (distance + BACK) of its size.
+const BACK = 5, distance = k => .5 / Math.tan((10 + 30 * k) * Math.PI / 360), seen = k => distance(k) / (distance(k) + BACK);
+const smooth = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+export function vertigoAt(kind, amount, q, form) {
+  if (!VERTIGO_IDS.includes(kind) || kind === 'none') return { k: 0, back: 1 };
+  const lo = .1, hi = .3 + .65 * num(amount, 0, 1, .7), t = smooth(kind === 'in' ? num(q, 0, 1, 0) : 1 - num(q, 0, 1, 0)), k = lo + (hi - lo) * t;
+  // eased in with the solid, so the flat picture (and the first pieces leaving it) are seen as before
+  return { k: k * smooth(num(form, 0, 1, 0) / .3), back: seen(k) / seen(hi) };
 }
 
 // the picture, blurred and a little darker, as the backdrop (the blur is in pixels of a 960-px-wide copy)
@@ -55,13 +74,14 @@ export function createSolidStage(THREE) {
       back.material.map?.dispose(); back.material.map = source ? tex(blurredBackdrop(source, amount)) : null; back.material.needsUpdate = true;
     },
     // view: {left, right, top, bottom} of what the camera sees (world units, at the solid's depth), form: 0–1, solid: {y, radius}
-    update({ enabled, form, view, solid, floor: showFloor }) {
+    // backScale: how much larger than the view the backdrop is (めまいショット; 1 = just covering)
+    update({ enabled, form, view, solid, floor: showFloor, backScale = 1 }) {
       const k = enabled ? num(form, 0, 1, 0) : 0;
       group.visible = k > 0;
       if (!k) return;
       const W = view.right - view.left, H = view.top - view.bottom, cx = (view.left + view.right) / 2, cy = (view.top + view.bottom) / 2;
       // the backdrop covers the view (and a little more, for shake) whatever the camera does
-      back.visible = !!back.material.map; back.scale.set(W * 1.12, H * 1.12, 1); back.position.set(cx, cy, 0); back.material.opacity = k;
+      back.visible = !!back.material.map; back.scale.set(W * 1.12 * backScale, H * 1.12 * backScale, 1); back.position.set(cx, cy, 0); back.material.opacity = k;
       const L = stageLayout(solid.y, solid.radius, view.bottom);
       floor.visible = shadow.visible = showFloor;
       floor.scale.set(W * 1.12, L.horizon - view.bottom + H * .06, 1); floor.position.set(cx, (L.horizon + view.bottom - H * .06) / 2, 0); floor.material.opacity = k;

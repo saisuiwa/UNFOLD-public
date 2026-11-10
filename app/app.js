@@ -8,7 +8,7 @@ import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { solidMotionAt, motionCamera, solidLife, SINGLE_BEAT_SEC } from './solid-motion.js?v=4';
 import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, createFrameStage, frameZoom, personOut, solidPop, solidShift, tiltAt, pickTilt, pickPersonMove, orbitCamera } from './frame-stage.js?v=7';
 import { alignCutout } from './cutout-align.js?v=1';
-import { BACKDROPS, cleanSolidStage, createSolidStage } from './solid-stage.js?v=1';
+import { BACKDROPS, VERTIGOS, cleanSolidStage, createSolidStage, vertigoAt } from './solid-stage.js?v=3';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
 import { createRenderControls } from './render-look-controls.js?v=2';
@@ -131,12 +131,14 @@ function render(){
  camera.zoom=move.zoom;camera.position.x=move.x;camera.position.y=move.y;camera.rotation.z=move.roll;camera.updateProjectionMatrix();
  // 立体の舞台: while it is a solid, a blurred picture behind it and a floor with its shadow under it (fit to what the camera sees)
  const staged=state.stage.enabled;
+ // めまいショット: across the time the solid is there (the curves' own time .34–.90), the camera closes in while the lens widens (or the reverse)
+ const vertigo=staged?vertigoAt(state.stage.vertigo,state.stage.vertigoAmount,(warpTime(state.t,state.chaosLength,state.solidLength)-.34)/.56,m.form):{k:0,back:1};
  if(solidStage){const z=camera.zoom,src=state.stage.backdrop==='none'?null:state.stage.backdrop==='plate'?(frameStage?.plate||sourceCanvas):sourceCanvas;solidStage.setBackdrop(src,state.stage.blur);
-  solidStage.update({enabled:staged,form:m.form,floor:state.stage.floor,view:{left:camera.position.x+camera.left/z,right:camera.position.x+camera.right/z,top:camera.position.y+camera.top/z,bottom:camera.position.y+camera.bottom/z},solid:{x:mesh.position.x,y:mesh.position.y,radius:imageSize.y*.5*mesh.scale.y}})}
+  solidStage.update({enabled:staged,form:m.form,floor:state.stage.floor,view:{left:camera.position.x+camera.left/z,right:camera.position.x+camera.right/z,top:camera.position.y+camera.top/z,bottom:camera.position.y+camera.bottom/z},solid:{x:mesh.position.x,y:mesh.position.y,radius:imageSize.y*.5*mesh.scale.y},backScale:vertigo.back})}
  applyRenderLook(u,state.renderLook);
  // 額縁の傾き: a perspective camera turns a little around the frame while the picture is changing (straight again when it is whole)
  const tilting=framed&&state.frameStage.tilt!=='none',ownPersp=state.renderLook.enabled?state.renderLook.perspective:0;
- const straight=syncPerspective(camera,perspCam,ownPersp>0?ownPersp:tilting?.5:0);
+ const straight=syncPerspective(camera,perspCam,vertigo.k>0?vertigo.k:ownPersp>0?ownPersp:tilting?.5:0);
  const view=tilting?orbitCamera(straight,orbitTarget.set(camera.position.x,camera.position.y,0),tiltNow,camera.rotation.z):straight;
  const imageFade=imageCode?smoothImage(state.t/.025)*smoothImage((1-state.t)/.025):0;mesh.visible=!(imageCode&&(framed||staged)&&imageFade>=1);   // in the frame the worker draws on a clear background, so the GLSL copy under it must not show
  u.uGlass.value=imageCode?0:fx.glass;sceneBlur.render(scene,view,imageCode?0:fx.blur,imageCode?0:fx.glitch,imageCode?0:fx.chroma,fx.seconds,imageCode?{}:fx);
@@ -324,10 +326,10 @@ function wireControls(){
  $('frame-cutout-input').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file||state.recording)return;$('frame-cutout-status').textContent='切り抜きの位置を探しています…';try{await useCutout(file)}catch(err){$('frame-cutout-status').textContent=err.message||'切り抜きを読み込めませんでした。'}};
  $('frame-cutout-remove').onclick=()=>{frameStage.setCutout(null);syncFrameControls();render()};
  $('person-plate').onchange=e=>{state.personPlate=e.target.checked;render()};
- for(const [id,label] of BACKDROPS)$('stage-backdrop').append(new Option(label,id));
- const syncStage=()=>{const g=state.stage;$('stage-on').checked=g.enabled;$('stage-body').hidden=!g.enabled;$('stage-backdrop').value=g.backdrop;$('stage-blur').value=Math.round(g.blur*100);$('stage-blur-value').textContent=Math.round(g.blur*100)+'%';$('stage-floor').checked=g.floor};
+ for(const [id,label] of BACKDROPS)$('stage-backdrop').append(new Option(label,id));for(const [id,label] of VERTIGOS)$('stage-vertigo').append(new Option(label,id));
+ const syncStage=()=>{const g=state.stage;$('stage-on').checked=g.enabled;$('stage-body').hidden=!g.enabled;$('stage-backdrop').value=g.backdrop;$('stage-blur').value=Math.round(g.blur*100);$('stage-blur-value').textContent=Math.round(g.blur*100)+'%';$('stage-floor').checked=g.floor;$('stage-vertigo').value=g.vertigo;$('stage-vertigo-amount').value=Math.round(g.vertigoAmount*100);$('stage-vertigo-amount-value').textContent=Math.round(g.vertigoAmount*100)+'%';$('stage-vertigo-row').hidden=g.vertigo==='none'};
  const setStage=patch=>{state.stage=cleanSolidStage({...state.stage,...patch});saveSolidStage();syncStage();render()};
- $('stage-on').onchange=e=>setStage({enabled:e.target.checked});$('stage-backdrop').onchange=e=>setStage({backdrop:e.target.value});$('stage-blur').oninput=e=>setStage({blur:Number(e.target.value)/100});$('stage-floor').onchange=e=>setStage({floor:e.target.checked});
+ $('stage-on').onchange=e=>setStage({enabled:e.target.checked});$('stage-backdrop').onchange=e=>setStage({backdrop:e.target.value});$('stage-blur').oninput=e=>setStage({blur:Number(e.target.value)/100});$('stage-floor').onchange=e=>setStage({floor:e.target.checked});$('stage-vertigo').onchange=e=>setStage({vertigo:e.target.value});$('stage-vertigo-amount').oninput=e=>setStage({vertigoAmount:Number(e.target.value)/100});
  syncStage();window.unfoldStage={set:setStage};
  syncFrameControls();syncImageControls();   // 「立体化する」 is there from the start (it used to appear only after choosing a method)
  const tabs=[...document.querySelectorAll('.inspector-tabs [data-tab]')];

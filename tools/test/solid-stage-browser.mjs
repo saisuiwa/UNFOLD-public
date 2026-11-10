@@ -34,6 +34,14 @@ try {
   const noFloor = await look(.62);
   need(diff(noFloor, noneSolid) > .01, 'the floor and the shadow can be turned off');
   await page.click('#stage-floor'); await page.selectOption('#stage-backdrop', 'picture');
+  // めまいショット: the solid phase changes (lens and backdrop), the whole picture at the start and the end does not
+  const plainMid = await look(.62);
+  await page.selectOption('#stage-vertigo', 'in');
+  need(await page.evaluate(() => unfold.state.stage.vertigo === 'in' && !document.getElementById('stage-vertigo-row').hidden), 'めまいショット can be chosen, and its strength shows');
+  need(diff(await look(.62), plainMid) > .03, 'めまいショット changes the look while it is a solid');
+  need(diff(await look(.5), await look(.7)) > .03, 'the look keeps changing across the solid (the camera is moving)');
+  need(diff(await look(.02), offFlat) < .01 && diff(await look(.995), offEnd) < .01, 'with めまいショット the whole picture at the start and the end is as before');
+  await page.selectOption('#stage-vertigo', 'none');
   // a JavaScript image method: the worker draws on a clear background, so the stage shows behind its solid
   const shatter = await page.evaluate(() => unfoldMethods.listCustom().find(r => r.name === '爆砕と再誕')?.id);
   if (shatter) {
