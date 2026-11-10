@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=19';
+import {drawSequenceVisual} from './sequence-renderer.js?v=20';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift,SOLID_PTS} from './sequence-core.js?v=3';
 import {unstretchSolid} from './solid-length.js?v=2';
 import {attachWorkshopLink} from './workshop-link.js';
@@ -18,8 +18,10 @@ import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
-import { GALLERY_STYLES, cleanGallery, createGallery, galleryGap } from './gallery-walk.js?v=1';
-import { orbitCamera } from './frame-stage.js?v=7';
+import { GALLERY_STYLES, cleanGallery, createGallery, galleryGap } from './gallery-walk.js?v=2';
+import { orbitCamera, cleanPlate } from './frame-stage.js?v=7';
+import { createDiveStage } from './dive-stage.js?v=1';
+import { alignCutout } from './cutout-align.js?v=1';
 import { createRenderControls } from './render-look-controls.js?v=2';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
 import * as THREE from './vendor/three.module.min.js';
@@ -56,7 +58,7 @@ import { cleanFx, concealAmount, mixFx, swapCurve } from './fx-mix.js';
 import { CAM_EASES, CAM_PRESETS, CAM_RANGES, camEnds, camLife, camValues, cleanCam, legacyKenBurns, lifeProgress, mixCam } from './camera-work.js?v=1';
 import { openMethodMenu } from './method-menu.js';
 import { methodButtons, syncMethodTiles } from './method-tiles.js';
-import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=12';
+import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=13';
 import { cleanFrame, croppedCanvas, framePlacement, needsFrame, describeFrame, frameFromChoice } from './slide-frame.js?v=1';
 import { askSlideFrame } from './slide-frame-dialog.js?v=1';
 
@@ -159,7 +161,19 @@ export function addSlide(img, name, frame) {
   while (seq.transitions.length < seq.slides.length - 1) seq.transitions.push(newTransition(seq.transitions.length));
   refreshUI();
 }
-function dropTexture(s) { s.texture?.dispose(); s.texture = s.canvas = null; }
+function dropTexture(s) { s.texture?.dispose(); s.texture = s.canvas = s.cutCanvas = s.plateCanvas = null; }
+// 人物の切り抜き (s.cut: a transparent picture cut from this slide's picture): found on the picture (alignCutout), then fitted to the frame exactly like
+// the picture itself, so it sits on the slide's canvas; and the slide without the person (cleanPlate). Both are made when first asked for.
+function slideCut(s) {
+  if (!s?.cut || s.lyric || !s.img) return null;
+  if (!s.cutCanvas) {
+    const at = alignCutout(s.img, s.cut), o = document.createElement('canvas'); o.width = s.img.width; o.height = s.img.height;
+    o.getContext('2d').drawImage(s.cut, at.x, at.y, s.cut.width / at.s, s.cut.height / at.s);
+    s.cutCanvas = fitCanvas(o, 'rgba(0,0,0,0)', s.frame); s.cutFit = at.err;
+  }
+  return s.cutCanvas;
+}
+function slidePlate(s) { const cut = slideCut(s); return cut ? (s.plateCanvas ??= cleanPlate(slideCanvas(s), cut)) : null; }
 function rebuildBackgrounds() { seq.slides.forEach(s => { dropTexture(s); s.thumb = null; }); }   // the small pictures in the timeline are made from the same canvas
 const liveCards = [];   // lyric cards are big: keep only the few near the playhead on the GPU
 function slideCanvas(s) {
@@ -315,7 +329,7 @@ function setMaterialTextures(a, b) {
 }
 export function renderAt(sec) {
  imageInputs=[];
- const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt,gallery,galleryCamera},sec);
+ const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt,gallery,galleryCamera,diveStage,slideCut,slidePlate},sec);
  drawLyrics(sec);if(!seq.recording)updateTransport(sec,L||{i:-1,tr:-1,u:0});
 }
 const FX_KEYS = ['blur', 'bloom', 'neon', 'glass', 'chroma', 'glitch', 'scan', 'grain', 'vignette', 'bokeh'];
@@ -361,7 +375,7 @@ function ownCamera(L, sec, tr) {
   return mixCam(va, at(L.i + 1, b), w);
 }
 // 美術館を歩く: always seen with a little perspective (the wall recedes), and while the camera walks it looks a little ahead (lead: −1…1 of a turn)
-let gallery = null;
+let gallery = null, diveStage = null;
 const galleryTarget = new THREE.Vector3();
 function galleryCamera(lead) {
   const own = seq.renderLook.enabled ? seq.renderLook.perspective : seq.cam.persp;
@@ -447,7 +461,7 @@ function renderLookTransition(force = false) {
   inspectTransition(box, title, j, tr);
 }
 function shapeLabel(tr) {
-  if (tr.shape === 'none') return { through: '立体化なし・通り抜け', reveal: '立体化なし・吹き飛んで次が現れる', return: '立体化なし・行って戻る' }[tr.flow ?? 'through'];
+  if (tr.shape === 'none') return { through: '立体化なし・通り抜け', reveal: '立体化なし・吹き飛んで次が現れる', return: '立体化なし・行って戻る', dive: '絵の中へ飛び込む' }[tr.flow ?? 'through'];
   return tr.shape === 'text' ? `文字「${tr.text}」` : savedModels.get(tr.shape)?.name || colourShape(tr.shape)?.name || BUILTIN[tr.shape] || PRESET_LABELS[tr.shape] || tr.shape;
 }
 
@@ -1051,6 +1065,17 @@ function inspectSlide(box, title, i, s) {
     adjust.onclick = () => adjustFrame(i);
     const how = document.createElement('span'); how.className = 'hint'; how.textContent = describeFrame(s.frame, seq.fill); how.dataset.role = 'frame-state';
     const wrap = document.createElement('div'); wrap.className = 'row wrap'; wrap.append(adjust, how); box.append(wrap);
+    // 人物の切り抜き: for 絵の中へ飛び込む (the camera passes beside the person)
+    const cutRow = document.createElement('div'); cutRow.className = 'row wrap'; cutRow.dataset.role = 'slide-cut';
+    const add = document.createElement('button'); add.className = 'btn'; add.textContent = s.cut ? '人物の切り抜きを入れ替える' : '＋ 人物の切り抜きを入れる（透過PNG）';
+    add.title = 'この画像から人物だけを切り抜いた透過PNGを入れると、◆の流れ方「絵の中へ飛び込む」で、カメラが人物の横をすり抜けます。位置は自動で合わせます';
+    const pickCut = document.createElement('input'); pickCut.type = 'file'; pickCut.accept = 'image/png,image/webp'; pickCut.hidden = true;
+    add.onclick = () => pickCut.click();
+    pickCut.onchange = async () => { const f = pickCut.files[0]; pickCut.value = ''; if (f) await setSlideCut(i, f); };
+    cutRow.append(add, pickCut);
+    if (s.cut) { const off = document.createElement('button'); off.className = 'btn'; off.textContent = '切り抜きを外す'; off.onclick = () => edit(() => { delete s.cut; s.cutCanvas = s.plateCanvas = null; }); cutRow.append(off);
+      const fit = document.createElement('span'); fit.className = 'hint'; slideCut(s); fit.textContent = s.cutFit < 30 ? '人物の位置に合わせました' : '絵と色が合いません（この画像から切り抜いた物か確かめてね）'; cutRow.append(fit); }
+    box.append(cutRow);
   }
   if (s.lyric) {
     const tx = document.createElement('input'); tx.value = s.lyric.text; tx.maxLength = 48;
@@ -1101,8 +1126,11 @@ function inspectTransition(box, title, i, tr) {
     field(box, '立体は前の画像のまま', late).onchange = () => edit(() => { if (late.checked) tr.lateSwap = true; else delete tr.lateSwap; });
   }
   if (!on.checked&&!imageCode) {
-    const flow = selectOf([['through', '通り抜ける（崩れて去り、次が反対側から来る）'], ['reveal', '吹き飛んで次が現れる（次の画像はそのまま）'], ['return', '行って戻る（同じ動きで戻る）']], tr.flow ?? 'through');
+    const flow = selectOf([['through', '通り抜ける（崩れて去り、次が反対側から来る）'], ['reveal', '吹き飛んで次が現れる（次の画像はそのまま）'], ['return', '行って戻る（同じ動きで戻る）'], ['dive', '絵の中へ飛び込む（奥へ進んで、次の画像へ）']], tr.flow ?? 'through');
     field(box, '流れ方', flow).onchange = () => edit(() => { tr.flow = flow.value; });
+    if (tr.flow === 'dive') { const note = document.createElement('p'); note.className = 'hint'; note.style.cssText = 'margin:0 0 8px;line-height:1.6'; const a = seq.slides[i];
+      note.textContent = slideCut(a) ? 'カメラが絵の中へ進み、人物の横をすり抜けて、光の先で次の画像になります。崩れ方は使いません。' : 'カメラが絵の中へまっすぐ進んで、光の先で次の画像になります。前の画像に「人物の切り抜き」を入れると、人物の横をすり抜けます（画像を選ぶと入れられます）。崩れ方は使いません。';
+      box.append(note); }
   }
   if (tr.shape !== 'none') {
     const allModels = [...savedModels.values()], tabOn = wantsTabs(allModels), shownTab = validActive(allModels, activeGroup);
@@ -1191,7 +1219,7 @@ function inspectLyric(box, title, i, l) {
 function snapshot() {
   return {
     lyricDocument:seq.lyricDocument&&structuredClone(seq.lyricDocument),lyricMotion:{...seq.lyricMotion},audioBlob:seq.audioBlob,audioOwner:seq.audioOwner,audioName:seq.audioName,audioBuffer:seq.audioBuffer,
-    slides: seq.slides.map(s => ({ id: s.id, name: s.name, img: s.img, frame: s.frame && structuredClone(s.frame), lyric: s.lyric && { ...s.lyric }, hold: s.hold, thumb: s.thumb, fx: s.fx && { ...s.fx }, cam: s.cam && structuredClone(s.cam) })),
+    slides: seq.slides.map(s => ({ id: s.id, name: s.name, img: s.img, cut: s.cut, frame: s.frame && structuredClone(s.frame), lyric: s.lyric && { ...s.lyric }, hold: s.hold, thumb: s.thumb, fx: s.fx && { ...s.fx }, cam: s.cam && structuredClone(s.cam) })),
     transitions: structuredClone(seq.transitions), lyrics: structuredClone(seq.lyrics),
     offset: seq.offset, bpm: seq.bpm, phase: seq.phase, holdBeats: seq.holdBeats, link: seq.link,
   };
@@ -1205,7 +1233,7 @@ function restore(snap) {
   const old = new Map(seq.slides.map(s => [s.id, s]));
   seq.slides = snap.slides.map(x => {
     const o = old.get(x.id);
-    if (o && o.img === x.img && (o.lyric?.text ?? null) === (x.lyric?.text ?? null) && o.lyric?.img === x.lyric?.img && JSON.stringify(o.frame ?? null) === JSON.stringify(x.frame ?? null)) {
+    if (o && o.img === x.img && (o.cut ?? null) === (x.cut ?? null) && (o.lyric?.text ?? null) === (x.lyric?.text ?? null) && o.lyric?.img === x.lyric?.img && JSON.stringify(o.frame ?? null) === JSON.stringify(x.frame ?? null)) {
       o.hold = x.hold; o.name = x.name; o.lyric = x.lyric && { ...x.lyric };
       if (x.fx) o.fx = { ...x.fx }; else delete o.fx;
       if (x.cam) o.cam = structuredClone(x.cam); else delete o.cam;
@@ -1328,6 +1356,18 @@ async function askFrames(imgs) {
     if (answer.rest) same = answer.choice;
   }
   return out;
+}
+// a person cut-out for slide i (a File / Blob of a transparent PNG or WebP): kept with the slide, saved with the project, one Undo takes it out again
+async function setSlideCut(i, file) {
+  const s = seq.slides[i];
+  if (!s || s.lyric || seq.recording) return;
+  if (!['image/png', 'image/webp'].includes(file.type)) { notice('透過PNG（またはWebP）の切り抜きを選んでね。'); return; }
+  let img; try { img = await imageOf(file); } catch { notice('切り抜きを読み込めませんでした。'); return; }
+  const probe = document.createElement('canvas'); probe.width = Math.min(256, img.width); probe.height = Math.max(1, Math.round(probe.width * img.height / img.width));
+  const px = probe.getContext('2d', { willReadFrequently: true }); px.drawImage(img, 0, 0, probe.width, probe.height);
+  const d = px.getImageData(0, 0, probe.width, probe.height).data; let clear = 0; for (let k = 3; k < d.length; k += 4) if (d[k] < 40) clear++;
+  if (clear < d.length / 4 * .03) { notice('透明な所がない画像です。人物だけを切り抜いた透過PNGを選んでね。'); return; }
+  edit(() => { s.cut = img; s.cutCanvas = s.plateCanvas = null; });
 }
 async function replaceSlide(i, file) {
   const s = seq.slides[i];
@@ -1466,6 +1506,7 @@ async function restoreProject(json, blobs) {
     const ownFrame = cleanFrame(x.frame); if (ownFrame && !x.lyric) s.frame = ownFrame;
     if (x.lyric) s.lyric = { text: x.lyric.text, k: x.lyric.k ?? undefined, seed: x.lyric.seed, lineId: x.lyric.lineId, img: await img(x.lyric.img) };
     else s.img = (await img(x.img)) || blankImage();
+    if (x.cut && !x.lyric) { const cut = await img(x.cut); if (cut) s.cut = cut; }
     slides.push(s);
   }
   seq.slides = slides;
@@ -1546,7 +1587,7 @@ const timelineApi = {
   slideInfo: i => { const s = seq.slides[i]; return { name: (s.lyric ? s.lyric.text.replace(/\//g, ' ') : s.name) + (s.fx && Object.keys(s.fx).length ? ' ✦' : ''), thumb: thumbFor(s), lyric: !!s.lyric }; },
   transitionInfo: i => {
     const tr = seq.transitions[i];
-    const label = methodLabel(tr.method) + (tr.method2 ? '→' + methodLabel(tr.method2) : '') + (tr.shape === 'none' ? { through: ' ⇢', reveal: ' ⤳', return: ' ⇄' }[tr.flow ?? 'through'] : ' / ' + shapeLabel(tr));
+    const label = methodLabel(tr.method) + (tr.method2 ? '→' + methodLabel(tr.method2) : '') + (tr.shape === 'none' ? { through: ' ⇢', reveal: ' ⤳', return: ' ⇄', dive: ' ⤓' }[tr.flow ?? 'through'] : ' / ' + shapeLabel(tr));
     return { label: label + (tr.fx && Object.keys(tr.fx).length ? ' ✦' : ''), flat: tr.shape === 'none', bands: tr.shape === 'none' ? [['chaos', 3, 97]] : phaseBands(), title: `${label}（${+tr.beats.toFixed(2)}拍）\nドラッグで切り替え位置、両端で長さ` };
   },
   isLinked: k => seq.link && linkedTransition(seq.lyrics[k]?.id) >= 0,
@@ -1823,6 +1864,7 @@ try {
   backdrop.position.z = -4; backdrop.renderOrder = -1; backdrop.visible = false;
   scene.add(backdrop);
   gallery = createGallery(THREE); scene.add(gallery.group);
+  diveStage = createDiveStage(THREE);
   wire();
   timeline = createTimeline($('seq-timeline'), timelineApi);
   await loadModelLibrary();
@@ -1861,7 +1903,7 @@ try {
       const method=activate();edit(()=>{tr.method=method.id;if(method.code&&item.workshop?.shape==='none')tr.shape='none';normalizeImageTransition(tr)});showTab('edit');
     }
   }});
-  window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile, projectSettings: () => stateForSave().settings, galleryState: () => ({ x: camera.position.x, gap: galleryGap(planeW), planes: gallery.opacities() }) };
+  window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile, setSlideCut, slideCut, projectSettings: () => stateForSave().settings, galleryState: () => ({ x: camera.position.x, gap: galleryGap(planeW), planes: gallery.opacities() }) };
   window.unfoldMethods = { registerCustom, unregisterCustom, setCustomStatus, listCustom, variants, editor: methodEditor, persistence: methodPersistence, safety, enabler: methodEnabler, transfer: { importFile: importMethodFile, importText: importMethodText, download: downloadMethodFile } };
 } catch (e) {
   console.error(e);

@@ -5,6 +5,7 @@
 // value = { enabled, style: 'mix'（額縁を順にかえる）か FRAME_STYLES のどれか, size: 額縁が画面に占める大きさ 0.5–0.95,
 //           pop: 立体が飛び出す大きさ 0–1（はじめは 0.15）, lead: 歩く間にカメラが先を向く強さ 0–1 }
 import { FRAME_STYLES, borderOf, drawFrame } from './frame-stage.js?v=7';
+import { DIVE } from './dive-stage.js?v=1';
 
 export const GALLERY_STYLES = [['mix', '額縁を順にかえる'], ...FRAME_STYLES];
 const STYLE_IDS = GALLERY_STYLES.map(([id]) => id), ORDER = FRAME_STYLES.map(([id]) => id);
@@ -26,9 +27,10 @@ export function galleryZoom(viewW, viewH, w, h, size) {
 
 // where things are, in frames (0 = the first frame, 1 = the second …): x = the picture / solid, lift = how high it arcs (picture heights),
 // focus = the camera, lead = 0–1 how much the camera is walking. i: the picture shown (or being left), hasTr: a change is under way,
-// u: its progress 0–1, uw: the same on the solid's own (warped) time, flow: '' (a solid) | 'through' | 'reveal' | 'return'
+// u: its progress 0–1, uw: the same on the solid's own (warped) time, flow: '' (a solid) | 'through' | 'reveal' | 'return' | 'dive'
 export function galleryPose(i, hasTr, u = 0, uw = u, flow = '') {
   if (!hasTr) return { x: i, lift: 0, focus: i, lead: 0 };
+  if (flow === 'dive') { const there = u >= DIVE.CUT ? 1 : 0; return { x: i + there, lift: 0, focus: i + there, lead: 0 }; }   // into frame A, out of frame B
   // the solid crosses while it is whole; without a solid the pieces cross in the middle; a reveal breaks away where it hangs
   const go = flow === 'reveal' ? 0 : flow === 'through' || flow === 'return' ? smooth(.3, .7, u) : smooth(.30, .72, uw), walk = smooth(.1, .9, u);
   // the camera stays with the solid (so it is never cut off at the edge), setting off a little before it and arriving a little after

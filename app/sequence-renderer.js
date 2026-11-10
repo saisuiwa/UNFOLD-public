@@ -7,7 +7,8 @@ import {SceneBlur} from './effects.js';
 import {cleanRenderLook,applyRenderLook,syncPerspective} from './render-look.js';
 import {cleanShot,rotationAt,blendCameraMove} from './shot-motion.js?v=29';
 import {solidMotionAt,motionCamera,solidLife} from './solid-motion.js?v=4';
-import {galleryPose,galleryGap,galleryZoom} from './gallery-walk.js?v=1';
+import {galleryPose,galleryGap,galleryZoom} from './gallery-walk.js?v=2';
+import {DIVE,diveAt} from './dive-stage.js?v=1';
 import {concealAmount,swapCurve,mixFx} from './fx-mix.js';
 import {camLife,camValues,lifeProgress,legacyKenBurns,mixCam} from './camera-work.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
@@ -71,7 +72,11 @@ export function drawSequenceVisual(ctx,sec) {
   const imageCode=imageTransition(tr);if(tr?.shape === 'none')c.form=0;
   // no solid + "pass through": one gesture — A breaks away, B flies in from the other side (no pause in the middle)
   const flow = imageCode?'return':tr?.shape === 'none' ? (tr.flow ?? 'through') : '';
-  const through = flow === 'through', reveal = flow === 'reveal';
+  // 絵の中へ飛び込む (dive-stage.js): the camera closes in, flies between the picture's layers and comes out at the next picture; where there is no dive stage
+  // (STUDIO's renderer) it is shown as 通り抜ける
+  const dive = flow === 'dive' && ctx.diveStage ? diveAt(L.u) : null;
+  const through = flow === 'through' || (flow === 'dive' && !dive), reveal = flow === 'reveal';
+  if (dive) c = { distort: 0, form: 0, conceal: 0, swap: L.u < DIVE.CUT ? 0 : 1, spin: 0 };   // nothing breaks: the picture stays whole, then it is the next one
   if (reveal) {   // only the current picture breaks away; the next one waits untouched underneath
     c.distort = smooth(0, .9, L.u);
     c.conceal = 0; c.swap = 0;
@@ -99,7 +104,7 @@ export function drawSequenceVisual(ctx,sec) {
   if (reveal) u.uDraw.value = 1 - smooth(.05, .85, L.u);
   backdrop.visible = reveal;
   if (reveal) backdrop.material.map = slideTexture(seq.slides[L.i + 1]);
-  u.uDraw.value = !tr ? 1 : L.u < .5 ? 1 - smooth(.06, .44, L.u) : smooth(.56, .94, L.u);
+  u.uDraw.value = !tr || dive ? 1 : L.u < .5 ? 1 - smooth(.06, .44, L.u) : smooth(.56, .94, L.u);
   u.uDistort.value = c.distort; u.uForm.value = c.form; if (u.uModelColor) u.uModelColor.value = seq.modelColor ?? 0; if (u.uModelTex) u.uModelTex.value = mesh.geometry.userData.layout?.texture ?? null; u.uStrength.value = seq.strength; u.uDepth.value = seq.depth;
   // custom methods have their own shader: swap it in (uniforms are shared, so `u` stays valid)
   const firstJS=isImageMethodKey(tr?.method),secondJS=isImageMethodKey(tr?.method2);
@@ -161,6 +166,10 @@ export function drawSequenceVisual(ctx,sec) {
     camera.position.y = cm.handheld * .04 * (Math.sin(sec * 1.3 + .7) + .5 * Math.sin(sec * 3.1));
     camera.rotation.z = cm.handheld * .012 * Math.sin(sec * 1.1) + cm.tilt * .1 * Math.sin(sec * .45);
   }
+  if (dive) {   // close in until the picture fills the view (then the dive stage takes over); afterwards the next picture is seen from close and the camera pulls back
+    if (L.u < DIVE.CUT) { camera.zoom += (fullZoom - camera.zoom) * dive.closing; camera.position.x += (mesh.position.x - camera.position.x) * dive.closing; camera.position.y += (mesh.position.y - camera.position.y) * dive.closing; camera.rotation.z *= 1 - dive.closing; }
+    else camera.zoom *= 1 + (1.45 * Math.max(1, fullZoom / camera.zoom) - 1) * (1 - dive.arrive);
+  }
   camera.updateProjectionMatrix();
   const flatView = perspective(reveal && !G);
   if (G) backdrop.visible = false;   // a reveal's next picture already hangs in its own frame
@@ -172,7 +181,14 @@ export function drawSequenceVisual(ctx,sec) {
   applyRenderLook(u, seq.renderLook);
   u.uGlass.value = imageCode?0:fx.glass;
   mesh.visible = !(G && imageCode && smoothImage(L.u/.025)*smoothImage((1-L.u)/.025) >= 1);   // in the gallery the worker draws on a clear background: no GLSL copy under it
+  if (dive?.inside) {   // between the layers: the dive stage's own scene and camera (the picture filled the view when it took over)
+    const a = seq.slides[L.i], vh = (camera.top - camera.bottom) / camera.zoom;
+    ctx.diveStage.set(slideCanvas(a), ctx.slideCut?.(a) ?? null, ctx.slidePlate?.(a) ?? null);
+    const inside = ctx.diveStage.camera({ x: mesh.position.x, y: mesh.position.y, w: planeW, h: planeH, vh }, (camera.right - camera.left) / (camera.top - camera.bottom), dive.go, sec);
+    sceneBlur.render(ctx.diveStage.scene, inside, fx.blur, fx.glitch, fx.chroma, sec, { ...fx, neonColor: seq.fx.neonColor });
+  } else
   sceneBlur.render(scene, view, imageCode?0:fx.blur, imageCode?0:fx.glitch, imageCode?0:fx.chroma, sec, imageCode?{}:{ ...fx, neonColor: seq.fx.neonColor });
+  ctx.diveStage?.flash(renderer, dive ? dive.flash : 0);
   if(imageCode){
    const duration=tr.beats*beatSec(),f=imageFrame(L.u*duration,duration,seq.strength,{form:c.form}),mix=tr.method2?smooth(.30,.62,L.u):0,fade=smoothImage(L.u/.025)*smoothImage((1-L.u)/.025),keys=[tr.method,tr.method2];
    for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={params:tr.label?{label:tr.label}:undefined,target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText,texture:geo.userData.layout?.texture}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,modelColor:seq.modelColor??0,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,...(G?{bgAlpha:0}:{}),camera:motionCamera(imageCamera(view),G?{quaternion:[0,0,0,1],position:(sm?sm.position.map(v=>v*gPop):[0,0,0]).map((v,k)=>v+gShift[k]),scale:(sm?.scale||[1,1,1]).map(v=>v*gPop)}:sm),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
