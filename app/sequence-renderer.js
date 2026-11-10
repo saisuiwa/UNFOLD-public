@@ -7,6 +7,7 @@ import {SceneBlur} from './effects.js';
 import {cleanRenderLook,applyRenderLook,syncPerspective} from './render-look.js';
 import {cleanShot,rotationAt,blendCameraMove} from './shot-motion.js?v=29';
 import {solidMotionAt,motionCamera,solidLife} from './solid-motion.js?v=4';
+import {galleryPose,galleryGap,galleryZoom} from './gallery-walk.js?v=1';
 import {concealAmount,swapCurve,mixFx} from './fx-mix.js';
 import {camLife,camValues,lifeProgress,legacyKenBurns,mixCam} from './camera-work.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
@@ -121,6 +122,12 @@ export function drawSequenceVisual(ctx,sec) {
   // 立体の動き: the solid sways / hops… on the beat while it is formed, counted from the start of this ◆
   const sm=tr&&tr.shape!=='none'?solidMotionAt(shot.motion,L.u*tr.beats*beatSec(),beatSec(),c.form,solidLife(uw,[.45,.60])):null;
   if(sm){mesh.quaternion.premultiply(shotQuat.fromArray(sm.quaternion));mesh.position.fromArray(sm.position);mesh.scale.fromArray(sm.scale)}else{mesh.position.set(0,0,0);mesh.scale.set(1,1,1)}
+  // 美術館を歩く (gallery-walk.js): the picture hangs in its frame on a long wall; as a solid it comes out of the frame, flies to the next one and goes in
+  const G = ctx.gallery && seq.gallery?.enabled ? galleryPose(L.i, !!tr, L.u, uw, flow) : null, gap = galleryGap(planeW);
+  const gPop = G && tr && tr.shape !== 'none' ? 1 + seq.gallery.pop * c.form : 1, gShift = G ? [G.x * gap, G.lift * planeH, 0] : [0, 0, 0];
+  if (G) { mesh.scale.multiplyScalar(gPop); mesh.position.multiplyScalar(gPop); mesh.position.x += gShift[0]; mesh.position.y += gShift[1]; }
+  ctx.gallery?.sync(seq.slides, slideTexture, planeW, planeH, seq.gallery?.style ?? 'mix');
+  ctx.gallery?.update({ enabled: !!G, i: L.i, hasTr: !!tr, u: L.u, flow });
   // camera: push-in with the shape, a pulse on every beat while it is 3D
   const bp = (sec + seq.offset - seq.phase) / beatSec(), frac = bp - Math.floor(bp);
   const beatKick = Math.exp(-frac * 7) * seq.pulse * (c.distort > 0.02 ? 1 : 0);
@@ -148,18 +155,27 @@ export function drawSequenceVisual(ctx,sec) {
   }
   if(tr){const move=blendCameraMove({x:camera.position.x,y:camera.position.y,zoom:camera.zoom,roll:camera.rotation.z},shot.camera,L.u,{width:planeW,height:planeH,zoom:shotBaseZoom});
     camera.zoom=move.zoom;camera.position.x=move.x;camera.position.y=move.y;camera.rotation.z=move.roll;}
+  if (G) {   // the camera walks beside the wall: the frame it is at fills the view to the chosen size; the pictures' own cameras and the pull-backs do not apply
+    camera.zoom = galleryZoom(camera.right - camera.left, camera.top - camera.bottom, planeW, planeH, seq.gallery.size) * (1 + 0.04 * beatKick);
+    camera.position.x = G.focus * gap + cm.handheld * .05 * (Math.sin(sec * 1.7) + .5 * Math.sin(sec * 2.9 + 1));
+    camera.position.y = cm.handheld * .04 * (Math.sin(sec * 1.3 + .7) + .5 * Math.sin(sec * 3.1));
+    camera.rotation.z = cm.handheld * .012 * Math.sin(sec * 1.1) + cm.tilt * .1 * Math.sin(sec * .45);
+  }
   camera.updateProjectionMatrix();
-  const view = perspective(reveal);
+  const flatView = perspective(reveal && !G);
+  if (G) backdrop.visible = false;   // a reveal's next picture already hangs in its own frame
+  const view = G && ctx.galleryCamera ? ctx.galleryCamera(G.lead * seq.gallery.lead) : flatView;
   renderer.setClearColor(seq.bg, 1);
   // effects: the global look, each picture's own look (flowing from one to the next across a ◆), then this ◆'s own settings while it is breaking up / solid
   const env = tr ? Math.max(c.distort, c.form) : 0;
   const fx = mixFx(FX_KEYS, { global: seq.fx, from: seq.slides[L.i].fx, to: tr ? (seq.slides[L.i + 1]?.fx ?? {}) : null, trFx: tr?.fx, u: tr && tr.shape !== 'none' ? uw : L.u, env, late: tr?.lateSwap === true && tr.shape !== 'none' });
   applyRenderLook(u, seq.renderLook);
   u.uGlass.value = imageCode?0:fx.glass;
+  mesh.visible = !(G && imageCode && smoothImage(L.u/.025)*smoothImage((1-L.u)/.025) >= 1);   // in the gallery the worker draws on a clear background: no GLSL copy under it
   sceneBlur.render(scene, view, imageCode?0:fx.blur, imageCode?0:fx.glitch, imageCode?0:fx.chroma, sec, imageCode?{}:{ ...fx, neonColor: seq.fx.neonColor });
   if(imageCode){
    const duration=tr.beats*beatSec(),f=imageFrame(L.u*duration,duration,seq.strength,{form:c.form}),mix=tr.method2?smooth(.30,.62,L.u):0,fade=smoothImage(L.u/.025)*smoothImage((1-L.u)/.025),keys=[tr.method,tr.method2];
-   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={params:tr.label?{label:tr.label}:undefined,target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText,texture:geo.userData.layout?.texture}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,modelColor:seq.modelColor??0,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,camera:motionCamera(imageCamera(view),sm),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
+   for(let i=0;i<2;i++){if(isImageMethodKey(keys[i])){const input={params:tr.label?{label:tr.label}:undefined,target:tr.shape!=='none'?imageTarget(geo,{shape:tr.shape,preset:!!isPreset,project:!!isText,texture:geo.userData.layout?.texture}):null,id:keys[i],imageA:slideCanvas(seq.slides[L.i]),imageB:slideCanvas(seq.slides[L.i+1]),size:{width:planeW,height:planeH},frame:{...f,imageMix:tr.shape!=='none'?c.swap:f.imageMix,depth:seq.depth,modelColor:seq.modelColor??0,seed:u.uSeed.value,width:renderer.domElement.width,height:renderer.domElement.height,bg:seq.bg,...(G?{bgAlpha:0}:{}),camera:motionCamera(imageCamera(view),G?{quaternion:[0,0,0,1],position:(sm?sm.position.map(v=>v*gPop):[0,0,0]).map((v,k)=>v+gShift[k]),scale:(sm?.scale||[1,1,1]).map(v=>v*gPop)}:sm),rootQuaternion:mesh.quaternion.toArray()}};imageInputs[i]=input;const weight=i===0?(secondJS?1:1-mix):mix;if(fade*weight>0&&(seq.strength>0||c.form>0))imageLayerAt(i).draw(input,fade*weight)}else imageLayers[i]?.reset()}
   }else{
    // holding a picture: if the change after it is image code, its worker is started now (imageLayer.warm), so a quick change is not spent waiting for it
    const next=L.tr<0?seq.transitions[L.i]:null,nextKeys=next&&next.shape==='none'&&seq.slides[L.i+1]?[next.method,next.method2]:[];

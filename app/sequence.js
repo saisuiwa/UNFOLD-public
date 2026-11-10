@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=18';
+import {drawSequenceVisual} from './sequence-renderer.js?v=19';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift,SOLID_PTS} from './sequence-core.js?v=3';
 import {unstretchSolid} from './solid-length.js?v=2';
 import {attachWorkshopLink} from './workshop-link.js';
@@ -18,6 +18,8 @@ import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
+import { GALLERY_STYLES, cleanGallery, createGallery, galleryGap } from './gallery-walk.js?v=1';
+import { orbitCamera } from './frame-stage.js?v=7';
 import { createRenderControls } from './render-look-controls.js?v=2';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
 import * as THREE from './vendor/three.module.min.js';
@@ -99,6 +101,7 @@ void main(){
 export const seq = {
   lyricDocument: null, lyricMotion: {bpm:98,phase:0},
   renderLook: cleanRenderLook(),
+  gallery: cleanGallery(),   // 美術館を歩く (gallery-walk.js)
   slides: [],              // {id, name, img} or {id, name, lyric:{text,k,img,seed}}; canvas/texture are made on demand
   transitions: [],         // {method, method2, shape, text, font, beats}
   lyrics: [],              // [{s, e?, t, k?}] timed lyric lines for the MV builder
@@ -312,7 +315,7 @@ function setMaterialTextures(a, b) {
 }
 export function renderAt(sec) {
  imageInputs=[];
- const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt},sec);
+ const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt,gallery,galleryCamera},sec);
  drawLyrics(sec);if(!seq.recording)updateTransport(sec,L||{i:-1,tr:-1,u:0});
 }
 const FX_KEYS = ['blur', 'bloom', 'neon', 'glass', 'chroma', 'glitch', 'scan', 'grain', 'vignette', 'bokeh'];
@@ -357,6 +360,14 @@ function ownCamera(L, sec, tr) {
   const w = late ? smooth(.72, .80, L.u) : smooth(.35, .65, L.u);   // the pictures' own swap timing (pictureWeight)
   return mixCam(va, at(L.i + 1, b), w);
 }
+// 美術館を歩く: always seen with a little perspective (the wall recedes), and while the camera walks it looks a little ahead (lead: −1…1 of a turn)
+let gallery = null;
+const galleryTarget = new THREE.Vector3();
+function galleryCamera(lead) {
+  const own = seq.renderLook.enabled ? seq.renderLook.perspective : seq.cam.persp;
+  syncPerspective(camera, perspCam, own > 0 ? own : .4);
+  return orbitCamera(perspCam, galleryTarget.set(camera.position.x, camera.position.y, 0), { yaw: -.32 * lead, pitch: 0 }, camera.rotation.z);
+}
 // "遠近感": a perspective camera placed so the picture plane (z = 0) frames exactly like the flat camera
 function perspective(reveal) {
   const k = seq.renderLook.enabled ? seq.renderLook.perspective : seq.cam.persp;
@@ -366,6 +377,12 @@ function perspective(reveal) {
   const d = perspCam.position.z;
   if (reveal) { const sc = (d + 4) / d; backdrop.scale.set(sc, sc, 1); }   // the still picture sits behind: scale it back to full frame
   return perspCam;
+}
+function syncGalleryControls() {
+  const g = seq.gallery; if (!$('seq-gallery')) return;
+  $('seq-gallery').checked = g.enabled; $('seq-gallery-style').value = g.style;
+  for (const [id, k] of [['seq-gallery-size', 'size'], ['seq-gallery-pop', 'pop'], ['seq-gallery-lead', 'lead']]) $(id).value = Math.round(g[k] * 100);
+  for (const row of document.querySelectorAll('[data-gallery-row]')) row.hidden = !g.enabled;
 }
 function updateTransport(sec, L) {
   const total = totalSeconds();
@@ -1376,7 +1393,7 @@ function stateForSave() {
   return {
     lyricDocument:seq.lyricDocument,
     settings: { lyricMotion:cleanLyricSettings(seq.lyricMotion), bpm: seq.bpm, phase: seq.phase, holdBeats: seq.holdBeats, offset: seq.offset, bg: seq.bg, push: seq.push, pulse: seq.pulse,
-      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, chaosLength: seq.chaosLength, solidLength: seq.solidLength, detail: seq.detail, modelColor: seq.modelColor, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook) },
+      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, chaosLength: seq.chaosLength, solidLength: seq.solidLength, detail: seq.detail, modelColor: seq.modelColor, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook), gallery: cleanGallery(seq.gallery) },
     slides: seq.slides, transitions: seq.transitions, lyrics: seq.lyrics,
     audio: seq.audioOwner ? { owner: seq.audioOwner, name: seq.audioName } : null,
     methods: collectMethods(seq.transitions, getCustom),     // goes into .unfold files only (exportFile); the autosave ignores it
@@ -1429,6 +1446,7 @@ async function restoreProject(json, blobs) {
   };
   const st = json.settings || {};
   seq.renderLook = cleanRenderLook(st.renderLook);
+  seq.gallery = cleanGallery(st.gallery);   // a project saved before the gallery has none: off
   for (const k of ['bpm', 'phase', 'holdBeats', 'offset', 'bg', 'push', 'pulse', 'strength', 'pullback', 'formPullback', 'detail', 'tiles', 'depth', 'fill', 'silSens', 'withAudio', 'link']) if (st[k] !== undefined) seq[k] = st[k];
   seq.chaosLength = Number.isFinite(st.chaosLength) ? Math.max(0, Math.min(1, st.chaosLength)) : 0;   // a project saved before this setting keeps its timing
   seq.solidLength = Number.isFinite(st.solidLength) ? Math.max(0, Math.min(1, st.solidLength)) : 0;   // 立体の長さ: 0 = as before
@@ -1456,7 +1474,7 @@ async function restoreProject(json, blobs) {
   if (json.audio?.asset && blobs.get(json.audio.asset)) await loadAudio(blobs.get(json.audio.asset), json.audio.name, json.audio.asset,{restoring:true});
   else {seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';seq.audioBlob=null;seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; ($('seq-audio-name')||{}).textContent = '';}
   for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-offset', 'offset', 1], ['seq-push', 'push', 100], ['seq-pulse', 'pulse', 100], ['seq-strength', 'strength', 100], ['seq-pullback', 'pullback', 100], ['seq-form-pullback', 'formPullback', 100], ['seq-chaos', 'chaosLength', 100], ['seq-solid', 'solidLength', 100], ['seq-detail', 'detail', 100], ['seq-model-color', 'modelColor', 100], ['seq-tiles', 'tiles', 100], ['seq-sil', 'silSens', 100]]) $(id).value = +(seq[key] * scale).toFixed(2);
-  $('seq-fill').checked = seq.fill; $('seq-bg').value = seq.bg; $('seq-with-audio').checked = seq.withAudio;
+  $('seq-fill').checked = seq.fill; $('seq-bg').value = seq.bg; $('seq-with-audio').checked = seq.withAudio; syncGalleryControls();
   $('lyr-style').value = seq.lyricOpts.style; $('lyr-trans').value = seq.lyricOpts.transBeats; $('lyr-snap').checked = seq.lyricOpts.snap;
   $('lyr-text').value = seq.lyrics.map(l => l.t).join('\n');
   seq.t = 0; seq.selection = null;
@@ -1513,7 +1531,7 @@ async function newProject() {
   await releaseSaveFile();
   await clearAutosave().catch(() => {});
   seq.slides.forEach(dropTexture);
-  seq.slides = []; seq.transitions = []; seq.lyrics = []; seq.selection = null; seq.t = 0; seq.link = false;
+  seq.slides = []; seq.transitions = []; seq.lyrics = []; seq.selection = null; seq.t = 0; seq.link = false; seq.gallery = cleanGallery(); syncGalleryControls();
   seq.audio?.pause(); seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; ($('seq-audio-name')||{}).textContent = '';
   audioGate.invalidate();lyricRevision++;lyricTap=null;lyricTapping=false;lyricExtraction=null;lyricStatus='';seq.lyricDocument=null;seq.lyricMotion={bpm:seq.bpm,phase:seq.phase};seq.audioBlob=null;if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';
   $('lyr-text').value = ''; renderLyricRows();
@@ -1589,6 +1607,13 @@ function wire() {
   $('seq-bg').oninput = e => { seq.bg = e.target.value; rebuildBackgrounds(); refreshUI(); };
   lyricControls=createLyricControls({getState:lyricState,onAction:lyricAction});$('pane-lyric').append(lyricControls.element);if(location.hash==='#lyric')showTab('lyric');
   $('seq-with-audio').onchange=e=>{seq.withAudio=e.target.checked;scheduleSave()};
+  // 美術館を歩く
+  for (const [id, label] of GALLERY_STYLES) $('seq-gallery-style').append(new Option(label, id));
+  const setGallery = patch => { if (seq.recording) { syncGalleryControls(); return; } seq.gallery = cleanGallery({ ...seq.gallery, ...patch }); syncGalleryControls(); renderAt(seq.t); scheduleSave(); };
+  $('seq-gallery').onchange = e => setGallery({ enabled: e.target.checked });
+  $('seq-gallery-style').onchange = e => setGallery({ style: e.target.value });
+  for (const [id, k] of [['seq-gallery-size', 'size'], ['seq-gallery-pop', 'pop'], ['seq-gallery-lead', 'lead']]) $(id).oninput = e => setGallery({ [k]: Number(e.target.value) / 100 });
+  syncGalleryControls();
   $('seq-offset').onchange = e => edit(()=>{seq.offset=Number(e.target.value);});
   $('seq-play').onclick = () => togglePlay();
   $('seq-scrub').oninput = e => { stopPlay(); seq.t = Number(e.target.value) / 1000 * totalSeconds(); renderAt(seq.t); };
@@ -1797,6 +1822,7 @@ try {
   backdrop = new THREE.Mesh(new THREE.PlaneGeometry(planeW, planeH), new THREE.MeshBasicMaterial({ map: blank, depthWrite: false }));
   backdrop.position.z = -4; backdrop.renderOrder = -1; backdrop.visible = false;
   scene.add(backdrop);
+  gallery = createGallery(THREE); scene.add(gallery.group);
   wire();
   timeline = createTimeline($('seq-timeline'), timelineApi);
   await loadModelLibrary();
@@ -1835,7 +1861,7 @@ try {
       const method=activate();edit(()=>{tr.method=method.id;if(method.code&&item.workshop?.shape==='none')tr.shape='none';normalizeImageTransition(tr)});showTab('edit');
     }
   }});
-  window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile };
+  window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile, projectSettings: () => stateForSave().settings, galleryState: () => ({ x: camera.position.x, gap: galleryGap(planeW), planes: gallery.opacities() }) };
   window.unfoldMethods = { registerCustom, unregisterCustom, setCustomStatus, listCustom, variants, editor: methodEditor, persistence: methodPersistence, safety, enabler: methodEnabler, transfer: { importFile: importMethodFile, importText: importMethodText, download: downloadMethodFile } };
 } catch (e) {
   console.error(e);
