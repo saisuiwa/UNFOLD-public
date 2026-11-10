@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=20';
+import {drawSequenceVisual} from './sequence-renderer.js?v=21';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift,SOLID_PTS} from './sequence-core.js?v=3';
 import {unstretchSolid} from './solid-length.js?v=2';
 import {attachWorkshopLink} from './workshop-link.js';
@@ -17,18 +17,19 @@ import {movieDuration,getTimings,moveLyric,createTapSession,trimLyric,lyricPrevi
 import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { createShotControls } from './shot-motion-controls.js?v=8';
-import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
+import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=3';
 import { GALLERY_STYLES, cleanGallery, createGallery, galleryGap } from './gallery-walk.js?v=2';
+import { cleanToon, createOutline } from './toon-look.js?v=1';
 import { orbitCamera, cleanPlate } from './frame-stage.js?v=7';
 import { createDiveStage } from './dive-stage.js?v=1';
 import { alignCutout } from './cutout-align.js?v=1';
-import { createRenderControls } from './render-look-controls.js?v=2';
+import { createRenderControls } from './render-look-controls.js?v=3';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
 import * as THREE from './vendor/three.module.min.js';
-import { smooth, vertexShader, particleFragment } from './motion.js?v=34';
+import { smooth, vertexShader, particleFragment } from './motion.js?v=35';
 import { presetNames, presetTargets } from './shape-presets.js?v=6';
 import { createTextShape, validateText } from './text-shape.js?v=11';
-import { SceneBlur } from './effects.js?v=36';
+import { SceneBlur } from './effects.js?v=37';
 import { WebMWriter, opusHead } from './webm-writer.js?v=2';
 import { MP4Writer } from './mp4-writer.js?v=1';
 import { FONTS, createMaskTextShape, createSilhouetteShape } from './mask-shape.js?v=7';
@@ -104,6 +105,7 @@ export const seq = {
   lyricDocument: null, lyricMotion: {bpm:98,phase:0},
   renderLook: cleanRenderLook(),
   gallery: cleanGallery(),   // 美術館を歩く (gallery-walk.js)
+  toon: cleanToon(),         // アニメ調の立体 (toon-look.js)
   slides: [],              // {id, name, img} or {id, name, lyric:{text,k,img,seed}}; canvas/texture are made on demand
   transitions: [],         // {method, method2, shape, text, font, beats}
   lyrics: [],              // [{s, e?, t, k?}] timed lyric lines for the MV builder
@@ -329,7 +331,7 @@ function setMaterialTextures(a, b) {
 }
 export function renderAt(sec) {
  imageInputs=[];
- const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt,gallery,galleryCamera,diveStage,slideCut,slidePlate},sec);
+ const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt,gallery,galleryCamera,diveStage,slideCut,slidePlate,outline},sec);
  drawLyrics(sec);if(!seq.recording)updateTransport(sec,L||{i:-1,tr:-1,u:0});
 }
 const FX_KEYS = ['blur', 'bloom', 'neon', 'glass', 'chroma', 'glitch', 'scan', 'grain', 'vignette', 'bokeh'];
@@ -375,7 +377,7 @@ function ownCamera(L, sec, tr) {
   return mixCam(va, at(L.i + 1, b), w);
 }
 // 美術館を歩く: always seen with a little perspective (the wall recedes), and while the camera walks it looks a little ahead (lead: −1…1 of a turn)
-let gallery = null, diveStage = null;
+let gallery = null, diveStage = null, outline = null;
 const galleryTarget = new THREE.Vector3();
 function galleryCamera(lead) {
   const own = seq.renderLook.enabled ? seq.renderLook.perspective : seq.cam.persp;
@@ -391,6 +393,12 @@ function perspective(reveal) {
   const d = perspCam.position.z;
   if (reveal) { const sc = (d + 4) / d; backdrop.scale.set(sc, sc, 1); }   // the still picture sits behind: scale it back to full frame
   return perspCam;
+}
+function syncToonControls() {
+  const t = seq.toon; if (!$('seq-toon')) return;
+  $('seq-toon').checked = t.enabled; $('seq-toon-cel').checked = t.cel; $('seq-toon-beat').checked = t.beat; $('seq-toon-colour').value = t.colour;
+  $('seq-toon-shade').value = Math.round(t.shade * 100); $('seq-toon-line').value = Math.round(t.line * 100);
+  for (const row of document.querySelectorAll('[data-toon-row]')) row.hidden = !t.enabled;
 }
 function syncGalleryControls() {
   const g = seq.gallery; if (!$('seq-gallery')) return;
@@ -1433,7 +1441,7 @@ function stateForSave() {
   return {
     lyricDocument:seq.lyricDocument,
     settings: { lyricMotion:cleanLyricSettings(seq.lyricMotion), bpm: seq.bpm, phase: seq.phase, holdBeats: seq.holdBeats, offset: seq.offset, bg: seq.bg, push: seq.push, pulse: seq.pulse,
-      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, chaosLength: seq.chaosLength, solidLength: seq.solidLength, detail: seq.detail, modelColor: seq.modelColor, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook), gallery: cleanGallery(seq.gallery) },
+      strength: seq.strength, pullback: seq.pullback, formPullback: seq.formPullback, chaosLength: seq.chaosLength, solidLength: seq.solidLength, detail: seq.detail, modelColor: seq.modelColor, tiles: seq.tiles, depth: seq.depth, fill: seq.fill, silSens: seq.silSens, lyricOpts: seq.lyricOpts, withAudio: seq.withAudio, link: seq.link, fx: seq.fx, cam: seq.cam, renderLook: cleanRenderLook(seq.renderLook), gallery: cleanGallery(seq.gallery), toon: cleanToon(seq.toon) },
     slides: seq.slides, transitions: seq.transitions, lyrics: seq.lyrics,
     audio: seq.audioOwner ? { owner: seq.audioOwner, name: seq.audioName } : null,
     methods: collectMethods(seq.transitions, getCustom),     // goes into .unfold files only (exportFile); the autosave ignores it
@@ -1487,6 +1495,7 @@ async function restoreProject(json, blobs) {
   const st = json.settings || {};
   seq.renderLook = cleanRenderLook(st.renderLook);
   seq.gallery = cleanGallery(st.gallery);   // a project saved before the gallery has none: off
+  seq.toon = cleanToon(st.toon);
   for (const k of ['bpm', 'phase', 'holdBeats', 'offset', 'bg', 'push', 'pulse', 'strength', 'pullback', 'formPullback', 'detail', 'tiles', 'depth', 'fill', 'silSens', 'withAudio', 'link']) if (st[k] !== undefined) seq[k] = st[k];
   seq.chaosLength = Number.isFinite(st.chaosLength) ? Math.max(0, Math.min(1, st.chaosLength)) : 0;   // a project saved before this setting keeps its timing
   seq.solidLength = Number.isFinite(st.solidLength) ? Math.max(0, Math.min(1, st.solidLength)) : 0;   // 立体の長さ: 0 = as before
@@ -1515,7 +1524,7 @@ async function restoreProject(json, blobs) {
   if (json.audio?.asset && blobs.get(json.audio.asset)) await loadAudio(blobs.get(json.audio.asset), json.audio.name, json.audio.asset,{restoring:true});
   else {seq.audio?.pause();if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';seq.audioBlob=null;seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; ($('seq-audio-name')||{}).textContent = '';}
   for (const [id, key, scale] of [['seq-bpm', 'bpm', 1], ['seq-hold', 'holdBeats', 1], ['seq-offset', 'offset', 1], ['seq-push', 'push', 100], ['seq-pulse', 'pulse', 100], ['seq-strength', 'strength', 100], ['seq-pullback', 'pullback', 100], ['seq-form-pullback', 'formPullback', 100], ['seq-chaos', 'chaosLength', 100], ['seq-solid', 'solidLength', 100], ['seq-detail', 'detail', 100], ['seq-model-color', 'modelColor', 100], ['seq-tiles', 'tiles', 100], ['seq-sil', 'silSens', 100]]) $(id).value = +(seq[key] * scale).toFixed(2);
-  $('seq-fill').checked = seq.fill; $('seq-bg').value = seq.bg; $('seq-with-audio').checked = seq.withAudio; syncGalleryControls();
+  $('seq-fill').checked = seq.fill; $('seq-bg').value = seq.bg; $('seq-with-audio').checked = seq.withAudio; syncGalleryControls(); syncToonControls();
   $('lyr-style').value = seq.lyricOpts.style; $('lyr-trans').value = seq.lyricOpts.transBeats; $('lyr-snap').checked = seq.lyricOpts.snap;
   $('lyr-text').value = seq.lyrics.map(l => l.t).join('\n');
   seq.t = 0; seq.selection = null;
@@ -1572,7 +1581,7 @@ async function newProject() {
   await releaseSaveFile();
   await clearAutosave().catch(() => {});
   seq.slides.forEach(dropTexture);
-  seq.slides = []; seq.transitions = []; seq.lyrics = []; seq.selection = null; seq.t = 0; seq.link = false; seq.gallery = cleanGallery(); syncGalleryControls();
+  seq.slides = []; seq.transitions = []; seq.lyrics = []; seq.selection = null; seq.t = 0; seq.link = false; seq.gallery = cleanGallery(); syncGalleryControls(); seq.toon = cleanToon(); syncToonControls();
   seq.audio?.pause(); seq.audio = seq.audioBuffer = seq.audioOwner = null; seq.audioName = ''; ($('seq-audio-name')||{}).textContent = '';
   audioGate.invalidate();lyricRevision++;lyricTap=null;lyricTapping=false;lyricExtraction=null;lyricStatus='';seq.lyricDocument=null;seq.lyricMotion={bpm:seq.bpm,phase:seq.phase};seq.audioBlob=null;if(audioURL)URL.revokeObjectURL(audioURL);audioURL='';
   $('lyr-text').value = ''; renderLyricRows();
@@ -1652,6 +1661,11 @@ function wire() {
   for (const [id, label] of GALLERY_STYLES) $('seq-gallery-style').append(new Option(label, id));
   const setGallery = patch => { if (seq.recording) { syncGalleryControls(); return; } seq.gallery = cleanGallery({ ...seq.gallery, ...patch }); syncGalleryControls(); renderAt(seq.t); scheduleSave(); };
   $('seq-gallery').onchange = e => setGallery({ enabled: e.target.checked });
+  // アニメ調の立体
+  const setToon = patch => { if (seq.recording) { syncToonControls(); return; } seq.toon = cleanToon({ ...seq.toon, ...patch }); syncToonControls(); renderAt(seq.t); scheduleSave(); };
+  $('seq-toon').onchange = e => setToon({ enabled: e.target.checked }); $('seq-toon-cel').onchange = e => setToon({ cel: e.target.checked }); $('seq-toon-beat').onchange = e => setToon({ beat: e.target.checked });
+  $('seq-toon-shade').oninput = e => setToon({ shade: Number(e.target.value) / 100 }); $('seq-toon-line').oninput = e => setToon({ line: Number(e.target.value) / 100 }); $('seq-toon-colour').oninput = e => setToon({ colour: e.target.value });
+  syncToonControls();
   $('seq-gallery-style').onchange = e => setGallery({ style: e.target.value });
   for (const [id, k] of [['seq-gallery-size', 'size'], ['seq-gallery-pop', 'pop'], ['seq-gallery-lead', 'lead']]) $(id).oninput = e => setGallery({ [k]: Number(e.target.value) / 100 });
   syncGalleryControls();
@@ -1864,6 +1878,7 @@ try {
   backdrop.position.z = -4; backdrop.renderOrder = -1; backdrop.visible = false;
   scene.add(backdrop);
   gallery = createGallery(THREE); scene.add(gallery.group);
+  outline = createOutline(THREE); scene.add(outline.object);
   diveStage = createDiveStage(THREE);
   wire();
   timeline = createTimeline($('seq-timeline'), timelineApi);

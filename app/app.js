@@ -9,11 +9,12 @@ import { solidMotionAt, motionCamera, solidLife, SINGLE_BEAT_SEC } from './solid
 import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, createFrameStage, frameZoom, personOut, solidPop, solidShift, tiltAt, pickTilt, pickPersonMove, orbitCamera } from './frame-stage.js?v=7';
 import { alignCutout } from './cutout-align.js?v=1';
 import { BACKDROPS, VERTIGOS, cleanSolidStage, createSolidStage, vertigoAt } from './solid-stage.js?v=3';
+import { cleanToon, applyToon, lineAt, createOutline } from './toon-look.js?v=1';
 import { createShotControls } from './shot-motion-controls.js?v=8';
-import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=2';
-import { createRenderControls } from './render-look-controls.js?v=2';
+import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=3';
+import { createRenderControls } from './render-look-controls.js?v=3';
 import * as THREE from './vendor/three.module.min.js';
-import {motionAt,exportRange,chaosTime,warpTime,smooth,vertexShader,fragmentShader} from './motion.js?v=34';
+import {motionAt,exportRange,chaosTime,warpTime,smooth,vertexShader,fragmentShader} from './motion.js?v=35';
 import {presetNames,presetTargets} from './shape-presets.js?v=6';
 import {importModel} from './model-import.js?v=13';
 import {listModels,getModel,saveModel,deleteModel,updateModel} from './model-library.js?v=5';
@@ -23,7 +24,7 @@ import {modelThumb,fillMissingThumbs} from './model-thumb.js?v=4';
 import {particleParts} from './model-layout.js?v=14';
 import {createTextShape,validateText} from './text-shape.js?v=11';
 import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from './mask-shape.js?v=7';
-import {effectsAt,SceneBlur} from './effects.js?v=36';
+import {effectsAt,SceneBlur} from './effects.js?v=37';
 import {BUILTIN_KEYS,getCustom,listCustom,onRegistryChange,registerCustom,resolveKey,setCustomStatus,unregisterCustom} from './method-registry.js';
 import {createPersistence,openStore} from './method-library.js';
 import {registerBundledImageMethods} from './bundled-image-methods.js';
@@ -50,10 +51,12 @@ const loadShot=()=>{try{return cleanShot(JSON.parse(localStorage.getItem('unfold
 // 額縁から飛び出す (frame-stage.js): the settings stay in this browser; the cut-out does not (it belongs to one picture)
 const loadFrameStage=()=>{try{return cleanFrameStage(JSON.parse(localStorage.getItem('unfold-single-frame')||'null'))}catch{return cleanFrameStage()}};
 const saveFrameStage=()=>{try{localStorage.setItem('unfold-single-frame',JSON.stringify(state.frameStage))}catch{}};
-let frameStage=null,syncFrameControls=null,solidStage=null;
+let frameStage=null,syncFrameControls=null,solidStage=null,outline=null;
 const loadSolidStage=()=>{try{return cleanSolidStage(JSON.parse(localStorage.getItem('unfold-single-stage')||'null'))}catch{return cleanSolidStage()}};
 const saveSolidStage=()=>{try{localStorage.setItem('unfold-single-stage',JSON.stringify(state.stage))}catch{}};
-const state={fit:'cover',imageSolid:true,personPlate:true,stage:loadSolidStage(),shot:loadShot(),frameStage:loadFrameStage(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,solidLength:0,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+const loadToon=()=>{try{return cleanToon(JSON.parse(localStorage.getItem('unfold-single-toon')||'null'))}catch{return cleanToon()}};
+const saveToon=()=>{try{localStorage.setItem('unfold-single-toon',JSON.stringify(state.toon))}catch{}};
+const state={fit:'cover',imageSolid:true,personPlate:true,stage:loadSolidStage(),toon:loadToon(),shot:loadShot(),frameStage:loadFrameStage(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,solidLength:0,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
@@ -141,6 +144,8 @@ function render(){
  const straight=syncPerspective(camera,perspCam,vertigo.k>0?vertigo.k:ownPersp>0?ownPersp:tilting?.5:0);
  const view=tilting?orbitCamera(straight,orbitTarget.set(camera.position.x,camera.position.y,0),tiltNow,camera.rotation.z):straight;
  const imageFade=imageCode?smoothImage(state.t/.025)*smoothImage((1-state.t)/.025):0;mesh.visible=!(imageCode&&(framed||staged)&&imageFade>=1);   // in the frame the worker draws on a clear background, so the GLSL copy under it must not show
+ /* アニメ調 (toon-look.js): two steps of light, and a line around the solid while it is there */
+ applyToon(u,state.toon,!imageCode);outline?.prepare(renderer,mesh,view,lineAt(state.toon,imageCode?0:m.form),imageSize.y);
  u.uGlass.value=imageCode?0:fx.glass;sceneBlur.render(scene,view,imageCode?0:fx.blur,imageCode?0:fx.glitch,imageCode?0:fx.chroma,fx.seconds,imageCode?{}:fx);
  imageInput=null;
  if(imageCode){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={params:state.imageLabel?{label:state.imageLabel}:undefined,target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText,texture:shapeOf(state.shape)?.data.texture}):null,id:state.method,imageA:plate||sourceCanvas,imageB:plate||sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,modelColor:state.modelColor,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,...(framed||staged?{bgAlpha:0}:{}),camera:motionCamera(imageCamera(view),pop===1&&!shifted?sm:{quaternion:[0,0,0,1],position:(sm?sm.position.map(v=>v*pop):[0,0,0]).map((v,i)=>v+shift[i]),scale:(sm?.scale||[1,1,1]).map(v=>v*pop)}),rootQuaternion:mesh.quaternion.toArray()}};const fade=imageFade;if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
@@ -329,6 +334,9 @@ function wireControls(){
  for(const [id,label] of BACKDROPS)$('stage-backdrop').append(new Option(label,id));for(const [id,label] of VERTIGOS)$('stage-vertigo').append(new Option(label,id));
  const syncStage=()=>{const g=state.stage;$('stage-on').checked=g.enabled;$('stage-body').hidden=!g.enabled;$('stage-backdrop').value=g.backdrop;$('stage-blur').value=Math.round(g.blur*100);$('stage-blur-value').textContent=Math.round(g.blur*100)+'%';$('stage-floor').checked=g.floor;$('stage-vertigo').value=g.vertigo;$('stage-vertigo-amount').value=Math.round(g.vertigoAmount*100);$('stage-vertigo-amount-value').textContent=Math.round(g.vertigoAmount*100)+'%';$('stage-vertigo-row').hidden=g.vertigo==='none'};
  const setStage=patch=>{state.stage=cleanSolidStage({...state.stage,...patch});saveSolidStage();syncStage();render()};
+ const syncToon=()=>{const t=state.toon;$('toon-on').checked=t.enabled;$('toon-body').hidden=!t.enabled;$('toon-cel').checked=t.cel;$('toon-shade').value=Math.round(t.shade*100);$('toon-shade-value').textContent=Math.round(t.shade*100)+'%';$('toon-line').value=Math.round(t.line*100);$('toon-line-value').textContent=t.line>0?Math.round(t.line*100)+'%':'線なし';$('toon-colour').value=t.colour};
+ const setToon=patch=>{if(state.recording){syncToon();return}state.toon=cleanToon({...state.toon,...patch});saveToon();syncToon();render()};
+ $('toon-on').onchange=e=>setToon({enabled:e.target.checked});$('toon-cel').onchange=e=>setToon({cel:e.target.checked});$('toon-shade').oninput=e=>setToon({shade:Number(e.target.value)/100});$('toon-line').oninput=e=>setToon({line:Number(e.target.value)/100});$('toon-colour').oninput=e=>setToon({colour:e.target.value});syncToon();
  $('stage-on').onchange=e=>setStage({enabled:e.target.checked});$('stage-backdrop').onchange=e=>setStage({backdrop:e.target.value});$('stage-blur').oninput=e=>setStage({blur:Number(e.target.value)/100});$('stage-floor').onchange=e=>setStage({floor:e.target.checked});$('stage-vertigo').onchange=e=>setStage({vertigo:e.target.value});$('stage-vertigo-amount').oninput=e=>setStage({vertigoAmount:Number(e.target.value)/100});
  syncStage();window.unfoldStage={set:setStage};
  syncFrameControls();syncImageControls();   // 「立体化する」 is there from the start (it used to appear only after choosing a method)
@@ -525,7 +533,7 @@ let previous=performance.now();function tick(now){if(state.playing&&!state.recor
 try{
  renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true,alpha:false,preserveDrawingBuffer:true});$('scene').addEventListener('webglcontextlost',e=>{e.preventDefault();safety?.contextLost();showContextLost()});renderer.outputColorSpace=THREE.SRGBColorSpace;sceneBlur=new SceneBlur(renderer);
  scene=new THREE.Scene();camera=new THREE.OrthographicCamera(-4.8,4.8,2.7,-2.7,.1,100);camera.position.z=10;
- frameStage=createFrameStage(THREE);frameStage.setStyle(state.frameStage.style);scene.add(frameStage.back);solidStage=createSolidStage(THREE);scene.add(solidStage.group);
+ frameStage=createFrameStage(THREE);frameStage.setStyle(state.frameStage.style);scene.add(frameStage.back);solidStage=createSolidStage(THREE);scene.add(solidStage.group);outline=createOutline(THREE);scene.add(outline.object);
  setSource(makeSample(),'カラーテスト・サンプル');wireControls();loadSavedModels();detectFormats();updateRange();resize();requestAnimationFrame(tick);
  attachWorkshopLink({notify:notice,apply:(item,target,activate)=>{if(state.recording)throw Error('書き出しが終わってから適用してください。');if(item.kind==='text')throw Error('文字モーションはシーケンスの歌詞に使えます。');const method=activate();if(method.code&&item.workshop?.shape==='none')state.imageSolid=false;setChoice('methods','method',method.id);}});
  window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};

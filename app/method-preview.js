@@ -1,4 +1,4 @@
-import { addRenderUniforms, applyRenderLook, cleanRenderLook, syncPerspective } from './render-look.js?v=2';
+import { addRenderUniforms, applyRenderLook, cleanRenderLook, syncPerspective } from './render-look.js?v=3';
 // A small preview of one custom method, for the editor: its own WebGL canvas, the same shaders and the same grid of tiles/grains as the real pages.
 import * as THREE from './vendor/three.module.min.js';
 import { assembleVertex } from './custom-method.js';

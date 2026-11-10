@@ -305,6 +305,13 @@
     <div class="row" data-gallery-row hidden><label>立体が飛び出す大きさ</label><input id="seq-gallery-pop" type="range" min="0" max="100" value="15"></div>
     <div class="row" data-gallery-row hidden><label>歩く時にカメラが先を向く</label><input id="seq-gallery-lead" type="range" min="0" max="100" value="50"></div>
     <div class="row" data-gallery-row hidden><p class="hint" style="margin:0 0 6px;line-height:1.6">通り過ぎた額縁には絵が残り、まだ行っていない額縁は絵が来るまで暗いままです。美術館の間は、絵ごとのカメラ・引きの設定は使いません。壁の色は背景色です。</p></div>
+    <div class="row"><label title="立体を、手描きアニメのような見た目にします。陰が「明るい・暗い」の2段に分かれ、ふちに輪郭線が付きます">アニメ調の立体（セル塗りと輪郭線）</label><input id="seq-toon" type="checkbox"></div>
+    <div class="row" data-toon-row hidden><label>セル塗り（陰を2段に）</label><input id="seq-toon-cel" type="checkbox" checked></div>
+    <div class="row" data-toon-row hidden><label>陰の濃さ</label><input id="seq-toon-shade" type="range" min="0" max="80" value="45"></div>
+    <div class="row" data-toon-row hidden><label>輪郭線の太さ（0で線なし）</label><input id="seq-toon-line" type="range" min="0" max="100" value="50"></div>
+    <div class="row" data-toon-row hidden><label>輪郭線の色</label><input id="seq-toon-colour" type="color" value="#0b0b10"></div>
+    <div class="row" data-toon-row hidden><label title="拍ごとに、線が太くなって明るい色に光ります（色は拍ごとに変わります）">輪郭線が拍で光る</label><input id="seq-toon-beat" type="checkbox"></div>
+    <div class="row" data-toon-row hidden><p class="hint" style="margin:0 0 6px;line-height:1.6">立体が出来上がっている間だけ出ます（「立体の長さ」を長くすると、線の出る時間も長くなります）。色つきのGLBの立体だと、フィギュアが手描きアニメのようになります。背景が暗い時は、線の色を明るくするか「拍で光る」を使うと見えます。JavaScriptの画像メソッドの◆には付きません。</p></div>
     <div class="row"><label>画面いっぱいに表示</label><input id="seq-fill" type="checkbox" checked></div>
     <div class="row"><label>背景色</label><input id="seq-bg" type="color" value="#111718"></div>
     <div id="seq-fx"></div>
@@ -344,7 +351,7 @@
 <section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
 </main>
 <div id="seq-notice"></div>
-<script type="module" src="./sequence.js?v=136"></script>
+<script type="module" src="./sequence.js?v=137"></script>
 <script type="module" src="./panel-resize.js?v=1"></script>
 </body>
 </html>

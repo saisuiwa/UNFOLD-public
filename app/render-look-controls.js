@@ -1,4 +1,4 @@
-import { cleanRenderLook } from './render-look.js?v=2';
+import { cleanRenderLook } from './render-look.js?v=3';
 export function createRenderControls({ value, onChange, onApply = null, preview = false } = {}) {
   let state = cleanRenderLook(value);
   const box = document.createElement('details'); box.className = 'render-look-controls';

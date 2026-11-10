@@ -1,4 +1,4 @@
-import { addRenderUniforms } from './render-look.js?v=2';
+import { addRenderUniforms } from './render-look.js?v=3';
 // The trial render: before a custom method is saved (or switched on), draw it on a small canvas and see two things —
 // whether it is too heavy (compared with the heaviest built-in method, measured on the same GPU at the same time),
 // and whether it shows anything at all. It is the second gatekeeper after the compile; the first is the text check.

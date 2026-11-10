@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {smooth,vertexShader,particleFragment} from './motion.js?v=34';
+import {smooth,vertexShader,particleFragment} from './motion.js?v=35';
 import {presetNames,presetTargets} from './shape-presets.js';
 import {applyTiles,tilesAcross} from './tile-size.js';
 import {particleParts} from './model-layout.js';
@@ -9,6 +9,7 @@ import {cleanShot,rotationAt,blendCameraMove} from './shot-motion.js?v=29';
 import {solidMotionAt,motionCamera,solidLife} from './solid-motion.js?v=4';
 import {galleryPose,galleryGap,galleryZoom} from './gallery-walk.js?v=2';
 import {DIVE,diveAt} from './dive-stage.js?v=1';
+import {applyToon,lineAt} from './toon-look.js?v=1';
 import {concealAmount,swapCurve,mixFx} from './fx-mix.js';
 import {camLife,camValues,lifeProgress,legacyKenBurns,mixCam} from './camera-work.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
@@ -181,6 +182,9 @@ export function drawSequenceVisual(ctx,sec) {
   applyRenderLook(u, seq.renderLook);
   u.uGlass.value = imageCode?0:fx.glass;
   mesh.visible = !(G && imageCode && smoothImage(L.u/.025)*smoothImage((1-L.u)/.025) >= 1);   // in the gallery the worker draws on a clear background: no GLSL copy under it
+  // アニメ調 (toon-look.js): two steps of light, and a line around the solid while it is there (only where the page gave an outline: not in STUDIO's renderer)
+  applyToon(u, seq.toon, !!ctx.outline);
+  ctx.outline?.prepare(renderer, mesh, view, lineAt(seq.toon, imageCode || dive?.inside ? 0 : c.form, bp), planeH);
   if (dive?.inside) {   // between the layers: the dive stage's own scene and camera (the picture filled the view when it took over)
     const a = seq.slides[L.i], vh = (camera.top - camera.bottom) / camera.zoom;
     ctx.diveStage.set(slideCanvas(a), ctx.slideCut?.(a) ?? null, ctx.slidePlate?.(a) ?? null);

@@ -10,6 +10,7 @@ export function cleanRenderLook(input = {}) {
 export function addRenderUniforms(uniforms) {
   uniforms.uLookLight ??= { value: 0 }; uniforms.uLookAlpha ??= { value: 0 };
   uniforms.uLookShade ??= { value: .6 }; uniforms.uLookDirection ??= { value: new THREE.Vector3(-.4, .65, 1).normalize() };
+  uniforms.uToon ??= { value: 0 }; uniforms.uToonShade ??= { value: .45 };   // アニメ調 (toon-look.js): two flat steps of light
   return uniforms;
 }
 export function applyRenderLook(uniforms, options) {
@@ -35,10 +36,11 @@ export function syncPerspective(camera, perspective, strength) {
 // No real-time input: the experimental coverage pattern is reproducible in exports.
 // The seed is constant across a tile/particle and independent between layers.
 export const renderLookFragment = `
-uniform float uLookLight,uLookAlpha,uLookShade;
+uniform float uLookLight,uLookAlpha,uLookShade,uToon,uToonShade;
 uniform vec3 uLookDirection;
 varying float vLookSeed,vLookAmount;
 float surfaceLight(vec3 normal){
+  if(uToon>.5){vec3 d=uLookLight<.5?normalize(vec3(-.4,.65,1.)):uLookDirection;return 1.-uToonShade*(1.-smoothstep(.47,.53,dot(normal*sign(normal.z+1e-4),d)));}
   if(uLookLight<.5)return .68+.32*abs(dot(normal,normalize(vec3(-.4,.65,1.))));
   return 1.-uLookShade+uLookShade*abs(dot(normal,uLookDirection));
 }

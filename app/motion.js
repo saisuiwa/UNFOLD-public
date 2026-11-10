@@ -1,5 +1,5 @@
 import {shapeTargetGLSL} from './shape-target.js';
-import { renderLookFragment } from './render-look.js?v=2';
+import { renderLookFragment } from './render-look.js?v=3';
 import { stretchSolid, unstretchSolid } from './solid-length.js?v=2';
 export const smooth = (a,b,x) => {const t=Math.min(1,Math.max(0,(x-a)/(b-a)));return t*t*(3-2*t)};
 // ぐちゃぐちゃの長さ (hold 0..1, the same slider as the sequence's, sequence-core.js chaosShift): the solid starts later, so a slow effect such as

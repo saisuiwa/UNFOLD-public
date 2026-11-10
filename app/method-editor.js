@@ -1,11 +1,11 @@
-import { createRenderControls } from './render-look-controls.js?v=2';
+import { createRenderControls } from './render-look-controls.js?v=3';
 // The custom-method editor: a <dialog> with a code box, a live preview and the checks that stand between the code and "save".
 import { LIMITS, checkSource } from './method-guard.js';
 import { compileUserMethod } from './custom-method.js';
 import { getCustom, newCustomId, registerCustom } from './method-registry.js';
 import { describeGlError } from './method-messages.js';
 import { NEW_METHOD_SOURCE, SAMPLES, SAMPLE_GROUPS, aiTemplate } from './method-samples.js?v=14';
-import { createPreview, makeTestImage } from './method-preview.js?v=6';
+import { createPreview, makeTestImage } from './method-preview.js?v=7';
 import { TRIAL, describeTrialPass } from './method-trial.js';
 import { DRAFT_KEY } from './method-safety.js';
 
