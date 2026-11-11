@@ -10,6 +10,9 @@ import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, createFrameSt
 import { alignCutout } from './cutout-align.js?v=1';
 import { BACKDROPS, VERTIGOS, cleanSolidStage, createSolidStage, vertigoAt } from './solid-stage.js?v=3';
 import { cleanToon, applyToon, lineAt, createOutline } from './toon-look.js?v=1';
+import { createReliefShape, setReliefAmount, cleanReliefAmount, reliefSwing, reliefTilt } from './relief-shape.js?v=1';
+import { makeDepth, depthModelCached } from './depth-auto/depth-make.js?v=1';
+import { DEPTH } from './depth-auto/depth-model.js?v=1';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=3';
 import { createRenderControls } from './render-look-controls.js?v=3';
@@ -87,6 +90,7 @@ function geometryFor(w,h){
  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.setAttribute('cell',new THREE.Float32BufferAttribute(cells,2));g.setAttribute('part',new THREE.Float32BufferAttribute(parts,4));g.setAttribute('targetPosition',new THREE.BufferAttribute(presetTargets(state.shape),3));applyTiles(THREE,g,tilesAcross(state.tiles));return g;
 }
 function setSource(canvas,name){
+ if(sourceCanvas&&canvas!==sourceCanvas)dropRelief();   // 写真の浮き彫り belongs to one picture
  sourceCanvas=canvas;texture?.dispose();texture=new THREE.CanvasTexture(canvas);texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=false;texture.colorSpace=THREE.SRGBColorSpace;
  const aspect=canvas.width/canvas.height;const h=Math.min(3.65,5.25/aspect),w=h*aspect;
  if(mesh){mesh.geometry.dispose();mesh.material.dispose();scene.remove(mesh)}
@@ -109,7 +113,8 @@ function render(){
  const preset=u.uPreset.value===1,orientation=!state.imageSolid?m.distort:m.form;
  const isText=shapeOf(state.shape)?.kind==='text';
  const base=preset?(state.shape==='pegasus'?-.30:.20):.42;
- mesh.rotation.set(((preset?-.06:-.18)+state.viewX)*orientation,isText?(.12+state.viewY)*orientation:(base+state.viewY)*orientation+m.turn-(preset?motionAt(.56).turn*m.form:0),0);renderer.setClearColor(state.bg,1);
+ const isRelief=state.shape===RELIEF_ID,reliefW=isRelief?warpTime(state.t,state.chaosLength,state.solidLength):0;
+ mesh.rotation.set(((preset?-.06:-.18)+state.viewX)*orientation+(isRelief?reliefTilt(reliefW,state.reliefTilt)*orientation:0),isText?(.12+state.viewY)*orientation+(isRelief?reliefSwing(reliefW,state.reliefSwing)*orientation:0):(base+state.viewY)*orientation+m.turn-(preset?motionAt(.56).turn*m.form:0),0);renderer.setClearColor(state.bg,1);
  const spin=rotationAt(state.shot.rotation,state.t,'single');
  if(spin){mesh.rotation.set(state.viewX*orientation,state.viewY*orientation,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
  // 立体の動き: the solid sways / hops… as one piece while it is formed (none = stays where it is)
@@ -126,7 +131,7 @@ function render(){
  const imageSize=u.uSize.value,frameW=camera.right-camera.left,frameH=camera.top-camera.bottom;
  const fillZoom=(state.fit==='contain'?Math.min:Math.max)(frameW/imageSize.x,frameH/imageSize.y);   // 'contain': the whole picture stays in view, the rest is the background colour
  // how far the camera eases out while the picture is torn up, handing over to the 3D-solid setting as it forms (0 = stays filling the frame)
- const flat=1-(m.distort*state.pullback*(1-m.form)+m.form*(fillsFrame(state.shape)?0:state.formPullback));
+ const flat=1-(m.distort*state.pullback*(1-m.form)+m.form*(fillsFrame(state.shape)||state.shape===RELIEF_ID?0:state.formPullback));
  const staying=!framed&&!!frameStage?.hasCutout;   // 人物を残す: the camera does not pull back, so the person stays her size and the solid forms around her
  const baseZoom=framed?frameZoom(frameW,frameH,imageSize.x,imageSize.y,state.frameStage.style,state.frameStage.size):staying?fillZoom:1+(fillZoom-1)*flat;   // in the frame: the whole frame stays in view, the camera does not pull back
  camera.zoom=baseZoom*fx.zoom;camera.position.x=fx.x;camera.position.y=fx.y;camera.rotation.z=fx.roll;camera.updateProjectionMatrix();
@@ -201,7 +206,7 @@ function addShapeButton(id,name,thumb,kind='model'){
  if([...$('imported-shapes').children].some(b=>b.dataset.shape===id))return;
  const b=document.createElement('button');b.dataset.shape=id;b.className='added-shape';b.setAttribute('aria-pressed',String(state.shape===id));b.title=name;
  const label=document.createElement('b');label.textContent=name.replace(/^文字：/,'');
- const tag=document.createElement('small');tag.textContent=kind==='model'?'GLB':name.startsWith('文字：')?'文字':'輪郭';
+ const tag=document.createElement('small');tag.textContent=kind==='model'?'GLB':name.startsWith('文字：')?'文字':id===RELIEF_ID?'浮き彫り':'輪郭';
  b.append(shapeTileIcon(thumb,kind),label,tag);$('imported-shapes').append(b);refreshShapeFilter();
 }
 // many added shapes: a name filter appears (the list scrolls)
@@ -262,6 +267,41 @@ async function addSilhouette(){
  if(customShapes.size>=8){notice('追加できる形は8個までです。使わない形を削除してね。');return}
  try{const {x:w,y:h}=mesh.material.uniforms.uSize.value;const data=createSilhouetteShape(sourceCanvas,.5,{x:-w/2,y:h/2,w,h});addCustomShape('色差シルエット',data,'text');$('model-status').textContent='透明部分、または画像外周の色との差から形を作りました。被写体は自動認識しません。';notice('画像の色から輪郭を作ったよ。')}
  catch(e){notice(e.message||'シルエットを作れませんでした。')}
+}
+// 写真の浮き彫り (relief-shape.js): the picture's depth (made in this browser by depth-auto/) becomes a solid where the near things come forward. One per picture
+const RELIEF_ID='relief';let reliefJob=null,reliefDepth=null,reliefHost=null;state.reliefSwing=.6;state.reliefTilt=.5;
+function dropRelief(){   // the picture changed: its depth and its relief solid no longer fit
+ reliefJob?.cancel();reliefDepth=null;
+ if(customShapes.has(RELIEF_ID)){if(state.shape===RELIEF_ID)setChoice('shapes','shape','sphere');customShapes.delete(RELIEF_ID);[...$('imported-shapes').children].find(b=>b.dataset.shape===RELIEF_ID)?.remove();refreshShapeFilter()}
+ $('relief-body').hidden=true;
+}
+async function addRelief(){
+ if(importing||state.recording||!sourceCanvas)return;
+ const button=$('add-relief'),idle='＋ 写真の奥行きから浮き彫りを立体に',say=t=>{$('model-status').textContent=t};
+ if(reliefJob){reliefJob.cancel();return}   // pressed while it is running = stop
+ if(!customShapes.has(RELIEF_ID)&&customShapes.size>=8){notice('追加できる形は8個までです。使わない形を削除してね。');return}
+ const picture=sourceCanvas,{x:w,y:h}=mesh.material.uniforms.uSize.value;
+ let field=reliefDepth?.canvas===picture?reliefDepth.field:null;
+ if(!field){
+  const cached=await depthModelCached(reliefHost||undefined);
+  if(!cached&&!confirm(`絵の手前・奥を、このブラウザの中で推定します（絵はどこにも送りません）。\n\n初めてなので、推定の仕組み（約 ${DEPTH.mb}MB）を Hugging Face から読み込みます。次からは、このブラウザに残ります。\n\n始めますか？`))return;
+  if(picture!==sourceCanvas)return;
+  button.textContent='止める';button.dataset.busy='';say('絵の奥行きを作る準備をしています…');
+  const job=makeDepth(picture,{host:reliefHost,on:{load:(l,t)=>say(`推定の仕組みを読み込んでいます… ${(l/1e6).toFixed(0)} / ${(t/1e6).toFixed(0)} MB${cached?'':'（初めての時だけ）'}`),run:()=>say('絵の手前・奥を推定しています…')}});
+  reliefJob=job;
+  try{field=await job.done}catch(e){notice('奥行きを作れませんでした: '+(e.message||e));say('奥行きを作れませんでした。');field=null}
+  finally{if(reliefJob===job)reliefJob=null;button.textContent=idle;delete button.dataset.busy}
+  if(!field){if(!$('model-status').textContent.includes('作れません'))say('奥行きを作るのをやめました。');return}
+  if(picture!==sourceCanvas)return;   // the picture was changed while it was thinking
+  reliefDepth={canvas:picture,field};
+ }
+ try{
+  const amount=cleanReliefAmount(Number($('relief-amount').value)/100);
+  const data=createReliefShape(field,{x:-w/2,y:h/2,w,h},{amount});
+  if(customShapes.has(RELIEF_ID)){customShapes.delete(RELIEF_ID);[...$('imported-shapes').children].find(b=>b.dataset.shape===RELIEF_ID)?.remove()}
+  addCustomShape('写真の浮き彫り',data,'text',RELIEF_ID);
+  $('relief-body').hidden=false;say('写真の浮き彫りを作りました。立体になる所で、手前の物が前へ出ます。「浮き出る量」で強さを変えられます。');
+ }catch(e){notice(e.message||'浮き彫りを作れませんでした。');say('浮き彫りを作れませんでした。')}
 }
 async function loadModel(file){
  if(!file||importing||state.recording)return;
@@ -349,7 +389,10 @@ function wireControls(){
  });
  for(const key of ['blur','push','shake','chroma','glitch','bloom','neon','glass','scan','grain','vignette','bokeh'])$(`fx-${key}`).oninput=e=>{state[key]=Number(e.target.value)/100;$(`fx-${key}-value`).textContent=e.target.value==='0'?'OFF':e.target.value+'%';render()};
  $('reset-effects').onclick=()=>{for(const key of ['blur','push','shake','chroma','glitch','bloom','neon','glass','scan','grain','vignette','bokeh']){state[key]=0;$(`fx-${key}`).value=0;$(`fx-${key}-value`).textContent='OFF'}render()};
- $('add-text').onclick=addText;$('add-silhouette').onclick=addSilhouette;
+ $('add-text').onclick=addText;$('add-silhouette').onclick=addSilhouette;$('add-relief').onclick=addRelief;
+ $('relief-swing').oninput=e=>{const v=Number(e.target.value);$('relief-swing-value').textContent=v===0?'OFF':v+'%';state.reliefSwing=v/100;render()};
+ $('relief-tilt').oninput=e=>{const v=Number(e.target.value);$('relief-tilt-value').textContent=v===0?'OFF':v+'%';state.reliefTilt=v/100;render()};
+ $('relief-amount').oninput=e=>{const v=Number(e.target.value);$('relief-amount-value').textContent=v+'%';const s=customShapes.get(RELIEF_ID);if(!s||state.recording)return;if(setReliefAmount(s.data,v/100)){if(state.shape===RELIEF_ID){const attr=mesh.geometry.getAttribute('targetPosition');if(attr)attr.needsUpdate=true}render()}};
  $('shape-text').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();addText()}};
  $('add-model').onclick=()=>$('model-input').click();
  $('model-input').onchange=e=>loadModel(e.target.files[0]);
@@ -536,5 +579,5 @@ try{
  frameStage=createFrameStage(THREE);frameStage.setStyle(state.frameStage.style);scene.add(frameStage.back);solidStage=createSolidStage(THREE);scene.add(solidStage.group);outline=createOutline(THREE);scene.add(outline.object);
  setSource(makeSample(),'カラーテスト・サンプル');wireControls();loadSavedModels();detectFormats();updateRange();resize();requestAnimationFrame(tick);
  attachWorkshopLink({notify:notice,apply:(item,target,activate)=>{if(state.recording)throw Error('書き出しが終わってから適用してください。');if(item.kind==='text')throw Error('文字モーションはシーケンスの歌詞に使えます。');const method=activate();if(method.code&&item.workshop?.shape==='none')state.imageSolid=false;setChoice('methods','method',method.id);}});
- window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
+ window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage,setReliefHost:v=>{reliefHost=v||null},setReliefDepth:field=>{reliefDepth=field?{canvas:sourceCanvas,field}:null},reliefInfo:()=>({shape:customShapes.has(RELIEF_ID),depth:!!reliefDepth,amount:customShapes.get(RELIEF_ID)?.data.relief?.amount??null,running:!!reliefJob})};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
 }catch(e){console.error(e);$('stage-error').hidden=false;$('stage-error').textContent='3D表示を開始できませんでした。WebGL対応のChromeまたはSafariで開いてね。（原因: '+String(e?.message||e).slice(0,160)+'）';$('export').disabled=$('export-top').disabled=true}
