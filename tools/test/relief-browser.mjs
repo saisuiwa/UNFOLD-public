@@ -98,6 +98,14 @@ try {
   await page.evaluate(() => document.getElementById('add-relief').click());
   await page.waitForTimeout(400);
   need(await page.evaluate(() => document.querySelectorAll('#imported-shapes [data-shape="relief"]').length) === 1, 'a second press keeps one relief shape');
+  // with 「立体化する」 off the picture stays crumbled and no solid shows: making a relief turns it back on (2026-11-11: the author made one with it off and saw only the crumbled picture)
+  await page.evaluate(() => { const t = document.getElementById('image-solid'); t.checked = false; t.dispatchEvent(new Event('change', { bubbles: true })); unfold.setTime(unfold.state.t); unfold.render(); });
+  need(await page.evaluate(() => unfold.state.imageSolid === false && document.getElementById('phase-badge').textContent.includes('崩れたまま')), 'with 立体化する off the solid part is the crumbled picture');
+  await page.evaluate(() => document.getElementById('add-relief').click());
+  await page.waitForFunction(() => unfold.state.imageSolid === true, null, { timeout: 30000 }).catch(() => {});
+  need(await page.evaluate(() => { unfold.render(); return unfold.state.imageSolid === true && document.getElementById('image-solid').checked && unfold.state.shape === 'relief' && document.getElementById('phase-badge').textContent.includes('立体化') && document.getElementById('model-status').textContent.includes('「立体化する」をオンにしました'); }), 'making a relief turns 立体化する back on, shows the solid, and says so');
+  await page.evaluate(() => { unfold.state.viewX = .06; unfold.state.viewY = .25; });   // making a shape faces it forward again: look from the same side as before
+  need(diff(side, await look(SOLID)) < .0005, 'and the relief looks as it did before');
   // a new picture drops the relief and its depth
   await page.evaluate(async () => { const c = document.createElement('canvas'); c.width = 640; c.height = 640; c.getContext('2d').fillRect(0, 0, 640, 640); const blob = await new Promise(r => c.toBlob(r, 'image/png')); await unfold.loadImage(new File([blob], 'other.png', { type: 'image/png' })); await new Promise(r => setTimeout(r, 300)); });
   const after = await info();
