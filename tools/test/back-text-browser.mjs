@@ -65,7 +65,7 @@ try {
   await set({ backAlpha: 0 });
 
   // ---- every way of changing words draws, half way through, something that is neither word at rest
-  const timing = await page.evaluate(async () => { const m = await import('/back-text.js?v=1'); const s = unfold.state.backText, slot = m.backSlot(s, 0, unfold.state.duration); return { len: slot.len, T: slot.T, D: unfold.state.duration, kinds: Object.keys(m.BACK_TRANS), random: m.BACK_RANDOM }; });
+  const timing = await page.evaluate(async () => { const m = await import('/back-text.js?v=2'); const s = unfold.state.backText, slot = m.backSlot(s, 0, unfold.state.duration); return { len: slot.len, T: slot.T, D: unfold.state.duration, kinds: Object.keys(m.BACK_TRANS), random: m.BACK_RANDOM }; });
   need(timing.kinds.length === 14 && timing.random.every(k => timing.kinds.includes(k)), 'the app and the module agree on the kinds');
   // (compared at the same moment, so the picture behind is the same: パッと替わる shows the new word at rest there)
   const mid = (timing.len * 3 + timing.T / 2) / timing.D;
@@ -90,10 +90,39 @@ try {
     need(near(at(await look(.3), .5, .55), RED), `${mode}: the person is in front`);
     if (shots) { await look(.3); await page.locator('#stage').screenshot({ path: `${shots}/backtext-${mode}.png` }); }
   }
-  // the surfaces draw too (さびた鉄・金属・縁だけ), with a thickness
+  // ---- ぐるっと囲む: the letters go round the person on rings. The far side passes behind her; the near side is drawn only when asked, and then in front of her
+  await set({ mode: 'ring', rings: 2, speed: .2, fill: 'solid', depth: 0, color: '#00ff00', ringFront: false, y: 0, size: 1 });
+  need(await page.evaluate(() => !document.getElementById('bt-ring-rows').hidden && !document.getElementById('bt-flow-rows').hidden && document.getElementById('bt-giant-rows').hidden && !document.getElementById('bt-ring-front').checked), 'ring: its own rows show (輪の数・輪の広さ・輪の傾き・手前側), with the speed and direction');
+  need(diff(await look(.30), await look(.33)) > .005, 'ring: the letters move');
+  need(diff(await look(0), await look(1)) < .002, 'ring: the last frame is the first frame');
+  const green = c => c[1] > 180 && c[0] < 90 && c[2] < 90, redAt = (img, i) => Math.abs(img.d[i] - RED[0]) + Math.abs(img.d[i + 1] - RED[1]) + Math.abs(img.d[i + 2] - RED[2]) <= 40;
+  const times = [.05, .2, .35, .5, .65, .8], behind = [];
+  let lettersSeen = 0;
+  for (const t of times) { const img = await look(t); behind.push(img); for (let i = 0; i < img.d.length; i += 4) if (green([img.d[i], img.d[i + 1], img.d[i + 2]])) lettersSeen++; need(near(at(img, .5, .55), RED), `ring at ${t}: the person is in front of the far side`); }
+  need(lettersSeen > 600, `ring: letters are drawn beside her (${lettersSeen} letter pixels over ${times.length} moments)`);
+  await page.click('#bt-ring-front');
+  need(await page.evaluate(() => unfold.state.backText.ringFront === true) && /手前側は人物の前/.test(await page.evaluate(() => document.getElementById('bt-status').textContent)), 'the checkbox turns the near side on, and the panel says it passes in front of her');
+  let over = 0;
+  for (let k = 0; k < times.length; k++) { const img = await look(times[k]); for (let i = 0; i < img.d.length; i += 4) if (redAt(behind[k], i) && green([img.d[i], img.d[i + 1], img.d[i + 2]])) over++; }
+  need(over > 150, `ring, 輪の手前側も出す: the near side passes in front of the person (${over} of her pixels become letter pixels over ${times.length} moments)`);
+  need(diff(await look(0), await look(1)) < .002, 'and the clip still ends where it began');
+  if (shots) { await look(.2); await page.locator('#stage').screenshot({ path: `${shots}/backtext-ring-front.png` }); }
+  await page.click('#bt-ring-front');
+  let leak = 0;
+  for (let k = 0; k < times.length; k++) { const img = await look(times[k]); for (let i = 0; i < img.d.length; i += 4) if (redAt(behind[k], i) && green([img.d[i], img.d[i + 1], img.d[i + 2]])) leak++; }
+  need(leak === 0, 'turned off again, no letter is in front of her');
+  for (const [id, key, v, want] of [['bt-rings', 'rings', 3, 3], ['bt-ring-size', 'ringSize', 70, .7], ['bt-ring-tilt', 'ringTilt', 0, 0]]) {
+    const before = await look(.2);
+    await page.evaluate(([id, v]) => { const r = document.getElementById(id); r.value = v; r.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]);
+    need(Math.abs(await page.evaluate(k => unfold.state.backText[k], key) - want) < 1e-9 && diff(before, await look(.2)) > .003, `ring: the ${key} slider changes the rings`);
+  }
+  if (shots) { await look(.2); await page.locator('#stage').screenshot({ path: `${shots}/backtext-ring.png` }); }
+  await set({ color: '#00ff00', rings: 2, ringSize: 1, ringTilt: .6 });
+
+  // the surfaces draw too (かすれた筆・さびた鉄・金属・縁だけ), with a thickness
   await set({ mode: 'flow', depth: .6 });
   const solid = await look(.3);
-  for (const fill of ['rust', 'metal', 'outline']) { await set({ fill }); need(diff(solid, await look(.3)) > .005, `${fill}: a different surface is drawn`); }
+  for (const fill of ['dry', 'rust', 'metal', 'outline']) { await set({ fill }); need(diff(solid, await look(.3)) > (fill === 'dry' ? .001 : .005), `${fill}: a different surface is drawn`); }
   need(await page.evaluate(() => document.getElementById('bt-color-row').hidden === false), 'the colour picker is back for 縁だけ');
   await set({ fill: 'rust' }); need(await page.evaluate(() => document.getElementById('bt-color-row').hidden), 'and hidden for さびた鉄 (it has its own colours)');
   if (shots) { await look(.3); await page.locator('#stage').screenshot({ path: `${shots}/backtext-rust.png` }); }

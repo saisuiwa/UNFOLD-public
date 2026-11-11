@@ -75,3 +75,30 @@ test('the flowing letters end the clip exactly where they began', () => {
   assert.equal(flowShift(5000, W, .02, D, D), 5000, 'even the slowest goes round once');
   assert.equal(flowShift(0, W, .2, 5, D), 0); assert.equal(flowShift(unit, W, .2, 5, 0), 0);
 });
+
+test('ぐるっと囲む: both sides of a ring read left to right, the far side sits behind and smaller, and a turn ends where it began', async () => {
+  const { RING_SETS, RING_VIEW, ringPlace, ringTurn } = await import('../../app/back-text.js');
+  assert.deepEqual(Object.keys(RING_SETS), ['1', '2', '3']); for (const [n, set] of Object.entries(RING_SETS)) assert.equal(set.length, Number(n));
+  const c = cleanBackText({ mode: 'ring', rings: 2.6, ringSize: 9, ringTilt: -1, ringFront: 1, fill: 'dry' });
+  assert.deepEqual([c.mode, c.rings, c.ringSize, c.ringTilt, c.ringFront, c.fill], ['ring', 3, 1.3, 0, false, 'dry'], 'the ring settings are cleaned (only true turns the near side on)');
+  assert.equal(cleanBackText({ ringFront: true }).ringFront, true);
+  const edge = { far: Math.acos(-1 / RING_VIEW), near: Math.acos(1 / RING_VIEW) };   // where a side turns edge on (the outline of the ring as the eye sees it)
+  for (const set of Object.values(RING_SETS)) for (const ring of set) {
+    for (const near of [false, true]) {
+      const mid = ringPlace(0, near, ring, 1), limit = near ? edge.near : edge.far;
+      assert.ok(mid.facing > .8 && mid.tx > 0 && mid.uy > 0, `the middle of the ${near ? 'near' : 'far'} side faces the eye, its letters upright and not mirrored`);
+      assert.ok(near ? mid.z > 0 && mid.sc > 1 : mid.z < 0 && mid.sc < 1, 'the near side is in front and larger, the far side behind and smaller');
+      for (const sign of [-1, 1]) {
+        assert.ok(ringPlace(sign * (limit - .25), near, ring, 1).facing > 0, 'still facing the eye a little before the edge');
+        assert.ok(ringPlace(sign * (limit + .25), near, ring, 1).facing < 0, 'turned away (mirrored: not drawn) a little past the edge');
+      }
+      let before = -Infinity;   // a level ring: along the part that faces the eye, the letters go from left to right
+      for (let a = -limit + .05; a < limit; a += .1) { const p = ringPlace(a, near, ring, 0); assert.ok(p.x > before && p.facing > 0 && p.tx > 0, `left to right at ${a.toFixed(2)}`); before = p.x; }
+    }
+    assert.ok(ringPlace(0, false, ring, 1).y > ringPlace(0, true, ring, 1).y, 'leaning towards the eye: the far side is higher than the near side');
+    const flat = ringPlace(.6, false, ring, 0); assert.ok(Math.abs(flat.y) < 1e-9 && Math.abs(flat.ty) < 1e-9, 'no tilt = a level ring seen edge on');
+  }
+  assert.ok(RING_VIEW > 1.5, 'the eye is outside the ring');
+  for (const units of [1, 3, 7]) { const total = ringTurn(.2, units, 10, 10), step = 2 * Math.PI / units; assert.ok(Math.abs(total / step - Math.round(total / step)) < 1e-9 && total >= step - 1e-9, `${units} units: a whole number of units`); assert.ok(Math.abs(ringTurn(.2, units, 5, 10) - total / 2) < 1e-9); }
+  assert.equal(ringTurn(.2, 0, 5, 10), 0); assert.equal(ringTurn(.2, 3, 5, 0), 0);
+});

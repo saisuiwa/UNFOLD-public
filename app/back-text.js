@@ -2,6 +2,7 @@
 // 描く順は「背景 → この文字 → 人物」。人物はいつも最後に描くので、文字が人物の前に出ることはない。
 //   超デカ: 1語ずつ画面いっぱいに出て、語と語の間を「切り替わり方」でつなぐ（KOMAGUMI の TRANS と同じ考え方を、透明な地でも崩れないように書き直した物）
 //   横に流れる: 1段の文字が横へ流れ続ける　　壁いっぱい: 何段も、1段おきに逆向きに流れる
+//   ぐるっと囲む: 文字が輪になって、人物のまわりを回る。輪の向こう側は人物の後ろ。「輪の手前側も出す」の時だけ、手前側を人物の前に描く（app.js が、人物のあとにもう1枚描く）
 // 時刻（秒）だけで絵が決まる（乱数を持たない）ので、動画の書き出しでも同じ絵になる。「ずっと」の時は、最後のコマが最初のコマにつながる。
 // 上半分（設定・時間割）は DOM なしで動く。下半分（createBackText）は Canvas 2D で描く。
 
@@ -9,7 +10,7 @@ const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const ease = p => (p < .5 ? 8 * p ** 4 : 1 - ((-2 * p + 2) ** 4) / 2);   // easeInOutQuart
 const hash01 = (a, b = 0) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
 
-export const BACK_MODES = { giant: '超デカ（1語ずつ切り替わる）', flow: '横に流れる', wall: '壁いっぱいに流れる' };
+export const BACK_MODES = { giant: '超デカ（1語ずつ切り替わる）', flow: '横に流れる', wall: '壁いっぱいに流れる', ring: 'ぐるっと囲む（輪になって回る）' };
 export const BACK_TRANS = {
   random: 'おまかせ（毎回かわる）', push: '押し出し', wipe: '拭き取り', blinds: 'ブラインド', iris: '丸が広がる', blur: 'ぼけて入れ替わる',
   zoom: '字が迫って入れ替わる', glitch: '乱れて切り替わる', tiles: '升目で替わる', flip: '回って切り替わる', brush: '筆で塗り替える',
@@ -17,7 +18,7 @@ export const BACK_TRANS = {
 };
 /** おまかせで回す順（同じ物が続かない。数は 5 と互いに素にしておく: 下の式で全部を一巡する） */
 export const BACK_RANDOM = ['push', 'blinds', 'zoom', 'wipe', 'glitch', 'iris', 'flip', 'tiles', 'brush', 'cover', 'blur'];
-export const BACK_FILLS = { solid: '単色', rust: 'さびた鉄', metal: '金属', outline: '縁だけ' };
+export const BACK_FILLS = { solid: '単色', dry: 'かすれた筆', rust: 'さびた鉄', metal: '金属', outline: '縁だけ' };
 export const BACK_FONTS = {
   impact: { label: '極太・縦長（英字向き）', family: '"Anton","Noto Sans JP","Hiragino Sans",sans-serif', weight: 400 },
   gothic: { label: 'ゴシック極太', family: '"Noto Sans JP","Hiragino Sans",sans-serif', weight: 900 },
@@ -27,10 +28,11 @@ export const BACK_FONTS = {
   marker: { label: 'マーカー手書き', family: '"Yusei Magic",sans-serif', weight: 400 },
 };
 export const BACK_WHEN = { always: 'ずっと', change: '絵が変わっている間だけ' };
-export const BACK_LIMITS = { words: 24, chars: 40, hold: [.2, 3], speed: [.02, 1], size: [.2, 1], y: [-.5, .5] };
+export const BACK_LIMITS = { words: 24, chars: 40, hold: [.2, 3], speed: [.02, 1], size: [.2, 1], y: [-.5, .5], rings: [1, 3], ringSize: [.5, 1.3] };
 export const BACK_DEFAULT = Object.freeze({
   enabled: false, text: 'MOVE\nFAST\nUNFOLD', mode: 'giant', trans: 'random', hold: .8, speed: .2, dir: 'left', font: 'impact', size: 1, stretch: 1, y: 0,
   fill: 'solid', color: '#f3ead7', depth: 0, back: '#000000', backAlpha: 0, accent: '#ff6a2b', when: 'always', still: false,
+  rings: 2, ringSize: 1, ringTilt: .6, ringFront: false,
 });
 
 const colour = (v, d) => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : d);
@@ -50,6 +52,8 @@ export function cleanBackText(raw) {
     back: colour(r.back, d.back), backAlpha: number(r.backAlpha, d.backAlpha, [0, 1]), accent: colour(r.accent, d.accent),
     when: pick(r.when, BACK_WHEN, d.when),
     still: r.still === true,   // 絵は動かさない（崩さず、文字だけが動く）
+    rings: Math.round(number(r.rings, d.rings, L.rings)), ringSize: number(r.ringSize, d.ringSize, L.ringSize), ringTilt: number(r.ringTilt, d.ringTilt, [0, 1]),
+    ringFront: r.ringFront === true,   // 輪の手前側も出す（人物の前を通る）
   };
 }
 
@@ -98,16 +102,60 @@ export function backFade(when, sec, duration, T = .4) {
   return clamp((sec - a) / T) * clamp((b - sec) / T);
 }
 
+// ---- ぐるっと囲む（輪）
+/** 輪の組（輪の数ごと）。y: 輪の真ん中の高さ（画面の高さに対して、上が正）、pitch: 手前へ倒す角度、roll: 斜めにする角度、dir: 回る向き（1 と -1 で逆回り） */
+export const RING_SETS = {
+  1: [{ y: 0, pitch: .30, roll: -.10, dir: 1 }],
+  2: [{ y: .2, pitch: .26, roll: -.22, dir: 1 }, { y: -.2, pitch: .30, roll: .16, dir: -1 }],
+  3: [{ y: .3, pitch: .22, roll: -.28, dir: 1 }, { y: 0, pitch: .30, roll: .10, dir: -1 }, { y: -.3, pitch: .26, roll: -.14, dir: 1 }],
+};
+export const RING_VIEW = 3.2;   // 目から輪の真ん中までの遠さ（輪の半径を 1 として）。近いほど、手前が大きく奥が小さい
+
+/**
+ * 輪の上の1点。a: 輪の上の角度（0 = その側の真ん中、正 = 画面の右）、near: 手前側の字か（false = 向こう側の字）。
+ * 向こう側の字は輪の内側に、手前側の字は輪の外側に書いてあると考える。どちらも、a が増えると右へ進む向きに並べるので、左から右へ読める。
+ *   返す: 画面での位置 x, y（輪の半径 = 1、右と上が正）、奥行き z（手前が正）、字の横の向き (tx, ty) と縦の向き (ux, uy)（遠近で縮む分も入れた、画面の上での向き）、遠近の倍率 sc、
+ *         facing（字の面が目の方を向いている度合い。1 = 正面、0 = 真横で線になる、負 = 裏返し。0 より大きい所だけを描く）
+ */
+export function ringPlace(a, near, ring, tilt = 1) {
+  const side = near ? 1 : -1, cp = Math.cos(ring.pitch * tilt), sp = Math.sin(ring.pitch * tilt), cr = Math.cos(ring.roll * tilt), sr = Math.sin(ring.roll * tilt);
+  const turn = v => { const y = v[1] * cp - v[2] * sp, z = v[1] * sp + v[2] * cp; return [v[0] * cr - y * sr, v[0] * sr + y * cr, z]; };   // 手前へ倒してから、斜めにする
+  const p = turn([Math.sin(a), 0, side * Math.cos(a)]), t = turn([Math.cos(a), 0, -side * Math.sin(a)]), u = turn([0, 1, 0]), far = RING_VIEW - p[2], sc = RING_VIEW / far;
+  // 画面の上での向き: 奥行きが変わると遠近の倍率も変わるので、その分を足す（輪の端で、字がちゃんと真横になる）
+  const on = v => [sc * (v[0] + p[0] * v[2] / far), sc * (v[1] + p[1] * v[2] / far)], T = on(t), U = on(u);
+  return { x: p[0] * sc, y: p[1] * sc, z: p[2], tx: T[0], ty: T[1], ux: U[0], uy: U[1], sc, facing: (T[0] * U[1] - T[1] * U[0]) / (sc * sc) };
+}
+
+/** 輪が sec までに回った角度。1本分（輪の 1/units）の整数倍だけ回って終わるので、最後が最初につながる */
+export function ringTurn(speed, units, sec, duration) {
+  if (!(units > 0) || !(duration > 0)) return 0;
+  const steps = Math.max(1, Math.round(speed * duration * .5 * units));
+  return 2 * Math.PI * steps / units * (sec / duration);
+}
+
 export const backFontCSS = (key, px) => { const f = BACK_FONTS[key] || BACK_FONTS.impact; return `${f.weight} ${px}px ${f.family}`; };
 
 // ---------------------------------------------------------------- 描く係（Canvas 2D）
 const mixHex = (hex, to, k) => { const a = parseInt(hex.slice(1), 16), b = parseInt(to.slice(1), 16), c = s => Math.round(((a >> s) & 255) * (1 - k) + ((b >> s) & 255) * k); return `rgb(${c(16)},${c(8)},${c(0)})`; };
 const PX = 200;   // 字を測る時の大きさ
 
-/** さびた鉄・金属の模様（512 画素の升。決まった乱数で、いつも同じ模様） */
-function makeSurface(doc, kind) {
-  const c = doc.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d'); let seed = kind === 'rust' ? 7 : 31;
+/** さびた鉄・金属・かすれた筆の模様（512 画素の升。決まった乱数で、いつも同じ模様）。かすれた筆は、字の色の上に、抜けた筋と点を空ける */
+function makeSurface(doc, kind, colour = '#ffffff') {
+  const c = doc.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d'); let seed = kind === 'rust' ? 7 : kind === 'dry' ? 53 : 31;
   const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  if (kind === 'dry') {
+    x.fillStyle = colour; x.fillRect(0, 0, 512, 512);
+    x.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 230; i++) {   // 筆の毛の筋: 横に長く、所々で切れる
+      const y = r() * 512, len = 30 + r() * r() * 300, x0 = r() * 512, h = .6 + r() * r() * 3.4;
+      x.fillStyle = `rgba(0,0,0,${.15 + r() * .5})`;
+      for (const dx of [0, -512]) x.fillRect(x0 + dx, y, len, h);
+    }
+    for (let i = 0; i < 34; i++) { const px = r() * 512, py = r() * 512; x.fillStyle = `rgba(0,0,0,${.15 + r() * .35})`; x.beginPath(); x.ellipse(px, py, 12 + r() * 60, 3 + r() * 12, (r() - .5) * .3, 0, 6.2832); x.fill(); }   // 絵の具の薄い所
+    for (let i = 0; i < 2400; i++) { x.fillStyle = `rgba(0,0,0,${.3 + r() * .6})`; x.fillRect(r() * 512, r() * 512, 1 + r() * 2.4, 1 + r() * 1.6); }   // 紙の目
+    x.globalCompositeOperation = 'source-over';
+    return c;
+  }
   if (kind === 'rust') {
     const g = x.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, '#f0a030'); g.addColorStop(.5, '#d9731f'); g.addColorStop(1, '#b4521a'); x.fillStyle = g; x.fillRect(0, 0, 512, 512);
     for (let i = 0; i < 900; i++) {   // しみ・はがれ
@@ -127,19 +175,29 @@ function makeSurface(doc, kind) {
 }
 
 /**
- * 描く係を作る。draw(canvas, sec, duration, settings, {width, height}) で、canvas に文字の層（地は透明）を描く。
+ * 描く係を作る。draw(canvas, sec, duration, settings, {width, height, part, centre}) で、canvas に文字の層（地は透明）を描く。
  *   返す: 'empty'（何も出ない。canvas は触らない）・'same'（前に描いた物と同じ）・'drawn'
  */
 export function createBackText(doc = globalThis.document) {
   const mk = () => doc.createElement('canvas');
-  const scratch = [mk(), mk(), mk()], face = mk(), layers = new Map(), surfaces = {};
-  let last = '';
+  const scratch = [mk(), mk(), mk()], face = mk(), layers = new Map(), surfaces = {}, widths = new Map(), sprites = new Map();
+  let last = '', dry = { colour: '', canvas: null }, spritePixels = 0;
+  /** 作っておいた字の絵（流れる文字の1本分・輪の1字）。模様や厚みを付けて描くのは重いので、一度だけ作って、毎コマはそれを貼る。古い物から捨てる */
+  const spriteOf = (key, make) => {
+    let sp = sprites.get(key);
+    if (sp) { sprites.delete(key); sprites.set(key, sp); return sp; }
+    sp = make(); sprites.set(key, sp); spritePixels += sp.c.width * sp.c.height;
+    while (spritePixels > 48e6 && sprites.size > 1) { const [k, old] = sprites.entries().next().value; sprites.delete(k); spritePixels -= old.c.width * old.c.height; }
+    return sp;
+  };
+  const surfaceOf = s => { if (s.fill !== 'dry') return surfaces[s.fill] ??= makeSurface(doc, s.fill); if (dry.colour !== s.color) dry = { colour: s.color, canvas: makeSurface(doc, 'dry', s.color) }; return dry.canvas; };
   const fit = (c, W, H) => { if (c.width !== W || c.height !== H) { c.width = W; c.height = H; } const x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.filter = 'none'; x.clearRect(0, 0, W, H); return x; };
   const lookOf = s => [s.font, s.size, s.stretch, s.y, s.fill, s.color, s.depth].join('|');
+  /** 1字の幅（PX の大きさで。フォントごとに覚える） */
+  const widthOf = (g, font, ch) => { const key = font + '|' + ch; let w = widths.get(key); if (w === undefined) { g.font = backFontCSS(font, PX); w = g.measureText(ch).width; widths.set(key, w); } return w; };
 
   /** glyphs(ctx, 'fill' | 'stroke') が描く字の形に、模様・厚みを付けて g に描く */
-  function paint(g, W, H, s, glyphs) {
-    const deep = s.depth * H * .035;
+  function paint(g, W, H, s, glyphs, deep = s.depth * H * .035) {
     if (deep > .5) {   // 厚み: 右下へ少しずつずらして重ねる
       const n = Math.min(28, Math.ceil(deep / 1.5));
       g.fillStyle = g.strokeStyle = s.fill === 'rust' ? '#3a1a08' : s.fill === 'metal' ? '#232a31' : mixHex(s.color, '#000000', .68);
@@ -148,7 +206,8 @@ export function createBackText(doc = globalThis.document) {
     if (s.fill === 'solid') { g.fillStyle = s.color; glyphs(g, 'fill'); return; }
     if (s.fill === 'outline') { g.strokeStyle = s.color; glyphs(g, 'stroke'); return; }
     const f = fit(face, W, H); f.fillStyle = '#fff'; glyphs(f, 'fill');
-    f.globalCompositeOperation = 'source-in'; f.fillStyle = f.createPattern(surfaces[s.fill] ??= makeSurface(doc, s.fill), 'repeat'); f.fillRect(0, 0, W, H);
+    f.globalCompositeOperation = 'source-in'; f.fillStyle = f.createPattern(surfaceOf(s), 'repeat'); f.fillRect(0, 0, W, H);
+    if (s.fill === 'dry') { g.drawImage(face, 0, 0); return; }   // かすれた筆: 字の色のまま、筋と点が抜ける
     f.globalCompositeOperation = 'source-atop'; const sh = f.createLinearGradient(0, 0, 0, H); sh.addColorStop(0, 'rgba(255,255,255,.16)'); sh.addColorStop(.5, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,.26)'); f.fillStyle = sh; f.fillRect(0, 0, W, H);
     g.drawImage(face, 0, 0);
   }
@@ -282,52 +341,117 @@ export function createBackText(doc = globalThis.document) {
     },
   };
 
-  /** 横に流れる1段（row: 段の真ん中の高さと段の高さ）。unit は1本分の文字 */
-  function rowGlyphs(g0, W, unit, s, row, shift) {
-    g0.font = backFontCSS(s.font, PX);
-    const m = g0.measureText(unit), asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent, k = row.h * .84 / Math.max(1, asc + desc), px = PX * k;
-    g0.font = backFontCSS(s.font, px);
-    const unitW = Math.max(1, g0.measureText(unit).width), y = row.cy + (asc - desc) / 2 * k;
-    const start = -((((shift(unitW)) % unitW) + unitW) % unitW);
-    return (g, how) => {
-      g.font = backFontCSS(s.font, px); g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
-      const stroke = how === 'stroke' || row.outline; if (stroke) g.lineWidth = Math.max(2, row.h * .022);
-      for (let x = start; x < W + px; x += unitW) { if (stroke) g.strokeText(unit, x, y); else g.fillText(unit, x, y); }
+  /**
+   * 横に流れる1段（row: 段の真ん中の高さ cy・段の高さ h・語の並び words・縁だけか outline）を描く。
+   * 1語ずつの字の絵（模様・厚みつき）を一度だけ作って、流れた分だけずらして並べる。shift(1本分の幅) = 今までに流れた長さ
+   */
+  function drawRow(g, W, H, s, row, shift) {
+    const look = row.outline ? { ...s, fill: 'outline' } : s, deep = s.depth * H * .035;
+    g.font = backFontCSS(s.font, PX);
+    const m = g.measureText(row.words.join(' ')), asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent, k = row.h * .84 / Math.max(1, asc + desc), px = PX * k;
+    g.font = backFontCSS(s.font, px);
+    const gap = g.measureText('   ').width, widths = row.words.map(w => g.measureText(w).width), unitW = Math.max(1, widths.reduce((a, b) => a + b + gap, 0));
+    const pad = Math.ceil(row.h * .08) + 2, top = row.cy - (asc + desc) / 2 * k - pad, sh = Math.ceil((asc + desc) * k + pad * 2 + deep);
+    const letters = (word, x0, y0) => (x, how) => {
+      x.font = backFontCSS(s.font, px); x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.lineJoin = 'round';
+      if (how === 'stroke') { x.lineWidth = Math.max(2, row.h * .022); x.strokeText(word, x0, y0); } else x.fillText(word, x0, y0);
     };
+    const pictures = row.words.map((word, i) => {
+      const sw = Math.ceil(widths[i] + pad * 2 + deep * .55);
+      if (sw > 8192) return null;   // とても長い1語は、絵にしておけないので、毎回そのまま描く
+      return spriteOf(['word', s.font, look.fill, s.color, s.depth, px.toFixed(2), H, asc.toFixed(1), desc.toFixed(1), word].join('|'), () => { const c = mk(); paint(fit(c, sw, sh), sw, sh, look, letters(word, pad, pad + asc * k), deep); return { c }; }).c;
+    });
+    for (let at = -((((shift(unitW)) % unitW) + unitW) % unitW); at < W + pad; at += unitW) {
+      let x0 = at;
+      for (let i = 0; i < row.words.length; i++) {
+        if (x0 + widths[i] + pad + deep > 0 && x0 - pad < W) {
+          if (pictures[i]) g.drawImage(pictures[i], x0 - pad, top);
+          else paint(g, W, H, look, letters(row.words[i], x0, top + pad + asc * k));
+        }
+        x0 += widths[i] + gap;
+      }
+    }
   }
 
   function drawRows(g, W, H, words, s, sec, duration) {
-    const sign = s.dir === 'right' ? -1 : 1, joined = from => { const w = words.map((_, i) => words[(i + from) % words.length].replaceAll('/', ' ')); return w.join('   ') + '   '; };
+    const sign = s.dir === 'right' ? -1 : 1, from = k => words.map((_, i) => words[(i + k) % words.length].replaceAll('/', ' '));
     const rows = [];
-    if (s.mode === 'flow') rows.push({ cy: H / 2 - s.y * H, h: H * .6 * s.size, unit: joined(0), sign, outline: false });
-    else { const n = clamp(Math.round(3 / s.size), 3, 10), h = H / n; for (let r = 0; r < n; r++) rows.push({ cy: h * (r + .5) - s.y * H, h, unit: joined(r), sign: r % 2 ? -sign : sign, outline: r % 2 === 1 }); }
-    // 塗りの段と縁だけの段は、模様の付け方が違うので、別々に描く
-    for (const outline of [false, true]) {
-      const set = rows.filter(r => r.outline === outline); if (!set.length) continue;
-      const parts = set.map(r => rowGlyphs(g, W, r.unit, s, r, unitW => r.sign * flowShift(unitW, W, s.speed, sec, duration)));
-      paint(g, W, H, outline ? { ...s, fill: 'outline' } : s, (x, how) => { for (const part of parts) part(x, how); });
+    if (s.mode === 'flow') rows.push({ cy: H / 2 - s.y * H, h: H * .6 * s.size, words: from(0), sign, outline: false });
+    else { const n = clamp(Math.round(3 / s.size), 3, 10), h = H / n; for (let r = 0; r < n; r++) rows.push({ cy: h * (r + .5) - s.y * H, h, words: from(r), sign: r % 2 ? -sign : sign, outline: r % 2 === 1 }); }
+    for (const row of rows) drawRow(g, W, H, s, row, unitW => row.sign * flowShift(unitW, W, s.speed, sec, duration));
+  }
+
+  /**
+   * ぐるっと囲む: 文字が輪になって回る。near = false なら輪の向こう側（人物の後ろ）、true なら手前側（人物の前に描く分）。
+   * 1字ずつの絵（模様・厚みつき）を一度だけ作っておいて、輪の上の場所・向き・遠近に合わせた平行四辺形に変形して貼る。輪の端では字が真横を向いて線になって消えるので、向こう側と手前側の字の並びが違っていても、つながって見える。
+   * centre: 輪の真ん中の横の位置（0〜1。切り抜いた人物がいれば、その真ん中）
+   */
+  function drawRings(g, W, H, words, s, sec, duration, near, centre) {
+    const set = RING_SETS[s.rings] || RING_SETS[2], tilt = s.ringTilt / .6, R = W * .42 * s.ringSize, sign = s.dir === 'right' ? 1 : -1;
+    const tall = H * .2 * s.size * [1, 1, .85, .72][set.length], C = 2 * Math.PI * R, cx = W * centre, cy = H / 2 - s.y * H, glyphs = [];
+    for (let k = 0; k < set.length; k++) {
+      const ring = set[k], unit = words.map((_, i) => words[(i + k) % words.length].replaceAll('/', ' ')).join('   ') + '   ';
+      g.font = backFontCSS(s.font, PX);
+      const m = g.measureText(unit), asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent, scale = tall / Math.max(1, asc + desc), chars = [...unit];
+      const adv = chars.map(ch => widthOf(g, s.font, ch)), unitW = Math.max(1, adv.reduce((a, b) => a + b, 0) * scale);
+      const units = Math.max(1, Math.round(C / unitW)), fitK = C / (units * unitW), squeeze = Math.min(1, fitK);   // 輪をちょうど埋めるように、字の間を少し直す（長すぎる時は字も細くする）
+      const rot = sign * ring.dir * ringTurn(s.speed, units, sec, duration) * (near ? -1 : 1);   // 手前側は、向こう側と逆へ流れる（1つの輪が回っている）
+      // 1字の絵: いちばん大きく見える時（手前）でもぼけない細かさで作る。厚みは字の高さに合わせる
+      const q = clamp(Math.ceil(scale * 1.5 * 4) / 4, .5, 3.5), pad = Math.ceil(PX * q * .1) + 2, deep = s.depth * (asc + desc) * q * .14, top = (asc - desc) / 2 - asc;
+      const pictureOf = (ch, w) => spriteOf(['glyph', s.font, s.fill, s.color, s.depth, q, asc.toFixed(1), desc.toFixed(1), ch].join('|'), () => {
+        const sw = Math.ceil(w * q + pad * 2 + deep * .55), sh = Math.ceil((asc + desc) * q + pad * 2 + deep), c = mk();
+        paint(fit(c, sw, sh), sw, sh, s, (x, how) => {
+          x.font = backFontCSS(s.font, PX * q); x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.lineJoin = 'round';
+          if (how === 'stroke') { x.lineWidth = PX * q * .045; x.strokeText(ch, pad, pad + asc * q); } else x.fillText(ch, pad, pad + asc * q);
+        }, deep);
+        return { c };
+      });
+      for (let u = 0; u < units; u++) {
+        let pos = u * unitW;
+        for (let j = 0; j < chars.length; j++) {
+          const mid = (pos + adv[j] * scale / 2) * fitK; pos += adv[j] * scale;
+          if (chars[j] === ' ' || chars[j] === '　') continue;
+          let a = mid / C * 2 * Math.PI + rot; a -= Math.round(a / (2 * Math.PI)) * 2 * Math.PI;   // -π〜π
+          if (Math.cos(a) < (near ? 0 : -.6)) continue;   // 反対側の字は、どうせ裏返し
+          const at = ringPlace(a, near, ring, tilt); if (at.facing <= .03) continue;   // 目の方を向いている字だけ（輪の端で線になって消える）
+          glyphs.push({ at, alpha: clamp(at.facing / .2), picture: pictureOf(chars[j], adv[j]).c, kx: scale * squeeze, ky: scale, x: -adv[j] / 2 - pad / q, y: top - pad / q, q, cy: cy - ring.y * H });
+        }
+      }
+    }
+    glyphs.sort((p, q) => p.at.z - q.at.z);   // 奥の字から
+    for (const gl of glyphs) {
+      const t = gl.at;
+      g.save(); g.globalAlpha *= gl.alpha;
+      g.transform(t.tx * gl.kx, -t.ty * gl.kx, -t.ux * gl.ky, t.uy * gl.ky, cx + t.x * R, gl.cy - t.y * R);
+      g.drawImage(gl.picture, gl.x, gl.y, gl.picture.width / gl.q, gl.picture.height / gl.q);
+      g.restore();
     }
   }
 
   return {
     /** フォントが読み込まれた時などに、取っておいた層を捨てる */
-    reset() { layers.clear(); last = ''; },
-    draw(canvas, sec, duration, settings, { width, height }) {
-      const s = settings, words = backWords(s.text), W = Math.max(2, Math.round(width)), H = Math.max(2, Math.round(height));
+    reset() { layers.clear(); widths.clear(); sprites.clear(); spritePixels = 0; last = ''; },
+    /** part: 'back' = 人物の後ろに描く分（いつもの層）、'front' = 人物の前に描く分（輪の手前側。「輪の手前側も出す」の時だけ）。centre: 輪の真ん中の横の位置（0〜1） */
+    draw(canvas, sec, duration, settings, { width, height, part = 'back', centre = .5 }) {
+      const s = settings, words = backWords(s.text), W = Math.max(2, Math.round(width)), H = Math.max(2, Math.round(height)), front = part === 'front';
       const [a, b] = backWindow(s.when, duration);
       if (!s.enabled || !words.length || sec < a || sec > b) return 'empty';
+      if (front && !(s.mode === 'ring' && s.ringFront)) return 'empty';
       const fade = backFade(s.when, sec, duration), slot = s.mode === 'giant' ? backSlot(s, sec, duration) : null;
       if (s.mode === 'giant' && !slot) return 'empty';
       // 同じ絵なら描き直さない（超デカで、切り替わりの済んだ間）
       const sig = s.mode === 'giant' && slot.p >= 1 && fade >= 1 ? [W, H, lookOf(s), s.back, s.backAlpha, 'held', slot.i, words[slot.i] ?? ''].join('|') : '';
       if (sig && sig === last && canvas.width === W && canvas.height === H) return 'same';
       const g = fit(canvas, W, H);
-      if (s.backAlpha > 0) { g.globalAlpha = s.backAlpha * fade; g.fillStyle = s.back; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
+      if (s.backAlpha > 0 && !front) { g.globalAlpha = s.backAlpha * fade; g.fillStyle = s.back; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
       if (s.mode === 'giant') {
         const next = slot.i >= 0 ? layerOf(W, H, words[slot.i], s) : null, prev = slot.prev >= 0 && slot.p < 1 ? layerOf(W, H, words[slot.prev], s) : null;
         if (slot.p >= 1) { if (next) g.drawImage(next, 0, 0); }
         else { g.save(); (TRANS[backTransKind(s, slot.k)] || TRANS.cut)(g, W, H, prev, next, slot.p, slot.k, s); g.restore(); }
-      } else { g.globalAlpha = fade; if (fade < 1) { const x = fit(scratch[2], W, H); drawRows(x, W, H, words, s, sec, duration); g.drawImage(scratch[2], 0, 0); } else drawRows(g, W, H, words, s, sec, duration); g.globalAlpha = 1; }
+      } else {
+        const rows = x => (s.mode === 'ring' ? drawRings(x, W, H, words, s, sec, duration, front, clamp(centre, .1, .9)) : drawRows(x, W, H, words, s, sec, duration));
+        if (fade < 1) { rows(fit(scratch[2], W, H)); g.globalAlpha = fade; g.drawImage(scratch[2], 0, 0); g.globalAlpha = 1; } else rows(g);
+      }
       last = sig;
       return 'drawn';
     },
