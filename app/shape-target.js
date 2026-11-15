@@ -19,8 +19,9 @@ vec3 unfoldTarget(vec2 uv,float shape,float seed,float preset,vec3 targetPositio
     vec3 d=vec3(sin(a)*cos(b),sin(b),cos(a)*cos(b));
     target=d/max(max(abs(d.x),abs(d.y)),abs(d.z))*1.12;
   }else if(shape<5.5){
-    // heart pillow
-    vec2 h=vec2(16.*pow(sin(a),3.),13.*cos(a)-5.*cos(2.*a)-2.*cos(3.*a)-cos(4.*a))/17.;
+    // heart pillow (sin³ is written out: pow() of a negative number is undefined in GLSL, and on some GPUs the heart's left half vanished)
+    float sa=sin(a);
+    vec2 h=vec2(16.*sa*sa*sa,13.*cos(a)-5.*cos(2.*a)-2.*cos(3.*a)-cos(4.*a))/17.;
     float s=cos(b);
     target=vec3(h.x*s,h.y*s+.12,sin(b)*.34)*1.75;
   }else if(shape<6.5){
