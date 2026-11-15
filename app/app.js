@@ -15,7 +15,7 @@ import { createReliefShape, setReliefAmount, cleanReliefAmount, reliefSwing, rel
 import { makeDepth, depthModelCached } from './depth-auto/depth-make.js?v=1';
 import { DEPTH } from './depth-auto/depth-model.js?v=1';
 import { cleanDepthCut, createDepthCutter } from './depth-cutout.js?v=2';
-import { personSolidPixels } from './person-solid.js?v=1';
+import { personSolidPixels } from './person-solid.js?v=2';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=3';
 import { createRenderControls } from './render-look-controls.js?v=3';

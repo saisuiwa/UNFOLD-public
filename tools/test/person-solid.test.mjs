@@ -36,3 +36,14 @@ test('the whole picture is made of the person alone: the person as she is, gaps 
   assert.equal(gapAt(2, 3), gapAt(5, 3), 'and it is mirrored with the picture'); assert.equal(gapAt(3, 2), 0);
   assert.equal(wholePicture(new Uint8ClampedArray(W * H * 4), W, H), null, 'nobody in the picture: nothing to make');
 });
+
+test('a gap beside a wide part of the person shows her own pattern, folded over at the edge', () => {
+  // a 12×1 strip: the person is x 0–5 with a different colour in every pixel, the gap is x 6–8, and a lone pixel at x 9 closes the box
+  const W = 12, H = 1, rgba = new Uint8ClampedArray(W * 4);
+  for (let x = 0; x <= 5; x++) { rgba[x * 4] = 10 + x * 40; rgba[x * 4 + 3] = 255; }
+  rgba[9 * 4] = 250; rgba[9 * 4 + 1] = 250; rgba[9 * 4 + 3] = 255;
+  const made = wholePicture(rgba, W, H), red = x => made.rgba[x * 4];
+  assert.equal(red(6), red(4), 'one step past the edge = one step inside it'); assert.equal(red(7), red(3));
+  assert.equal(made.gap[6], 0, 'a folded pixel is not a plain fill');
+  assert.equal(red(8), 250, 'next to the lone pixel there is nothing to fold: its colour'); assert.equal(made.gap[8], 1);
+});

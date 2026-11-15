@@ -1,6 +1,7 @@
 // 人物のほうを立体にする（2026-11-15）: 切り抜いた人物だけが崩れて立体になる時、人物の絵は絵の一部にしかないので、そのままだと立体が穴だらけになる。
 // そこで「人物の柄だけで出来た、すき間のない絵」を作る:
-//   1. 人物のまわりの四角（bbox）の中のすき間を、いちばん近い人物の色で埋める
+//   1. 人物のまわりの四角（bbox）の中のすき間を、人物の柄で埋める: いちばん近いふちを鏡にして、人物の中の絵を外へ折り返す
+//      （折り返した先に人物がいない所だけ、いちばん近い人物の色）
 //   2. その四角を、鏡写しにしながら絵いっぱいにくり返す
 // 出来た絵は、色 = この絵・濃さ（アルファ）= 元の切り抜き、で1枚にまとめる。平らな間は切り抜きのまま見え、立体になるにつれて全面が見えてくる
 // （絵の粒のシェーダーの uWhole）。上半分は DOM なし（node でも動く）。
@@ -19,8 +20,8 @@ export function solidBox(alpha, W, H) {
 }
 /**
  * すき間のない絵を作る。rgba: 切り抜き（W×H、RGBA 0–255、色はアルファを掛けていない物）。
- * 返す: { rgba: 同じ大きさの RGBA（アルファは全部 255）, gap: 埋めた所が 1（W×H。鏡写しの先でも同じ） }。
- * 濃い所はそのまま。四角の中のすき間は、いちばん近い濃い所の色（となりへ順に広げる）。四角の外は、四角の鏡写し。人物がいなければ null
+ * 返す: { rgba: 同じ大きさの RGBA（アルファは全部 255）, gap: 色だけで埋めた所が 1（W×H。鏡写しの先でも同じ。柄を折り返せた所は 0） }。
+ * 濃い所はそのまま。四角の中のすき間は、いちばん近いふちで折り返した人物の柄（だめな所は、いちばん近い濃い所の色）。四角の外は、四角の鏡写し。人物がいなければ null
  */
 export function wholePicture(rgba, W, H) {
   const alpha = new Uint8Array(W * H); for (let i = 0; i < W * H; i++) alpha[i] = rgba[i * 4 + 3];
@@ -37,12 +38,19 @@ export function wholePicture(rgba, W, H) {
     if (y > box.y0 && from[i - W] < 0) { from[i - W] = from[i]; queue[tail++] = i - W; }
     if (y < box.y1 && from[i + W] < 0) { from[i + W] = from[i]; queue[tail++] = i + W; }
   }
+  // すき間の画素 → 色をもらう画素。いちばん近い人物の画素 s を鏡にして、反対側（2s − 自分）が人物ならそこ（柄が続く）、だめなら s（色だけ）
+  const pick = new Int32Array(W * H), plain = new Uint8Array(W * H);
+  for (let i = 0; i < W * H; i++) {
+    const s = from[i]; if (s < 0 || s === i) { pick[i] = s; continue; }
+    const x = i % W, y = (i - x) / W, sx = s % W, sy = (s - sx) / W, rx = 2 * sx - x, ry = 2 * sy - y, r = ry * W + rx;
+    if (rx >= 0 && rx < W && ry >= 0 && ry < H && alpha[r] >= least) pick[i] = r; else { pick[i] = s; plain[i] = 1; }
+  }
   const out = new Uint8ClampedArray(W * H * 4), gap = new Uint8Array(W * H);
   for (let y = 0; y < H; y++) {
     const sy = mirrorInto(y, box.y0, box.y1);
     for (let x = 0; x < W; x++) {
-      const m = sy * W + mirrorInto(x, box.x0, box.x1), s = from[m] * 4, o = (y * W + x) * 4;
-      out[o] = rgba[s]; out[o + 1] = rgba[s + 1]; out[o + 2] = rgba[s + 2]; out[o + 3] = 255; gap[y * W + x] = from[m] === m ? 0 : 1;
+      const m = sy * W + mirrorInto(x, box.x0, box.x1), s = pick[m] * 4, o = (y * W + x) * 4;
+      out[o] = rgba[s]; out[o + 1] = rgba[s + 1]; out[o + 2] = rgba[s + 2]; out[o + 3] = 255; gap[y * W + x] = plain[m];
     }
   }
   return { rgba: out, gap };
