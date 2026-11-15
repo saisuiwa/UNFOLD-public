@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=21';
+import {drawSequenceVisual} from './sequence-renderer.js?v=23';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift,SOLID_PTS} from './sequence-core.js?v=3';
 import {unstretchSolid} from './solid-length.js?v=2';
 import {attachWorkshopLink} from './workshop-link.js';
@@ -18,18 +18,18 @@ import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=3';
-import { GALLERY_STYLES, cleanGallery, createGallery, galleryGap } from './gallery-walk.js?v=2';
+import { GALLERY_STYLES, cleanGallery, createGallery, galleryGap } from './gallery-walk.js?v=3';
 import { cleanToon, createOutline } from './toon-look.js?v=1';
-import { orbitCamera, cleanPlate } from './frame-stage.js?v=7';
+import { orbitCamera, cleanPlate } from './frame-stage.js?v=8';
 import { createDiveStage } from './dive-stage.js?v=1';
 import { alignCutout } from './cutout-align.js?v=1';
 import { createRenderControls } from './render-look-controls.js?v=3';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
 import * as THREE from './vendor/three.module.min.js';
-import { smooth, vertexShader, particleFragment } from './motion.js?v=35';
+import { smooth, vertexShader, particleFragment } from './motion.js?v=36';
 import { presetNames, presetTargets } from './shape-presets.js?v=6';
 import { createTextShape, validateText } from './text-shape.js?v=11';
-import { SceneBlur } from './effects.js?v=37';
+import { SceneBlur } from './effects.js?v=38';
 import { WebMWriter, opusHead } from './webm-writer.js?v=2';
 import { MP4Writer } from './mp4-writer.js?v=1';
 import { FONTS, createMaskTextShape, createSilhouetteShape } from './mask-shape.js?v=7';

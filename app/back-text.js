@@ -28,11 +28,14 @@ export const BACK_FONTS = {
   marker: { label: 'マーカー手書き', family: '"Yusei Magic",sans-serif', weight: 400 },
 };
 export const BACK_WHEN = { always: 'ずっと', change: '絵が変わっている間だけ' };
-export const BACK_LIMITS = { words: 24, chars: 40, hold: [.2, 3], speed: [.02, 1], size: [.2, 1], y: [-.5, .5], rings: [1, 3], ringSize: [.5, 1.3] };
+// 奥行きの動き: 文字が、絵の奥と手前を行き来する（絵の奥行きが要る。1枚モードの「奥行きから切り抜きを作る」）
+export const BACK_DEPTH_MOVES = { none: 'なし（いつも人物の後ろ）', time: '時間で行き来する（奥 → 手前 → 奥）', place: '場所で行き来する（ある場所でだけ手前に出る）' };
+export const BACK_DEPTH = { lo: .04, hi: 1.04, soft: .02 };   // 絵の奥行きは 0 = いちばん奥・1 = いちばん手前。lo: 空の前、hi: 全部の前
+export const BACK_LIMITS = { words: 24, chars: 40, hold: [.2, 3], speed: [.02, 1], size: [.2, 1], y: [-.5, .5], rings: [1, 3], ringSize: [.5, 1.3], depthTrips: [1, 6] };
 export const BACK_DEFAULT = Object.freeze({
   enabled: false, text: 'MOVE\nFAST\nUNFOLD', mode: 'giant', trans: 'random', hold: .8, speed: .2, dir: 'left', font: 'impact', size: 1, stretch: 1, y: 0,
   fill: 'solid', color: '#f3ead7', depth: 0, back: '#000000', backAlpha: 0, accent: '#ff6a2b', when: 'always', still: false,
-  rings: 2, ringSize: 1, ringTilt: .6, ringFront: false,
+  rings: 2, ringSize: 1, ringTilt: .6, ringFront: false, depthMove: 'none', depthTrips: 2, depthPlace: .5,
 });
 
 const colour = (v, d) => (typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v.toLowerCase() : d);
@@ -54,6 +57,7 @@ export function cleanBackText(raw) {
     still: r.still === true,   // 絵は動かさない（崩さず、文字だけが動く）
     rings: Math.round(number(r.rings, d.rings, L.rings)), ringSize: number(r.ringSize, d.ringSize, L.ringSize), ringTilt: number(r.ringTilt, d.ringTilt, [0, 1]),
     ringFront: r.ringFront === true,   // 輪の手前側も出す（人物の前を通る）
+    depthMove: pick(r.depthMove, BACK_DEPTH_MOVES, d.depthMove), depthTrips: Math.round(number(r.depthTrips, d.depthTrips, L.depthTrips)), depthPlace: number(r.depthPlace, d.depthPlace, [0, 1]),
   };
 }
 
@@ -104,6 +108,19 @@ export function backFade(when, sec, duration, T = .4) {
 
 // ---- ぐるっと囲む（輪）
 /** 輪の組（輪の数ごと）。y: 輪の真ん中の高さ（画面の高さに対して、上が正）、pitch: 手前へ倒す角度、roll: 斜めにする角度、dir: 回る向き（1 と -1 で逆回り） */
+/**
+ * 文字の奥行き（その瞬間）。返す: {base, arch, centre} — 場所 x（左 0 → 右 1）での奥行き = base + arch·backBump(x − centre)。null = 動かさない。
+ *   time: 全体が、奥 → 手前 → 奥 を depthTrips 回くり返す（最初と最後は奥。「ずっと」でつながる）
+ *   place: depthPlace の所でだけ手前に出る（流れる文字が、後ろから来て、そこで前を通り、また後ろへ抜ける）。手前の幅は、絵の幅の半分ずつ左右へ
+ */
+export const backBump = dx => { const c = Math.abs(dx) >= .5 ? 0 : Math.cos(Math.PI * dx); return c * c; };
+export function backDepthAt(settings, sec, duration) {
+  const { lo, hi } = BACK_DEPTH;
+  if (settings.mode === 'ring') return null;   // 輪は、自分の向こう側・手前側を持っている
+  if (settings.depthMove === 'time') { const u = duration > 0 ? sec / duration : 0; return { base: lo + (hi - lo) * (.5 - .5 * Math.cos(2 * Math.PI * settings.depthTrips * u)), arch: 0, centre: .5 }; }
+  if (settings.depthMove === 'place') return { base: lo, arch: hi - lo, centre: settings.depthPlace };
+  return null;
+}
 export const RING_SETS = {
   1: [{ y: 0, pitch: .30, roll: -.10, dir: 1 }],
   2: [{ y: .2, pitch: .26, roll: -.22, dir: 1 }, { y: -.2, pitch: .30, roll: .16, dir: -1 }],

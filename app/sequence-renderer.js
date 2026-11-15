@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.min.js';
-import {smooth,vertexShader,particleFragment} from './motion.js?v=35';
+import {smooth,vertexShader,particleFragment} from './motion.js?v=36';
 import {presetNames,presetTargets} from './shape-presets.js';
 import {applyTiles,tilesAcross} from './tile-size.js';
 import {particleParts} from './model-layout.js';
@@ -7,7 +7,7 @@ import {SceneBlur} from './effects.js';
 import {cleanRenderLook,applyRenderLook,syncPerspective} from './render-look.js';
 import {cleanShot,rotationAt,blendCameraMove} from './shot-motion.js?v=29';
 import {solidMotionAt,motionCamera,solidLife} from './solid-motion.js?v=4';
-import {galleryPose,galleryGap,galleryZoom} from './gallery-walk.js?v=2';
+import {galleryPose,galleryGap,galleryZoom} from './gallery-walk.js?v=3';
 import {DIVE,diveAt} from './dive-stage.js?v=1';
 import {applyToon,lineAt} from './toon-look.js?v=1';
 import {concealAmount,swapCurve,mixFx} from './fx-mix.js';

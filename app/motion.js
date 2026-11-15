@@ -486,10 +486,11 @@ vec4 particleLook(vec4 c){
 }`;
 export const fragmentShader=`
 uniform sampler2D uImage;
+uniform float uWhole;   // 人物のほうを立体にする (person-solid.js): the picture's clear parts come to show their colour too (0 = as it is, 1 = all of it)
 varying vec2 vUv;
 varying vec3 vPosition;
 varying float vForm;
-vec4 texAt(vec2 uv){return texture2D(uImage,uv);}
+vec4 texAt(vec2 uv){vec4 t=texture2D(uImage,uv);t.a=mix(t.a,1.,uWhole);return t;}
 ${particleFragment}
 void main(){
   vec4 c=particleLook(texAt(vUv));

@@ -192,11 +192,13 @@ export function createFrameStage(THREE) {
     },
     get hasCutout() { return !!cut; },
     get plate() { return plate; },   // the picture without the person (null without a cut-out)
+    get cutout() { return cut; },   // the person alone, on a canvas the size of the picture (null without a cut-out)
     // enabled: the frame is on; out: personOut(); camera: the scene camera (the person is drawn with it)
     // enabled: the frame is on (without it the person stays where she is: その場に残る)
-    update({ enabled, out, hold = 0, sec = 0, tilt, move = 'pop' }) {
+    // hidePerson: the person is not drawn here (人物のほうを立体にする: she is the picture that breaks up)
+    update({ enabled, out, hold = 0, sec = 0, tilt, move = 'pop', hidePerson = false }) {
       frame.visible = enabled;
-      const show = !!cut; shadow.visible = person.visible = show;
+      const show = !!cut && !hidePerson; shadow.visible = person.visible = show;
       if (!show) return;
       const p = personPose(enabled ? move : 'stay', out, hold, sec, tilt);   // in front of the frame (z), so a tilted camera sees it move against the frame
       person.scale.set(size.w * p.s, size.h * p.s, 1); person.position.set(p.x * size.w, p.y * size.h, p.z * size.h); person.rotation.set(p.rx, p.ry, p.rz);

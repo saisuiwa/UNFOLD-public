@@ -4,7 +4,7 @@
 //   ・通り過ぎた額縁には絵が残る（出ていった絵は、少しして戻る）。まだ行っていない額縁は、絵が来るまで暗い。
 // value = { enabled, style: 'mix'（額縁を順にかえる）か FRAME_STYLES のどれか, size: 額縁が画面に占める大きさ 0.5–0.95,
 //           pop: 立体が飛び出す大きさ 0–1（はじめは 0.15）, lead: 歩く間にカメラが先を向く強さ 0–1 }
-import { FRAME_STYLES, borderOf, drawFrame } from './frame-stage.js?v=7';
+import { FRAME_STYLES, borderOf, drawFrame } from './frame-stage.js?v=8';
 import { DIVE } from './dive-stage.js?v=1';
 
 export const GALLERY_STYLES = [['mix', '額縁を順にかえる'], ...FRAME_STYLES];

@@ -85,6 +85,7 @@ export function matteShare(matte) { let n = 0; for (let i = 0; i < matte.length;
 /**
  * 絵 1 枚ぶんの係を作る。picture: 絵（canvas）、field: 奥行き {w, h, data}。
  *   cut(settings) → { canvas（絵と同じ大きさ。手前の物だけ・地は透明）, share（残った割合 0–1）}
+ *   depth(fine) → 奥行き（文字の層を、絵の奥行きで隠すのに使う: 人物の後ろの文字の「奥行きの動き」）
  * 奥行きを広げる・ふちを整えるのは、絵ごとに1回だけ（設定を変えても、分け直すだけ）。
  */
 export function createDepthCutter(picture, field, doc = globalThis.document) {
@@ -96,6 +97,8 @@ export function createDepthCutter(picture, field, doc = globalThis.document) {
   const mask = doc.createElement('canvas'); mask.width = W; mask.height = H; const mx = mask.getContext('2d');
   return {
     size: { W, H },
+    /** 奥行きそのもの（W×H、行は上から下）。fine: ふちを整えた物 */
+    depth(fineWanted = true) { return fineWanted ? (fine ??= refineDepth(raw, rgba, W, H)) : raw; },
     cut(settings) {
       const s = cleanDepthCut(settings), depth = s.fine ? (fine ??= refineDepth(raw, rgba, W, H)) : raw, matte = depthMatte(depth, W, H, s);
       const img = mx.createImageData(W, H); for (let i = 0; i < W * H; i++) { img.data[i * 4] = img.data[i * 4 + 1] = img.data[i * 4 + 2] = 255; img.data[i * 4 + 3] = matte[i]; }

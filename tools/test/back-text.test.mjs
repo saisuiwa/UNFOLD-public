@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BACK_DEFAULT, BACK_RANDOM, BACK_TRANS, BACK_MODES, BACK_FILLS, BACK_FONTS, BACK_WHEN, cleanBackText, backWords, backWindow, backSlot, backTransKind, flowShift, backFade, backFontCSS } from '../../app/back-text.js';
+import { BACK_DEFAULT, BACK_RANDOM, BACK_TRANS, BACK_MODES, BACK_FILLS, BACK_FONTS, BACK_WHEN, cleanBackText, backWords, backWindow, backSlot, backTransKind, flowShift, backFade, backFontCSS, backDepthAt, backBump, BACK_DEPTH } from '../../app/back-text.js';
 
 const on = patch => cleanBackText({ ...BACK_DEFAULT, enabled: true, ...patch });
 
@@ -101,4 +101,20 @@ test('ぐるっと囲む: both sides of a ring read left to right, the far side 
   assert.ok(RING_VIEW > 1.5, 'the eye is outside the ring');
   for (const units of [1, 3, 7]) { const total = ringTurn(.2, units, 10, 10), step = 2 * Math.PI / units; assert.ok(Math.abs(total / step - Math.round(total / step)) < 1e-9 && total >= step - 1e-9, `${units} units: a whole number of units`); assert.ok(Math.abs(ringTurn(.2, units, 5, 10) - total / 2) < 1e-9); }
   assert.equal(ringTurn(.2, 0, 5, 10), 0); assert.equal(ringTurn(.2, 3, 5, 0), 0);
+});
+
+test('奥行きの動き: the letters go from the far side to the front and back again, or pass in front only in the middle', () => {
+  assert.equal(cleanBackText({}).depthMove, 'none'); assert.equal(cleanBackText({ depthMove: 'sideways', depthTrips: 99 }).depthMove, 'none'); assert.equal(cleanBackText({ depthTrips: 99 }).depthTrips, 6);
+  assert.equal(backDepthAt(cleanBackText({ mode: 'flow' }), 3, 10), null, 'off: they simply stay behind the person');
+  const time = cleanBackText({ mode: 'flow', depthMove: 'time', depthTrips: 2 }), at = u => backDepthAt(time, u * 10, 10);
+  assert.ok(Math.abs(at(0).base - BACK_DEPTH.lo) < 1e-9 && Math.abs(at(1).base - BACK_DEPTH.lo) < 1e-9, 'far at the start and at the end (the loop joins)');
+  assert.ok(Math.abs(at(.25).base - BACK_DEPTH.hi) < 1e-9 && Math.abs(at(.75).base - BACK_DEPTH.hi) < 1e-9 && Math.abs(at(.5).base - BACK_DEPTH.lo) < 1e-9, 'two trips: in front at 1/4 and 3/4, far again in the middle');
+  assert.ok(at(.1).base > at(.05).base && at(.4).base < at(.3).base && at(.3).arch === 0, 'rising, then falling; the same across the picture');
+  assert.ok(BACK_DEPTH.lo > 0 && BACK_DEPTH.hi > 1, 'never behind the farthest thing, and all the way in front of the nearest');
+  const place = backDepthAt(cleanBackText({ mode: 'wall', depthMove: 'place' }), 7, 10), depthAt = x => place.base + place.arch * backBump(x - place.centre);
+  assert.ok(Math.abs(depthAt(0) - BACK_DEPTH.lo) < 1e-9 && Math.abs(depthAt(1) - BACK_DEPTH.lo) < 1e-9 && Math.abs(depthAt(.5) - BACK_DEPTH.hi) < 1e-9, 'by place: far at both ends, in front in the middle');
+  assert.deepEqual(place, backDepthAt(cleanBackText({ mode: 'wall', depthMove: 'place' }), 2, 10), 'by place: the same at every moment');
+  const left = backDepthAt(cleanBackText({ mode: 'flow', depthMove: 'place', depthPlace: .2 }), 0, 10), leftAt = x => left.base + left.arch * backBump(x - left.centre);
+  assert.ok(Math.abs(leftAt(.2) - BACK_DEPTH.hi) < 1e-9 && Math.abs(leftAt(.7) - BACK_DEPTH.lo) < 1e-9 && leftAt(.9) === leftAt(.7) && leftAt(0) > leftAt(.6), 'the place can be moved: in front there, far half a picture away and beyond');
+  assert.equal(backDepthAt(cleanBackText({ mode: 'ring', depthMove: 'time' }), 3, 10), null, 'a ring has its own far and near side');
 });

@@ -6,20 +6,21 @@ import {isImageMethodKey,imageFrame,smoothImage} from './image-method-format.js'
 import {usesImageLabel} from './image-label.js?v=1';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { solidMotionAt, motionCamera, solidLife, SINGLE_BEAT_SEC } from './solid-motion.js?v=4';
-import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, createFrameStage, frameZoom, personOut, solidPop, solidShift, tiltAt, pickTilt, pickPersonMove, orbitCamera } from './frame-stage.js?v=7';
+import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, createFrameStage, frameZoom, personOut, solidPop, solidShift, tiltAt, pickTilt, pickPersonMove, orbitCamera } from './frame-stage.js?v=8';
 import { alignCutout } from './cutout-align.js?v=1';
 import { BACKDROPS, VERTIGOS, cleanSolidStage, createSolidStage, vertigoAt } from './solid-stage.js?v=3';
 import { cleanToon, applyToon, lineAt, createOutline } from './toon-look.js?v=1';
-import { BACK_MODES, BACK_TRANS, BACK_FILLS, BACK_FONTS, BACK_WHEN, cleanBackText, createBackText, backFontCSS, backWords } from './back-text.js?v=2';
+import { BACK_MODES, BACK_TRANS, BACK_FILLS, BACK_FONTS, BACK_WHEN, BACK_DEPTH_MOVES, BACK_DEPTH, cleanBackText, createBackText, backFontCSS, backWords, backDepthAt } from './back-text.js?v=3';
 import { createReliefShape, setReliefAmount, cleanReliefAmount, reliefSwing, reliefTilt } from './relief-shape.js?v=1';
 import { makeDepth, depthModelCached } from './depth-auto/depth-make.js?v=1';
 import { DEPTH } from './depth-auto/depth-model.js?v=1';
-import { cleanDepthCut, createDepthCutter } from './depth-cutout.js?v=1';
+import { cleanDepthCut, createDepthCutter } from './depth-cutout.js?v=2';
+import { personSolidPixels } from './person-solid.js?v=1';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=3';
 import { createRenderControls } from './render-look-controls.js?v=3';
 import * as THREE from './vendor/three.module.min.js';
-import {motionAt,exportRange,chaosTime,warpTime,smooth,vertexShader,fragmentShader} from './motion.js?v=35';
+import {motionAt,exportRange,chaosTime,warpTime,smooth,vertexShader,fragmentShader} from './motion.js?v=36';
 import {presetNames,presetTargets} from './shape-presets.js?v=6';
 import {importModel} from './model-import.js?v=13';
 import {listModels,getModel,saveModel,deleteModel,updateModel} from './model-library.js?v=5';
@@ -29,7 +30,7 @@ import {modelThumb,fillMissingThumbs} from './model-thumb.js?v=4';
 import {particleParts} from './model-layout.js?v=14';
 import {createTextShape,validateText} from './text-shape.js?v=11';
 import {FONTS,createMaskTextShape,createSilhouetteShape,validateMaskText} from './mask-shape.js?v=7';
-import {effectsAt,SceneBlur} from './effects.js?v=37';
+import {effectsAt,SceneBlur} from './effects.js?v=38';
 import {BUILTIN_KEYS,getCustom,listCustom,onRegistryChange,registerCustom,resolveKey,setCustomStatus,unregisterCustom} from './method-registry.js';
 import {createPersistence,openStore} from './method-library.js';
 import {registerBundledImageMethods} from './bundled-image-methods.js';
@@ -63,7 +64,7 @@ const loadToon=()=>{try{return cleanToon(JSON.parse(localStorage.getItem('unfold
 const saveToon=()=>{try{localStorage.setItem('unfold-single-toon',JSON.stringify(state.toon))}catch{}};
 const loadBackText=()=>{try{return cleanBackText(JSON.parse(localStorage.getItem('unfold-single-backtext')||'null'))}catch{return cleanBackText()}};
 const saveBackText=()=>{try{localStorage.setItem('unfold-single-backtext',JSON.stringify(state.backText))}catch{}};
-const state={fit:'cover',imageSolid:true,personPlate:true,stage:loadSolidStage(),toon:loadToon(),backText:loadBackText(),shot:loadShot(),frameStage:loadFrameStage(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,solidLength:0,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
+const state={fit:'cover',imageSolid:true,personPlate:true,personSolid:(()=>{try{return localStorage.getItem('unfold-single-person-solid')==='1'}catch{return false}})(),stage:loadSolidStage(),toon:loadToon(),backText:loadBackText(),shot:loadShot(),frameStage:loadFrameStage(),renderLook:cleanRenderLook(),blur:0,push:0,shake:0,chroma:0,glitch:0,bloom:0,neon:0,glass:0,scan:0,grain:0,vignette:0,bokeh:0,method:'crumple',shape:'sphere',strength:.75,pullback:1,formPullback:1,detail:1,modelColor:1,chaosLength:.5,solidLength:0,imageLabel:'',tiles:.5,depth:1,seed:28,duration:10,t:.56,playing:false,loop:true,bg:'#111718',ratio:'16:9',recording:false,viewX:0,viewY:0,startMode:'solid',customStart:.56,mystery:true,previewRange:false};
 const shapeIds={sphere:0,torus:1,helix:2,mass:3,cube:4,heart:5,star:6,saturn:7,mobius:8,diamond:9,flower:10};
 let renderControls,shotControls;
 const shotAxis=new THREE.Vector3(),shotQuat=new THREE.Quaternion();
@@ -98,7 +99,7 @@ function setSource(canvas,name){
  sourceCanvas=canvas;texture?.dispose();texture=new THREE.CanvasTexture(canvas);texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=false;texture.colorSpace=THREE.SRGBColorSpace;
  const aspect=canvas.width/canvas.height;const h=Math.min(3.65,5.25/aspect),w=h*aspect;
  if(mesh){mesh.geometry.dispose();mesh.material.dispose();scene.remove(mesh)}
- const uniforms={uImage:{value:texture},uSize:{value:new THREE.Vector2(w,h)},uDistort:{value:0},uForm:{value:0},uStrength:{value:.75},uDepth:{value:1},uSeed:{value:28},uMethod:{value:0},uMethod2:{value:0},uMethodMix:{value:0},uProject:{value:0},uTime:{value:0},uDraw:{value:1},uThrough:{value:0},uFade:{value:1},uGlass:{value:0},uShape:{value:0},uPreset:{value:0},uConceal:{value:0},uModelColor:{value:state.modelColor},uModelTex:{value:null}};
+ const uniforms={uWhole:{value:0},uImage:{value:texture},uSize:{value:new THREE.Vector2(w,h)},uDistort:{value:0},uForm:{value:0},uStrength:{value:.75},uDepth:{value:1},uSeed:{value:28},uMethod:{value:0},uMethod2:{value:0},uMethodMix:{value:0},uProject:{value:0},uTime:{value:0},uDraw:{value:1},uThrough:{value:0},uFade:{value:1},uGlass:{value:0},uShape:{value:0},uPreset:{value:0},uConceal:{value:0},uModelColor:{value:state.modelColor},uModelTex:{value:null}};
  mesh=new THREE.Mesh(geometryFor(w,h),(variants?.dispose(),variants=createVariants({renderer,vertexShader,fragmentShader,uniforms,onReady:()=>render()}),variants.base));mesh.frustumCulled=false;scene.add(mesh);
  frameStage?.setPicture(w,h);depthCutJob?.cancel();depthCutter=null;cutFromDepth=false;syncDepthCut?.();if(frameStage?.hasCutout){frameStage.setCutout(null);personX=null;syncFrameControls?.();syncBackText?.()}
  const thumb=document.createElement('canvas');thumb.width=140;thumb.height=Math.round(140/aspect);thumb.getContext('2d').drawImage(canvas,0,0,thumb.width,thumb.height);$('thumbnail').src=thumb.toDataURL();$('image-name').textContent=name;
@@ -125,12 +126,18 @@ function render(){
  const sm=solidMotionAt(state.shot.motion,state.t*state.duration,SINGLE_BEAT_SEC,m.form,solidLife(warpTime(state.t,state.chaosLength,state.solidLength),[.53,.70]));
  if(sm){mesh.quaternion.premultiply(shotQuat.fromArray(sm.quaternion));mesh.position.fromArray(sm.position);mesh.scale.fromArray(sm.scale)}else{mesh.position.set(0,0,0);mesh.scale.set(1,1,1)}
  // 額縁から飛び出す: the frame stays where it is and the solid grows past it as it forms; the cut-out person steps out as the picture breaks
+ /* 人物のほうを立体にする: the roles are swapped — the cut-out person is the picture that breaks up and becomes the solid, the picture without her stays behind as it is.
+    Without a frame the camera stays (the background fills the view), so her solid is made a little smaller than the picture's height */
+ const swap=personSwap(imageCode);if(swap&&!state.frameStage.enabled){const fit=1-.22*m.form;mesh.scale.multiplyScalar(fit);mesh.position.multiplyScalar(fit)}
  const framed=state.frameStage.enabled,pop=framed?solidPop(state.frameStage.pop,m.form):1;if(pop!==1){mesh.scale.multiplyScalar(pop);mesh.position.multiplyScalar(pop)}
  const shift=framed?solidShift(state.frameStage.solidX,state.frameStage.solidY,u.uSize.value.x,u.uSize.value.y,m.form):[0,0,0],shifted=shift[0]!==0||shift[1]!==0;if(shifted){mesh.position.x+=shift[0];mesh.position.y+=shift[1]}
  const outNow=personOut(m.distort,m.form),tiltNow=framed&&state.frameStage.tilt!=='none'?tiltAt(state.frameStage.tilt,state.frameStage.tiltAmount,state.t*state.duration,outNow):{yaw:0,pitch:0};
  // 人物（切り抜き）: while the picture is changing, it breaks up without the person (she is drawn on her own, last); whole again = the real picture
- const plate=state.personPlate?frameStage?.plate:null,wantImage=plate&&outNow>.02?plate:sourceCanvas;if(texture&&texture.image!==wantImage){texture.image=wantImage;texture.needsUpdate=true}
- frameStage?.update({enabled:framed,out:outNow,hold:Math.min(1,Math.max(0,(state.t-.1)/.7)),sec:state.t*state.duration,tilt:tiltNow,move:state.frameStage.personMove});
+ const plate=swap?null:state.personPlate?frameStage?.plate:null,wantImage=plate&&outNow>.02?plate:sourceCanvas;if(texture&&texture.image!==wantImage){texture.image=wantImage;texture.needsUpdate=true}
+ /* while she is breaking up / a solid, the mesh shows a picture made of her alone: her cut-out's shape while flat, all of it as the solid forms */
+ const whole=swap&&outNow>.02?personSolidTexture(frameStage.cutout):null;u.uImage.value=whole||texture;u.uWhole.value=whole?smooth(.3,.85,m.form):0;
+ stillPlate(whole?frameStage.plate:null,u.uSize.value);
+ frameStage?.update({enabled:framed,out:outNow,hold:Math.min(1,Math.max(0,(state.t-.1)/.7)),sec:state.t*state.duration,tilt:tiltNow,move:state.frameStage.personMove,hidePerson:swap});
  const fx=effectsAt(state.t,state.duration,state);
  const imageSize=u.uSize.value,frameW=camera.right-camera.left,frameH=camera.top-camera.bottom;
  const fillZoom=(state.fit==='contain'?Math.min:Math.max)(frameW/imageSize.x,frameH/imageSize.y);   // 'contain': the whole picture stays in view, the rest is the background colour
@@ -153,33 +160,68 @@ function render(){
  const straight=syncPerspective(camera,perspCam,vertigo.k>0?vertigo.k:ownPersp>0?ownPersp:tilting?.5:0);
  const view=tilting?orbitCamera(straight,orbitTarget.set(camera.position.x,camera.position.y,0),tiltNow,camera.rotation.z):straight;
  const imageFade=imageCode&&!still?smoothImage(state.t/.025)*smoothImage((1-state.t)/.025):0;mesh.visible=!(imageCode&&(framed||staged)&&imageFade>=1);   // in the frame the worker draws on a clear background, so the GLSL copy under it must not show
+ if(backLayer)backLayer.inScene.visible=false;if(swap)drawBackLayer(view,imageSize,framed,frameW/fillZoom,frameH/fillZoom,'scene');   /* 人物のほうを立体にする: the letters sit in the scene, between the still background and her solid */
  /* アニメ調 (toon-look.js): two steps of light, and a line around the solid while it is there */
  applyToon(u,state.toon,!imageCode);outline?.prepare(renderer,mesh,view,lineAt(state.toon,imageCode?0:m.form),imageSize.y);
  u.uGlass.value=imageCode?0:fx.glass;sceneBlur.render(scene,view,imageCode?0:fx.blur,imageCode?0:fx.glitch,imageCode?0:fx.chroma,fx.seconds,imageCode?{}:fx);
  imageInput=null;
  if(imageCode&&!still){const f=imageFrame(state.t*state.duration,state.duration,state.strength,{form:m.form});imageInput={params:state.imageLabel?{label:state.imageLabel}:undefined,target:state.imageSolid?imageTarget(mesh.geometry,{shape:state.shape,preset:u.uPreset.value===1,project:isText,texture:shapeOf(state.shape)?.data.texture}):null,id:state.method,imageA:plate||sourceCanvas,imageB:plate||sourceCanvas,size:{width:imageSize.x,height:imageSize.y},frame:{...f,depth:state.depth,seed:state.seed,modelColor:state.modelColor,width:renderer.domElement.width,height:renderer.domElement.height,bg:state.bg,...(framed||staged?{bgAlpha:0}:{}),camera:motionCamera(imageCamera(view),pop===1&&!shifted?sm:{quaternion:[0,0,0,1],position:(sm?sm.position.map(v=>v*pop):[0,0,0]).map((v,i)=>v+shift[i]),scale:(sm?.scale||[1,1,1]).map(v=>v*pop)}),rootQuaternion:mesh.quaternion.toArray()}};const fade=imageFade;if(fade>0&&(state.strength>0||m.form>0))getImageLayer().draw(imageInput,fade);}else imageLayer?.reset();
- drawBackLayer(view,imageSize,framed,frameW/fillZoom,frameH/fillZoom);   // 人物の後ろの文字: after the picture and the solid, before the person
- if(frameStage?.hasCutout){const old=renderer.autoClear;renderer.autoClear=false;renderer.setRenderTarget(null);renderer.render(frameStage.front,view);renderer.autoClear=old}   // the person: in front of the solid and of the letters
- drawBackLayer(view,imageSize,framed,frameW/fillZoom,frameH/fillZoom,'front');   // ぐるっと囲む + 輪の手前側も出す: the near side of the rings passes in front of her
+ /* 奥行きの動き: with the picture's depth known, the letters are drawn after the person and hidden, pixel by pixel, where the picture is nearer than they are */
+ const textDepth=backTextDepth(framed||swap);
+ if(!textDepth&&!swap)drawBackLayer(view,imageSize,framed,frameW/fillZoom,frameH/fillZoom);   // 人物の後ろの文字: after the picture and the solid, before the person
+ if(frameStage?.hasCutout&&!swap){const old=renderer.autoClear;renderer.autoClear=false;renderer.setRenderTarget(null);renderer.render(frameStage.front,view);renderer.autoClear=old}   // the person: in front of the solid and of the letters
+ if(textDepth)drawBackLayer(view,imageSize,framed,frameW/fillZoom,frameH/fillZoom,'masked',textDepth);else drawBackLayer(view,imageSize,framed,frameW/fillZoom,frameH/fillZoom,'front');   // ぐるっと囲む + 輪の手前側も出す: the near side of the rings passes in front of her
  safety?.afterDraw();updateTransport(m);
 }
 // 人物の後ろの文字 (back-text.js): a plane the size of what the camera sees of the picture, drawn after the scene (so it is in front of the picture and the solid) and before the cut-out person
+// 人物のほうを立体にする: on, with a cut-out, for the built-in (GLSL) ways of breaking up (image code draws the picture itself)
+// the picture made of the person alone (person-solid.js), as a texture: kept for the cut-out it was made from
+let wholeTexture=null,wholeOf=null;
+function personSolidTexture(cut){
+ if(wholeOf===cut)return wholeTexture;wholeTexture?.dispose();wholeTexture=null;wholeOf=cut;
+ const px=personSolidPixels(cut);if(!px)return null;
+ const t=new THREE.DataTexture(px.data,px.width,px.height,THREE.RGBAFormat,THREE.UnsignedByteType);t.colorSpace=THREE.SRGBColorSpace;t.minFilter=t.magFilter=THREE.LinearFilter;t.generateMipmaps=false;t.needsUpdate=true;wholeTexture=t;return t;
+}
+function personSwap(imageCode){return !!(state.personSolid&&frameStage?.hasCutout&&frameStage.plate&&!imageCode)}
+// the picture without the person, standing still behind everything while she is the solid (null = not shown)
+let stillPlane=null,stillOf=null;
+function stillPlate(canvas,size){
+ if(!canvas){if(stillPlane)stillPlane.visible=false;return}
+ if(!stillPlane){stillPlane=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({depthTest:false,depthWrite:false,toneMapped:false}));stillPlane.renderOrder=-210;scene.add(stillPlane)}
+ if(stillOf!==canvas){stillPlane.material.map?.dispose();const t=new THREE.CanvasTexture(canvas);t.colorSpace=THREE.SRGBColorSpace;t.minFilter=THREE.LinearFilter;t.generateMipmaps=false;stillPlane.material.map=t;stillPlane.material.needsUpdate=true;stillOf=canvas}
+ stillPlane.scale.set(size.x,size.y,1);stillPlane.visible=true;
+}
 function createBackLayer(){
  const sheet=()=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=2;const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;texture.minFilter=THREE.LinearFilter;texture.generateMipmaps=false;
   const plane=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:texture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false})),layer=new THREE.Scene();layer.add(plane);return{canvas,texture,plane,scene:layer,w:0,h:0}};
- return{back:sheet(),front:sheet(),engine:createBackText()};   // front: the near side of a ring, drawn after the person (only with 「輪の手前側も出す」)
+ /* masked: the same letters (the back sheet's picture), hidden where the picture's depth is nearer than the letters' depth */
+ const back=sheet(),uniforms={uText:{value:back.texture},uDepth:{value:null},uScale:{value:new THREE.Vector2(1,1)},uBase:{value:0},uArch:{value:0},uCentre:{value:.5},uSoft:{value:BACK_DEPTH.soft}};
+ const maskedPlane=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.ShaderMaterial({uniforms,transparent:true,depthTest:false,depthWrite:false,vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'uniform sampler2D uText,uDepth;uniform vec2 uScale;uniform float uBase,uArch,uCentre,uSoft;varying vec2 vUv;void main(){vec4 t=texture2D(uText,vUv);vec2 p=.5+(vUv-.5)*uScale;float d=texture2D(uDepth,vec2(p.x,1.-p.y)).r;float c=abs(vUv.x-uCentre)>=.5?0.:cos(3.14159265*(vUv.x-uCentre));float at=uBase+uArch*c*c;t.a*=1.-smoothstep(at-uSoft,at+uSoft,d);if(t.a<.003)discard;gl_FragColor=t;\n#include <colorspace_fragment>\n}'})),maskedScene=new THREE.Scene();maskedScene.add(maskedPlane);
+ /* inScene: the same letters as a plane inside the main scene (人物のほうを立体にする: after the still background, before her solid) */
+ const inScene=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:back.texture,transparent:true,depthTest:false,depthWrite:false,toneMapped:false}));inScene.renderOrder=-150;inScene.visible=false;scene.add(inScene);
+ return{back,front:sheet(),masked:{plane:maskedPlane,scene:maskedScene,uniforms,depthOf:null,fine:null},inScene,engine:createBackText()};   // front: the near side of a ring, drawn after the person (only with 「輪の手前側も出す」)
 }
 // where the cut-out person stands across the picture (0..1): the rings go round her
 function cutCentre(c){const k=document.createElement('canvas');k.width=64;k.height=Math.max(1,Math.round(64*c.height/c.width));const x=k.getContext('2d',{willReadFrequently:true});x.drawImage(c,0,0,k.width,k.height);const d=x.getImageData(0,0,k.width,k.height).data;let sum=0,n=0;for(let i=3;i<d.length;i+=4){sum+=d[i]*(((i-3)/4)%k.width+.5);n+=d[i]}return n?sum/n/k.width:null}
-function drawBackLayer(view,size,framed,viewW,viewH,part='back'){
- const s=state.backText;if(!backLayer||!s.enabled)return;const b=backLayer[part];
+// the letters' depth now ({base, arch}), or null when they simply stay behind the person: it needs the picture's depth (奥行きから切り抜きを作る) and no frame (there the person leaves her place)
+function backTextDepth(framed){const s=state.backText;return backLayer&&s.enabled&&depthCutter&&!framed?backDepthAt(s,state.t*state.duration,state.duration):null}
+function backDepthTexture(){   /* the picture's depth as a texture (made again when the picture's depth or 「ふちを整える」 changes) */
+ const m=backLayer.masked,fine=state.depthCut.fine;if(m.depthOf===depthCutter&&m.fine===fine)return m.uniforms.uDepth.value;
+ const {W,H}=depthCutter.size,d=depthCutter.depth(fine),half=new Uint16Array(W*H);for(let i=0;i<half.length;i++)half[i]=THREE.DataUtils.toHalfFloat(Math.min(1,Math.max(0,d[i])));
+ m.uniforms.uDepth.value?.dispose();const t=new THREE.DataTexture(half,W,H,THREE.RedFormat,THREE.HalfFloatType);t.minFilter=t.magFilter=THREE.LinearFilter;t.needsUpdate=true;m.uniforms.uDepth.value=t;m.depthOf=depthCutter;m.fine=fine;return t;
+}
+function drawBackLayer(view,size,framed,viewW,viewH,part='back',textDepth=null){
+ const s=state.backText;if(!backLayer||!s.enabled)return;const masked=part==='masked',inScene=part==='scene';if(masked||inScene)part='back';const b=backLayer[part];
  const w=framed?size.x:Math.min(size.x,viewW),h=framed?size.y:Math.min(size.y,viewH);   // in a frame: the picture. Otherwise the part of it the camera sees when the picture fills the screen
  const long=Math.min(2560,Math.max(960,renderer.domElement.width,renderer.domElement.height)),k=long/Math.max(w,h),cw=Math.round(w*k/2)*2,ch=Math.round(h*k/2)*2;
  const centre=personX===null?.5:.5+(personX-.5)*size.x/w;   // the person's place across the plane (the plane may show only the middle of the picture)
  const did=backLayer.engine.draw(b.canvas,state.t*state.duration,state.duration,s,{width:cw,height:ch,part,centre});if(did==='empty')return;
  if(did==='drawn'){if(b.w!==cw||b.h!==ch){b.texture.dispose();b.w=cw;b.h=ch}b.texture.needsUpdate=true}
- b.plane.scale.set(w,h,1);
- const old=renderer.autoClear;renderer.autoClear=false;renderer.setRenderTarget(null);renderer.render(b.scene,view);renderer.autoClear=old;
+ if(inScene){backLayer.inScene.scale.set(w,h,1);backLayer.inScene.visible=true;return}
+ const shown=masked?backLayer.masked:b;shown.plane.scale.set(w,h,1);
+ if(masked){const mu=backLayer.masked.uniforms;backDepthTexture();mu.uScale.value.set(w/size.x,h/size.y);mu.uBase.value=textDepth.base;mu.uArch.value=textDepth.arch;mu.uCentre.value=textDepth.centre}
+ const old=renderer.autoClear;renderer.autoClear=false;renderer.setRenderTarget(null);renderer.render(shown.scene,view);renderer.autoClear=old;
 }
 function prepareBackFont(){   // the letters' font may still be on its way: draw again when it has come
  const s=state.backText;if(!s.enabled)return;const text=backWords(s.text).join('')||'A',key=s.font+'|'+text;if(key===backFontKey)return;backFontKey=key;
@@ -377,7 +419,7 @@ async function loadImage(file,{ask=false}={}){
 // 額縁から飛び出す: settings, and the cut-out person (a transparent PNG cut from this picture), placed where it sits on the picture
 let syncBackText=null,syncDepthCut=null,depthCutter=null,depthCutJob=null,cutFromDepth=false,depthCutFrame=0;
 function setBackText(patch){if(state.recording){syncBackText?.();return}state.backText=cleanBackText({...state.backText,...patch});saveBackText();syncBackText?.();prepareBackFont();render()}
-function setFrameStage(patch){state.frameStage=cleanFrameStage({...state.frameStage,...patch});frameStage?.setStyle(state.frameStage.style);saveFrameStage();syncFrameControls?.();render()}
+function setFrameStage(patch){state.frameStage=cleanFrameStage({...state.frameStage,...patch});frameStage?.setStyle(state.frameStage.style);saveFrameStage();syncFrameControls?.();syncBackText?.();render()}
 const loadDepthCut=()=>{try{return cleanDepthCut(JSON.parse(localStorage.getItem('unfold-single-depthcut')||'null'))}catch{return cleanDepthCut()}};
 const saveDepthCut=()=>{try{localStorage.setItem('unfold-single-depthcut',JSON.stringify(state.depthCut))}catch{}};
 state.depthCut=loadDepthCut();
@@ -440,6 +482,7 @@ function wireControls(){
  const setDepthCut=patch=>{if(state.recording){syncDepthCut();return}state.depthCut=cleanDepthCut({...state.depthCut,...patch});saveDepthCut();syncDepthCut();if(cutFromDepth&&depthCutter&&!depthCutFrame)depthCutFrame=requestAnimationFrame(()=>{depthCutFrame=0;applyDepthCut()})};
  $('depth-cut-add').onclick=addDepthCut;$('depth-cut-range').oninput=e=>setDepthCut({at:1-Number(e.target.value)/100});$('depth-cut-tilt').oninput=e=>setDepthCut({tilt:Number(e.target.value)/100});$('depth-cut-fine').onchange=e=>setDepthCut({fine:e.target.checked});syncDepthCut();
  $('person-plate').onchange=e=>{state.personPlate=e.target.checked;render()};
+ $('person-solid').checked=state.personSolid;$('person-plate').disabled=state.personSolid;$('person-solid').onchange=e=>{if(state.recording){e.target.checked=state.personSolid;return}state.personSolid=e.target.checked;try{localStorage.setItem('unfold-single-person-solid',state.personSolid?'1':'0')}catch{}$('person-plate').disabled=state.personSolid;syncBackText?.();render()};
  for(const [id,label] of BACKDROPS)$('stage-backdrop').append(new Option(label,id));for(const [id,label] of VERTIGOS)$('stage-vertigo').append(new Option(label,id));
  const syncStage=()=>{const g=state.stage;$('stage-on').checked=g.enabled;$('stage-body').hidden=!g.enabled;$('stage-backdrop').value=g.backdrop;$('stage-blur').value=Math.round(g.blur*100);$('stage-blur-value').textContent=Math.round(g.blur*100)+'%';$('stage-floor').checked=g.floor;$('stage-vertigo').value=g.vertigo;$('stage-vertigo-amount').value=Math.round(g.vertigoAmount*100);$('stage-vertigo-amount-value').textContent=Math.round(g.vertigoAmount*100)+'%';$('stage-vertigo-row').hidden=g.vertigo==='none'};
  const setStage=patch=>{state.stage=cleanSolidStage({...state.stage,...patch});saveSolidStage();syncStage();render()};
@@ -447,18 +490,19 @@ function wireControls(){
  const setToon=patch=>{if(state.recording){syncToon();return}state.toon=cleanToon({...state.toon,...patch});saveToon();syncToon();render()};
  $('toon-on').onchange=e=>setToon({enabled:e.target.checked});$('toon-cel').onchange=e=>setToon({cel:e.target.checked});$('toon-shade').oninput=e=>setToon({shade:Number(e.target.value)/100});$('toon-line').oninput=e=>setToon({line:Number(e.target.value)/100});$('toon-colour').oninput=e=>setToon({colour:e.target.value});syncToon();
  // 人物の後ろの文字
- for(const [id,table] of [['bt-mode',BACK_MODES],['bt-trans',BACK_TRANS],['bt-font',BACK_FONTS],['bt-fill',BACK_FILLS],['bt-when',BACK_WHEN]])$(id).replaceChildren(...Object.entries(table).map(([v,l])=>new Option(typeof l==='string'?l:l.label,v)));
+ for(const [id,table] of [['bt-mode',BACK_MODES],['bt-trans',BACK_TRANS],['bt-font',BACK_FONTS],['bt-fill',BACK_FILLS],['bt-when',BACK_WHEN],['bt-depth-move',BACK_DEPTH_MOVES]])$(id).replaceChildren(...Object.entries(table).map(([v,l])=>new Option(typeof l==='string'?l:l.label,v)));
  syncBackText=()=>{const s=state.backText,pct=v=>Math.round(v*100)+'%',range=(id,v,label)=>{$(id).value=Math.round(v);$(id+'-value').textContent=label};
   $('bt-on').checked=s.enabled;$('bt-body').hidden=!s.enabled;$('bt-still').checked=s.still;if(document.activeElement!==$('bt-text')&&$('bt-text').value!==s.text)$('bt-text').value=s.text;
-  for(const [id,key] of [['bt-mode','mode'],['bt-trans','trans'],['bt-font','font'],['bt-fill','fill'],['bt-when','when'],['bt-dir','dir'],['bt-color','color'],['bt-back','back'],['bt-accent','accent']])$(id).value=s[key];
+  for(const [id,key] of [['bt-mode','mode'],['bt-trans','trans'],['bt-font','font'],['bt-fill','fill'],['bt-when','when'],['bt-dir','dir'],['bt-color','color'],['bt-back','back'],['bt-accent','accent'],['bt-depth-move','depthMove']])$(id).value=s[key];
+  $('bt-depth-trips-row').hidden=s.depthMove!=='time';range('bt-depth-trips',s.depthTrips,s.depthTrips+'回');$('bt-depth-place-row').hidden=s.depthMove!=='place';range('bt-depth-place',s.depthPlace*100,s.depthPlace<.45?'左寄り '+pct(s.depthPlace):s.depthPlace>.55?'右寄り '+pct(s.depthPlace):'まん中');
   $('bt-giant-rows').hidden=s.mode!=='giant';$('bt-flow-rows').hidden=s.mode==='giant';$('bt-ring-rows').hidden=s.mode!=='ring';$('bt-color-row').hidden=s.fill==='rust'||s.fill==='metal';$('bt-ring-front').checked=s.ringFront;
   range('bt-rings',s.rings,s.rings+'本');range('bt-ring-size',s.ringSize*100,pct(s.ringSize));range('bt-ring-tilt',s.ringTilt*100,s.ringTilt?pct(s.ringTilt):'OFF');
   range('bt-hold',s.hold*10,s.hold.toFixed(1)+'秒');range('bt-speed',s.speed*100,pct(s.speed));range('bt-size',s.size*100,pct(s.size));range('bt-stretch',s.stretch*100,s.stretch?pct(s.stretch):'OFF');range('bt-y',s.y*100,Math.round(s.y*100)+'%');range('bt-depth',s.depth*100,s.depth?pct(s.depth):'OFF');range('bt-back-alpha',s.backAlpha*100,s.backAlpha?pct(s.backAlpha):'OFF');
-  $('bt-status').textContent=!s.enabled?'':!backWords(s.text).length?'文字を入れると出ます。':frameStage?.hasCutout?(s.mode==='ring'&&s.ringFront?'輪の向こう側は人物の後ろ、手前側は人物の前を通っています。':'文字は、絵と切り抜いた人物の間に出ています。'):'いまは絵の上に出ています。上の「人物（切り抜き）」で切り抜きを入れるか、「奥行きから切り抜きを作る」を押すと、人物の後ろを通ります。'};
+  $('bt-status').textContent=!s.enabled?'':!backWords(s.text).length?'文字を入れると出ます。':s.depthMove!=='none'&&s.mode==='ring'?'「ぐるっと囲む」では、奥行きの動きは使いません（輪が自分で人物の前後を通ります）。':s.depthMove!=='none'&&state.personSolid&&frameStage?.hasCutout?'「人物のほうを立体にする」の間は、奥行きの動きは使いません（文字は、背景と人物の立体の間に出ます）。':s.depthMove!=='none'&&!depthCutter?'奥行きの動きは、上の「人物（切り抜き）」で「奥行きから切り抜きを作る」を押すと使えます。':s.depthMove!=='none'&&state.frameStage.enabled?'額縁をオンにしている間は、奥行きの動きは使いません（文字は人物の後ろに出ます）。':s.depthMove!=='none'?(s.depthMove==='time'?'文字が、絵の奥と手前を行き来しています。':'文字が、決めた場所でだけ手前を通っています。'):frameStage?.hasCutout?(s.mode==='ring'&&s.ringFront?'輪の向こう側は人物の後ろ、手前側は人物の前を通っています。':'文字は、絵と切り抜いた人物の間に出ています。'):'いまは絵の上に出ています。上の「人物（切り抜き）」で切り抜きを入れるか、「奥行きから切り抜きを作る」を押すと、人物の後ろを通ります。'};
  $('bt-on').onchange=e=>setBackText({enabled:e.target.checked});$('bt-still').onchange=e=>setBackText({still:e.target.checked});$('bt-ring-front').onchange=e=>setBackText({ringFront:e.target.checked});$('bt-text').oninput=e=>setBackText({text:e.target.value});
- for(const [id,key] of [['bt-mode','mode'],['bt-trans','trans'],['bt-font','font'],['bt-fill','fill'],['bt-when','when'],['bt-dir','dir']])$(id).onchange=e=>setBackText({[key]:e.target.value});
+ for(const [id,key] of [['bt-mode','mode'],['bt-trans','trans'],['bt-font','font'],['bt-fill','fill'],['bt-when','when'],['bt-dir','dir'],['bt-depth-move','depthMove']])$(id).onchange=e=>setBackText({[key]:e.target.value});
  for(const [id,key] of [['bt-color','color'],['bt-back','back'],['bt-accent','accent']])$(id).oninput=e=>setBackText({[key]:e.target.value});
- for(const [id,key,div] of [['bt-hold','hold',10],['bt-speed','speed',100],['bt-size','size',100],['bt-stretch','stretch',100],['bt-y','y',100],['bt-depth','depth',100],['bt-back-alpha','backAlpha',100],['bt-rings','rings',1],['bt-ring-size','ringSize',100],['bt-ring-tilt','ringTilt',100]])$(id).oninput=e=>setBackText({[key]:Number(e.target.value)/div});
+ for(const [id,key,div] of [['bt-hold','hold',10],['bt-speed','speed',100],['bt-size','size',100],['bt-stretch','stretch',100],['bt-y','y',100],['bt-depth','depth',100],['bt-back-alpha','backAlpha',100],['bt-rings','rings',1],['bt-ring-size','ringSize',100],['bt-ring-tilt','ringTilt',100],['bt-depth-trips','depthTrips',1],['bt-depth-place','depthPlace',100]])$(id).oninput=e=>setBackText({[key]:Number(e.target.value)/div});
  syncBackText();
  $('stage-on').onchange=e=>setStage({enabled:e.target.checked});$('stage-backdrop').onchange=e=>setStage({backdrop:e.target.value});$('stage-blur').oninput=e=>setStage({blur:Number(e.target.value)/100});$('stage-floor').onchange=e=>setStage({floor:e.target.checked});$('stage-vertigo').onchange=e=>setStage({vertigo:e.target.value});$('stage-vertigo-amount').oninput=e=>setStage({vertigoAmount:Number(e.target.value)/100});
  syncStage();window.unfoldStage={set:setStage};
@@ -662,5 +706,5 @@ try{
  frameStage=createFrameStage(THREE);frameStage.setStyle(state.frameStage.style);scene.add(frameStage.back);solidStage=createSolidStage(THREE);scene.add(solidStage.group);outline=createOutline(THREE);scene.add(outline.object);backLayer=createBackLayer();prepareBackFont();
  setSource(makeSample(),'カラーテスト・サンプル');wireControls();loadSavedModels();detectFormats();updateRange();resize();requestAnimationFrame(tick);
  attachWorkshopLink({notify:notice,apply:(item,target,activate)=>{if(state.recording)throw Error('書き出しが終わってから適用してください。');if(item.kind==='text')throw Error('文字モーションはシーケンスの歌詞に使えます。');const method=activate();if(method.code&&item.workshop?.shape==='none')state.imageSolid=false;setChoice('methods','method',method.id);}});
- window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage,setBackText,addDepthCut,depthCutInfo:()=>({fromDepth:cutFromDepth,has:!!frameStage?.hasCutout,settings:{...state.depthCut},running:!!depthCutJob}),setReliefHost:v=>{reliefHost=v||null},setReliefDepth:field=>{reliefDepth=field?{canvas:sourceCanvas,field}:null},reliefInfo:()=>({shape:customShapes.has(RELIEF_ID),depth:!!reliefDepth,amount:customShapes.get(RELIEF_ID)?.data.relief?.amount??null,running:!!reliefJob})};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
+ window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage,setBackText,setPersonSolid:v=>{state.personSolid=!!v;$('person-solid').checked=state.personSolid;$('person-plate').disabled=state.personSolid;syncBackText?.();render()},addDepthCut,depthCutInfo:()=>({fromDepth:cutFromDepth,has:!!frameStage?.hasCutout,settings:{...state.depthCut},running:!!depthCutJob}),setReliefHost:v=>{reliefHost=v||null},setReliefDepth:field=>{reliefDepth=field?{canvas:sourceCanvas,field}:null},reliefInfo:()=>({shape:customShapes.has(RELIEF_ID),depth:!!reliefDepth,amount:customShapes.get(RELIEF_ID)?.data.relief?.amount??null,running:!!reliefJob})};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
 }catch(e){console.error(e);$('stage-error').hidden=false;$('stage-error').textContent='3D表示を開始できませんでした。WebGL対応のChromeまたはSafariで開いてね。（原因: '+String(e?.message||e).slice(0,160)+'）';$('export').disabled=$('export-top').disabled=true}

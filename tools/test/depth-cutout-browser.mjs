@@ -66,6 +66,34 @@ try {
   const rough = await look();
   need(share(rough, yellow) > share(plain, yellow) * .8, 'without edge refining it still works');
   need(await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('unfold-single-depthcut')); return s.at === .3 && s.tilt === 0 && s.fine === false; }), 'the settings are kept in this browser');
+  // 奥行きの動き (人物の後ろの文字): with the depth known, the letters' layer itself goes far → front → far, or is in front only in the middle
+  await page.evaluate(() => { document.getElementById('depth-cut-fine').click(); return new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(ok))); });
+  const moveUi = await page.evaluate(() => ({ options: [...document.querySelectorAll('#bt-depth-move option')].map(o => o.value), trips: document.getElementById('bt-depth-trips-row').hidden }));
+  need(moveUi.options.join() === 'none,time,place' && moveUi.trips, 'the letters offer 奥行きの動き: none, by time, by place');
+  await page.evaluate(() => { const m = document.getElementById('bt-depth-move'); m.value = 'time'; m.dispatchEvent(new Event('change', { bubbles: true })); });
+  const far = await look(0), front = await look(.25), mid = await look(.15), again = await look(.5);
+  need(share(far, yellow) > share(plain, yellow) * .85 && share(far, red) > .4, `by time, at the start the letters are far: behind both people (${(share(far, yellow) * 100).toFixed(0)}% yellow)`);
+  need(share(front, yellow) < share(plain, yellow) * .1 && share(front, red) > .9, `a quarter in, they are in front of everything (${(share(front, yellow) * 100).toFixed(0)}% yellow)`);
+  need(share(mid, yellow, 0, .5) > share(plain, yellow, 0, .5) * .6 && share(mid, yellow, .5, 1) < share(plain, yellow, .5, 1) * .2, `on the way they are between the two people: in front of the farther one only (left ${(share(mid, yellow, 0, .5) * 100).toFixed(0)}%, right ${(share(mid, yellow, .5, 1) * 100).toFixed(0)}% yellow)`);
+  need(share(again, yellow) > share(plain, yellow) * .85, 'and far again half-way (two trips)');
+  need(await page.evaluate(() => !document.getElementById('bt-depth-trips-row').hidden && document.getElementById('bt-status').textContent.includes('行き来')), 'the number of trips shows, and the status says what is happening');
+  if (shots) { await look(.15); await page.locator('#stage').screenshot({ path: `${shots}/depth-move.png` }); }
+  await page.evaluate(() => { const m = document.getElementById('bt-depth-move'); m.value = 'place'; m.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.evaluate(() => { const r = document.getElementById('bt-depth-place'); r.value = 73; r.dispatchEvent(new Event('input', { bubbles: true })); });
+  const place0 = await look(0), place1 = await look(.6);
+  need(share(place0, yellow, .5, 1) < share(plain, yellow, .5, 1) * .2 && share(place0, yellow, 0, .5) > share(plain, yellow, 0, .5) * .8, `by place, with the place on the right person: the letters pass in front of her and behind the left one (left ${(share(place0, yellow, 0, .5) * 100).toFixed(0)}%, right ${(share(place0, yellow, .5, 1) * 100).toFixed(0)}% yellow)`);
+  need(Math.abs(share(place0, yellow) - share(place1, yellow)) < .01, 'by place, it is the same at every moment');
+  await page.evaluate(() => { const r = document.getElementById('bt-depth-place'); r.value = 27; r.dispatchEvent(new Event('input', { bubbles: true })); });
+  const placeL = await look(0);
+  need(share(placeL, yellow, 0, .5) < share(plain, yellow, 0, .5) * .2 && share(placeL, yellow, .5, 1) > share(plain, yellow, .5, 1) * .8 && await page.evaluate(() => document.getElementById('bt-depth-place-value').textContent.includes('左寄り')), 'moved to the left person: now the letters pass in front of him and behind the right one');
+  await page.evaluate(() => unfold.setFrameStage({ enabled: true }));
+  need(await page.evaluate(() => document.getElementById('bt-status').textContent.includes('額縁')), 'in a frame the movement is not used, and the status says so');
+  await page.evaluate(() => unfold.setFrameStage({ enabled: false }));
+  await page.evaluate(() => unfold.setBackText({ mode: 'ring' }));
+  need(await page.evaluate(() => document.getElementById('bt-status').textContent.includes('ぐるっと囲む')), 'rings do not use it, and the status says so');
+  await look(.3);
+  await page.evaluate(() => unfold.setBackText({ mode: 'flow', depthMove: 'none' }));
+  need(share(await look(.25), yellow) > share(plain, yellow) * .8, 'off again: the letters stay behind the people');
   // while the picture breaks up, what was cut out stays where it is
   await page.evaluate(() => unfold.setBackText({ enabled: false }));
   const breaking = await look(.3);
