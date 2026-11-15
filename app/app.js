@@ -14,6 +14,7 @@ import { BACK_MODES, BACK_TRANS, BACK_FILLS, BACK_FONTS, BACK_WHEN, cleanBackTex
 import { createReliefShape, setReliefAmount, cleanReliefAmount, reliefSwing, reliefTilt } from './relief-shape.js?v=1';
 import { makeDepth, depthModelCached } from './depth-auto/depth-make.js?v=1';
 import { DEPTH } from './depth-auto/depth-model.js?v=1';
+import { cleanDepthCut, createDepthCutter } from './depth-cutout.js?v=1';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=3';
 import { createRenderControls } from './render-look-controls.js?v=3';
@@ -99,7 +100,7 @@ function setSource(canvas,name){
  if(mesh){mesh.geometry.dispose();mesh.material.dispose();scene.remove(mesh)}
  const uniforms={uImage:{value:texture},uSize:{value:new THREE.Vector2(w,h)},uDistort:{value:0},uForm:{value:0},uStrength:{value:.75},uDepth:{value:1},uSeed:{value:28},uMethod:{value:0},uMethod2:{value:0},uMethodMix:{value:0},uProject:{value:0},uTime:{value:0},uDraw:{value:1},uThrough:{value:0},uFade:{value:1},uGlass:{value:0},uShape:{value:0},uPreset:{value:0},uConceal:{value:0},uModelColor:{value:state.modelColor},uModelTex:{value:null}};
  mesh=new THREE.Mesh(geometryFor(w,h),(variants?.dispose(),variants=createVariants({renderer,vertexShader,fragmentShader,uniforms,onReady:()=>render()}),variants.base));mesh.frustumCulled=false;scene.add(mesh);
- frameStage?.setPicture(w,h);if(frameStage?.hasCutout){frameStage.setCutout(null);personX=null;syncFrameControls?.();syncBackText?.()}
+ frameStage?.setPicture(w,h);depthCutJob?.cancel();depthCutter=null;cutFromDepth=false;syncDepthCut?.();if(frameStage?.hasCutout){frameStage.setCutout(null);personX=null;syncFrameControls?.();syncBackText?.()}
  const thumb=document.createElement('canvas');thumb.width=140;thumb.height=Math.round(140/aspect);thumb.getContext('2d').drawImage(canvas,0,0,thumb.width,thumb.height);$('thumbnail').src=thumb.toDataURL();$('image-name').textContent=name;
  $('image-size').textContent=`${canvas.width} × ${canvas.height} · クリックして変更`;render();
 }
@@ -374,9 +375,43 @@ async function loadImage(file,{ask=false}={}){
  }catch{notice('画像を読み込めませんでした。別のPNG・JPG・WebPを試してね。')}finally{URL.revokeObjectURL(url);$('image-input').value=''}
 }
 // 額縁から飛び出す: settings, and the cut-out person (a transparent PNG cut from this picture), placed where it sits on the picture
-let syncBackText=null;
+let syncBackText=null,syncDepthCut=null,depthCutter=null,depthCutJob=null,cutFromDepth=false,depthCutFrame=0;
 function setBackText(patch){if(state.recording){syncBackText?.();return}state.backText=cleanBackText({...state.backText,...patch});saveBackText();syncBackText?.();prepareBackFont();render()}
 function setFrameStage(patch){state.frameStage=cleanFrameStage({...state.frameStage,...patch});frameStage?.setStyle(state.frameStage.style);saveFrameStage();syncFrameControls?.();render()}
+const loadDepthCut=()=>{try{return cleanDepthCut(JSON.parse(localStorage.getItem('unfold-single-depthcut')||'null'))}catch{return cleanDepthCut()}};
+const saveDepthCut=()=>{try{localStorage.setItem('unfold-single-depthcut',JSON.stringify(state.depthCut))}catch{}};
+state.depthCut=loadDepthCut();
+const DEPTH_CUT_IDLE='＋ 奥行きから切り抜きを作る';
+// the picture's depth: made once per picture in this browser and shared with the relief (reliefDepth); null = stopped or refused
+async function pictureDepth(say){
+ const picture=sourceCanvas;if(reliefDepth?.canvas===picture)return reliefDepth.field;
+ const cached=await depthModelCached(reliefHost||undefined);
+ if(!cached&&!confirm(`絵の手前・奥を、このブラウザの中で推定します（絵はどこにも送りません）。\n\n初めてなので、推定の仕組み（約 ${DEPTH.mb}MB）を Hugging Face から読み込みます。次からは、このブラウザに残ります。\n\n始めますか？`))return null;
+ if(picture!==sourceCanvas)return null;
+ say('絵の奥行きを作る準備をしています…');
+ const job=makeDepth(picture,{host:reliefHost,on:{load:(l,t)=>say(`推定の仕組みを読み込んでいます… ${(l/1e6).toFixed(0)} / ${(t/1e6).toFixed(0)} MB${cached?'':'（初めての時だけ）'}`),run:()=>say('絵の手前・奥を推定しています…')}});
+ depthCutJob=job;let field=null;
+ try{field=await job.done}catch(e){notice('奥行きを作れませんでした: '+(e.message||e))}finally{if(depthCutJob===job)depthCutJob=null}
+ if(!field||picture!==sourceCanvas)return null;
+ reliefDepth={canvas:picture,field};return field;
+}
+function applyDepthCut(){
+ if(!depthCutter||!frameStage)return;
+ const {canvas,share}=depthCutter.cut(state.depthCut);
+ frameStage.setCutout(canvas,sourceCanvas);personX=cutCentre(canvas);cutFromDepth=true;syncFrameControls?.();syncDepthCut?.();syncBackText?.();render();
+ $('frame-cutout-status').textContent=share<.01?'手前の物が見つかりませんでした。「手前に残す広さ」を上げてね。':share>.97?'ほとんど全部が手前になっています。「手前に残す広さ」を下げてね。':`奥行きから、手前の物の切り抜きを作りました（絵の ${Math.round(share*100)}%）。細い髪の毛などは甘くなります。`;
+}
+async function addDepthCut(){
+ if(state.recording||!sourceCanvas||!frameStage)return;
+ if(depthCutJob){depthCutJob.cancel();return}   /* pressed while it is running = stop */
+ const button=$('depth-cut-add'),say=t=>{$('frame-cutout-status').textContent=t},picture=sourceCanvas;
+ button.textContent='止める';let field=null;
+ try{field=await pictureDepth(say)}finally{button.textContent=DEPTH_CUT_IDLE}
+ if(!field){if(picture===sourceCanvas)say('奥行きから作るのをやめました。');return}
+ say('ふちを整えています…');await new Promise(r=>setTimeout(r,30));   /* let the message show before the heavy part */
+ if(picture!==sourceCanvas)return;
+ try{depthCutter=createDepthCutter(picture,field);applyDepthCut()}catch(e){depthCutter=null;say('切り抜きを作れませんでした。');notice('切り抜きを作れませんでした: '+(e.message||e))}
+}
 async function useCutout(source){
  let img=source;
  if(source instanceof Blob){if(!['image/png','image/webp'].includes(source.type))throw Error('透過PNG（またはWebP）の切り抜きを選んでね。');img=await createImageBitmap(source)}
@@ -384,7 +419,7 @@ async function useCutout(source){
  const d=px.getImageData(0,0,probe.width,probe.height).data;let clear=0;for(let i=3;i<d.length;i+=4)if(d[i]<40)clear++;
  if(clear<d.length/4*.03)throw Error('透明な所がない画像です。人物だけを切り抜いた透過PNGを選んでね。');
  const at=alignCutout(sourceCanvas,img),c=document.createElement('canvas');c.width=sourceCanvas.width;c.height=sourceCanvas.height;c.getContext('2d').drawImage(img,at.x,at.y,img.width/at.s,img.height/at.s);
- frameStage.setCutout(c,sourceCanvas);personX=cutCentre(c);
+ frameStage.setCutout(c,sourceCanvas);personX=cutCentre(c);cutFromDepth=false;syncDepthCut?.();
  const fits=at.err<30;syncFrameControls?.();syncBackText?.();render();
  $('frame-cutout-status').textContent=fits?(state.frameStage.enabled?'切り抜きを絵の人物の位置に合わせました。絵が崩れはじめると、人物が額縁から出てきます。':'切り抜きを絵の人物の位置に合わせました。人物はその場に残って、まわりの背景だけが崩れます。'):'絵と色が合いませんでした。この絵から切り抜いた物か確かめてね（いちばん近い位置で使っています）。';
  return at;
@@ -399,7 +434,11 @@ function wireControls(){
  $('frame-tilt').onchange=e=>setFrameStage({tilt:e.target.value});$('frame-tilt-dice').onclick=()=>setFrameStage({tilt:pickTilt(state.frameStage.tilt)});$('frame-tilt-amount').oninput=e=>setFrameStage({tiltAmount:Number(e.target.value)/100});$('frame-person-move').onchange=e=>setFrameStage({personMove:e.target.value});$('frame-solid-x').oninput=e=>setFrameStage({solidX:Number(e.target.value)/100});$('frame-solid-y').oninput=e=>setFrameStage({solidY:Number(e.target.value)/100});$('frame-solid-reset').onclick=()=>setFrameStage({solidX:0,solidY:0});$('frame-person-dice').onclick=()=>setFrameStage({personMove:pickPersonMove(state.frameStage.personMove)});
  $('frame-cutout-add').onclick=()=>$('frame-cutout-input').click();
  $('frame-cutout-input').onchange=async e=>{const file=e.target.files[0];e.target.value='';if(!file||state.recording)return;$('frame-cutout-status').textContent='切り抜きの位置を探しています…';try{await useCutout(file)}catch(err){$('frame-cutout-status').textContent=err.message||'切り抜きを読み込めませんでした。'}};
- $('frame-cutout-remove').onclick=()=>{frameStage.setCutout(null);personX=null;syncFrameControls();syncBackText?.();render()};
+ $('frame-cutout-remove').onclick=()=>{frameStage.setCutout(null);personX=null;cutFromDepth=false;syncDepthCut?.();$('frame-cutout-status').textContent='';syncFrameControls();syncBackText?.();render()};
+ /* 奥行きから切り抜きを作る (depth-cutout.js): no cut-out picture needed; what is nearer than the split is kept as the 'person' */
+ syncDepthCut=()=>{const d=state.depthCut,t=Math.round(d.tilt*100);$('depth-cut-body').hidden=!cutFromDepth;$('depth-cut-range').value=Math.round((1-d.at)*100);$('depth-cut-range-value').textContent=Math.round((1-d.at)*100)+'%';$('depth-cut-tilt').value=t;$('depth-cut-tilt-value').textContent=t===0?'まっすぐ':(t>0?'右を奥あつかい ':'左を奥あつかい ')+Math.abs(t)+'%';$('depth-cut-fine').checked=d.fine};
+ const setDepthCut=patch=>{if(state.recording){syncDepthCut();return}state.depthCut=cleanDepthCut({...state.depthCut,...patch});saveDepthCut();syncDepthCut();if(cutFromDepth&&depthCutter&&!depthCutFrame)depthCutFrame=requestAnimationFrame(()=>{depthCutFrame=0;applyDepthCut()})};
+ $('depth-cut-add').onclick=addDepthCut;$('depth-cut-range').oninput=e=>setDepthCut({at:1-Number(e.target.value)/100});$('depth-cut-tilt').oninput=e=>setDepthCut({tilt:Number(e.target.value)/100});$('depth-cut-fine').onchange=e=>setDepthCut({fine:e.target.checked});syncDepthCut();
  $('person-plate').onchange=e=>{state.personPlate=e.target.checked;render()};
  for(const [id,label] of BACKDROPS)$('stage-backdrop').append(new Option(label,id));for(const [id,label] of VERTIGOS)$('stage-vertigo').append(new Option(label,id));
  const syncStage=()=>{const g=state.stage;$('stage-on').checked=g.enabled;$('stage-body').hidden=!g.enabled;$('stage-backdrop').value=g.backdrop;$('stage-blur').value=Math.round(g.blur*100);$('stage-blur-value').textContent=Math.round(g.blur*100)+'%';$('stage-floor').checked=g.floor;$('stage-vertigo').value=g.vertigo;$('stage-vertigo-amount').value=Math.round(g.vertigoAmount*100);$('stage-vertigo-amount-value').textContent=Math.round(g.vertigoAmount*100)+'%';$('stage-vertigo-row').hidden=g.vertigo==='none'};
@@ -415,7 +454,7 @@ function wireControls(){
   $('bt-giant-rows').hidden=s.mode!=='giant';$('bt-flow-rows').hidden=s.mode==='giant';$('bt-ring-rows').hidden=s.mode!=='ring';$('bt-color-row').hidden=s.fill==='rust'||s.fill==='metal';$('bt-ring-front').checked=s.ringFront;
   range('bt-rings',s.rings,s.rings+'本');range('bt-ring-size',s.ringSize*100,pct(s.ringSize));range('bt-ring-tilt',s.ringTilt*100,s.ringTilt?pct(s.ringTilt):'OFF');
   range('bt-hold',s.hold*10,s.hold.toFixed(1)+'秒');range('bt-speed',s.speed*100,pct(s.speed));range('bt-size',s.size*100,pct(s.size));range('bt-stretch',s.stretch*100,s.stretch?pct(s.stretch):'OFF');range('bt-y',s.y*100,Math.round(s.y*100)+'%');range('bt-depth',s.depth*100,s.depth?pct(s.depth):'OFF');range('bt-back-alpha',s.backAlpha*100,s.backAlpha?pct(s.backAlpha):'OFF');
-  $('bt-status').textContent=!s.enabled?'':!backWords(s.text).length?'文字を入れると出ます。':frameStage?.hasCutout?(s.mode==='ring'&&s.ringFront?'輪の向こう側は人物の後ろ、手前側は人物の前を通っています。':'文字は、絵と切り抜いた人物の間に出ています。'):'いまは絵の上に出ています。上の「人物（切り抜き）」に切り抜きを入れると、人物の後ろを通ります。'};
+  $('bt-status').textContent=!s.enabled?'':!backWords(s.text).length?'文字を入れると出ます。':frameStage?.hasCutout?(s.mode==='ring'&&s.ringFront?'輪の向こう側は人物の後ろ、手前側は人物の前を通っています。':'文字は、絵と切り抜いた人物の間に出ています。'):'いまは絵の上に出ています。上の「人物（切り抜き）」で切り抜きを入れるか、「奥行きから切り抜きを作る」を押すと、人物の後ろを通ります。'};
  $('bt-on').onchange=e=>setBackText({enabled:e.target.checked});$('bt-still').onchange=e=>setBackText({still:e.target.checked});$('bt-ring-front').onchange=e=>setBackText({ringFront:e.target.checked});$('bt-text').oninput=e=>setBackText({text:e.target.value});
  for(const [id,key] of [['bt-mode','mode'],['bt-trans','trans'],['bt-font','font'],['bt-fill','fill'],['bt-when','when'],['bt-dir','dir']])$(id).onchange=e=>setBackText({[key]:e.target.value});
  for(const [id,key] of [['bt-color','color'],['bt-back','back'],['bt-accent','accent']])$(id).oninput=e=>setBackText({[key]:e.target.value});
@@ -623,5 +662,5 @@ try{
  frameStage=createFrameStage(THREE);frameStage.setStyle(state.frameStage.style);scene.add(frameStage.back);solidStage=createSolidStage(THREE);scene.add(solidStage.group);outline=createOutline(THREE);scene.add(outline.object);backLayer=createBackLayer();prepareBackFont();
  setSource(makeSample(),'カラーテスト・サンプル');wireControls();loadSavedModels();detectFormats();updateRange();resize();requestAnimationFrame(tick);
  attachWorkshopLink({notify:notice,apply:(item,target,activate)=>{if(state.recording)throw Error('書き出しが終わってから適用してください。');if(item.kind==='text')throw Error('文字モーションはシーケンスの歌詞に使えます。');const method=activate();if(method.code&&item.workshop?.shape==='none')state.imageSolid=false;setChoice('methods','method',method.id);}});
- window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage,setBackText,setReliefHost:v=>{reliefHost=v||null},setReliefDepth:field=>{reliefDepth=field?{canvas:sourceCanvas,field}:null},reliefInfo:()=>({shape:customShapes.has(RELIEF_ID),depth:!!reliefDepth,amount:customShapes.get(RELIEF_ID)?.data.relief?.amount??null,running:!!reliefJob})};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
+ window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage,setBackText,addDepthCut,depthCutInfo:()=>({fromDepth:cutFromDepth,has:!!frameStage?.hasCutout,settings:{...state.depthCut},running:!!depthCutJob}),setReliefHost:v=>{reliefHost=v||null},setReliefDepth:field=>{reliefDepth=field?{canvas:sourceCanvas,field}:null},reliefInfo:()=>({shape:customShapes.has(RELIEF_ID),depth:!!reliefDepth,amount:customShapes.get(RELIEF_ID)?.data.relief?.amount??null,running:!!reliefJob})};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
 }catch(e){console.error(e);$('stage-error').hidden=false;$('stage-error').textContent='3D表示を開始できませんでした。WebGL対応のChromeまたはSafariで開いてね。（原因: '+String(e?.message||e).slice(0,160)+'）';$('export').disabled=$('export-top').disabled=true}
