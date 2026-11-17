@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=24';
+import {drawSequenceVisual} from './sequence-renderer.js?v=26';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift,SOLID_PTS} from './sequence-core.js?v=3';
 import {unstretchSolid} from './solid-length.js?v=2';
 import {attachWorkshopLink} from './workshop-link.js';
@@ -18,9 +18,9 @@ import {audioBlock} from './lyric-audio-range.js?v=2';
 import { cleanShot, rotationAt, blendCameraMove } from './shot-motion.js?v=29';
 import { createShotControls } from './shot-motion-controls.js?v=8';
 import { cleanRenderLook, applyRenderLook, syncPerspective } from './render-look.js?v=3';
-import { GALLERY_STYLES, cleanGallery, createGallery, galleryGap } from './gallery-walk.js?v=3';
+import { GALLERY_STYLES, GALLERY_MOVES, cleanGallery, createGallery, galleryGap, galleryMoveFor } from './gallery-walk.js?v=5';
 import { cleanToon, createOutline } from './toon-look.js?v=1';
-import { orbitCamera, cleanPlate } from './frame-stage.js?v=8';
+import { orbitCamera, cleanPlate } from './frame-stage.js?v=9';
 import { createDiveStage } from './dive-stage.js?v=1';
 import { alignCutout } from './cutout-align.js?v=1';
 import { createRenderControls } from './render-look-controls.js?v=3';
@@ -331,7 +331,7 @@ function setMaterialTextures(a, b) {
 }
 export function renderAt(sec) {
  imageInputs=[];
- const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt,gallery,galleryCamera,diveStage,slideCut,slidePlate,outline},sec);
+ const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt,gallery,galleryCamera,diveStage,slideCut,slidePlate,outline,shapeName},sec);
  drawLyrics(sec);if(!seq.recording)updateTransport(sec,L||{i:-1,tr:-1,u:0});
 }
 const FX_KEYS = ['blur', 'bloom', 'neon', 'glass', 'chroma', 'glitch', 'scan', 'grain', 'vignette', 'bokeh'];
@@ -402,7 +402,7 @@ function syncToonControls() {
 }
 function syncGalleryControls() {
   const g = seq.gallery; if (!$('seq-gallery')) return;
-  $('seq-gallery').checked = g.enabled; $('seq-gallery-style').value = g.style;
+  $('seq-gallery').checked = g.enabled; $('seq-gallery-style').value = g.style; $('seq-gallery-move').value = g.move;
   for (const [id, k] of [['seq-gallery-size', 'size'], ['seq-gallery-pop', 'pop'], ['seq-gallery-lead', 'lead']]) $(id).value = Math.round(g[k] * 100);
   for (const row of document.querySelectorAll('[data-gallery-row]')) row.hidden = !g.enabled;
 }
@@ -411,6 +411,10 @@ function updateTransport(sec, L) {
   $('seq-time').textContent = `${sec.toFixed(2)} / ${total.toFixed(2)} s`;
   $('seq-scrub').value = total ? Math.round(sec / total * 1000) : 0;
   $('seq-phase').textContent = L.tr >= 0 ? `${L.i + 1} → ${L.i + 2}　${methodLabel(seq.transitions[L.tr].method)} / ${shapeLabel(seq.transitions[L.tr])}` : `${L.i + 1} / ${seq.slides.length}`;
+  if (L.tr >= 0 && seq.gallery.enabled) {   // 美術館を歩く: which way the solid crosses (立体に合わせる shows what it picked)
+    const mv = galleryMoveFor(seq.gallery.move, seq.transitions[L.tr].shape, shapeName(seq.transitions[L.tr].shape));
+    if (mv !== 'walk' && seq.transitions[L.tr].shape !== 'none') $('seq-phase').append(`　${GALLERY_MOVES.find(([id]) => id === mv)[1].split('（')[0]}`);
+  }
   const ph = phaseOf(L);
   if (ph) $('seq-phase').append(Object.assign(document.createElement('span'), { className: 'phase-chip ' + ph, textContent: imageTransition(seq.transitions[L.tr])&&seq.transitions[L.tr].shape==='none'?'コード演出':PHASE_LABELS[ph] }));
   lookPhase = ph; lookTr = L.tr;
@@ -468,6 +472,8 @@ function renderLookTransition(force = false) {
   box.append(title, note);
   inspectTransition(box, title, j, tr);
 }
+// the name a shape goes by (美術館を歩く「立体に合わせる」 reads it: the shelf GLBs keep their Japanese names)
+const shapeName = id => savedModels.get(id)?.name || colourShape(id)?.name || BUILTIN[id] || PRESET_LABELS[id] || '';
 function shapeLabel(tr) {
   if (tr.shape === 'none') return { through: '立体化なし・通り抜け', reveal: '立体化なし・吹き飛んで次が現れる', return: '立体化なし・行って戻る', dive: '絵の中へ飛び込む' }[tr.flow ?? 'through'];
   return tr.shape === 'text' ? `文字「${tr.text}」` : savedModels.get(tr.shape)?.name || colourShape(tr.shape)?.name || BUILTIN[tr.shape] || PRESET_LABELS[tr.shape] || tr.shape;
@@ -1659,6 +1665,7 @@ function wire() {
   $('seq-with-audio').onchange=e=>{seq.withAudio=e.target.checked;scheduleSave()};
   // 美術館を歩く
   for (const [id, label] of GALLERY_STYLES) $('seq-gallery-style').append(new Option(label, id));
+  for (const [id, label] of GALLERY_MOVES) $('seq-gallery-move').append(new Option(label, id));
   const setGallery = patch => { if (seq.recording) { syncGalleryControls(); return; } seq.gallery = cleanGallery({ ...seq.gallery, ...patch }); syncGalleryControls(); renderAt(seq.t); scheduleSave(); };
   $('seq-gallery').onchange = e => setGallery({ enabled: e.target.checked });
   // アニメ調の立体
@@ -1667,6 +1674,7 @@ function wire() {
   $('seq-toon-shade').oninput = e => setToon({ shade: Number(e.target.value) / 100 }); $('seq-toon-line').oninput = e => setToon({ line: Number(e.target.value) / 100 }); $('seq-toon-colour').oninput = e => setToon({ colour: e.target.value });
   syncToonControls();
   $('seq-gallery-style').onchange = e => setGallery({ style: e.target.value });
+  $('seq-gallery-move').onchange = e => setGallery({ move: e.target.value });
   for (const [id, k] of [['seq-gallery-size', 'size'], ['seq-gallery-pop', 'pop'], ['seq-gallery-lead', 'lead']]) $(id).oninput = e => setGallery({ [k]: Number(e.target.value) / 100 });
   syncGalleryControls();
   $('seq-offset').onchange = e => edit(()=>{seq.offset=Number(e.target.value);});
@@ -1918,7 +1926,7 @@ try {
       const method=activate();edit(()=>{tr.method=method.id;if(method.code&&item.workshop?.shape==='none')tr.shape='none';normalizeImageTransition(tr)});showTab('edit');
     }
   }});
-  window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile, setSlideCut, slideCut, projectSettings: () => stateForSave().settings, galleryState: () => ({ x: camera.position.x, gap: galleryGap(planeW), planes: gallery.opacities() }) };
+  window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile, setSlideCut, slideCut, projectSettings: () => stateForSave().settings, galleryState: () => ({ x: camera.position.x, y: camera.position.y, zoom: camera.zoom, gap: galleryGap(planeW), planes: gallery.opacities(), wind: gallery.windLines(), solid: [mesh.position.x, mesh.position.y, mesh.scale.x, mesh.scale.y] }) };
   window.unfoldMethods = { registerCustom, unregisterCustom, setCustomStatus, listCustom, variants, editor: methodEditor, persistence: methodPersistence, safety, enabler: methodEnabler, transfer: { importFile: importMethodFile, importText: importMethodText, download: downloadMethodFile } };
 } catch (e) {
   console.error(e);

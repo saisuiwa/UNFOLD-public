@@ -147,6 +147,37 @@ try {
   need(diff(bare.a, await look(.02)) < .002 && diff(bare.z, await look(.98)) < .002, 'at the two ends there are no letters');
   need(diff(bare.m, await look(.3)) > .05, 'and in between there are');
 
+  // ---- 2026-11-17: six more motions. Each moves, ends where it began (ずっと), and stays behind the person
+  await set({ when: 'always', fill: 'solid', depth: 0, color: '#00ff00', accent: '#0000ff', back: '#000000', backAlpha: 0, size: 1, y: 0, speed: .2, hold: 1, depthMove: 'none', still: false });
+  need(await page.evaluate(() => document.getElementById('bt-mode').options.length === 10), 'ten ways of showing the letters');
+  for (const mode of ['vflow', 'tape', 'fly', 'wave', 'drop', 'gather']) {
+    await page.evaluate(m => { const el = document.getElementById('bt-mode'); el.value = m; el.dispatchEvent(new Event('change')); }, mode);
+    await set({});
+    const rows = await page.evaluate(() => ['bt-giant-rows', 'bt-hold-row', 'bt-flow-rows', 'bt-ring-rows'].map(id => !document.getElementById(id).hidden));
+    const wordMode = ['fly', 'drop', 'gather'].includes(mode);
+    need(rows[0] === false && rows[1] === wordMode && rows[2] === !wordMode && rows[3] === false, `${mode}: its own settings show (${rows})`);
+    const frames = await Promise.all([.02, .1, .2, .3, .45, .6, .75, .9].map(t => look(t)));
+    let letters = 0; for (const img of frames) for (let i = 0; i < img.d.length; i += 4) if (img.d[i + 1] > 180 && img.d[i] < 90 && img.d[i + 2] < 90) letters++;
+    need(letters > 300, `${mode}: letters are drawn (${letters} letter pixels over ${frames.length} moments)`);
+    need(diff(frames[2], await look(.215)) > .002, `${mode}: they move`);
+    need(diff(await look(0), await look(1)) < .002, `${mode}: the last frame is the first frame`);
+    need(frames.every(img => near(at(img, .5, .55), RED)), `${mode}: the person stays in front`);
+    if (mode === 'vflow') need(await page.evaluate(() => document.getElementById('bt-dir').options[0].textContent === '上へ'), 'vflow: the direction reads 上へ / 下へ');
+    if (mode === 'tape') { const img = await look(.3); let band = 0; for (let i = 0; i < img.d.length; i += 4) if (img.d[i + 2] > 180 && img.d[i] < 90 && img.d[i + 1] < 90) band++; need(band > 1500, `tape: the band is in the accent colour (${band} blue pixels)`); }
+    if (shots) { await look(.3); await page.locator('#stage').screenshot({ path: `${shots}/backtext-${mode}.png` }); }
+  }
+  // the new surfaces and the colour sets
+  await set({ mode: 'flow', fill: 'solid', color: '#f3ead7', accent: '#ff6a2b', back: '#000000' });
+  const plainFlow = await look(.3);
+  for (const fill of ['gradient', 'neon', 'rainbow', 'gold', 'colorful']) { await set({ fill }); need(diff(plainFlow, await look(.3)) > .004, `${fill}: a different surface is drawn`); if (fill === 'gold') need(await page.evaluate(() => document.getElementById('bt-color-row').hidden), 'gold has its own colours (no colour picker)'); }
+  await set({ fill: 'solid' });
+  need(await page.evaluate(() => document.getElementById('bt-palette').value === 'cream' && document.getElementById('bt-palette').options.length === 10), 'the first colours are shown as a colour set (9 sets and your own)');
+  await page.evaluate(() => { const el = document.getElementById('bt-palette'); el.value = 'neon'; el.dispatchEvent(new Event('change')); });
+  need(await page.evaluate(() => { const s = unfold.state.backText; return s.color === '#ff3fd5' && s.back === '#0a0f2e' && s.accent === '#2ef2ff' && document.getElementById('bt-color').value === '#ff3fd5'; }), 'choosing ネオン sets the letters, the ground and the accent at once');
+  await page.evaluate(() => { const el = document.getElementById('bt-color'); el.value = '#123456'; el.dispatchEvent(new Event('input')); });
+  need(await page.evaluate(() => document.getElementById('bt-palette').value === ''), 'changing one colour by hand shows 自分で選んだ色');
+  await set({ mode: 'giant', fill: 'solid', color: '#00ff00', accent: '#0000ff', back: '#000000', when: 'change', hold: 1 });
+
   // ---- kept on this browser; off = nothing drawn
   await open(); await loadPicture();
   need(await page.evaluate(() => unfold.state.backText.enabled && unfold.state.backText.when === 'change' && document.getElementById('bt-on').checked && document.getElementById('bt-text').value === 'AB\nCD' && !document.getElementById('bt-body').hidden), 'after opening the page again the settings are still there');

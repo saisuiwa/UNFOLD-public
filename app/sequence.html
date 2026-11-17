@@ -301,6 +301,7 @@
     <div class="row" data-phase="form"><label><span class="phase-dot form"></span>シルエット感度</label><input id="seq-sil" type="range" min="0" max="100" value="50" title="背景が残るときは下げて、欠けるときは上げる"></div>
     <div class="row"><label title="壁に額縁を並べて、絵が立体になって次の額縁へ渡っていきます。カメラは壁の横を歩きます">美術館を歩く（額縁から額縁へ）</label><input id="seq-gallery" type="checkbox"></div>
     <div class="row" data-gallery-row hidden><label>額縁の種類</label><select id="seq-gallery-style"></select></div>
+    <div class="row" data-gallery-row hidden><label title="立体が次の額縁へ移る時の動き。立体に合わせる：ハート→ドクンドクン（曲の拍で）、風船・クラゲ→ふわふわ、紙飛行機・鳥・ロケット→ビューン、ウサギ・猫→ぴょんぴょん、魚・クジラ→すいすい、ほかの形→ふつう">移る時の動き</label><select id="seq-gallery-move"></select></div>
     <div class="row" data-gallery-row hidden><label>額縁の大きさ</label><input id="seq-gallery-size" type="range" min="50" max="95" value="80"></div>
     <div class="row" data-gallery-row hidden><label>立体が飛び出す大きさ</label><input id="seq-gallery-pop" type="range" min="0" max="100" value="15"></div>
     <div class="row" data-gallery-row hidden><label>歩く時にカメラが先を向く</label><input id="seq-gallery-lead" type="range" min="0" max="100" value="50"></div>
@@ -351,7 +352,7 @@
 <section id="seq-timeline" class="timeline" aria-label="タイムライン"></section>
 </main>
 <div id="seq-notice"></div>
-<script type="module" src="./sequence.js?v=140"></script>
+<script type="module" src="./sequence.js?v=142"></script>
 <script type="module" src="./panel-resize.js?v=1"></script>
 </body>
 </html>

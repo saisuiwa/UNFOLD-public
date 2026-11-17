@@ -149,6 +149,36 @@ try {
   const noCopy = await look(.3);
   need(redAt(withCopy).n > redAt(noCopy).n, `崩れる時は、人物のいない背景で崩す: fewer red pieces behind her (${redAt(noCopy).n} vs ${redAt(withCopy).n} without it)`);
   need(diff(await look(.995), offFlat) < .01, 'the last frame is the real picture again');
+
+  // ---- 2026-11-17: the new frames, the frame colour and the decorations
+  await page.click('#frame-cutout-remove');
+  await page.evaluate(() => unfold.setFrameStage({ enabled: true, style: 'gold', color: '', deco: 'none', tilt: 'none' }));
+  const goldFlat = await look(.02);
+  need(await page.evaluate(() => document.getElementById('frame-style').options.length === 9 && document.getElementById('frame-deco').options.length === 5), 'the menus offer 9 frames and 5 decorations');
+  for (const style of ['baroque', 'neon', 'bulbs', 'polaroid', 'film']) {
+    await page.evaluate(s => { const el = document.getElementById('frame-style'); el.value = s; el.dispatchEvent(new Event('change')); }, style);
+    const img = await look(.02);
+    need(await page.evaluate(s => unfold.state.frameStage.style === s, style) && diff(img, goldFlat) > .02, `${style}: a different frame is drawn (${(diff(img, goldFlat) * 100).toFixed(1)}% differ from the gold one)`);
+    if (style === 'bulbs') { const a = await look(.0), b = await look(.0185); need(diff(a, b) > .002, `bulbs: the lights move on (${(diff(a, b) * 100).toFixed(2)}% differ a moment later)`); need(diff(a, await look(1)) < .003, 'bulbs: the clip ends with the lights as it began'); }
+    if (shots) await page.locator('#stage').screenshot({ path: `${shots}/frame-${style}.png` });
+  }
+  await page.evaluate(() => unfold.setFrameStage({ style: 'gold' }));
+  need(await page.evaluate(() => document.getElementById('frame-color').value === '#c79a3c' && document.getElementById('frame-color-reset').hidden), 'the colour picker shows the gold frame’s own colour');
+  await page.evaluate(() => { const el = document.getElementById('frame-color'); el.value = '#3060d0'; el.dispatchEvent(new Event('input')); });
+  const blue = await look(.02);
+  need(await page.evaluate(() => unfold.state.frameStage.color === '#3060d0' && !document.getElementById('frame-color-reset').hidden) && gold(blue) < gold(goldFlat) * .3, `a colour of your own repaints the frame (${gold(goldFlat)} → ${gold(blue)} gold pixels)`);
+  await page.click('#frame-color-reset');
+  need(await page.evaluate(() => unfold.state.frameStage.color === '') && diff(await look(.02), goldFlat) < .003, 'and 元の色に戻す brings the gold back');
+  for (const deco of ['flowers', 'tape', 'sparkle', 'petals']) {
+    await page.evaluate(d => { const el = document.getElementById('frame-deco'); el.value = d; el.dispatchEvent(new Event('change')); }, deco);
+    const img = await look(.02);
+    need(diff(img, goldFlat) > (deco === 'sparkle' ? .001 : .003), `${deco}: the decoration is drawn over the frame (${(diff(img, goldFlat) * 100).toFixed(2)}% differ)`);
+    if (deco === 'sparkle' || deco === 'petals') { need(diff(img, await look(.05)) > .001, `${deco}: it moves`); need(diff(await look(0), await look(1)) < .003, `${deco}: the last frame is the first frame`); }
+    if (shots) await page.locator('#stage').screenshot({ path: `${shots}/frame-deco-${deco}.png` });
+  }
+  await page.evaluate(() => unfold.setFrameStage({ enabled: false }));
+  need(diff(await look(.02), offFlat) < .01, 'frame off: no decoration either');
+  await page.evaluate(() => unfold.setFrameStage({ deco: 'none', style: 'gold' }));
   need(!problems.length, `no page errors ${problems.join(' | ')}`);
   await page.evaluate(() => localStorage.removeItem('unfold-single-frame'));
 } finally {

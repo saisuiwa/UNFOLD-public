@@ -61,6 +61,35 @@ try {
     await page.evaluate(async () => { unfoldSeq.seq.transitions[0].method = 'crumple'; await unfoldSeq.prepareShapes(); });
   }
 
+  // 移る時の動き: ふつう (as before) by default; 立体に合わせる picks from the shape; each move changes how the solid crosses
+  need(await page.evaluate(() => document.getElementById('seq-gallery-move').options.length === 7 && unfoldSeq.seq.gallery.move === 'walk'), 'the 移る時の動き menu: 7 choices, ふつう by default');
+  const walkMid = await look(at(.3)), walkState = await cam(at(.3)), shape0 = await page.evaluate(() => unfoldSeq.seq.transitions[0].shape);
+  await page.evaluate(async () => { unfoldSeq.seq.transitions[0].shape = 'heart'; await unfoldSeq.prepareShapes(); });
+  const heartWalk = await look(at(.3));
+  await page.selectOption('#seq-gallery-move', 'auto');
+  const phase = await page.evaluate(t => { unfoldSeq.renderAt(t); return document.getElementById('seq-phase').textContent; }, at(.3));
+  const beatAt = async t => (await cam(t)).solid;
+  // the first ◆: where it starts, its beats (8 by default: one thump pair per beat) and the length of a beat
+  const tl = await page.evaluate(() => { const s = unfoldSeq.seq, B = 60 / s.bpm; return { start: (s.slides[0].hold ?? s.holdBeats) * B, beats: s.transitions[0].beats, B }; });
+  const onBeat = b => tl.start + b * tl.B, step = tl.beats >= 8 ? 1 : .5, mid = tl.beats / 2;
+  const thumpS = (await beatAt(onBeat(mid + .04 * step)))[2], restS = (await beatAt(onBeat(mid + .6 * step)))[2];
+  need(thumpS > restS * 1.12, `ハート + 立体に合わせる = ドクンドクン: a thump just after the beat (${(thumpS / restS).toFixed(2)}× the size between thumps)`);
+  need(/ドクンドクン/.test(phase), `the phase line says which move it picked (${phase.trim()})`);
+  need(diff(await look(at(.3)), heartWalk) > .01, 'it crosses differently from ふつう');
+  await page.selectOption('#seq-gallery-move', 'zoom');
+  let wind = 0, lag = 0; for (const f of [.29, .3, .31, .32]) { const g = await cam(at(f)); wind = Math.max(wind, g.wind); lag = Math.max(lag, g.solid[0] - g.x); }
+  need(wind >= 4 && lag > .2, `ビューン: wind lines while it dashes (${wind}), the camera a little behind (${lag.toFixed(2)})`);
+  await page.selectOption('#seq-gallery-move', 'float');
+  const fl = await cam(at(.3));
+  need(fl.solid[1] > 1 && fl.y > .5, `ふわふわ: up high, the camera rising with it (solid y ${fl.solid[1].toFixed(2)}, camera y ${fl.y.toFixed(2)})`);
+  for (const mv of ['hop', 'swim', 'beat', 'zoom', 'float']) { await page.selectOption('#seq-gallery-move', mv); const e = await cam(onBeat(tl.beats - .01)), s0 = await cam(onBeat(.01));
+    need(Math.abs(e.x - walkState.gap) < .2 && Math.abs(s0.x) < .2 && e.wind === 0 && Math.abs(e.y) < .2, `${mv}: leaves frame 1 and arrives at frame 2 as before (camera ${s0.x.toFixed(2)} → ${e.x.toFixed(2)}, frames ${walkState.gap.toFixed(2)} apart)`); }
+  need((await page.evaluate(() => unfoldSeq.projectSettings().gallery.move)) === 'float', 'the move is saved with the project');
+  await page.selectOption('#seq-gallery-move', 'walk');
+  await page.evaluate(async s => { unfoldSeq.seq.transitions[0].shape = s; await unfoldSeq.prepareShapes(); }, shape0);
+  const back = await look(at(.3));
+  need(diff(back, walkMid) < .01, `ふつう again draws what it drew before (${(diff(back, walkMid) * 100).toFixed(2)}% differ)`);
+
   await page.click('#seq-gallery');
   need(diff(await look(at(.02)), offHold) < .01 && diff(await look(at(.28)), offMid) < .01 && diff(await look(at(.99)), offEnd) < .01, 'turning it off draws exactly what was drawn before');
   need(!problems.length, `no page errors ${problems.join(' | ')}`);

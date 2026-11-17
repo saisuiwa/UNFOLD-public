@@ -2,6 +2,7 @@
 // 描く順は「背景 → この文字 → 人物」。人物はいつも最後に描くので、文字が人物の前に出ることはない。
 //   超デカ: 1語ずつ画面いっぱいに出て、語と語の間を「切り替わり方」でつなぐ（KOMAGUMI の TRANS と同じ考え方を、透明な地でも崩れないように書き直した物）
 //   横に流れる: 1段の文字が横へ流れ続ける　　壁いっぱい: 何段も、1段おきに逆向きに流れる
+//   縦に流れる・斜めのテープ・奥から迫ってくる・波打つ・落ちて積もる・散らばって集まる（2026-11-17）: 1字ずつの絵（模様・厚みつき）を作っておいて、動かして貼る
 //   ぐるっと囲む: 文字が輪になって、人物のまわりを回る。輪の向こう側は人物の後ろ。「輪の手前側も出す」の時だけ、手前側を人物の前に描く（app.js が、人物のあとにもう1枚描く）
 // 時刻（秒）だけで絵が決まる（乱数を持たない）ので、動画の書き出しでも同じ絵になる。「ずっと」の時は、最後のコマが最初のコマにつながる。
 // 上半分（設定・時間割）は DOM なしで動く。下半分（createBackText）は Canvas 2D で描く。
@@ -10,7 +11,14 @@ const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const ease = p => (p < .5 ? 8 * p ** 4 : 1 - ((-2 * p + 2) ** 4) / 2);   // easeInOutQuart
 const hash01 = (a, b = 0) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
 
-export const BACK_MODES = { giant: '超デカ（1語ずつ切り替わる）', flow: '横に流れる', wall: '壁いっぱいに流れる', ring: 'ぐるっと囲む（輪になって回る）' };
+export const BACK_MODES = {
+  giant: '超デカ（1語ずつ切り替わる）', flow: '横に流れる', wall: '壁いっぱいに流れる', ring: 'ぐるっと囲む（輪になって回る）',
+  vflow: '縦に流れる（縦書き）', tape: '斜めのテープ（KEEP OUT のような帯）', fly: '奥から迫ってくる', wave: '波打つ（1文字ずつ揺れる）',
+  drop: '落ちて積もる（1文字ずつ）', gather: '散らばって集まる',
+};
+/** 1語ずつ出す動き（「1語の長さ」を使う）と、流れ続ける動き（「流れる速さ」「流れる向き」を使う） */
+export const BACK_WORD_MODES = ['giant', 'drop', 'gather', 'fly'];
+export const BACK_FLOW_MODES = ['flow', 'wall', 'ring', 'vflow', 'tape', 'wave'];
 export const BACK_TRANS = {
   random: 'おまかせ（毎回かわる）', push: '押し出し', wipe: '拭き取り', blinds: 'ブラインド', iris: '丸が広がる', blur: 'ぼけて入れ替わる',
   zoom: '字が迫って入れ替わる', glitch: '乱れて切り替わる', tiles: '升目で替わる', flip: '回って切り替わる', brush: '筆で塗り替える',
@@ -18,7 +26,27 @@ export const BACK_TRANS = {
 };
 /** おまかせで回す順（同じ物が続かない。数は 5 と互いに素にしておく: 下の式で全部を一巡する） */
 export const BACK_RANDOM = ['push', 'blinds', 'zoom', 'wipe', 'glitch', 'iris', 'flip', 'tiles', 'brush', 'cover', 'blur'];
-export const BACK_FILLS = { solid: '単色', dry: 'かすれた筆', rust: 'さびた鉄', metal: '金属', outline: '縁だけ' };
+export const BACK_FILLS = {
+  solid: '単色', gradient: 'グラデーション（字の色 → 差し色）', neon: 'ネオン（光る）', rainbow: '虹', gold: '金', colorful: '1語ごとに色が変わる',
+  dry: 'かすれた筆', rust: 'さびた鉄', metal: '金属', outline: '縁だけ',
+};
+/** 字の色・地の色・差し色を一度に変える組み合わせ（初めの色は cream） */
+export const BACK_PALETTES = {
+  cream: { label: 'クリーム×黒（初めの色）', color: '#f3ead7', back: '#000000', accent: '#ff6a2b' },
+  mono: { label: '白×黒', color: '#ffffff', back: '#000000', accent: '#ff2d55' },
+  ink: { label: '黒×生成り', color: '#141414', back: '#f2eee4', accent: '#d7261e' },
+  warning: { label: '警告（黄×黒）', color: '#ffd400', back: '#111111', accent: '#ffd400' },
+  red: { label: '赤×黒', color: '#ff2a2a', back: '#0a0a0a', accent: '#ffffff' },
+  neon: { label: 'ネオン（ピンク×水色）', color: '#ff3fd5', back: '#0a0f2e', accent: '#2ef2ff' },
+  pastel: { label: 'パステル', color: '#ffc6e0', back: '#6c7fd8', accent: '#fff2a6' },
+  retro: { label: 'レトロ（クリーム×えんじ）', color: '#f5e3c0', back: '#7a1f2b', accent: '#e9a03b' },
+  wa: { label: '和（藍×生成り）', color: '#f3ead7', back: '#1d3557', accent: '#c1272d' },
+};
+/** 今の色が、どの配色セットと同じか（どれとも違えば ''） */
+export function backPaletteOf(s) {
+  for (const [id, p] of Object.entries(BACK_PALETTES)) if (s && p.color === s.color && p.back === s.back && p.accent === s.accent) return id;
+  return '';
+}
 export const BACK_FONTS = {
   impact: { label: '極太・縦長（英字向き）', family: '"Anton","Noto Sans JP","Hiragino Sans",sans-serif', weight: 400 },
   gothic: { label: 'ゴシック極太', family: '"Noto Sans JP","Hiragino Sans",sans-serif', weight: 900 },
@@ -71,7 +99,7 @@ export function backWindow(when, duration) { return when === 'change' ? [duratio
 
 /**
  * 超デカの時間割: sec の時に、どの語が出ていて、前のどの語から、どこまで切り替わったか。
- *   返す: null（何も出ない）か {k: 何コマめ, i: 今の語（-1 = 消えていく所）, prev: 前の語（-1 = 何も無い所から出てくる）, p: 切り替わりの進み 0..1, count, len, T}
+ *   返す: null（何も出ない）か {k: 何コマめ, i: 今の語（-1 = 消えていく所）, prev: 前の語（-1 = 何も無い所から出てくる）, p: 切り替わりの進み 0..1, u: その語の時間の進み 0..1, count, len, T}
  * 1語の長さは、出ている時間をちょうど割り切るように少し直す。「ずっと」の時は、語の並びがちょうど何周かして、最初の語は最後の語から切り替わってくる（輪になる）。
  */
 export function backSlot(settings, sec, duration) {
@@ -83,8 +111,8 @@ export function backSlot(settings, sec, duration) {
   // 輪になる時は、語の並びがちょうど何周かで終わるようにする（最後の語の次が、最初の語になる）
   const count = ring ? Math.max(1, Math.round(raw / n)) * n : Math.max(1, Math.round(raw)), len = span / count, T = Math.min(.5, len * .45);
   const k = Math.min(count - 1, Math.floor((sec - a) / len)), local = sec - a - k * len;
-  if (!ring && sec > b - T) return { k: count, i: -1, prev: (count - 1) % n, p: clamp((sec - (b - T)) / T), count, len, T };
-  return { k, i: k % n, prev: k === 0 ? (ring ? (count - 1) % n : -1) : (k - 1) % n, p: clamp(local / T), count, len, T };
+  if (!ring && sec > b - T) return { k: count, i: -1, prev: (count - 1) % n, p: clamp((sec - (b - T)) / T), u: 1, count, len, T };
+  return { k, i: k % n, prev: k === 0 ? (ring ? (count - 1) % n : -1) : (k - 1) % n, p: clamp(local / T), u: clamp(local / len), count, len, T };
 }
 
 /** k コマめの切り替わり方（おまかせは、決まった順に全部を回る。同じ物は続かない） */
@@ -105,6 +133,79 @@ export function backFade(when, sec, duration, T = .4) {
   const [a, b] = backWindow(when, duration);
   return clamp((sec - a) / T) * clamp((b - sec) / T);
 }
+
+// ---- 色
+const rgbOf = hex => [16, 8, 0].map(b => (parseInt(hex.slice(1), 16) >> b) & 255);
+const hexOf = rgb => '#' + rgb.map(v => Math.round(clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('');
+/** 色相を deg 度まわした色（明るさ・鮮やかさはそのまま） */
+export function hueTurn(hex, deg) {
+  const [r, g, b] = rgbOf(hex).map(v => v / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (d < 1e-6) return hex.toLowerCase();
+  const sat = d / (1 - Math.abs(2 * l - 1));
+  let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  h = (((h * 60 + deg) % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * sat, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  const [R, G, B] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return hexOf([R + m, G + m, B + m].map(v => v * 255));
+}
+/** 明るさ（WCAG の相対輝度、0〜1） */
+export function luminance(hex) { const [r, g, b] = rgbOf(hex).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; }
+/** 地の色 bg の上で、a と b のどちらが読みやすいか（明るさの差が大きい方） */
+export function inkOn(bg, a, b) { const L = luminance(bg), ratio = c => { const x = luminance(c); return (Math.max(L, x) + .05) / (Math.min(L, x) + .05); }; return ratio(a) >= ratio(b) ? a : b; }
+/** 「1語ごとに色が変わる」の i 番めの語の色: 字の色・差し色・差し色を 120 度・240 度まわした色、の順にくり返す */
+export function wordColour(s, i) { const list = [s.color, s.accent, hueTurn(s.accent, 120), hueTurn(s.accent, 240)]; return list[((i % 4) + 4) % 4]; }
+
+// ---- 奥から迫ってくる・落ちて積もる・散らばって集まる・波打つ（時刻だけで決まる。乱数を持たない）
+export const FLY_LIFE = 2.6;   // 1語が奥から手前まで飛ぶ長さ（語と語の間隔の何倍か）。2〜3語が同時に飛んでいる
+/**
+ * 奥から迫ってくる: sec の時に飛んでいる語。返す: [{k: 何番めに飛び立ったか, i: 語, u: 飛び立ってからの割合 0（奥）〜 1（目の前を過ぎる）}]（奥の語から）。
+ * 間隔は「1語の長さ」。「ずっと」の時は、語の並びがちょうど何周かして、最後のコマが最初のコマにつながる
+ */
+export function flyFlights(settings, sec, duration) {
+  const n = backWords(settings.text).length;
+  if (!n || !(duration > 0) || !Number.isFinite(sec)) return [];
+  const [a, b] = backWindow(settings.when, duration);
+  if (sec < a || sec > b) return [];
+  const span = b - a, ring = settings.when !== 'change', raw = span / settings.hold;
+  const count = ring ? Math.max(1, Math.round(raw / n)) * n : Math.max(1, Math.round(raw)), T = span / count, life = T * FLY_LIFE, t = sec - a, out = [];
+  for (let k = Math.floor((t - life) / T) + 1; k <= Math.floor(t / T); k++) {
+    if (!ring && k < 0) continue;
+    const u = (t - k * T) / life;
+    if (u >= 0 && u < 1) out.push({ k: ring ? ((k % count) + count) % count : k, i: ((k % n) + n) % n, u });   // 輪の時、k も一周で戻る（飛ぶ向きが k で決まるので）
+  }
+  return out.sort((p, q) => p.u - q.u);
+}
+/** 飛んでいる語の大きさ（ちょうど収まる大きさ = 1）と濃さ。奥（u = 0）で 0.15 倍から同じ割合で大きくなって、真ん中で約 0.7 倍、目の前（u = 1）で 3.2 倍（奥の小さい間は人物に隠れやすいので、早めに大きくする） */
+export function flyLook(u) { u = clamp(u); return { scale: .15 * (3.2 / .15) ** u, alpha: clamp(u / .1) * clamp((1 - u) / .22) }; }
+export const bounceOut = x => { x = clamp(x); const n = 7.5625, d = 2.75; return x < 1 / d ? n * x * x : x < 2 / d ? n * (x -= 1.5 / d) * x + .75 : x < 2.5 / d ? n * (x -= 2.25 / d) * x + .9375 : n * (x -= 2.625 / d) * x + .984375; };
+/**
+ * 落ちて積もる: 1語（m 字）の j 番めの字の、その語の時間 u（0〜1）での姿。k: 何コマめか（字ごとの傾きの違い）。
+ *   返す: null（まだ落ちてきていない）か {dy: 止まる所からの上下（絵の高さに対して、上がマイナス）, rot}。左の字から順に上から落ちて跳ね、最後に下へ落ちて抜ける
+ */
+export function dropPose(j, m, u, k = 0) {
+  const f = m > 1 ? j / (m - 1) : 0, q = clamp((u - (.03 + .28 * f)) / .26);   // 最後の字も、語の時間の 6 割より前に止まる
+  if (q <= 0) return null;
+  let dy = -(1 - bounceOut(q)) * 1.25, rot = (hash01(j + 1, k + 1) - .5) * .5 * (1 - q);
+  const o = clamp((u - (.72 + .14 * f)) / .12);
+  if (o > 0) { dy += o * o * 1.6; rot += o * (hash01(j + 7, k + 3) - .5) * 1.6; }
+  return { dy, rot };
+}
+/**
+ * 散らばって集まる: 1語の j 番めの字の、その語の時間 u での姿。返す: null か {dx, dy（止まる所から、絵の幅・高さに対して）, rot, scale, alpha}。
+ * ばらばらの所から集まって語になり、最後にまた散って消える（u = 0 と 1 では見えない）
+ */
+export function gatherPose(j, m, u, k = 0) {
+  const r = n => hash01(j * 13 + n, k * 7 + 1), st = .02 + .12 * r(1), q = clamp((u - st) / .36), e = 1 - (1 - q) ** 3;
+  if (q <= 0) return null;
+  const fs = .35 + .5 * r(5);
+  let dx = (r(2) - .5) * 1.5 * (1 - e), dy = (r(3) - .5) * 1.5 * (1 - e), rot = (r(4) - .5) * 2.6 * (1 - e), scale = fs + (1 - fs) * e, alpha = clamp((u - st) / .1);
+  const o = clamp((u - (.7 + .08 * r(6))) / .22), oe = o * o * o;
+  if (o > 0) { dx += (r(7) - .5) * 1.8 * oe; dy += (r(8) - .5) * 1.8 * oe; rot += (r(9) - .5) * 3 * oe; scale *= 1 - .5 * oe; }
+  alpha *= 1 - clamp((u - .82) / .14);
+  return { dx, dy, rot, scale, alpha };
+}
+/** 波打つ: 波の進み（ラジアン）。全体でちょうど何回か揺れて終わるので、最後のコマが最初のコマにつながる */
+export function wavePhase(sec, duration) { if (!(duration > 0)) return 0; const cycles = Math.max(1, Math.round(duration * .5)); return 2 * Math.PI * cycles * sec / duration; }
 
 // ---- ぐるっと囲む（輪）
 /** 輪の組（輪の数ごと）。y: 輪の真ん中の高さ（画面の高さに対して、上が正）、pitch: 手前へ倒す角度、roll: 斜めにする角度、dir: 回る向き（1 と -1 で逆回り） */
@@ -155,10 +256,14 @@ export const backFontCSS = (key, px) => { const f = BACK_FONTS[key] || BACK_FONT
 // ---------------------------------------------------------------- 描く係（Canvas 2D）
 const mixHex = (hex, to, k) => { const a = parseInt(hex.slice(1), 16), b = parseInt(to.slice(1), 16), c = s => Math.round(((a >> s) & 255) * (1 - k) + ((b >> s) & 255) * k); return `rgb(${c(16)},${c(8)},${c(0)})`; };
 const PX = 200;   // 字を測る時の大きさ
+/** 縦書きで横に倒す字（のばし棒・かっこ・ダッシュなど） */
+const VERTICAL_TURN = new Set(['ー', '－', '−', '〜', '～', '…', '‥', '—', '―', '-', '(', ')', '（', '）', '「', '」', '『', '』', '[', ']', '【', '】', '〈', '〉', '<', '>']);
+/** 斜めのテープの帯（y: 帯の真ん中の高さ、上が正。a: 傾き、ラジアン） */
+export const TAPES = [{ y: .17, a: -.21 }, { y: -.15, a: .16 }];
 
-/** さびた鉄・金属・かすれた筆の模様（512 画素の升。決まった乱数で、いつも同じ模様）。かすれた筆は、字の色の上に、抜けた筋と点を空ける */
+/** さびた鉄・金属・金・かすれた筆の模様（512 画素の升。決まった乱数で、いつも同じ模様）。かすれた筆は、字の色の上に、抜けた筋と点を空ける */
 function makeSurface(doc, kind, colour = '#ffffff') {
-  const c = doc.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d'); let seed = kind === 'rust' ? 7 : kind === 'dry' ? 53 : 31;
+  const c = doc.createElement('canvas'); c.width = c.height = 512; const x = c.getContext('2d'); let seed = kind === 'rust' ? 7 : kind === 'dry' ? 53 : kind === 'gold' ? 71 : 31;
   const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   if (kind === 'dry') {
     x.fillStyle = colour; x.fillRect(0, 0, 512, 512);
@@ -182,6 +287,11 @@ function makeSurface(doc, kind, colour = '#ffffff') {
     }
     for (let i = 0; i < 70; i++) { const px = r() * 512, py = r() * 512, h = 30 + r() * 170; const g2 = x.createLinearGradient(0, py, 0, py + h); g2.addColorStop(0, 'rgba(60,24,6,.34)'); g2.addColorStop(1, 'rgba(60,24,6,0)'); x.fillStyle = g2; x.fillRect(px, py, 1 + r() * 5, h); }   // 垂れた跡
     for (let i = 0; i < 2600; i++) { x.fillStyle = r() < .5 ? 'rgba(40,16,4,.5)' : 'rgba(255,214,150,.35)'; x.fillRect(r() * 512, r() * 512, 1 + r() * 2, 1 + r() * 2); }
+  } else if (kind === 'gold') {
+    const g = x.createLinearGradient(0, 0, 0, 512);
+    for (const [p, col] of [[0, '#fff4c8'], [.16, '#d9a93a'], [.34, '#fbe6a0'], [.5, '#8c6519'], [.64, '#efcd6c'], [.84, '#7d5813'], [1, '#f7dd8c']]) g.addColorStop(p, col);
+    x.fillStyle = g; x.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 1400; i++) { x.fillStyle = r() < .5 ? 'rgba(255,250,220,.12)' : 'rgba(60,40,5,.12)'; x.fillRect(0, r() * 512, 512, .6 + r() * 1.2); }
   } else {
     const g = x.createLinearGradient(0, 0, 0, 512);
     for (const [p, col] of [[0, '#f6f8fa'], [.18, '#aab3bd'], [.36, '#eef1f4'], [.5, '#69727c'], [.62, '#d3d9df'], [.82, '#8a939d'], [1, '#e6eaee']]) g.addColorStop(p, col);
@@ -199,6 +309,7 @@ export function createBackText(doc = globalThis.document) {
   const mk = () => doc.createElement('canvas');
   const scratch = [mk(), mk(), mk()], face = mk(), layers = new Map(), surfaces = {}, widths = new Map(), sprites = new Map();
   let last = '', dry = { colour: '', canvas: null }, spritePixels = 0;
+  const metrics = new Map();
   /** 作っておいた字の絵（流れる文字の1本分・輪の1字）。模様や厚みを付けて描くのは重いので、一度だけ作って、毎コマはそれを貼る。古い物から捨てる */
   const spriteOf = (key, make) => {
     let sp = sprites.get(key);
@@ -209,21 +320,40 @@ export function createBackText(doc = globalThis.document) {
   };
   const surfaceOf = s => { if (s.fill !== 'dry') return surfaces[s.fill] ??= makeSurface(doc, s.fill); if (dry.colour !== s.color) dry = { colour: s.color, canvas: makeSurface(doc, 'dry', s.color) }; return dry.canvas; };
   const fit = (c, W, H) => { if (c.width !== W || c.height !== H) { c.width = W; c.height = H; } const x = c.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; x.filter = 'none'; x.clearRect(0, 0, W, H); return x; };
-  const lookOf = s => [s.font, s.size, s.stretch, s.y, s.fill, s.color, s.depth].join('|');
+  const lookOf = s => [s.font, s.size, s.stretch, s.y, s.fill, s.color, s.accent, s.depth].join('|');
+  /** 「1語ごとに色が変わる」の時は、i 番めの語を単色のその色で */
+  const lookFor = (s, i) => (s.fill === 'colorful' ? { ...s, fill: 'solid', color: wordColour(s, i) } : s);
+  /** フォントの字の上と下（PX の大きさで。字ごとに違わない、そろった高さ） */
+  const fontMetrics = (g, font) => { let m = metrics.get(font); if (!m) { g.font = backFontCSS(font, PX); const t = g.measureText('HÁgjy国'); m = { asc: t.actualBoundingBoxAscent, desc: t.actualBoundingBoxDescent }; metrics.set(font, m); } return m; };
+  /** 字の絵を作る細かさ（PX の何倍か）。描く大きさより少し細かく、0.25 刻み */
+  const qOf = k => Math.min(4, Math.max(.25, Math.ceil(k * 1.15 * 4) / 4));
   /** 1字の幅（PX の大きさで。フォントごとに覚える） */
   const widthOf = (g, font, ch) => { const key = font + '|' + ch; let w = widths.get(key); if (w === undefined) { g.font = backFontCSS(font, PX); w = g.measureText(ch).width; widths.set(key, w); } return w; };
 
   /** glyphs(ctx, 'fill' | 'stroke') が描く字の形に、模様・厚みを付けて g に描く */
-  function paint(g, W, H, s, glyphs, deep = s.depth * H * .035) {
+  /** glyphs(ctx, 'fill' | 'stroke', 線の太さの倍率) が描く字の形に、模様・厚みを付けて g に描く。em: 字の高さ（画素。ネオンの光の広がりに使う） */
+  function paint(g, W, H, s, glyphs, deep = s.depth * H * .035, em = H * .2) {
+    if (s.fill === 'neon') {   // ネオン管: 色の光を2回重ねて、真ん中に白っぽい芯（厚みは付けない）
+      const blur = Math.max(2, em * .14);
+      g.save(); g.shadowColor = s.color; g.strokeStyle = s.color; g.shadowBlur = blur; glyphs(g, 'stroke', 2.4); g.shadowBlur = blur * 2; glyphs(g, 'stroke', 2.4); g.restore();
+      g.strokeStyle = mixHex(s.color, '#ffffff', .72); glyphs(g, 'stroke', 1);
+      return;
+    }
     if (deep > .5) {   // 厚み: 右下へ少しずつずらして重ねる
       const n = Math.min(28, Math.ceil(deep / 1.5));
-      g.fillStyle = g.strokeStyle = s.fill === 'rust' ? '#3a1a08' : s.fill === 'metal' ? '#232a31' : mixHex(s.color, '#000000', .68);
+      g.fillStyle = g.strokeStyle = { rust: '#3a1a08', metal: '#232a31', gold: '#4a3209', rainbow: '#24202c', gradient: mixHex(s.accent, '#000000', .6) }[s.fill] || mixHex(s.color, '#000000', .68);
       for (let j = n; j >= 1; j--) { g.save(); g.translate(deep * .55 * j / n, deep * j / n); glyphs(g, s.fill === 'outline' ? 'stroke' : 'fill'); g.restore(); }
     }
     if (s.fill === 'solid') { g.fillStyle = s.color; glyphs(g, 'fill'); return; }
     if (s.fill === 'outline') { g.strokeStyle = s.color; glyphs(g, 'stroke'); return; }
     const f = fit(face, W, H); f.fillStyle = '#fff'; glyphs(f, 'fill');
-    f.globalCompositeOperation = 'source-in'; f.fillStyle = f.createPattern(surfaceOf(s), 'repeat'); f.fillRect(0, 0, W, H);
+    f.globalCompositeOperation = 'source-in';
+    if (s.fill === 'gradient' || s.fill === 'rainbow') {   // グラデーション: 上が字の色、下が差し色　虹: 左から右へ
+      const gr = s.fill === 'gradient' ? f.createLinearGradient(0, 0, 0, H) : f.createLinearGradient(0, 0, W, 0);
+      if (s.fill === 'gradient') { gr.addColorStop(.12, s.color); gr.addColorStop(.88, s.accent); } else for (let i = 0; i <= 6; i++) gr.addColorStop(i / 6, `hsl(${i * 50}, 92%, 62%)`);
+      f.fillStyle = gr; f.fillRect(0, 0, W, H); g.drawImage(face, 0, 0); return;
+    }
+    f.fillStyle = f.createPattern(surfaceOf(s), 'repeat'); f.fillRect(0, 0, W, H);
     if (s.fill === 'dry') { g.drawImage(face, 0, 0); return; }   // かすれた筆: 字の色のまま、筋と点が抜ける
     f.globalCompositeOperation = 'source-atop'; const sh = f.createLinearGradient(0, 0, 0, H); sh.addColorStop(0, 'rgba(255,255,255,.16)'); sh.addColorStop(.5, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,.26)'); f.fillStyle = sh; f.fillRect(0, 0, W, H);
     g.drawImage(face, 0, 0);
@@ -242,11 +372,11 @@ export function createBackText(doc = globalThis.document) {
       const top = (H - availH) / 2 - s.y * H + j * (lineH + gap);
       return { text, sx, sy, x: -bw / 2 + left, y: (asc - desc) / 2, cy: top + lineH / 2 };
     });
-    return (g, how) => {
+    return (g, how, mul = 1) => {
       g.font = backFontCSS(s.font, PX); g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.lineJoin = 'round';
       for (const l of placed) {
         g.save(); g.translate(W / 2, l.cy); g.scale(l.sx, l.sy);
-        if (how === 'stroke') { g.lineWidth = Math.max(2, H * .009) / Math.min(l.sx, l.sy); g.strokeText(l.text, l.x, l.y); } else g.fillText(l.text, l.x, l.y);
+        if (how === 'stroke') { g.lineWidth = Math.max(2, H * .009) * mul / Math.min(l.sx, l.sy); g.strokeText(l.text, l.x, l.y); } else g.fillText(l.text, l.x, l.y);
         g.restore();
       }
     };
@@ -258,7 +388,7 @@ export function createBackText(doc = globalThis.document) {
     let c = layers.get(key);
     if (!c) {
       if (layers.size >= 6) { const old = layers.keys().next().value; layers.delete(old); }
-      c = mk(); const g = fit(c, W, H); paint(g, W, H, s, wordGlyphs(g, W, H, word, s)); layers.set(key, c);
+      c = mk(); const g = fit(c, W, H); paint(g, W, H, s, wordGlyphs(g, W, H, word, s), undefined, H * .45 * s.size); layers.set(key, c);
     } else { layers.delete(key); layers.set(key, c); }
     return c;
   }
@@ -363,27 +493,28 @@ export function createBackText(doc = globalThis.document) {
    * 1語ずつの字の絵（模様・厚みつき）を一度だけ作って、流れた分だけずらして並べる。shift(1本分の幅) = 今までに流れた長さ
    */
   function drawRow(g, W, H, s, row, shift) {
-    const look = row.outline ? { ...s, fill: 'outline' } : s, deep = s.depth * H * .035;
+    const lookAt = i => { const l = lookFor(s, row.ids ? row.ids[i] : i); return row.outline ? { ...l, fill: 'outline' } : l; }, deep = s.fill === 'neon' && !row.outline ? 0 : s.depth * H * .035;
     g.font = backFontCSS(s.font, PX);
     const m = g.measureText(row.words.join(' ')), asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent, k = row.h * .84 / Math.max(1, asc + desc), px = PX * k;
     g.font = backFontCSS(s.font, px);
     const gap = g.measureText('   ').width, widths = row.words.map(w => g.measureText(w).width), unitW = Math.max(1, widths.reduce((a, b) => a + b + gap, 0));
-    const pad = Math.ceil(row.h * .08) + 2, top = row.cy - (asc + desc) / 2 * k - pad, sh = Math.ceil((asc + desc) * k + pad * 2 + deep);
-    const letters = (word, x0, y0) => (x, how) => {
+    const pad = Math.ceil(row.h * (s.fill === 'neon' ? .3 : .08)) + 2, top = row.cy - (asc + desc) / 2 * k - pad, sh = Math.ceil((asc + desc) * k + pad * 2 + deep);
+    const letters = (word, x0, y0) => (x, how, mul = 1) => {
       x.font = backFontCSS(s.font, px); x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.lineJoin = 'round';
-      if (how === 'stroke') { x.lineWidth = Math.max(2, row.h * .022); x.strokeText(word, x0, y0); } else x.fillText(word, x0, y0);
+      if (how === 'stroke') { x.lineWidth = Math.max(2, row.h * .022) * mul; x.strokeText(word, x0, y0); } else x.fillText(word, x0, y0);
     };
+    const looks = row.words.map((_, i) => lookAt(i));
     const pictures = row.words.map((word, i) => {
-      const sw = Math.ceil(widths[i] + pad * 2 + deep * .55);
+      const sw = Math.ceil(widths[i] + pad * 2 + deep * .55), look = looks[i];
       if (sw > 8192) return null;   // とても長い1語は、絵にしておけないので、毎回そのまま描く
-      return spriteOf(['word', s.font, look.fill, s.color, s.depth, px.toFixed(2), H, asc.toFixed(1), desc.toFixed(1), word].join('|'), () => { const c = mk(); paint(fit(c, sw, sh), sw, sh, look, letters(word, pad, pad + asc * k), deep); return { c }; }).c;
+      return spriteOf(['word', s.font, look.fill, look.color, look.accent, s.depth, px.toFixed(2), H, asc.toFixed(1), desc.toFixed(1), word].join('|'), () => { const c = mk(); paint(fit(c, sw, sh), sw, sh, look, letters(word, pad, pad + asc * k), deep, row.h * .84); return { c }; }).c;
     });
     for (let at = -((((shift(unitW)) % unitW) + unitW) % unitW); at < W + pad; at += unitW) {
       let x0 = at;
       for (let i = 0; i < row.words.length; i++) {
         if (x0 + widths[i] + pad + deep > 0 && x0 - pad < W) {
           if (pictures[i]) g.drawImage(pictures[i], x0 - pad, top);
-          else paint(g, W, H, look, letters(row.words[i], x0, top + pad + asc * k));
+          else paint(g, W, H, looks[i], letters(row.words[i], x0, top + pad + asc * k), deep, row.h * .84);
         }
         x0 += widths[i] + gap;
       }
@@ -391,10 +522,10 @@ export function createBackText(doc = globalThis.document) {
   }
 
   function drawRows(g, W, H, words, s, sec, duration) {
-    const sign = s.dir === 'right' ? -1 : 1, from = k => words.map((_, i) => words[(i + k) % words.length].replaceAll('/', ' '));
+    const sign = s.dir === 'right' ? -1 : 1, ids = k => words.map((_, i) => (i + k) % words.length), from = k => ids(k).map(i => words[i].replaceAll('/', ' '));
     const rows = [];
-    if (s.mode === 'flow') rows.push({ cy: H / 2 - s.y * H, h: H * .6 * s.size, words: from(0), sign, outline: false });
-    else { const n = clamp(Math.round(3 / s.size), 3, 10), h = H / n; for (let r = 0; r < n; r++) rows.push({ cy: h * (r + .5) - s.y * H, h, words: from(r), sign: r % 2 ? -sign : sign, outline: r % 2 === 1 }); }
+    if (s.mode === 'flow') rows.push({ cy: H / 2 - s.y * H, h: H * .6 * s.size, words: from(0), ids: ids(0), sign, outline: false });
+    else { const n = clamp(Math.round(3 / s.size), 3, 10), h = H / n; for (let r = 0; r < n; r++) rows.push({ cy: h * (r + .5) - s.y * H, h, words: from(r), ids: ids(r), sign: r % 2 ? -sign : sign, outline: r % 2 === 1 }); }
     for (const row of rows) drawRow(g, W, H, s, row, unitW => row.sign * flowShift(unitW, W, s.speed, sec, duration));
   }
 
@@ -406,32 +537,23 @@ export function createBackText(doc = globalThis.document) {
   function drawRings(g, W, H, words, s, sec, duration, near, centre) {
     const set = RING_SETS[s.rings] || RING_SETS[2], tilt = s.ringTilt / .6, R = W * .42 * s.ringSize, sign = s.dir === 'right' ? 1 : -1;
     const tall = H * .2 * s.size * [1, 1, .85, .72][set.length], C = 2 * Math.PI * R, cx = W * centre, cy = H / 2 - s.y * H, glyphs = [];
+    const fm = fontMetrics(g, s.font), lh = fm.asc + fm.desc, scale = tall / lh;
     for (let k = 0; k < set.length; k++) {
-      const ring = set[k], unit = words.map((_, i) => words[(i + k) % words.length].replaceAll('/', ' ')).join('   ') + '   ';
-      g.font = backFontCSS(s.font, PX);
-      const m = g.measureText(unit), asc = m.actualBoundingBoxAscent, desc = m.actualBoundingBoxDescent, scale = tall / Math.max(1, asc + desc), chars = [...unit];
-      const adv = chars.map(ch => widthOf(g, s.font, ch)), unitW = Math.max(1, adv.reduce((a, b) => a + b, 0) * scale);
+      const ring = set[k], chars = [];
+      for (let w = 0; w < words.length; w++) { const wi = (w + k) % words.length; for (const ch of words[wi].replaceAll('/', ' ')) chars.push({ ch, wi }); for (let j = 0; j < 3; j++) chars.push({ ch: ' ', wi }); }
+      const adv = chars.map(c => widthOf(g, s.font, c.ch)), unitW = Math.max(1, adv.reduce((a, b) => a + b, 0) * scale);
       const units = Math.max(1, Math.round(C / unitW)), fitK = C / (units * unitW), squeeze = Math.min(1, fitK);   // 輪をちょうど埋めるように、字の間を少し直す（長すぎる時は字も細くする）
       const rot = sign * ring.dir * ringTurn(s.speed, units, sec, duration) * (near ? -1 : 1);   // 手前側は、向こう側と逆へ流れる（1つの輪が回っている）
-      // 1字の絵: いちばん大きく見える時（手前）でもぼけない細かさで作る。厚みは字の高さに合わせる
-      const q = clamp(Math.ceil(scale * 1.5 * 4) / 4, .5, 3.5), pad = Math.ceil(PX * q * .1) + 2, deep = s.depth * (asc + desc) * q * .14, top = (asc - desc) / 2 - asc;
-      const pictureOf = (ch, w) => spriteOf(['glyph', s.font, s.fill, s.color, s.depth, q, asc.toFixed(1), desc.toFixed(1), ch].join('|'), () => {
-        const sw = Math.ceil(w * q + pad * 2 + deep * .55), sh = Math.ceil((asc + desc) * q + pad * 2 + deep), c = mk();
-        paint(fit(c, sw, sh), sw, sh, s, (x, how) => {
-          x.font = backFontCSS(s.font, PX * q); x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.lineJoin = 'round';
-          if (how === 'stroke') { x.lineWidth = PX * q * .045; x.strokeText(ch, pad, pad + asc * q); } else x.fillText(ch, pad, pad + asc * q);
-        }, deep);
-        return { c };
-      });
+      const q = clamp(Math.ceil(scale * 1.5 * 4) / 4, .5, 3.5);   // 1字の絵: いちばん大きく見える時（手前）でもぼけない細かさで作る
       for (let u = 0; u < units; u++) {
         let pos = u * unitW;
         for (let j = 0; j < chars.length; j++) {
           const mid = (pos + adv[j] * scale / 2) * fitK; pos += adv[j] * scale;
-          if (chars[j] === ' ' || chars[j] === '　') continue;
+          if (!chars[j].ch.trim()) continue;
           let a = mid / C * 2 * Math.PI + rot; a -= Math.round(a / (2 * Math.PI)) * 2 * Math.PI;   // -π〜π
           if (Math.cos(a) < (near ? 0 : -.6)) continue;   // 反対側の字は、どうせ裏返し
           const at = ringPlace(a, near, ring, tilt); if (at.facing <= .03) continue;   // 目の方を向いている字だけ（輪の端で線になって消える）
-          glyphs.push({ at, alpha: clamp(at.facing / .2), picture: pictureOf(chars[j], adv[j]).c, kx: scale * squeeze, ky: scale, x: -adv[j] / 2 - pad / q, y: top - pad / q, q, cy: cy - ring.y * H });
+          glyphs.push({ at, alpha: clamp(at.facing / .2), sp: charSprite(g, lookFor(s, chars[j].wi), chars[j].ch, q), kx: scale * squeeze, ky: scale, q, cy: cy - ring.y * H });
         }
       }
     }
@@ -440,14 +562,120 @@ export function createBackText(doc = globalThis.document) {
       const t = gl.at;
       g.save(); g.globalAlpha *= gl.alpha;
       g.transform(t.tx * gl.kx, -t.ty * gl.kx, -t.ux * gl.ky, t.uy * gl.ky, cx + t.x * R, gl.cy - t.y * R);
-      g.drawImage(gl.picture, gl.x, gl.y, gl.picture.width / gl.q, gl.picture.height / gl.q);
+      g.drawImage(gl.sp.c, -gl.sp.cx / gl.q, -gl.sp.cy / gl.q, gl.sp.c.width / gl.q, gl.sp.c.height / gl.q);
       g.restore();
     }
   }
 
+  /** 1字の絵（模様・厚みつき）。q: 字を測る大きさ PX の何倍で作るか。返す: {c, cx, cy（絵の中の、字の真ん中）}。字の真ん中は、フォントのそろった高さの真ん中 */
+  function charSprite(g0, look, ch, q) {
+    const fm = fontMetrics(g0, look.font), adv = widthOf(g0, look.font, ch), glow = look.fill === 'neon', lh = fm.asc + fm.desc;
+    const pad = Math.ceil(PX * q * (glow ? .4 : .1)) + 2, deep = glow ? 0 : look.depth * lh * q * .14;
+    return spriteOf(['char', look.font, look.fill, look.color, look.accent, look.depth, q, ch].join('|'), () => {
+      const sw = Math.ceil(adv * q + pad * 2 + deep * .55), sh = Math.ceil(lh * q + pad * 2 + deep), c = mk();
+      paint(fit(c, sw, sh), sw, sh, look, (x, how, mul = 1) => {
+        x.font = backFontCSS(look.font, PX * q); x.textAlign = 'left'; x.textBaseline = 'alphabetic'; x.lineJoin = 'round';
+        if (how === 'stroke') { x.lineWidth = PX * q * .045 * mul; x.strokeText(ch, pad, pad + fm.asc * q); } else x.fillText(ch, pad, pad + fm.asc * q);
+      }, deep, lh * q);
+      return { c, cx: pad + adv * q / 2, cy: pad + lh * q / 2 };
+    });
+  }
+  /** 1語（「/」で段に分かれる）の大きさ（PX の大きさで） */
+  function wordBox(g0, font, word) {
+    const fm = fontMetrics(g0, font), lh = fm.asc + fm.desc, lines = word.split('/').map(t => t.trim()).filter(Boolean);
+    const widths = lines.map(l => [...l].reduce((a, ch) => a + widthOf(g0, font, ch), 0));
+    return { lines, widths, w: Math.max(1, ...widths), h: lh * (lines.length + .12 * (lines.length - 1)), lh, asc: fm.asc };
+  }
+  /** 1語まるごとの絵（奥から迫ってくる用） */
+  function wordSprite(g0, look, word, q) {
+    const box = wordBox(g0, look.font, word), glow = look.fill === 'neon', pad = Math.ceil(PX * q * (glow ? .4 : .1)) + 2, deep = glow ? 0 : look.depth * box.lh * q * .14;
+    return spriteOf(['wordsp', look.font, look.fill, look.color, look.accent, look.depth, q, word].join('|'), () => {
+      const sw = Math.ceil(box.w * q + pad * 2 + deep * .55), sh = Math.ceil(box.h * q + pad * 2 + deep), c = mk();
+      paint(fit(c, sw, sh), sw, sh, look, (x, how, mul = 1) => {
+        x.font = backFontCSS(look.font, PX * q); x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.lineJoin = 'round'; if (how === 'stroke') x.lineWidth = PX * q * .045 * mul;
+        box.lines.forEach((l, i) => { const y = pad + (i * box.lh * 1.12 + box.asc) * q; if (how === 'stroke') x.strokeText(l, pad + box.w * q / 2, y); else x.fillText(l, pad + box.w * q / 2, y); });
+      }, deep, box.lh * q);
+      return { c, cx: pad + box.w * q / 2, cy: pad + box.h * q / 2 };
+    });
+  }
+  /** 作っておいた絵 sp を、(cx, cy) を真ん中にして、f 倍・rot ラジアン回して貼る（sx: 横だけの倍率） */
+  function putChar(g, sp, cx, cy, f, rot = 0, alpha = 1, sx = 1) {
+    if (alpha <= .003 || !(f > 0)) return;
+    g.save(); g.globalAlpha *= Math.min(1, alpha); g.translate(cx, cy); if (rot) g.rotate(rot); g.scale(f * sx, f); g.drawImage(sp.c, -sp.cx, -sp.cy); g.restore();
+  }
+  /** 1語を、1字ずつの場所に分ける（画面いっぱいより少し小さく。「/」で段に分ける）。返す: {k: 倍率, items: [{ch, x: 字の左, y: 字の並ぶ線, adv}], asc, desc} */
+  function letterLayout(g, W, H, word, s) {
+    const fm = fontMetrics(g, s.font), box = wordBox(g, s.font, word), k = Math.min(W * .9 * s.size / box.w, H * .62 * s.size / box.h);
+    const top = H / 2 - s.y * H - box.h * k / 2, items = [];
+    box.lines.forEach((l, li) => {
+      let x = W / 2 - box.widths[li] * k / 2; const y = top + (li * box.lh * 1.12 + fm.asc) * k;
+      for (const ch of l) { const adv = widthOf(g, s.font, ch); if (ch.trim()) items.push({ ch, x, y, adv }); x += adv * k; }
+    });
+    return { k, items, asc: fm.asc, desc: fm.desc };
+  }
+
+  /** 縦に流れる: 縦書きの列（大きさで 1〜6 列）が、上へ（流れる向き「左へ」）か下へ（「右へ」）流れ続ける。列ごとに少しずらす */
+  function drawColumns(g, W, H, words, s, sec, duration) {
+    const n = clamp(Math.round(2 / s.size), 1, 6), colW = W / n, fm = fontMetrics(g, s.font), lh = fm.asc + fm.desc;
+    const em = Math.min(colW * .8, H * .3), k = em / lh, cell = em * 1.04, q = qOf(k), f = k / q, sign = s.dir === 'right' ? 1 : -1;
+    for (let c = 0; c < n; c++) {
+      const seq = []; let len = 0;
+      for (let w = 0; w < words.length; w++) { const wi = (w + c) % words.length; for (const ch of words[wi].replaceAll('/', '')) { if (ch.trim()) seq.push({ ch, wi, at: len }); len += cell; } len += cell * .8; }
+      const unitH = Math.max(1, len), off = c * unitH * .37, start = ((((sign * flowShift(unitH, H, s.speed, sec, duration) + off) % unitH) + unitH) % unitH) - unitH, cx = colW * (c + .5);
+      for (let y0 = start; y0 < H + cell; y0 += unitH) for (const it of seq) {
+        const cy = y0 + it.at + cell / 2; if (cy < -cell || cy > H + cell) continue;
+        putChar(g, charSprite(g, lookFor(s, it.wi), it.ch, q), cx, cy, f, VERTICAL_TURN.has(it.ch) ? Math.PI / 2 : 0);
+      }
+    }
+  }
+  /** 斜めのテープ: 差し色の帯が2本、斜めに交差して、その中を文字が流れる（帯の上で読みやすい方の色で） */
+  function drawTapes(g, W, H, words, s, sec, duration) {
+    const sign = s.dir === 'right' ? -1 : 1, L = Math.hypot(W, H) * 1.2, bh = H * (.09 + .13 * s.size), ink = inkOn(s.accent, s.color, s.back);
+    TAPES.forEach((b, j) => {
+      const ids = words.map((_, i) => (i + j) % words.length);
+      g.save(); g.translate(W / 2, H / 2 - (b.y + s.y) * H); g.rotate(b.a);
+      g.save(); g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = bh * .25; g.shadowOffsetY = bh * .08; g.fillStyle = s.accent; g.fillRect(-L / 2, -bh / 2, L, bh); g.restore();
+      g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(-L / 2, -bh / 2, L, bh * .07); g.fillRect(-L / 2, bh / 2 - bh * .07, L, bh * .07);
+      g.translate(-L / 2, 0);
+      drawRow(g, L, H, s.fill === 'colorful' ? s : { ...s, color: ink }, { cy: 0, h: bh * .72, words: ids.map(i => words[i].replaceAll('/', ' ')), ids, outline: false }, unitW => (j % 2 ? -sign : sign) * flowShift(unitW, L, s.speed, sec, duration));
+      g.restore();
+    });
+  }
+  /** 奥から迫ってくる: 語が奥の小さい所から飛んできて、大きくなりながら目の前を過ぎていく（2〜3語が同時に） */
+  function drawFly(g, W, H, words, s, sec, duration) {
+    for (const fl of flyFlights(s, sec, duration)) {
+      const look = lookFor(s, fl.i), word = words[fl.i], box = wordBox(g, look.font, word), k0 = Math.min(W * .8 * s.size / box.w, H * .55 * s.size / box.h), q = qOf(k0 * 1.6), sp = wordSprite(g, look, word, q);
+      const { scale, alpha } = flyLook(fl.u), ox = (hash01(fl.k + 11, 3) - .5) * W * .5, oy = (hash01(fl.k + 5, 9) - .5) * H * .35;
+      putChar(g, sp, W / 2 + ox * scale * .35, H / 2 - s.y * H + oy * scale * .35, k0 * scale / q, 0, alpha);
+    }
+  }
+  /** 波打つ: 1段の文字が流れながら、1文字ずつ波に乗って上下に揺れて、傾く */
+  function drawWave(g, W, H, words, s, sec, duration) {
+    const fm = fontMetrics(g, s.font), em = H * .3 * s.size, k = em / (fm.asc + fm.desc), q = qOf(k), f = k / q, sign = s.dir === 'right' ? -1 : 1, seq = [];
+    let len = 0;
+    words.forEach((w, wi) => { for (const ch of w.replaceAll('/', ' ')) { const adv = widthOf(g, s.font, ch) * k; if (ch.trim()) seq.push({ ch, wi, at: len, adv }); len += adv; } len += widthOf(g, s.font, ' ') * k * 3; });
+    const unitW = Math.max(1, len), start = -((((sign * flowShift(unitW, W, s.speed, sec, duration)) % unitW) + unitW) % unitW);
+    const lam = W * .42, A = em * .3, ph = wavePhase(sec, duration), base = H / 2 - s.y * H;
+    for (let x0 = start; x0 < W + em; x0 += unitW) for (const it of seq) {
+      const cx = x0 + it.at + it.adv / 2; if (cx < -em || cx > W + em) continue;
+      const th = 2 * Math.PI * cx / lam - ph;
+      putChar(g, charSprite(g, lookFor(s, it.wi), it.ch, q), cx, base + A * Math.sin(th), f, Math.atan(A * 2 * Math.PI / lam * Math.cos(th)) * .7);
+    }
+  }
+  /** 落ちて積もる・散らばって集まる: 1語ずつ（「1語の長さ」ごとに）、1字ずつ動いて語になり、最後に崩れて抜ける */
+  function drawLetterSlot(g, W, H, words, s, sec, duration) {
+    const slot = backSlot(s, sec, duration); if (!slot || slot.i < 0) return;
+    const look = lookFor(s, slot.i), lay = letterLayout(g, W, H, words[slot.i], look), q = qOf(lay.k), f = lay.k / q, m = lay.items.length;
+    lay.items.forEach((it, j) => {
+      const sp = charSprite(g, look, it.ch, q), cx = it.x + it.adv * lay.k / 2, cy = it.y - (lay.asc - lay.desc) / 2 * lay.k;
+      if (s.mode === 'drop') { const p = dropPose(j, m, slot.u, slot.k); if (p) putChar(g, sp, cx, cy + p.dy * H, f, p.rot); }
+      else { const p = gatherPose(j, m, slot.u, slot.k); if (p) putChar(g, sp, cx + p.dx * W, cy + p.dy * H, f * p.scale, p.rot, p.alpha); }
+    });
+  }
+
   return {
     /** フォントが読み込まれた時などに、取っておいた層を捨てる */
-    reset() { layers.clear(); widths.clear(); sprites.clear(); spritePixels = 0; last = ''; },
+    reset() { layers.clear(); widths.clear(); metrics.clear(); sprites.clear(); spritePixels = 0; last = ''; },
     /** part: 'back' = 人物の後ろに描く分（いつもの層）、'front' = 人物の前に描く分（輪の手前側。「輪の手前側も出す」の時だけ）。centre: 輪の真ん中の横の位置（0〜1） */
     draw(canvas, sec, duration, settings, { width, height, part = 'back', centre = .5 }) {
       const s = settings, words = backWords(s.text), W = Math.max(2, Math.round(width)), H = Math.max(2, Math.round(height)), front = part === 'front';
@@ -462,11 +690,19 @@ export function createBackText(doc = globalThis.document) {
       const g = fit(canvas, W, H);
       if (s.backAlpha > 0 && !front) { g.globalAlpha = s.backAlpha * fade; g.fillStyle = s.back; g.fillRect(0, 0, W, H); g.globalAlpha = 1; }
       if (s.mode === 'giant') {
-        const next = slot.i >= 0 ? layerOf(W, H, words[slot.i], s) : null, prev = slot.prev >= 0 && slot.p < 1 ? layerOf(W, H, words[slot.prev], s) : null;
+        const next = slot.i >= 0 ? layerOf(W, H, words[slot.i], lookFor(s, slot.i)) : null, prev = slot.prev >= 0 && slot.p < 1 ? layerOf(W, H, words[slot.prev], lookFor(s, slot.prev)) : null;
         if (slot.p >= 1) { if (next) g.drawImage(next, 0, 0); }
         else { g.save(); (TRANS[backTransKind(s, slot.k)] || TRANS.cut)(g, W, H, prev, next, slot.p, slot.k, s); g.restore(); }
       } else {
-        const rows = x => (s.mode === 'ring' ? drawRings(x, W, H, words, s, sec, duration, front, clamp(centre, .1, .9)) : drawRows(x, W, H, words, s, sec, duration));
+        const rows = x => {
+          if (s.mode === 'ring') drawRings(x, W, H, words, s, sec, duration, front, clamp(centre, .1, .9));
+          else if (s.mode === 'vflow') drawColumns(x, W, H, words, s, sec, duration);
+          else if (s.mode === 'tape') drawTapes(x, W, H, words, s, sec, duration);
+          else if (s.mode === 'fly') drawFly(x, W, H, words, s, sec, duration);
+          else if (s.mode === 'wave') drawWave(x, W, H, words, s, sec, duration);
+          else if (s.mode === 'drop' || s.mode === 'gather') drawLetterSlot(x, W, H, words, s, sec, duration);
+          else drawRows(x, W, H, words, s, sec, duration);
+        };
         if (fade < 1) { rows(fit(scratch[2], W, H)); g.globalAlpha = fade; g.drawImage(scratch[2], 0, 0); g.globalAlpha = 1; } else rows(g);
       }
       last = sig;

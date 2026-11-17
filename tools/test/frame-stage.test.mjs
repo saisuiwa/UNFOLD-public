@@ -1,13 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { FRAME_STYLES, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, borderOf, frameZoom, personOut, solidPop, tiltAt, pickTilt, personPose, pickPersonMove, solidShift } from '../../app/frame-stage.js';
+import { FRAME_STYLES, FRAME_DECOS, FRAME_COLORS, FRAME_PHASES, MOVING_DECOS, MUSEUM_STYLES, framePhase, toneOf, FRAME_TILTS, PERSON_MOVES, cleanFrameStage, borderOf, frameZoom, personOut, solidPop, tiltAt, pickTilt, personPose, pickPersonMove, solidShift } from '../../app/frame-stage.js';
 import { bestOffset } from '../../app/cutout-align.js';
 
 test('the frame settings are cleaned: off by default, a known style, pop 0–1, size 0.5–0.95', () => {
-  assert.deepEqual(cleanFrameStage(), { enabled: false, style: 'gold', pop: .4, size: .78, tilt: 'none', tiltAmount: .5, personMove: 'pop', solidX: 0, solidY: 0 });
-  assert.deepEqual(cleanFrameStage({ enabled: 'yes', style: 'neon', pop: 3, size: .1, tilt: 'spin', tiltAmount: 9 }), { enabled: false, style: 'gold', pop: 1, size: .5, tilt: 'none', tiltAmount: 1, personMove: 'pop', solidX: 0, solidY: 0 });
-  assert.deepEqual(cleanFrameStage({ enabled: true, style: 'wood', pop: .25, size: .9, tilt: 'orbit', tiltAmount: .3, personMove: 'nudge', solidX: .6, solidY: -2 }), { enabled: true, style: 'wood', pop: .25, size: .9, tilt: 'orbit', tiltAmount: .3, personMove: 'nudge', solidX: .6, solidY: -1 });
-  assert.deepEqual(FRAME_STYLES.map(([id]) => id), ['gold', 'wood', 'black', 'white']);
+  assert.deepEqual(cleanFrameStage(), { enabled: false, style: 'gold', color: '', deco: 'none', pop: .4, size: .78, tilt: 'none', tiltAmount: .5, personMove: 'pop', solidX: 0, solidY: 0 });
+  assert.deepEqual(cleanFrameStage({ enabled: 'yes', style: 'velvet', color: 'red', deco: 'snow', pop: 3, size: .1, tilt: 'spin', tiltAmount: 9 }), { enabled: false, style: 'gold', color: '', deco: 'none', pop: 1, size: .5, tilt: 'none', tiltAmount: 1, personMove: 'pop', solidX: 0, solidY: 0 });
+  assert.deepEqual(cleanFrameStage({ enabled: true, style: 'wood', pop: .25, size: .9, tilt: 'orbit', tiltAmount: .3, personMove: 'nudge', solidX: .6, solidY: -2 }), { enabled: true, style: 'wood', color: '', deco: 'none', pop: .25, size: .9, tilt: 'orbit', tiltAmount: .3, personMove: 'nudge', solidX: .6, solidY: -1 });
+  assert.deepEqual(cleanFrameStage({ style: 'neon', color: '#AB12CD', deco: 'petals' }).style, 'neon');
+  assert.deepEqual([cleanFrameStage({ color: '#AB12CD' }).color, cleanFrameStage({ deco: 'petals' }).deco], ['#ab12cd', 'petals'], 'a frame colour (lower case) and a decoration are kept');
+  assert.deepEqual(FRAME_STYLES.map(([id]) => id), ['gold', 'wood', 'black', 'white', 'baroque', 'neon', 'bulbs', 'polaroid', 'film']);
 });
 
 test('the whole frame fits the view at the chosen size', () => {
@@ -77,4 +79,23 @@ test('the solid moves aside only as it forms, up to half the picture', () => {
   assert.ok(solidShift(.8, -.5, 6, 4, 0).every(v => v === 0), 'not moved while the picture is whole');
   assert.deepEqual(solidShift(1, -1, 6, 4, 1), [3, -2, 0]);
   assert.deepEqual(solidShift(.5, 0, 6, 4, .5), [.75, 0, 0]);
+});
+
+test('the new frames: every style has its own colour, the moving ones go round, decorations are known', () => {
+  for (const [id] of FRAME_STYLES) { assert.match(FRAME_COLORS[id], /^#[0-9a-f]{6}$/, id); assert.ok(borderOf(id, 6.5, 3.65) > 0, id); }
+  assert.deepEqual(FRAME_DECOS.map(([id]) => id), ['none', 'flowers', 'tape', 'sparkle', 'petals']);
+  for (const d of MOVING_DECOS) assert.ok(FRAME_DECOS.some(([id]) => id === d));
+  assert.deepEqual(MUSEUM_STYLES, ['gold', 'wood', 'black', 'white'], 'the museum walk keeps its four frames (saved works look the same)');
+  for (const s of MUSEUM_STYLES) assert.ok(FRAME_STYLES.some(([id]) => id === s));
+  // the bulbs: three steps that go round six times a second, so a 10 s clip ends on the step it began with
+  assert.deepEqual([0, .17, .34, .5].map(t => framePhase('bulbs', t)), [0, 1, 2, 0]);
+  assert.equal(framePhase('bulbs', 10), framePhase('bulbs', 0));
+  const seen = new Set(); for (let t = 0; t < 10; t += 1 / 30) seen.add(framePhase('bulbs', t)); assert.deepEqual([...seen].sort(), [0, 1, 2]);
+  // the neon: on, with a short flicker now and then (dark less than a fifth of the time, but at least once in 10 s)
+  let dark = 0; for (let t = 0; t < 10; t += 1 / 30) dark += framePhase('neon', t); assert.ok(dark > 0 && dark < 300 * .2, `neon dark in ${dark} of 300 frames`);
+  assert.equal(framePhase('neon', 3.21), framePhase('neon', 3.21), 'the same time, the same flicker');
+  for (const s of ['gold', 'polaroid', 'film']) assert.equal(framePhase(s, 4.2), 0);
+  assert.equal(FRAME_PHASES.bulbs, 3); assert.equal(FRAME_PHASES.neon, 2);
+  assert.equal(framePhase('bulbs', NaN), 0);
+  const t = toneOf('#336699'); assert.equal(t.base, '#336699'); for (const k of ['light', 'dark', 'lip']) assert.match(t[k], /^rgb\(\d+,\d+,\d+\)$/);
 });

@@ -7,7 +7,7 @@ const on = patch => cleanBackText({ ...BACK_DEFAULT, enabled: true, ...patch });
 test('the settings are cleaned: unknown values fall back, numbers stay in range', () => {
   assert.deepEqual(cleanBackText(), { ...BACK_DEFAULT });
   assert.deepEqual(cleanBackText(null), { ...BACK_DEFAULT });
-  const c = cleanBackText({ enabled: 'yes', mode: 'spiral', trans: 'boom', font: 'comic', fill: 'gold', when: 'never', dir: 'up', hold: 99, speed: -3, size: 0, stretch: 7, y: 2, depth: 'x', backAlpha: 5, color: 'red', back: '#12345', accent: '#ABCDEF', text: 12 });
+  const c = cleanBackText({ enabled: 'yes', mode: 'spiral', trans: 'boom', font: 'comic', fill: 'plaid', when: 'never', dir: 'up', hold: 99, speed: -3, size: 0, stretch: 7, y: 2, depth: 'x', backAlpha: 5, color: 'red', back: '#12345', accent: '#ABCDEF', text: 12 });
   assert.equal(c.enabled, false, 'only true turns it on'); assert.equal(cleanBackText({ still: 1 }).still, false); assert.equal(cleanBackText({ still: true }).still, true);
   assert.deepEqual([c.mode, c.trans, c.font, c.fill, c.when, c.dir], [BACK_DEFAULT.mode, BACK_DEFAULT.trans, BACK_DEFAULT.font, BACK_DEFAULT.fill, BACK_DEFAULT.when, 'left']);
   assert.deepEqual([c.hold, c.speed, c.size, c.stretch, c.y, c.depth, c.backAlpha], [3, .02, .2, 1, .5, 0, 1]);
@@ -117,4 +117,72 @@ test('奥行きの動き: the letters go from the far side to the front and back
   const left = backDepthAt(cleanBackText({ mode: 'flow', depthMove: 'place', depthPlace: .2 }), 0, 10), leftAt = x => left.base + left.arch * backBump(x - left.centre);
   assert.ok(Math.abs(leftAt(.2) - BACK_DEPTH.hi) < 1e-9 && Math.abs(leftAt(.7) - BACK_DEPTH.lo) < 1e-9 && leftAt(.9) === leftAt(.7) && leftAt(0) > leftAt(.6), 'the place can be moved: in front there, far half a picture away and beyond');
   assert.equal(backDepthAt(cleanBackText({ mode: 'ring', depthMove: 'time' }), 3, 10), null, 'a ring has its own far and near side');
+});
+
+test('2026-11-17: the six new motions, the new surfaces and the colour sets are known and kept', async () => {
+  const m = await import('../../app/back-text.js');
+  for (const mode of ['vflow', 'tape', 'fly', 'wave', 'drop', 'gather']) { assert.ok(m.BACK_MODES[mode], mode); assert.equal(cleanBackText({ mode }).mode, mode); }
+  for (const mode of Object.keys(m.BACK_MODES)) assert.ok(m.BACK_WORD_MODES.includes(mode) !== m.BACK_FLOW_MODES.includes(mode), `${mode} is either one word at a time or flowing`);
+  for (const fill of ['gradient', 'neon', 'rainbow', 'gold', 'colorful']) { assert.ok(m.BACK_FILLS[fill], fill); assert.equal(cleanBackText({ fill }).fill, fill); }
+  assert.equal(cleanBackText().fill, 'solid');
+  for (const [id, p] of Object.entries(m.BACK_PALETTES)) {
+    for (const k of ['color', 'back', 'accent']) assert.match(p[k], /^#[0-9a-f]{6}$/, `${id}.${k}`);
+    assert.equal(m.backPaletteOf(cleanBackText({ color: p.color, back: p.back, accent: p.accent })), id);
+  }
+  assert.equal(m.backPaletteOf(cleanBackText()), 'cream', 'the first colours are a colour set');
+  assert.equal(m.backPaletteOf(cleanBackText({ color: '#123456' })), '', 'colours of your own are not a set');
+});
+
+test('the colour helpers: hue turns, brightness, the readable ink, a colour per word', async () => {
+  const m = await import('../../app/back-text.js');
+  assert.equal(m.hueTurn('#ff0000', 120), '#00ff00'); assert.equal(m.hueTurn('#ff0000', 240), '#0000ff'); assert.equal(m.hueTurn('#ff0000', 360), '#ff0000');
+  assert.equal(m.hueTurn('#808080', 90), '#808080', 'a grey has no hue to turn');
+  assert.ok(Math.abs(m.luminance('#ffffff') - 1) < 1e-9 && m.luminance('#000000') === 0);
+  assert.equal(m.inkOn('#ffd400', '#ffd400', '#111111'), '#111111', 'yellow tape: black letters');
+  assert.equal(m.inkOn('#111111', '#ffd400', '#000000'), '#ffd400');
+  const s = cleanBackText({ color: '#ffffff', accent: '#ff0000' });
+  assert.deepEqual([0, 1, 2, 3, 4, -1].map(i => m.wordColour(s, i)), ['#ffffff', '#ff0000', '#00ff00', '#0000ff', '#ffffff', '#0000ff']);
+});
+
+test('奥から迫ってくる: words leave one after another, 2–3 in the air, and the clip ends where it began', async () => {
+  const m = await import('../../app/back-text.js');
+  const s = cleanBackText({ mode: 'fly', text: 'A\nB\nC', hold: .6 }), D = 10;
+  const a = m.flyFlights(s, 0, D), b = m.flyFlights(s, D, D);
+  assert.deepEqual(a.map(f => [f.k, f.i, +f.u.toFixed(9)]), b.map(f => [f.k, f.i, +f.u.toFixed(9)]), 'the last frame is the first frame (the same words, flying the same way)');
+  for (let t = 0; t <= D; t += .37) {
+    const fl = m.flyFlights(s, t, D);
+    assert.ok(fl.length >= 2 && fl.length <= 3, `${fl.length} words in the air at ${t}`);
+    for (let i = 1; i < fl.length; i++) assert.ok(fl[i].u >= fl[i - 1].u, 'far words first');
+    for (const f of fl) assert.ok(f.u >= 0 && f.u < 1 && f.i >= 0 && f.i < 3);
+  }
+  const earlier = m.flyFlights(s, 2, D), later = m.flyFlights(s, 2.03, D); for (const f of earlier) { const g = later.find(x => x.k === f.k); if (g) assert.ok(g.u > f.u, 'each word comes closer'); }
+  assert.ok(m.flyLook(0).scale < .2 && m.flyLook(1).scale > 3 && m.flyLook(.5).scale > .6, 'small far away, large close by, already large half way');
+  assert.equal(m.flyLook(0).alpha, 0); assert.equal(m.flyLook(1).alpha, 0); assert.equal(m.flyLook(.5).alpha, 1);
+  assert.deepEqual(m.flyFlights(cleanBackText({ mode: 'fly', text: '' }), 1, D), []);
+  assert.deepEqual(m.flyFlights(s, 1, 0), []);
+  const change = cleanBackText({ mode: 'fly', text: 'A', when: 'change' });
+  assert.deepEqual(m.flyFlights(change, .1, D), [], 'before the change begins, nothing');
+});
+
+test('落ちて積もる・散らばって集まる: each word starts and ends empty, and is whole in the middle', async () => {
+  const m = await import('../../app/back-text.js');
+  for (const mlen of [1, 4, 9]) for (let j = 0; j < mlen; j++) {
+    assert.equal(m.dropPose(j, mlen, 0, 3), null, 'nothing has fallen yet');
+    const mid = m.dropPose(j, mlen, .65, 3); assert.ok(mid && Math.abs(mid.dy) < 1e-9 && Math.abs(mid.rot) < 1e-9, `letter ${j} of ${mlen} has landed`);
+    const end = m.dropPose(j, mlen, 1, 3); assert.ok(end.dy > 1.2, 'and fallen out at the end');
+    const g0 = m.gatherPose(j, mlen, 0, 3); assert.ok(g0 === null || g0.alpha === 0);
+    const gm = m.gatherPose(j, mlen, .65, 3); assert.ok(Math.abs(gm.dx) < 1e-9 && Math.abs(gm.dy) < 1e-9 && Math.abs(gm.rot) < 1e-9 && Math.abs(gm.scale - 1) < 1e-9 && gm.alpha === 1, `letter ${j} of ${mlen} is in place`);
+    assert.equal(m.gatherPose(j, mlen, 1, 3).alpha, 0, 'and gone at the end');
+  }
+  const first = m.dropPose(0, 5, .2, 0), last = m.dropPose(4, 5, .2, 0); assert.ok(first && last === null, 'the left letter falls first');
+  assert.ok(m.dropPose(2, 5, .3, 0).dy < 0, 'falling from above');
+  assert.ok(m.bounceOut(0) === 0 && Math.abs(m.bounceOut(1) - 1) < 1e-9 && m.bounceOut(.8) > .9);
+  const slot = m.backSlot(cleanBackText({ text: 'A\nB', hold: 1 }), 2.5, 10); assert.ok(Math.abs(slot.u - .5) < 1e-9, 'the slot says how far into the word it is');
+});
+
+test('波打つ: the wave goes round a whole number of times', async () => {
+  const m = await import('../../app/back-text.js');
+  for (const D of [4, 10, 12.5]) { const p = m.wavePhase(D, D) / (2 * Math.PI); assert.ok(Math.abs(p - Math.round(p)) < 1e-9 && p >= 1, `${D} s`); }
+  assert.equal(m.wavePhase(0, 10), 0); assert.equal(m.wavePhase(5, 0), 0);
+  assert.equal(m.TAPES.length, 2);
 });
