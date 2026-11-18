@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createReliefShape, setReliefAmount, cleanReliefAmount, reliefGrid, openHeights, reliefSwing, reliefTilt, RELIEF } from '../../app/relief-shape.js';
+import { createReliefShape, setReliefAmount, cleanReliefAmount, reliefGrid, openHeights, reliefSwing, reliefTilt, RELIEF, PERSON, personHeights, insideDistance, fillOutside } from '../../app/relief-shape.js';
 import { normalizeField, blurField, sampleField } from '../../app/depth-auto/depth-field.js';
 
 // a 64×36 picture: far (0) everywhere, with a near (1) round "person" in the middle and a gentle slope on the left third
@@ -127,4 +127,42 @@ test('the tilt nods up and down in the same time, a quarter turn behind the swin
   assert.equal(reliefTilt(.60, NaN), 0, 'a bad number counts as off');
   // together the two make a closed loop: going round once ends where it began (both back at rest)
   assert.ok(Math.abs(reliefSwing(.47, 1)) < .02 && Math.abs(reliefTilt(.47, 1)) < .02 && Math.abs(reliefSwing(.73, 1)) < .02 && Math.abs(reliefTilt(.73, 1)) < .02, 'it starts and ends at rest (under about 1 degree just inside the window)');
+});
+
+// 人物だけを立体にする: an elliptic "person" in a 60×40 picture, her depth a little higher in the middle, the background far
+function personPicture() {
+  const w = 60, h = 40, data = new Float32Array(w * h), mask = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const e = Math.hypot((x - 30) / 12, (y - 20) / 15); mask[y * w + x] = e < 1 ? 1 : 0; data[y * w + x] = e < 1 ? .6 + .2 * (1 - e) : .1; }
+  return { w, h, data, mask };
+}
+test('distance inside, and filling the outside from the nearest inside value', () => {
+  const w = 7, h = 1, inside = Uint8Array.from([0, 1, 1, 1, 1, 1, 0]), d = insideDistance(inside, w, h);
+  assert.deepEqual([...d].map(v => Math.round(v)), [0, 1, 2, 3, 2, 1, 0]);
+  assert.deepEqual([...fillOutside(Float32Array.from([9, 1, 2, 3, 4, 5, 9]), inside, w, h)], [1, 1, 2, 3, 4, 5, 5]);
+  assert.deepEqual([...insideDistance(Uint8Array.from([1, 1, 1, 0]), 4, 1)].map(v => Math.round(v)), [3, 2, 1, 0], 'the picture edge is not a silhouette (a body cut by the frame stays thick there)');
+  assert.ok(insideDistance(Uint8Array.from([1, 1]), 2, 1).every(Number.isFinite), 'no outside at all: still finite');
+});
+test('the person heights: a thick rounded edge, higher inside; puff 0 = her depth only, 1 = only the rounded shape', () => {
+  const w = 21, h = 1, inside = new Uint8Array(w), depth = new Float32Array(w);
+  for (let x = 3; x <= 17; x++) { inside[x] = 1; depth[x] = x / 20; }
+  const round = personHeights(depth, inside, w, h, 1), flat = personHeights(depth, inside, w, h, 0), mid = personHeights(depth, inside, w, h, .5);
+  assert.ok(round[3] >= PERSON.BASE - 1e-6 && round[3] < .75 && round[10] > .99, `edge ${round[3].toFixed(2)} (thick), middle ${round[10].toFixed(2)}`);
+  assert.ok(Math.abs(round[4] - round[16]) < 1e-6, 'the rounded shape is symmetric');
+  assert.ok(flat[17] > flat[3] && flat[3] < .1 && flat[17] > .9, 'puff 0 follows her depth, stretched to 0–1 inside her');
+  assert.ok(Math.abs(mid[10] - (round[10] + flat[10]) / 2) < 1e-6, 'puff mixes the two');
+  assert.equal(round[0], round[3], 'outside: the nearest inside value (no stretched triangles across the silhouette)');
+  assert.equal(personHeights(depth, new Uint8Array(w), w, h).every(v => v === 0), true, 'nobody: all zero');
+});
+test('with a mask the relief covers only the person, finer, and stands in front of the picture', () => {
+  const { w, h, data, mask } = personPicture(), place = { x: -1.5, y: 1, w: 3, h: 2 };
+  const full = createReliefShape({ w, h, data }, place), per = createReliefShape({ w, h, data }, place, { mask: { w, h, data: mask }, puff: .5 });
+  assert.equal(full.relief.person, false); assert.equal(per.relief.person, true); assert.equal(per.relief.puff, .5);
+  assert.ok(per.relief.cols > full.relief.cols, 'a finer grid, since only the person is kept');
+  assert.ok(per.relief.cells < full.relief.cells && per.relief.cells > 15000, `${per.relief.cells} cells only inside her`);
+  const t = per.target; let xmin = Infinity, xmax = -Infinity, zmin = Infinity;
+  for (let i = 0; i < t.length; i += 3) { xmin = Math.min(xmin, t[i]); xmax = Math.max(xmax, t[i]); zmin = Math.min(zmin, t[i + 2]); }
+  const halfW = 12 / 60 * 3; assert.ok(Math.abs(xmin + halfW) < .06 && Math.abs(xmax - halfW) < .06, `x from ${xmin.toFixed(2)} to ${xmax.toFixed(2)}: her width, not the picture's`);
+  assert.ok(zmin > 0, 'even her edge stands a little in front of the picture plane');
+  assert.throws(() => createReliefShape({ w, h, data }, place, { mask: { w, h, data: new Float32Array(w * h) } }), /人物の形/);
+  assert.equal(setReliefAmount(per, 1.5), true, 'the amount slider still works');
 });

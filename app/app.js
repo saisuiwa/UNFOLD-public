@@ -11,7 +11,7 @@ import { alignCutout } from './cutout-align.js?v=1';
 import { BACKDROPS, VERTIGOS, cleanSolidStage, createSolidStage, vertigoAt } from './solid-stage.js?v=3';
 import { cleanToon, applyToon, lineAt, createOutline } from './toon-look.js?v=1';
 import { BACK_MODES, BACK_TRANS, BACK_FILLS, BACK_FONTS, BACK_WHEN, BACK_DEPTH_MOVES, BACK_DEPTH, cleanBackText, createBackText, backFontCSS, backWords, backDepthAt, BACK_PALETTES, BACK_WORD_MODES, BACK_FLOW_MODES, backPaletteOf } from './back-text.js?v=4';
-import { createReliefShape, setReliefAmount, cleanReliefAmount, reliefSwing, reliefTilt } from './relief-shape.js?v=1';
+import { createReliefShape, setReliefAmount, cleanReliefAmount, reliefSwing, reliefTilt } from './relief-shape.js?v=2';
 import { makeDepth, depthModelCached } from './depth-auto/depth-make.js?v=1';
 import { DEPTH } from './depth-auto/depth-model.js?v=1';
 import { cleanDepthCut, createDepthCutter } from './depth-cutout.js?v=2';
@@ -128,7 +128,7 @@ function render(){
  // 額縁から飛び出す: the frame stays where it is and the solid grows past it as it forms; the cut-out person steps out as the picture breaks
  /* 人物のほうを立体にする: the roles are swapped — the cut-out person is the picture that breaks up and becomes the solid, the picture without her stays behind as it is.
     Without a frame the camera stays (the background fills the view), so her solid is made a little smaller than the picture's height */
- const swap=personSwap(imageCode);if(swap&&!state.frameStage.enabled){const fit=1-.22*m.form;mesh.scale.multiplyScalar(fit);mesh.position.multiplyScalar(fit)}
+ const swap=personSwap(imageCode);if(swap&&!state.frameStage.enabled&&!(state.shape===RELIEF_ID&&customShapes.get(RELIEF_ID)?.data.relief?.person)){const fit=1-.22*m.form;mesh.scale.multiplyScalar(fit);mesh.position.multiplyScalar(fit)}
  const framed=state.frameStage.enabled,pop=framed?solidPop(state.frameStage.pop,m.form):1;if(pop!==1){mesh.scale.multiplyScalar(pop);mesh.position.multiplyScalar(pop)}
  const shift=framed?solidShift(state.frameStage.solidX,state.frameStage.solidY,u.uSize.value.x,u.uSize.value.y,m.form):[0,0,0],shifted=shift[0]!==0||shift[1]!==0;if(shifted){mesh.position.x+=shift[0];mesh.position.y+=shift[1]}
  const outNow=personOut(m.distort,m.form),tiltNow=framed&&state.frameStage.tilt!=='none'?tiltAt(state.frameStage.tilt,state.frameStage.tiltAmount,state.t*state.duration,outNow):{yaw:0,pitch:0};
@@ -340,11 +340,39 @@ async function addSilhouette(){
  catch(e){notice(e.message||'シルエットを作れませんでした。')}
 }
 // 写真の浮き彫り (relief-shape.js): the picture's depth (made in this browser by depth-auto/) becomes a solid where the near things come forward. One per picture
-const RELIEF_ID='relief';let reliefJob=null,reliefDepth=null,reliefHost=null;state.reliefSwing=.6;state.reliefTilt=.5;
+const RELIEF_ID='relief';let reliefJob=null,reliefDepth=null,reliefHost=null,reliefPersonFrame=0;state.reliefSwing=.6;state.reliefTilt=.5;state.reliefPerson=false;state.reliefPuff=.5;let reliefSwapped=false,reliefCut=null;   /* what 人物だけ turned on by itself (the role swap, a cut-out made from the depth) goes off with it */
 function dropRelief(){   // the picture changed: its depth and its relief solid no longer fit
  reliefJob?.cancel();reliefDepth=null;
  if(customShapes.has(RELIEF_ID)){if(state.shape===RELIEF_ID)setChoice('shapes','shape','sphere');customShapes.delete(RELIEF_ID);[...$('imported-shapes').children].find(b=>b.dataset.shape===RELIEF_ID)?.remove();refreshShapeFilter()}
  $('relief-body').hidden=true;
+}
+// 人物だけを立体にする (relief-shape.js mask): the cut-out's alpha as a field for the relief (long side 512)
+function cutoutField(){
+ const cut=frameStage?.cutout;if(!cut)return null;
+ const k=Math.min(1,512/Math.max(cut.width,cut.height)),w=Math.max(2,Math.round(cut.width*k)),h=Math.max(2,Math.round(cut.height*k)),c=document.createElement('canvas');c.width=w;c.height=h;
+ const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(cut,0,0,w,h);const d=x.getImageData(0,0,w,h).data,data=new Float32Array(w*h);for(let i=0;i<w*h;i++)data[i]=d[i*4+3]/255;
+ return {w,h,data};
+}
+// the relief's shape: the whole picture, or (人物だけ) the person's shape, which needs a cut-out (made from the depth when there is none) and swaps the roles (人物のほうを立体にする)
+function buildRelief(field){
+ const {x:w,y:h}=mesh.material.uniforms.uSize.value,amount=cleanReliefAmount(Number($('relief-amount').value)/100);
+ if(state.reliefPerson){
+  if(!frameStage?.hasCutout){depthCutter=createDepthCutter(sourceCanvas,field);applyDepthCut();reliefCut=frameStage.cutout}   /* no cut-out yet: make one from the depth */
+  if(!state.personSolid){window.unfold.setPersonSolid(true);reliefSwapped=true}
+ }else{if(reliefSwapped){reliefSwapped=false;window.unfold.setPersonSolid(false)}if(reliefCut&&frameStage?.cutout===reliefCut){$('frame-cutout-remove').click()}reliefCut=null}
+ reliefBuilding=true;queueMicrotask(()=>{reliefBuilding=false});const mask=state.reliefPerson?cutoutField():null;
+ return createReliefShape(field,{x:-w/2,y:h/2,w,h},{amount,mask,puff:state.reliefPuff});
+}
+function syncReliefPerson(){$('relief-person').checked=state.reliefPerson;$('relief-puff-row').hidden=!state.reliefPerson;$('relief-puff').value=Math.round(state.reliefPuff*100);$('relief-puff-value').textContent=Math.round(state.reliefPuff*100)+'%'}
+// remake the relief shape in place (人物だけ on/off, ふくらみ, a new cut-out) — only when one exists
+function remakeRelief(){
+ if(!customShapes.has(RELIEF_ID)||reliefDepth?.canvas!==sourceCanvas||state.recording)return;
+ try{
+  const data=buildRelief(reliefDepth.field),was=state.shape===RELIEF_ID;customShapes.get(RELIEF_ID).data=data;
+  if(was){setChoice('shapes','shape','sphere');setChoice('shapes','shape',RELIEF_ID)}
+  $('model-status').textContent=data.relief.person?`人物の形で浮き彫りを作りました（ふくらみ ${Math.round(state.reliefPuff*100)}%）。背景はその場に残ります。`:'写真の浮き彫りを、絵ぜんぶで作り直しました。';
+  render();
+ }catch(e){notice(e.message||'浮き彫りを作れませんでした。')}
 }
 async function addRelief(){
  if(importing||state.recording||!sourceCanvas)return;
@@ -367,12 +395,11 @@ async function addRelief(){
   reliefDepth={canvas:picture,field};
  }
  try{
-  const amount=cleanReliefAmount(Number($('relief-amount').value)/100);
-  const data=createReliefShape(field,{x:-w/2,y:h/2,w,h},{amount});
+  const data=buildRelief(field);
   if(customShapes.has(RELIEF_ID)){customShapes.delete(RELIEF_ID);[...$('imported-shapes').children].find(b=>b.dataset.shape===RELIEF_ID)?.remove()}
   const wasOff=!state.imageSolid;if(wasOff){state.imageSolid=true;syncImageControls()}   // asking for a relief is asking for the solid: with 「立体化する」 off the picture would stay crumbled and the relief would never show
   addCustomShape('写真の浮き彫り',data,'text',RELIEF_ID);
-  $('relief-body').hidden=false;say('写真の浮き彫りを作りました。立体になる所で、手前の物が前へ出ます。「浮き出る量」で強さを変えられます。'+(wasOff?'（「立体化する」をオンにしました）':''));
+  $('relief-body').hidden=false;syncReliefPerson();say((data.relief.person?'人物の形で浮き彫りを作りました。背景はその場に残ります。':'写真の浮き彫りを作りました。立体になる所で、手前の物が前へ出ます。「浮き出る量」で強さを変えられます。')+(wasOff?'（「立体化する」をオンにしました）':''));
  }catch(e){notice(e.message||'浮き彫りを作れませんでした。');say('浮き彫りを作れませんでした。')}
 }
 async function loadModel(file){
@@ -418,7 +445,7 @@ async function loadImage(file,{ask=false}={}){
  }catch{notice('画像を読み込めませんでした。別のPNG・JPG・WebPを試してね。')}finally{URL.revokeObjectURL(url);$('image-input').value=''}
 }
 // 額縁から飛び出す: settings, and the cut-out person (a transparent PNG cut from this picture), placed where it sits on the picture
-let syncBackText=null,syncDepthCut=null,depthCutter=null,depthCutJob=null,cutFromDepth=false,depthCutFrame=0;
+let reliefBuilding=false,syncBackText=null,syncDepthCut=null,depthCutter=null,depthCutJob=null,cutFromDepth=false,depthCutFrame=0;
 function setBackText(patch){if(state.recording){syncBackText?.();return}state.backText=cleanBackText({...state.backText,...patch});saveBackText();syncBackText?.();prepareBackFont();render()}
 function setFrameStage(patch){state.frameStage=cleanFrameStage({...state.frameStage,...patch});frameStage?.setLook(state.frameStage);saveFrameStage();syncFrameControls?.();syncBackText?.();render()}
 const loadDepthCut=()=>{try{return cleanDepthCut(JSON.parse(localStorage.getItem('unfold-single-depthcut')||'null'))}catch{return cleanDepthCut()}};
@@ -439,6 +466,7 @@ async function pictureDepth(say){
  reliefDepth={canvas:picture,field};return field;
 }
 function applyDepthCut(){
+ queueMicrotask(()=>{if(state.reliefPerson&&!reliefBuilding)remakeRelief()});
  if(!depthCutter||!frameStage)return;
  const {canvas,share}=depthCutter.cut(state.depthCut);
  frameStage.setCutout(canvas,sourceCanvas);personX=cutCentre(canvas);cutFromDepth=true;syncFrameControls?.();syncDepthCut?.();syncBackText?.();render();
@@ -462,7 +490,7 @@ async function useCutout(source){
  const d=px.getImageData(0,0,probe.width,probe.height).data;let clear=0;for(let i=3;i<d.length;i+=4)if(d[i]<40)clear++;
  if(clear<d.length/4*.03)throw Error('透明な所がない画像です。人物だけを切り抜いた透過PNGを選んでね。');
  const at=alignCutout(sourceCanvas,img),c=document.createElement('canvas');c.width=sourceCanvas.width;c.height=sourceCanvas.height;c.getContext('2d').drawImage(img,at.x,at.y,img.width/at.s,img.height/at.s);
- frameStage.setCutout(c,sourceCanvas);personX=cutCentre(c);cutFromDepth=false;syncDepthCut?.();
+ frameStage.setCutout(c,sourceCanvas);personX=cutCentre(c);cutFromDepth=false;syncDepthCut?.();if(state.reliefPerson)queueMicrotask(remakeRelief);
  const fits=at.err<30;syncFrameControls?.();syncBackText?.();render();
  $('frame-cutout-status').textContent=fits?(state.frameStage.enabled?'切り抜きを絵の人物の位置に合わせました。絵が崩れはじめると、人物が額縁から出てきます。':'切り抜きを絵の人物の位置に合わせました。人物はその場に残って、まわりの背景だけが崩れます。'):'絵と色が合いませんでした。この絵から切り抜いた物か確かめてね（いちばん近い位置で使っています）。';
  return at;
@@ -521,6 +549,8 @@ function wireControls(){
  for(const key of ['blur','push','shake','chroma','glitch','bloom','neon','glass','scan','grain','vignette','bokeh'])$(`fx-${key}`).oninput=e=>{state[key]=Number(e.target.value)/100;$(`fx-${key}-value`).textContent=e.target.value==='0'?'OFF':e.target.value+'%';render()};
  $('reset-effects').onclick=()=>{for(const key of ['blur','push','shake','chroma','glitch','bloom','neon','glass','scan','grain','vignette','bokeh']){state[key]=0;$(`fx-${key}`).value=0;$(`fx-${key}-value`).textContent='OFF'}render()};
  $('add-text').onclick=addText;$('add-silhouette').onclick=addSilhouette;$('add-relief').onclick=addRelief;
+ $('relief-person').onchange=e=>{if(state.recording){syncReliefPerson();return}state.reliefPerson=e.target.checked;syncReliefPerson();remakeRelief()};
+ $('relief-puff').oninput=e=>{state.reliefPuff=Number(e.target.value)/100;syncReliefPerson();if(!reliefPersonFrame)reliefPersonFrame=requestAnimationFrame(()=>{reliefPersonFrame=0;remakeRelief()})};
  $('relief-swing').oninput=e=>{const v=Number(e.target.value);$('relief-swing-value').textContent=v===0?'OFF':v+'%';state.reliefSwing=v/100;render()};
  $('relief-tilt').oninput=e=>{const v=Number(e.target.value);$('relief-tilt-value').textContent=v===0?'OFF':v+'%';state.reliefTilt=v/100;render()};
  $('relief-amount').oninput=e=>{const v=Number(e.target.value);$('relief-amount-value').textContent=v+'%';const s=customShapes.get(RELIEF_ID);if(!s||state.recording)return;if(setReliefAmount(s.data,v/100)){if(state.shape===RELIEF_ID){const attr=mesh.geometry.getAttribute('targetPosition');if(attr)attr.needsUpdate=true}render()}};
@@ -710,5 +740,5 @@ try{
  frameStage=createFrameStage(THREE);frameStage.setLook(state.frameStage);scene.add(frameStage.back);solidStage=createSolidStage(THREE);scene.add(solidStage.group);outline=createOutline(THREE);scene.add(outline.object);backLayer=createBackLayer();prepareBackFont();
  setSource(makeSample(),'カラーテスト・サンプル');wireControls();loadSavedModels();detectFormats();updateRange();resize();requestAnimationFrame(tick);
  attachWorkshopLink({notify:notice,apply:(item,target,activate)=>{if(state.recording)throw Error('書き出しが終わってから適用してください。');if(item.kind==='text')throw Error('文字モーションはシーケンスの歌詞に使えます。');const method=activate();if(method.code&&item.workshop?.shape==='none')state.imageSolid=false;setChoice('methods','method',method.id);}});
- window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage,setBackText,setPersonSolid:v=>{state.personSolid=!!v;$('person-solid').checked=state.personSolid;$('person-plate').disabled=state.personSolid;syncBackText?.();render()},addDepthCut,depthCutInfo:()=>({fromDepth:cutFromDepth,has:!!frameStage?.hasCutout,settings:{...state.depthCut},running:!!depthCutJob}),setReliefHost:v=>{reliefHost=v||null},setReliefDepth:field=>{reliefDepth=field?{canvas:sourceCanvas,field}:null},reliefInfo:()=>({shape:customShapes.has(RELIEF_ID),depth:!!reliefDepth,amount:customShapes.get(RELIEF_ID)?.data.relief?.amount??null,running:!!reliefJob})};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
+ window.unfold={state,motionAt,setTime,render,loadImage,outputSize,useCutout,setFrameStage,setBackText,setReliefPerson:(on,puff)=>{state.reliefPerson=!!on;if(puff!=null)state.reliefPuff=Math.min(1,Math.max(0,puff));syncReliefPerson();remakeRelief()},setPersonSolid:v=>{state.personSolid=!!v;$('person-solid').checked=state.personSolid;$('person-plate').disabled=state.personSolid;syncBackText?.();render()},addDepthCut,depthCutInfo:()=>({fromDepth:cutFromDepth,has:!!frameStage?.hasCutout,settings:{...state.depthCut},running:!!depthCutJob}),setReliefHost:v=>{reliefHost=v||null},setReliefDepth:field=>{reliefDepth=field?{canvas:sourceCanvas,field}:null},reliefInfo:()=>({shape:customShapes.has(RELIEF_ID),depth:!!reliefDepth,amount:customShapes.get(RELIEF_ID)?.data.relief?.amount??null,person:!!customShapes.get(RELIEF_ID)?.data.relief?.person,cells:customShapes.get(RELIEF_ID)?.data.relief?.cells??null,puff:customShapes.get(RELIEF_ID)?.data.relief?.puff??null,running:!!reliefJob})};window.unfoldMethods={registerCustom,unregisterCustom,setCustomStatus,listCustom,get variants(){return variants},get editor(){return methodEditor},get persistence(){return methodPersistence},get safety(){return safety},get enabler(){return methodEnabler},transfer:{importFile:importMethodFile,importText:importMethodText,download:downloadMethodFile}};
 }catch(e){console.error(e);$('stage-error').hidden=false;$('stage-error').textContent='3D表示を開始できませんでした。WebGL対応のChromeまたはSafariで開いてね。（原因: '+String(e?.message||e).slice(0,160)+'）';$('export').disabled=$('export-top').disabled=true}
