@@ -1,4 +1,4 @@
-import {drawSequenceVisual} from './sequence-renderer.js?v=26';
+import {drawSequenceVisual} from './sequence-renderer.js?v=27';
 import {compileSequenceTiming,evaluateSequenceFrame,sequenceCurves,chaosShift,SOLID_PTS} from './sequence-core.js?v=3';
 import {unstretchSolid} from './solid-length.js?v=2';
 import {attachWorkshopLink} from './workshop-link.js';
@@ -24,6 +24,12 @@ import { orbitCamera, cleanPlate } from './frame-stage.js?v=9';
 import { createDiveStage } from './dive-stage.js?v=1';
 import { alignCutout } from './cutout-align.js?v=1';
 import { createRenderControls } from './render-look-controls.js?v=3';
+import { createReliefShape } from './relief-shape.js?v=2';
+import { makeDepth, depthModelCached } from './depth-auto/depth-make.js?v=1';
+import { DEPTH } from './depth-auto/depth-model.js?v=1';
+import { DEPTH_CUT, createDepthCutter } from './depth-cutout.js?v=2';
+import { personSolidPixels } from './person-solid.js?v=2';
+import { PERSON_SHAPE, PERSON_LABEL, personPuff, canvasField, fieldCanvas, flatField, fieldShare } from './seq-person-relief.js?v=1';
 // UNFOLD SEQUENCE — images unfold into one another: A → crumple → 3D shape → B → … on a beat grid.
 import * as THREE from './vendor/three.module.min.js';
 import { smooth, vertexShader, particleFragment } from './motion.js?v=37';
@@ -59,7 +65,7 @@ import { cleanFx, concealAmount, mixFx, swapCurve } from './fx-mix.js';
 import { CAM_EASES, CAM_PRESETS, CAM_RANGES, camEnds, camLife, camValues, cleanCam, legacyKenBurns, lifeProgress, mixCam } from './camera-work.js?v=1';
 import { openMethodMenu } from './method-menu.js';
 import { methodButtons, syncMethodTiles } from './method-tiles.js';
-import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=13';
+import { registerAsset, imageFromBlob, createHistory, autosave, loadAutosave, clearAutosave, exportFile, importFile, canLinkFile, linkFile, linkedFile, unlinkFile, filePermission, writeLinked } from './project.js?v=14';
 import { cleanFrame, croppedCanvas, framePlacement, needsFrame, describeFrame, frameFromChoice } from './slide-frame.js?v=1';
 import { askSlideFrame } from './slide-frame-dialog.js?v=1';
 
@@ -69,7 +75,8 @@ const BUILTIN = { sphere: '球', torus: 'ドーナツ', helix: 'らせん', mass
   saturn: '土星', mobius: 'メビウスの輪', diamond: 'ダイヤ', flower: '花' };
 const BUILTIN_IDS = Object.fromEntries(Object.keys(BUILTIN).map((k, i) => [k, i]));
 const PRESET_LABELS = { human: '人', pegasus: 'ペガサス', whale: 'クジラ', dragon: '龍', flock: '鳥の群れ', spheres: '球の群れ（16:9）', apple: 'りんご', icecream: 'アイス' };
-const SPECIAL_SHAPES = { text: '立体文字', silB: 'シルエット（次の画像）', silA: 'シルエット（今の画像）', none: '形にしない（崩れるだけ）' };
+const SPECIAL_SHAPES = { text: '立体文字', silB: 'シルエット（次の画像）', silA: 'シルエット（今の画像）', [PERSON_SHAPE]: PERSON_LABEL, none: '形にしない（崩れるだけ）' };
+const PICTURE_SHAPES = ['text', 'silA', 'silB', PERSON_SHAPE];   // shapes made from the words or the pictures themselves: they face the camera and 🎲 keeps them
 const FONT_LABELS = { classic: '英字クラシック', ...Object.fromEntries(Object.entries(FONTS).map(([k, f]) => [k, f.label])) };
 const CANVAS_W = 1920, CANVAS_H = 1080;
 let imageLayers=[],imageInputs=[];
@@ -79,16 +86,17 @@ function normalizeImageTransition(tr){if(imageTransition(tr)){tr.flow='return'}}
 async function prepareImageFrameAt(sec){renderAt(sec);for(let i=0;i<imageInputs.length;i++)if(imageInputs[i])await imageLayerAt(i).prepare(imageInputs[i]);renderAt(sec)}
 const MAX_SAVED_MODELS = 100;   // GLBs kept in this browser (each is a few MB, in IndexedDB)
 const SHAPE_ICONS = { sphere: '◉', torus: '◎', helix: '♧', mass: '✧', cube: '▣', heart: '♡', star: '☆', saturn: '♄', mobius: '∞', diamond: '◇', flower: '✿',
-  human: '♙', pegasus: '♞', whale: '鯨', dragon: '龍', flock: '鳥', spheres: '⁘', apple: '♧', icecream: '▽', text: '字', silB: '◐', silA: '◑' };
+  human: '♙', pegasus: '♞', whale: '鯨', dragon: '龍', flock: '鳥', spheres: '⁘', apple: '♧', icecream: '▽', text: '字', silB: '◐', silA: '◑', [PERSON_SHAPE]: '◓' };
 
 const fragmentShader = `
 uniform sampler2D uImage;
 uniform sampler2D uImageB;
 uniform float uSwap;
+uniform float uWhole;   // 人物の立体: her picture (person-solid.js) comes to show all of its colour as the solid forms (its alpha is her cut-out)
 varying vec2 vUv;
 varying vec3 vPosition;
 varying float vForm;
-vec4 texAt(vec2 uv){return mix(texture2D(uImage,uv),texture2D(uImageB,uv),uSwap);}
+vec4 texAt(vec2 uv){vec4 a=texture2D(uImage,uv);a.a=mix(a.a,1.,uWhole);return mix(a,texture2D(uImageB,uv),uSwap);}
 ${particleFragment}
 void main(){
   vec4 c=particleLook(texAt(vUv));
@@ -176,6 +184,44 @@ function slideCut(s) {
   return s.cutCanvas;
 }
 function slidePlate(s) { const cut = slideCut(s); return cut ? (s.plateCanvas ??= cleanPlate(slideCanvas(s), cut)) : null; }
+// 人物の立体 (seq-person-relief.js): a number for each cut-out / depth picture, so a new one makes a new shape
+const stamps = new WeakMap(); let stampSerial = 0;
+const stampOf = o => (o ? (stamps.get(o) ?? (stamps.set(o, ++stampSerial), stampSerial)) : 0);
+// the slide's depth (s.depth: a grey picture of the slide's own picture, white = near), fitted to the frame like the picture itself
+function slideDepthField(s) { return s?.depth && !s.lyric ? canvasField(fitCanvas(s.depth, '#000', s.frame), 0) : null; }
+// the person's shape on this slide (relief-shape.js with the cut-out as the mask): the whole frame is the picture, so the solid sits exactly on her
+function personReliefShape(s, tr) {
+  const cut = slideCut(s); if (!cut) throw new Error('前の画像に、人物の切り抜きがありません。');
+  const mask = canvasField(cut, 3); if (fieldShare(mask) < .002) throw new Error('人物の切り抜きが空です。');
+  const depth = slideDepthField(s);
+  return createReliefShape(depth || flatField(), { x: -planeW / 2, y: planeH / 2, w: planeW, h: planeH }, { mask, puff: personPuff(tr, !!depth) });
+}
+// the picture made of her alone (person-solid.js: her pattern fills the rest, the alpha is her cut-out), as a texture: kept with the slide's cut-out canvas
+function personTexture(s) {
+  const cut = slideCut(s); if (!cut) return null;
+  if (s.personTex?.of !== cut) {
+    s.personTex?.texture?.dispose(); const px = personSolidPixels(cut);
+    const t = px && new THREE.DataTexture(px.data, px.width, px.height, THREE.RGBAFormat, THREE.UnsignedByteType);
+    if (t) { t.colorSpace = THREE.SRGBColorSpace; t.minFilter = t.magFilter = THREE.LinearFilter; t.generateMipmaps = false; t.needsUpdate = true; }
+    s.personTex = { of: cut, texture: t || null };
+  }
+  return s.personTex.texture;
+}
+// the picture without her standing still behind, then the next picture over it as the pictures swap (two planes drawn before everything else)
+function createPersonStage() {
+  const plane = order => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: makeTexture(document.createElement('canvas')), transparent: true, depthTest: false, depthWrite: false, toneMapped: false })); m.renderOrder = order; m.visible = false; m.frustumCulled = false; scene.add(m); return m; };
+  const back = plane(-211), next = plane(-210), maps = new Map();
+  const mapOf = canvas => { let t = maps.get(canvas); if (!t) { t = makeTexture(canvas); maps.set(canvas, t); while (maps.size > 6) { const [k, v] = maps.entries().next().value; v.dispose(); maps.delete(k); } } return t; };
+  return {
+    update(on) {
+      back.visible = next.visible = !!on; if (!on) return;
+      for (const m of [back, next]) m.scale.set(planeW, planeH, 1);
+      back.material.map = mapOf(on.plate); next.material.map = mapOf(on.next); next.material.opacity = on.swap; next.visible = on.swap > .001;
+    },
+    get visible() { return back.visible; },
+  };
+}
+let personStage = null;
 function rebuildBackgrounds() { seq.slides.forEach(s => { dropTexture(s); s.thumb = null; }); }   // the small pictures in the timeline are made from the same canvas
 const liveCards = [];   // lyric cards are big: keep only the few near the playhead on the GPU
 function slideCanvas(s) {
@@ -247,7 +293,7 @@ function updateSliderNotes() {
   const grain = $('seq-detail-note'), tile = $('seq-tiles-note');
   if (!grain || !tile) return;
   const items = seq.transitions.slice(0, Math.max(0, seq.slides.length - 1)).map(tr => ({
-    method: tr.method, method2: tr.method2, shapeHasGrain: savedModels.has(tr.shape) || isColourShape(tr.shape) || ['text', 'silA', 'silB'].includes(tr.shape),
+    method: tr.method, method2: tr.method2, shapeHasGrain: savedModels.has(tr.shape) || isColourShape(tr.shape) || PICTURE_SHAPES.includes(tr.shape),
   }));
   const g = grainSequenceNote(items).text, t = tileSequenceNote(items, seq.tiles).text;
   if (g + '\n' + t !== sliderNotes) { sliderNotes = g + '\n' + t; grain.textContent = g; tile.textContent = t; }
@@ -257,7 +303,7 @@ function applyTileSize() {
   const n = tilesAcross(seq.tiles);
   for (const g of geoCache.values()) applyTiles(THREE, g, n);
 }
-const isFlatShape = tr => tr && ['text', 'silA', 'silB'].includes(tr.shape);   // faces the camera: wobble, no full turn
+const isFlatShape = tr => tr && PICTURE_SHAPES.includes(tr.shape);   // faces the camera: wobble, no full turn
 function textFont(tr) {
   const font = tr.font || 'gothic';
   return font === 'classic' && /[^\x20-\x7e]/.test(tr.text || '') ? 'gothic' : font;   // Japanese needs a Japanese font
@@ -266,6 +312,7 @@ function silSlide(tr, i) { return seq.slides[tr.shape === 'silA' ? i : i + 1]; }
 function shapeKey(tr, i) {
   if (tr.shape === 'text') return `text:${textFont(tr)}:${tr.text || 'UNFOLD'}`;
   if (tr.shape === 'silA' || tr.shape === 'silB') return `sil:${silSlide(tr, i)?.id}:${seq.silSens}`;
+  if (tr.shape === PERSON_SHAPE) { const a = seq.slides[i]; return slideCut(a) ? `person:${a.id}:${stampOf(a.cut)}:${stampOf(a.depth)}:${personPuff(tr, !!a.depth).toFixed(2)}` : 'sphere'; }   // no cut-out yet: the sphere grid meanwhile
   if (tr.shape === 'none') return 'sphere';
   if (tr.orderedPicture === true && (savedModels.has(tr.shape) || isColourShape(tr.shape))) return `${tr.shape}:ordered`;   // a GLB with the picture laid on by position
   return tr.shape;
@@ -283,6 +330,10 @@ async function ensureShape(tr, i) {
     const font = textFont(tr), text = tr.text || 'UNFOLD';
     const data = font === 'classic' ? await createTextShape(validateText(text)) : await createMaskTextShape(text, font);
     geoCache.set(key, customGeometry(data));
+  } else if (tr.shape === PERSON_SHAPE) {
+    const a = seq.slides[i];
+    for (const [k, g] of geoCache) if (k.startsWith(`person:${a.id}:`)) { g.dispose(); geoCache.delete(k); }   // the same picture's older person solid (another cut-out, depth or ふくらみ)
+    geoCache.set(key, customGeometry(personReliefShape(a, tr)));
   } else if (tr.shape === 'silA' || tr.shape === 'silB') {
     const slide = silSlide(tr, i);
     if (!slide) return;
@@ -307,7 +358,7 @@ export function shuffleTransitions() {
   seq.transitions.forEach((tr, i) => {
     const prev = seq.transitions[i - 1];
     do { tr.method = pick(BUILTIN_KEYS); } while (prev && tr.method === prev.method);
-    if (!['text', 'silA', 'silB'].includes(tr.shape)) do { tr.shape = pick(shapes); } while (prev && tr.shape === prev.shape);
+    if (!PICTURE_SHAPES.includes(tr.shape)) do { tr.shape = pick(shapes); } while (prev && tr.shape === prev.shape);
     tr.method2 = Math.random() < .45 ? pick(BUILTIN_KEYS.filter(k => k !== tr.method)) : '';
   });
 }
@@ -331,7 +382,7 @@ function setMaterialTextures(a, b) {
 }
 export function renderAt(sec) {
  imageInputs=[];
- const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt,gallery,galleryCamera,diveStage,slideCut,slidePlate,outline,shapeName},sec);
+ const L=drawSequenceVisual({seq,imageInputs,imageLayers,renderer,mesh,backdrop,camera,scene,sceneBlur,geoCache,pending,savedModels,variants,safety,shotQuat,shotAxis,planeW,planeH,backgroundSeconds,locate,shapeKey,safeEnsure,renderAt,setMaterialTextures,slideTexture,slideCanvas,isFlatShape,ownCamera,kenBurns,perspective,beatSec,imageLayerAt,gallery,galleryCamera,diveStage,slideCut,slidePlate,outline,shapeName,personStage,personTexture},sec);
  drawLyrics(sec);if(!seq.recording)updateTransport(sec,L||{i:-1,tr:-1,u:0});
 }
 const FX_KEYS = ['blur', 'bloom', 'neon', 'glass', 'chroma', 'glitch', 'scan', 'grain', 'vignette', 'bokeh'];
@@ -1082,7 +1133,7 @@ function inspectSlide(box, title, i, s) {
     // 人物の切り抜き: for 絵の中へ飛び込む (the camera passes beside the person)
     const cutRow = document.createElement('div'); cutRow.className = 'row wrap'; cutRow.dataset.role = 'slide-cut';
     const add = document.createElement('button'); add.className = 'btn'; add.textContent = s.cut ? '人物の切り抜きを入れ替える' : '＋ 人物の切り抜きを入れる（透過PNG）';
-    add.title = 'この画像から人物だけを切り抜いた透過PNGを入れると、◆の流れ方「絵の中へ飛び込む」で、カメラが人物の横をすり抜けます。位置は自動で合わせます';
+    add.title = 'この画像から人物だけを切り抜いた透過PNGを入れると、◆の流れ方「絵の中へ飛び込む」で、カメラが人物の横をすり抜けます。◆の形「人物の立体」では、人物だけが立体になります。位置は自動で合わせます';
     const pickCut = document.createElement('input'); pickCut.type = 'file'; pickCut.accept = 'image/png,image/webp'; pickCut.hidden = true;
     add.onclick = () => pickCut.click();
     pickCut.onchange = async () => { const f = pickCut.files[0]; pickCut.value = ''; if (f) await setSlideCut(i, f); };
@@ -1163,8 +1214,8 @@ function inspectTransition(box, title, i, tr) {
         const nm = document.createElement('b'); nm.textContent = label; paintColourLabel(ic, k); paintColourLabel(nm, k);
         b.title = `${label}（色つき）`; b.append(ic, nm); b.onclick = () => edit(() => { tr.shape = k; }); grid.append(b); continue;
       }
-      b.append(ic, label.replace(/^GLB：/, '').replace('シルエット（次の画像）', 'シルエット次').replace('シルエット（今の画像）', 'シルエット今'));
-      b.onclick = () => edit(() => { tr.shape = k; if (k === 'text' && !tr.text) tr.text = '幻想'; });
+      b.append(ic, label.replace(/^GLB：/, '').replace('シルエット（次の画像）', 'シルエット次').replace('シルエット（今の画像）', 'シルエット今').replace(PERSON_LABEL, '人物の立体'));
+      b.onclick = () => edit(() => { const was = tr.shape; tr.shape = k; if (k === 'text' && !tr.text) tr.text = '幻想'; if (k === PERSON_SHAPE && was !== k) tr.lateSwap = true; });   // her solid stays her own picture until it comes apart (the box 「立体は前の画像のまま」 can turn it off)
       grid.append(b);
     }
     const lab = document.createElement('div'); lab.className = 'hint'; lab.textContent = '形';
@@ -1182,6 +1233,7 @@ function inspectTransition(box, title, i, tr) {
       const fo = selectOf(Object.entries(FONT_LABELS), tr.font || 'gothic');
       field(box, '書体', fo).onchange = () => edit(() => { tr.font = fo.value; });
     }
+    if (tr.shape === PERSON_SHAPE) personSection(box, tr, i);
     for (const [axis, label, limit] of [['viewY', '横向き', 180], ['viewX', '縦向き', 90]]) {
       const slider = document.createElement('input');
       slider.type = 'range'; slider.min = -limit; slider.max = limit; slider.step = 1;
@@ -1233,7 +1285,7 @@ function inspectLyric(box, title, i, l) {
 function snapshot() {
   return {
     lyricDocument:seq.lyricDocument&&structuredClone(seq.lyricDocument),lyricMotion:{...seq.lyricMotion},audioBlob:seq.audioBlob,audioOwner:seq.audioOwner,audioName:seq.audioName,audioBuffer:seq.audioBuffer,
-    slides: seq.slides.map(s => ({ id: s.id, name: s.name, img: s.img, cut: s.cut, frame: s.frame && structuredClone(s.frame), lyric: s.lyric && { ...s.lyric }, hold: s.hold, thumb: s.thumb, fx: s.fx && { ...s.fx }, cam: s.cam && structuredClone(s.cam) })),
+    slides: seq.slides.map(s => ({ id: s.id, name: s.name, img: s.img, cut: s.cut, depth: s.depth, frame: s.frame && structuredClone(s.frame), lyric: s.lyric && { ...s.lyric }, hold: s.hold, thumb: s.thumb, fx: s.fx && { ...s.fx }, cam: s.cam && structuredClone(s.cam) })),
     transitions: structuredClone(seq.transitions), lyrics: structuredClone(seq.lyrics),
     offset: seq.offset, bpm: seq.bpm, phase: seq.phase, holdBeats: seq.holdBeats, link: seq.link,
   };
@@ -1247,7 +1299,7 @@ function restore(snap) {
   const old = new Map(seq.slides.map(s => [s.id, s]));
   seq.slides = snap.slides.map(x => {
     const o = old.get(x.id);
-    if (o && o.img === x.img && (o.cut ?? null) === (x.cut ?? null) && (o.lyric?.text ?? null) === (x.lyric?.text ?? null) && o.lyric?.img === x.lyric?.img && JSON.stringify(o.frame ?? null) === JSON.stringify(x.frame ?? null)) {
+    if (o && o.img === x.img && (o.cut ?? null) === (x.cut ?? null) && (o.depth ?? null) === (x.depth ?? null) && (o.lyric?.text ?? null) === (x.lyric?.text ?? null) && o.lyric?.img === x.lyric?.img && JSON.stringify(o.frame ?? null) === JSON.stringify(x.frame ?? null)) {
       o.hold = x.hold; o.name = x.name; o.lyric = x.lyric && { ...x.lyric };
       if (x.fx) o.fx = { ...x.fx }; else delete o.fx;
       if (x.cam) o.cam = structuredClone(x.cam); else delete o.cam;
@@ -1370,6 +1422,66 @@ async function askFrames(imgs) {
     if (answer.rest) same = answer.choice;
   }
   return out;
+}
+// 人物の立体: what the ◆ needs from the picture before it (a cut-out; the depth if wanted) and the ふくらみ when there is a depth
+let depthJob = null, depthStatus = '';
+function personSection(box, tr, i) {
+  const a = seq.slides[i], note = document.createElement('p'); note.className = 'hint'; note.dataset.role = 'person-note'; note.style.cssText = 'margin:0 0 8px;line-height:1.6';
+  const has = !!slideCut(a);
+  note.textContent = !a || a.lyric || !a.img ? '人物の立体は、写真・絵の画像の後の◆で使えます（歌詞カードには使えません）。'
+    : !has ? `前の画像に人物の切り抜きがありません。いまは球で見せています。前の画像を選んで「＋ 人物の切り抜きを入れる」か、下の「奥行きを作る」を押すと、奥行きから切り抜きも作ります。`
+    : a.depth ? `前の画像の人物だけが、奥行きとふくらみで立体になります。人物を抜いた絵はその場に残り、${tr.lateSwap === true ? '立体が崩れてから' : '立体の間に'}次の画像へ入れ替わります。`
+    : `前の画像の人物だけが、ふくらんだ立体になります。人物を抜いた絵はその場に残り、${tr.lateSwap === true ? '立体が崩れてから' : '立体の間に'}次の画像へ入れ替わります。「奥行きを作る」と、奥行きも混ぜられます。`;
+  box.append(note);
+  if (!a || a.lyric || !a.img) return;
+  const row = document.createElement('div'); row.className = 'row wrap'; row.dataset.role = 'person-depth';
+  const make = document.createElement('button'); make.className = 'btn'; make.dataset.role = 'person-depth-make';
+  make.textContent = depthJob ? '止める' : a.depth ? '奥行きを作り直す' : has ? '奥行きを作る' : '奥行きを作る（切り抜きも作る）';
+  make.title = '前の画像の手前・奥を、このブラウザの中で推定します（絵はどこにも送りません）。初めての時だけ、推定の仕組みを Hugging Face から読み込みます';
+  make.onclick = () => makeSlideDepth(i); row.append(make);
+  if (a.depth && !depthJob) { const off = document.createElement('button'); off.className = 'btn'; off.textContent = '奥行きを外す'; off.onclick = () => edit(() => { delete a.depth; }); row.append(off); }
+  const st = document.createElement('span'); st.className = 'hint'; st.dataset.role = 'person-depth-status'; st.textContent = depthStatus; row.append(st);
+  box.append(row);
+  if (a.depth && has) {
+    const puff = document.createElement('input'); puff.type = 'range'; puff.min = 0; puff.max = 100; puff.step = 1; puff.dataset.role = 'person-puff';
+    puff.value = Math.round(personPuff(tr, true) * 100);
+    puff.title = '0% = 奥行きだけ（写真の手前・奥のまま）、100% = ふくらみだけ（ふちから中へ丸く）';
+    field(box, 'ふくらみ', puff).onchange = () => edit(() => { tr.puff = Number(puff.value) / 100; });
+  }
+}
+const sayDepth = t => { depthStatus = t; const el = document.querySelector('[data-role="person-depth-status"]'); if (el) el.textContent = t; };
+// the slide's picture at its own size, as a canvas (the depth and a cut-out made from it are the same size, so they sit on the picture exactly)
+function pictureCanvas(img) { const c = document.createElement('canvas'); c.width = img.naturalWidth || img.width; c.height = img.naturalHeight || img.height; c.getContext('2d').drawImage(img, 0, 0); return c; }
+const canvasBlob = c => new Promise((ok, no) => c.toBlob(b => (b ? ok(b) : no(new Error('絵を保存できませんでした。'))), 'image/png'));
+// a depth {w, h, data} of slide i's picture → kept with the slide (a grey picture, saved with the project; one Undo takes it out). No cut-out yet: one is made from it
+async function applySlideDepth(i, field) {
+  const s = seq.slides[i]; if (!s || s.lyric || !s.img || !field) return false;
+  const picture = pictureCanvas(s.img), grey = document.createElement('canvas'); grey.width = picture.width; grey.height = picture.height;
+  const gx = grey.getContext('2d'); gx.imageSmoothingQuality = 'high'; gx.drawImage(fieldCanvas(field), 0, 0, grey.width, grey.height);
+  const depth = await imageOf(await canvasBlob(grey));
+  let cut = null;
+  if (!s.cut) {
+    const made = createDepthCutter(picture, field).cut(DEPTH_CUT);
+    if (made.share < .01) notice('奥行きから人物を切り抜けませんでした（手前の物が見つかりません）。切り抜きの透過PNGを入れてね。');
+    else cut = await imageOf(await canvasBlob(made.canvas));
+  }
+  if (seq.slides[i] !== s) return false;
+  edit(() => { s.depth = depth; if (cut) { s.cut = cut; s.cutCanvas = s.plateCanvas = null; } });
+  return true;
+}
+async function makeSlideDepth(i) {
+  const s = seq.slides[i]; if (!s || s.lyric || !s.img || seq.recording) return;
+  if (depthJob) { depthJob.cancel(); return; }
+  const cached = await depthModelCached();
+  if (!cached && !confirm(`絵の手前・奥を、このブラウザの中で推定します（絵はどこにも送りません）。\n\n初めてなので、推定の仕組み（約 ${DEPTH.mb}MB）を Hugging Face から読み込みます。次からは、このブラウザに残ります。\n\n始めますか？`)) return;
+  const job = makeDepth(pictureCanvas(s.img), { on: { load: (l, t) => sayDepth(`推定の仕組みを読み込んでいます… ${(l / 1e6).toFixed(0)} / ${(t / 1e6).toFixed(0)} MB${cached ? '' : '（初めての時だけ）'}`), run: () => sayDepth('絵の手前・奥を推定しています…') } });
+  depthJob = job; sayDepth('奥行きを作る準備をしています…'); renderInspector();
+  let field = null;
+  try { field = await job.done; } catch (e) { notice('奥行きを作れませんでした: ' + (e.message || e)); }
+  finally { if (depthJob === job) depthJob = null; }
+  depthStatus = field ? '' : '奥行きを作るのをやめました。';
+  if (field && !(await applySlideDepth(i, field))) depthStatus = '';
+  renderInspector();
 }
 // a person cut-out for slide i (a File / Blob of a transparent PNG or WebP): kept with the slide, saved with the project, one Undo takes it out again
 async function setSlideCut(i, file) {
@@ -1522,6 +1634,7 @@ async function restoreProject(json, blobs) {
     if (x.lyric) s.lyric = { text: x.lyric.text, k: x.lyric.k ?? undefined, seed: x.lyric.seed, lineId: x.lyric.lineId, img: await img(x.lyric.img) };
     else s.img = (await img(x.img)) || blankImage();
     if (x.cut && !x.lyric) { const cut = await img(x.cut); if (cut) s.cut = cut; }
+    if (x.depth && !x.lyric) { const depth = await img(x.depth); if (depth) s.depth = depth; }   // 人物の立体's depth
     slides.push(s);
   }
   seq.slides = slides;
@@ -1861,7 +1974,7 @@ try {
   const aspect = CANVAS_W / CANVAS_H;
   planeH = Math.min(3.65, 5.25 / aspect); planeW = planeH * aspect;
   const blank = makeTexture(document.createElement('canvas'));
-  const uniforms = { uImage: { value: blank }, uImageB: { value: blank }, uSwap: { value: 0 }, uSize: { value: new THREE.Vector2(planeW, planeH) },
+  const uniforms = { uImage: { value: blank }, uImageB: { value: blank }, uSwap: { value: 0 }, uWhole: { value: 0 }, uSize: { value: new THREE.Vector2(planeW, planeH) },
     uDistort: { value: 0 }, uForm: { value: 0 }, uStrength: { value: .8 }, uDepth: { value: 1 }, uSeed: { value: 28 }, uMethod: { value: 0 },
     uMethod2: { value: 0 }, uMethodMix: { value: 0 }, uProject: { value: 0 }, uTime: { value: 0 }, uDraw: { value: 1 }, uThrough: { value: 0 }, uFade: { value: 1 }, uGlass: { value: 0 }, uShape: { value: 0 }, uPreset: { value: 0 }, uConceal: { value: 0 }, uModelColor: { value: 0 }, uModelTex: { value: null } };
   geoCache.set('sphere', gridGeometry(presetTargets('sphere')));
@@ -1888,6 +2001,7 @@ try {
   gallery = createGallery(THREE); scene.add(gallery.group);
   outline = createOutline(THREE); scene.add(outline.object);
   diveStage = createDiveStage(THREE);
+  personStage = createPersonStage();
   wire();
   timeline = createTimeline($('seq-timeline'), timelineApi);
   await loadModelLibrary();
@@ -1926,7 +2040,8 @@ try {
       const method=activate();edit(()=>{tr.method=method.id;if(method.code&&item.workshop?.shape==='none')tr.shape='none';normalizeImageTransition(tr)});showTab('edit');
     }
   }});
-  window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile, setSlideCut, slideCut, projectSettings: () => stateForSave().settings, galleryState: () => ({ x: camera.position.x, y: camera.position.y, zoom: camera.zoom, gap: galleryGap(planeW), planes: gallery.opacities(), wind: gallery.windLines(), solid: [mesh.position.x, mesh.position.y, mesh.scale.x, mesh.scale.y] }) };
+  window.unfoldSeq = { lyricAction, setLyricDocument, exportVideo, seq, addImageFromUrl, addImageBlob, addSlide, prepareShapes, undo, redo, flushSave, timelineApi, shuffleTransitions, loadAudio, setLyrics, detectTempo, buildLyricMV, renderAt, totalSeconds, exportWebM, refreshUI, exportProjectBlob: () => exportFile(stateForSave()), openProjectFile, setSlideCut, slideCut, projectSettings: () => stateForSave().settings, galleryState: () => ({ x: camera.position.x, y: camera.position.y, zoom: camera.zoom, gap: galleryGap(planeW), planes: gallery.opacities(), wind: gallery.windLines(), solid: [mesh.position.x, mesh.position.y, mesh.scale.x, mesh.scale.y] }),
+    applySlideDepth, personState: () => ({ stage: personStage.visible, shape: mesh.geometry.userData.layout?.relief ?? null, rotation: [mesh.rotation.x, mesh.rotation.y], whole: mesh.material.uniforms.uWhole?.value ?? null, own: mesh.material.uniforms.uImage.value !== slideTexture(seq.slides[Math.max(0, locate(seq.t).i)]), zoom: camera.zoom }) };
   window.unfoldMethods = { registerCustom, unregisterCustom, setCustomStatus, listCustom, variants, editor: methodEditor, persistence: methodPersistence, safety, enabler: methodEnabler, transfer: { importFile: importMethodFile, importText: importMethodText, download: downloadMethodFile } };
 } catch (e) {
   console.error(e);

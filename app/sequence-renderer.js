@@ -10,6 +10,7 @@ import {solidMotionAt,motionCamera,solidLife} from './solid-motion.js?v=4';
 import {galleryPose,galleryGap,galleryZoom,galleryMoveFor} from './gallery-walk.js?v=5';
 import {DIVE,diveAt} from './dive-stage.js?v=1';
 import {applyToon,lineAt} from './toon-look.js?v=1';
+import {PERSON_SHAPE,personSwing,personTilt} from './seq-person-relief.js?v=1';
 import {concealAmount,swapCurve,mixFx} from './fx-mix.js';
 import {camLife,camValues,lifeProgress,legacyKenBurns,mixCam} from './camera-work.js';
 import {createImageMethodLayer,imageCamera} from './image-method-layer.js';
@@ -98,6 +99,11 @@ export function drawSequenceVisual(ctx,sec) {
   }
   if (mesh.geometry !== geo) mesh.geometry = geo;
   setMaterialTextures(seq.slides[L.i], tr ? seq.slides[L.i + 1] : null);
+  // 人物の立体 (seq-person-relief.js): only her shape is the solid (her picture, then the next picture's colours); the picture without her stays behind
+  // and the next picture comes in over it as they swap. Only where the page has a person stage (not in STUDIO's renderer, not on the gallery wall)
+  const person = !!(ctx.personStage && tr?.shape === PERSON_SHAPE && !imageCode && geo.userData.layout?.relief?.person && !seq.gallery?.enabled);
+  if (person) { const own = ctx.personTexture?.(seq.slides[L.i]); if (own) u.uImage.value = own; }
+  if (u.uWhole) u.uWhole.value = person ? smooth(.3, .85, c.form) : 0;
   const isText = isFlatShape(tr);
   const isPreset = tr && (presetNames.includes(tr.shape) || savedModels.has(tr.shape) || isColourShape(tr.shape) || isText);
   u.uTime.value = sec;
@@ -106,6 +112,7 @@ export function drawSequenceVisual(ctx,sec) {
   if (reveal) u.uDraw.value = 1 - smooth(.05, .85, L.u);
   backdrop.visible = reveal;
   if (reveal) backdrop.material.map = slideTexture(seq.slides[L.i + 1]);
+  ctx.personStage?.update(person ? { plate: ctx.slidePlate(seq.slides[L.i]), next: slideCanvas(seq.slides[L.i + 1]), swap: c.swap } : null);
   u.uDraw.value = !tr || dive ? 1 : L.u < .5 ? 1 - smooth(.06, .44, L.u) : smooth(.56, .94, L.u);
   u.uDistort.value = c.distort; u.uForm.value = c.form; if (u.uModelColor) u.uModelColor.value = seq.modelColor ?? 0; if (u.uModelTex) u.uModelTex.value = mesh.geometry.userData.layout?.texture ?? null; u.uStrength.value = seq.strength; u.uDepth.value = seq.depth;
   // custom methods have their own shader: swap it in (uniforms are shared, so `u` stays valid)
@@ -124,6 +131,8 @@ export function drawSequenceVisual(ctx,sec) {
   const cm = seq.cam,orientation=imageCode&&tr.shape==='none'?c.distort:c.form;
   mesh.rotation.set((-.16 + (tr?.viewX || 0) - cm.orbit * .45) * c.form,
     (isPreset && !isText ? .2 : .35) * c.form + turn + (tr?.viewY || 0) * c.form + (tr ? cm.orbit * 2.2 * (L.u - .5) * c.form : 0), 0);
+  // her solid only shows its depth when it moves: a slow swing left-right and a gentle nod while it is formed (like 1枚モード's relief)
+  if (person) mesh.rotation.set((-.18 + (tr.viewX || 0) + personTilt(uw)) * c.form, (.12 + (tr.viewY || 0) + personSwing(uw)) * c.form, 0);
   const spin=tr&&(tr.shape!=='none'||imageCode)?rotationAt(shot.rotation,L.u,'sequence'):null;
   if(spin){mesh.rotation.set((tr.viewX||0)*orientation,(tr.viewY||0)*orientation,0);mesh.quaternion.premultiply(shotQuat.setFromAxisAngle(shotAxis.fromArray(spin.axis),spin.angle));}
   // 立体の動き: the solid sways / hops… on the beat while it is formed, counted from the start of this ◆
@@ -145,8 +154,8 @@ export function drawSequenceVisual(ctx,sec) {
   // while torn up / 3D the camera goes to the zoom the two "引き" sliders ask for: 0% = frame-filling, 100% = 1×
   const fullZoom = Math.max((camera.right - camera.left) / planeW, (camera.top - camera.bottom) / planeH);
   const flatZoom = seq.fill ? fullZoom : 1;
-  const pull = seq.pullback * (1 - c.form) + (tr && fillsFrame(tr.shape) ? 0 : seq.formPullback) * c.form;   // a scene that fills the frame is not pulled back   // hands over to the 3D setting as the solid forms
-  const loose = reveal ? 0 : Math.max(c.distort, c.form);   // a reveal keeps the frame still so the next picture sits exactly in place
+  const pull = seq.pullback * (1 - c.form) + (tr && (fillsFrame(tr.shape) || person) ? 0 : seq.formPullback) * c.form;   // a scene that fills the frame is not pulled back   // hands over to the 3D setting as the solid forms
+  const loose = reveal || person ? 0 : Math.max(c.distort, c.form);   // a reveal (and 人物の立体, whose background stays) keeps the frame still so the next picture sits exactly in place
   camera.zoom = flatZoom + (1 + (fullZoom - 1) * (1 - pull) - flatZoom) * loose + seq.push * c.form + 0.06 * beatKick;
   // camera work: slow Ken Burns drift per picture (or a picture's own camera), handheld wobble, a lazy tilt
   const shotBaseZoom=camera.zoom;

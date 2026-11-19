@@ -72,7 +72,7 @@ async function toJSON(state) {
   const ref = async obj => { if (!obj) return null; const a = await assetOf(obj); assets.set(a.id, a); return a.id; };
   const slides = [];
   for (const s of state.slides) {
-    slides.push({ name: s.name, hold: s.hold ?? null, fx: s.fx ?? null, cam: s.cam ?? null, frame: s.frame ?? null, img: await ref(s.img), cut: s.cut ? await ref(s.cut) : null,   // cut: the person cut-out (絵の中へ飛び込む)
+    slides.push({ name: s.name, hold: s.hold ?? null, fx: s.fx ?? null, cam: s.cam ?? null, frame: s.frame ?? null, img: await ref(s.img), cut: s.cut ? await ref(s.cut) : null, depth: s.depth ? await ref(s.depth) : null,   // cut: the person cut-out (絵の中へ飛び込む・人物の立体); depth: 人物の立体's depth (a grey picture)
       lyric: s.lyric ? { text: s.lyric.text, k: s.lyric.k ?? null, seed: s.lyric.seed, lineId: s.lyric.lineId ?? null, img: await ref(s.lyric.img) } : null });
   }
   const audio = state.audio ? { name: state.audio.name, asset: await ref(state.audio.owner) } : null;
